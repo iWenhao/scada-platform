@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCADA Platform - UI Design Guide</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* 背景动画 */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(ellipse at 20% 50%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 50%, rgba(0, 184, 148, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 0%, rgba(0, 212, 170, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 头部 */
+    .header {
+      text-align: center;
+      margin-bottom: 60px;
+      padding: 40px;
+      background: linear-gradient(135deg, rgba(0, 212, 170, 0.1) 0%, rgba(0, 184, 148, 0.05) 100%);
+      border: 1px solid rgba(0, 212, 170, 0.2);
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(0, 212, 170, 0.1), transparent, rgba(0, 212, 170, 0.1), transparent);
+      animation: rotate 20s linear infinite;
+    }
+
+    @keyframes rotate {
+      100% { transform: rotate(360deg); }
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .header h1 {
+      font-size: 36px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+      text-shadow: 0 0 40px rgba(0, 212, 170, 0.3);
+    }
+
+    .header p {
+      color: #888;
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(0, 212, 170, 0.15);
+      color: #00d4aa;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      margin-top: 16px;
+      border: 1px solid rgba(0, 212, 170, 0.3);
+    }
+
+    /* 复制按钮 */
+    .copy-section {
+      position: sticky;
+      top: 20px;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+
+    .copy-btn {
+      background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+      color: #fff;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .copy-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 212, 170, 0.4);
+    }
+
+    .copy-btn:active {
+      transform: translateY(0);
+    }
+
+    .copy-btn.copied {
+      background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    }
+
+    .copy-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* 卡片 */
+    .card {
+      background: rgba(22, 33, 62, 0.6);
+      border: 1px solid rgba(0, 212, 170, 0.1);
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(0, 212, 170, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 212, 170, 0.1);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      color: #00d4aa;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card h2::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 24px;
+      background: linear-gradient(to bottom, #00d4aa, transparent);
+      border-radius: 2px;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      color: #e0e0e0;
+      margin: 20px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* ASCII 图 */
+    .ascii-art {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 212, 170, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-x: auto;
+      margin: 16px 0;
+      white-space: pre;
+    }
+
+    /* 表格 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+
+    th {
+      background: rgba(0, 212, 170, 0.1);
+      color: #00d4aa;
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+    }
+
+    tr:hover td {
+      background: rgba(0, 212, 170, 0.05);
+    }
+
+    /* 颜色块 */
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0;
+    }
+
+    .color-swatch {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .color-info {
+      flex: 1;
+    }
+
+    .color-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .color-code {
+      color: #888;
+      font-size: 12px;
+    }
+
+    /* 列表 */
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    ul li {
+      padding: 8px 0;
+      padding-left: 20px;
+      position: relative;
+      font-size: 13px;
+    }
+
+    ul li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: #00d4aa;
+    }
+
+    /* 标签 */
+    .tag {
+      display: inline-block;
+      background: rgba(0, 212, 170, 0.15);
+      color: #00d4aa;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin: 2px;
+    }
+
+    .tag.orange {
+      background: rgba(255, 165, 2, 0.15);
+      color: #ffa502;
+    }
+
+    .tag.red {
+      background: rgba(255, 71, 87, 0.15);
+      color: #ff4757;
+    }
+
+    .tag.blue {
+      background: rgba(52, 152, 219, 0.15);
+      color: #3498db;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      color: #fff;
+      padding: 16px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      opacity: 0;
+      transform: translateX(100px);
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(46, 204, 113, 0.3);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* 网格布局 */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 组件示例 */
+    .component-demo {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 212, 170, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .component-demo .icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      color: #00d4aa;
+    }
+
+    .component-demo .name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* 分隔线 */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(0, 212, 170, 0.2), transparent);
+      margin: 40px 0;
+    }
+
+    /* Markdown内容隐藏 */
+    #markdown-content {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <div class="header">
+      <div class="header-content">
+        <h1>SCADA Platform</h1>
+        <p>工业组态可视化编辑平台 - UI 设计提示文稿</p>
+        <div class="badge">Vue 3 + TypeScript + Konva.js + Element Plus</div>
+      </div>
+    </div>
+
+    <!-- 复制按钮 -->
+    <div class="copy-section">
+      <button class="copy-btn" onclick="copyContent()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        一键复制全部内容
+      </button>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">✅ 已复制到剪贴板</div>
+
+    <!-- 内容区域 -->
+    <div id="content-area">
+      <!-- 整体布局 -->
+      <div class="card">
+        <h2>整体布局</h2>
+        <p style="color: #888; margin-bottom: 16px;">主编辑器页面采用三栏布局，深蓝黑色主题 (#1a1a2e)</p>
+        <div class="ascii-art">+------------------------------------------------------------------+
+|                           工具栏 (48px)                           |
++----------+----------------------------------+--------------------+
+|          |                                  |                    |
+|  组件面板 |           画布区域               |    属性面板         |
+|  (240px) |         (自适应)                 |    (280px)         |
+|          |                                  |                    |
+|          |                                  |                    |
+|          |                                  |                    |
++----------+----------------------------------+--------------------+
+|                      图层管理面板 (200px)                         |
++------------------------------------------------------------------+</div>
+      </div>
+
+      <!-- 工具栏 -->
+      <div class="card">
+        <h2>工具栏组件</h2>
+        <div class="ascii-art">+------------------------------------------------------------------+
+| [Logo] 项目名称  [未保存]    工具按钮组    [配置] [保存] [预览]    |
++------------------------------------------------------------------+</div>
+        
+        <h3>左侧区域</h3>
+        <ul>
+          <li>Logo图标 (32x32)</li>
+          <li>项目名称文本</li>
+          <li>"未保存"警告标签 <span class="tag orange">橙色</span></li>
+        </ul>
+
+        <h3>中间工具区</h3>
+        <div class="grid-3">
+          <div class="component-demo">
+            <div style="font-size: 24px; margin-bottom: 8px;">🔧</div>
+            <div class="name">模式切换</div>
+            <div style="color: #888; font-size: 11px; margin-top: 4px;">选择(V) / 连线(L)</div>
+          </div>
+          <div class="component-demo">
+            <div style="font-size: 24px; margin-bottom: 8px;">↩️</div>
+            <div class="name">撤销/重做</div>
+            <div style="color: #888; font-size: 11px; margin-top: 4px;">Ctrl+Z / Ctrl+Y</div>
+          </div>
+          <div class="component-demo">
+            <div style="font-size: 24px; margin-bottom: 8px;">🔍</div>
+            <div class="name">缩放控制</div>
+            <div style="color: #888; font-size: 11px; margin-top: 4px;">放大/缩小/适应</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 组件面板 -->
+      <div class="card">
+        <h2>左侧 - 组件面板</h2>
+        <div class="ascii-art">+------------------+
+|     组件库       |  ← 背景 #0f3460
++------------------+
+| 基础组件         |
+| [图标] 阀门     |
+| [图标] 泵       |
+| [图标] 储罐     |
++------------------+
+| 管道组件         |
+| [图标] 管道     |
++------------------+
+| 电气组件         |
+| [图标] 电机     |
+| [图标] 传感器   |
++------------------+</div>
+
+        <h3>组件项样式</h3>
+        <div class="color-row">
+          <div class="color-swatch" style="background: #1a1a2e;"></div>
+          <div class="color-info">
+            <div class="color-name">默认背景</div>
+            <div class="color-code">#1a1a2e</div>
+          </div>
+        </div>
+        <div class="color-row">
+          <div class="color-swatch" style="background: #0f3460; border-color: #00d4aa;"></div>
+          <div class="color-info">
+            <div class="color-name">悬停背景</div>
+            <div class="color-code">#0f3460</div>
+          </div>
+        </div>
+        <div class="color-row">
+          <div class="color-swatch" style="background: #00d4aa;"></div>
+          <div class="color-info">
+            <div class="color-name">图标颜色</div>
+            <div class="color-code">#00d4aa</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 画布区域 -->
+      <div class="card">
+        <h2>中间 - 画布区域</h2>
+        
+        <h3>画布配置</h3>
+        <table>
+          <tr>
+            <th>属性</th>
+            <th>值</th>
+            <th>说明</th>
+          </tr>
+          <tr>
+            <td>背景色</td>
+            <td><span class="tag">#1e1e1e</span></td>
+            <td>画布背景</td>
+          </tr>
+          <tr>
+            <td>默认尺寸</td>
+            <td>1920 x 1080</td>
+            <td>可自定义</td>
+          </tr>
+          <tr>
+            <td>小网格</td>
+            <td>20px</td>
+            <td>颜色 #2a2a2a</td>
+          </tr>
+          <tr>
+            <td>大网格</td>
+            <td>100px</td>
+            <td>颜色 #333333</td>
+          </tr>
+        </table>
+
+        <h3>组件渲染</h3>
+        <div class="grid-2">
+          <div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: #2a2a2a;"></div>
+              <div class="color-info">
+                <div class="color-name">默认填充</div>
+                <div class="color-code">#2a2a2a</div>
+              </div>
+            </div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: transparent; border: 2px solid #00d4aa;"></div>
+              <div class="color-info">
+                <div class="color-name">选中边框</div>
+                <div class="color-code">#00d4aa (2px)</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: transparent; border: 1px solid #444;"></div>
+              <div class="color-info">
+                <div class="color-name">未选中边框</div>
+                <div class="color-code">#444444 (1px)</div>
+              </div>
+            </div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: #1a1a2e; border: 2px solid #00d4aa;"></div>
+              <div class="color-info">
+                <div class="color-name">端口样式</div>
+                <div class="color-code">半径 6px</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 属性面板 -->
+      <div class="card">
+        <h2>右侧 - 属性面板</h2>
+        <div class="ascii-art">+------------------+
+|     属性面板     |
++------------------+
+| 基本属性         |
+| 名称 [________]  |
+| 类型 [motor] [禁]|
++------------------+
+| 位置             |
+| X [__] Y [__]   |
+| 宽度 [__]       |
+| 高度 [__]       |
+| 旋转 [====|==]  |
++------------------+
+| 组件属性         |
+| 转速 [0]        |
+| 温度 [25]       |
++------------------+
+| 状态规则         |
+| [配置状态规则]   |
++------------------+</div>
+      </div>
+
+      <!-- 图层面板 -->
+      <div class="card">
+        <h2>底部 - 图层管理面板</h2>
+        <table>
+          <tr>
+            <th>可见</th>
+            <th>锁定</th>
+            <th>名称</th>
+            <th>类型</th>
+            <th>操作</th>
+          </tr>
+          <tr>
+            <td>👁</td>
+            <td>🔒</td>
+            <td>背景层</td>
+            <td><span class="tag">背景</span></td>
+            <td>⬆⬇</td>
+          </tr>
+          <tr>
+            <td>👁</td>
+            <td>🔓</td>
+            <td>管道层</td>
+            <td><span class="tag orange">管道</span></td>
+            <td>⬆⬇🗑️</td>
+          </tr>
+          <tr>
+            <td>👁</td>
+            <td>🔓</td>
+            <td>设备层</td>
+            <td><span class="tag">设备</span></td>
+            <td>⬆⬇🗑️</td>
+          </tr>
+          <tr>
+            <td>👁</td>
+            <td>🔓</td>
+            <td>标注层</td>
+            <td><span class="tag blue">标注</span></td>
+            <td>⬆⬇🗑️</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 状态颜色 -->
+      <div class="card">
+        <h2>状态颜色规范</h2>
+        <div class="grid-2">
+          <div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: #00d4aa;"></div>
+              <div class="color-info">
+                <div class="color-name">运行</div>
+                <div class="color-code">#00d4aa - 设备运行、选中高亮</div>
+              </div>
+            </div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: #ff4757;"></div>
+              <div class="color-info">
+                <div class="color-name">停止</div>
+                <div class="color-code">#ff4757 - 设备停止、错误</div>
+              </div>
+            </div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: #ffa502;"></div>
+              <div class="color-info">
+                <div class="color-name">警告</div>
+                <div class="color-code">#ffa502 - 高温、高液位</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: #666;"></div>
+              <div class="color-info">
+                <div class="color-name">未知</div>
+                <div class="color-code">#666666 - 未连接、未知状态</div>
+              </div>
+            </div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: #00d4aa;"></div>
+              <div class="color-info">
+                <div class="color-name">主强调</div>
+                <div class="color-code">#00d4aa - 按钮、链接</div>
+              </div>
+            </div>
+            <div class="color-row">
+              <div class="color-swatch" style="background: #00b894;"></div>
+              <div class="color-info">
+                <div class="color-name">次强调</div>
+                <div class="color-code">#00b894 - 预览按钮、成功</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 交互状态 -->
+      <div class="card">
+        <h2>交互状态</h2>
+        <div class="grid-3">
+          <div>
+            <h3>按钮状态</h3>
+            <ul>
+              <li>默认: 背景 #1a1a2e</li>
+              <li>悬停: 背景 #0f3460</li>
+              <li>激活: 背景 #00d4aa</li>
+              <li>禁用: 透明度 0.5</li>
+            </ul>
+          </div>
+          <div>
+            <h3>输入框状态</h3>
+            <ul>
+              <li>默认: 背景 #1a1a2e</li>
+              <li>聚焦: 边框 #00d4aa</li>
+              <li>禁用: 背景 #16213e</li>
+            </ul>
+          </div>
+          <div>
+            <h3>拖拽状态</h3>
+            <ul>
+              <li>拖拽中: 透明度 0.8</li>
+              <li>放置区: 边框闪烁</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 字体规范 -->
+      <div class="card">
+        <h2>字体规范</h2>
+        <table>
+          <tr>
+            <th>用途</th>
+            <th>大小</th>
+            <th>粗细</th>
+            <th>颜色</th>
+          </tr>
+          <tr>
+            <td>面板标题</td>
+            <td>14px</td>
+            <td>600</td>
+            <td><span class="tag">#e0e0e0</span></td>
+          </tr>
+          <tr>
+            <td>分组标题</td>
+            <td>12px</td>
+            <td>500</td>
+            <td><span class="tag">#a0a0a0</span></td>
+          </tr>
+          <tr>
+            <td>组件名称</td>
+            <td>13px</td>
+            <td>400</td>
+            <td><span class="tag">#e0e0e0</span></td>
+          </tr>
+          <tr>
+            <td>属性标签</td>
+            <td>12px</td>
+            <td>400</td>
+            <td><span class="tag">#a0a0a0</span></td>
+          </tr>
+          <tr>
+            <td>输入文字</td>
+            <td>13px</td>
+            <td>400</td>
+            <td><span class="tag">#e0e0e0</span></td>
+          </tr>
+          <tr>
+            <td>提示文字</td>
+            <td>11px</td>
+            <td>400</td>
+            <td><span class="tag">#666666</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 间距规范 -->
+      <div class="card">
+        <h2>间距规范</h2>
+        <div class="grid-2">
+          <div>
+            <ul>
+              <li>面板内边距: <strong>12px</strong></li>
+              <li>组件间距: <strong>8px</strong></li>
+              <li>输入框间距: <strong>12px</strong></li>
+            </ul>
+          </div>
+          <div>
+            <ul>
+              <li>分组间距: <strong>16px</strong></li>
+              <li>图标与文字间距: <strong>8px</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 隐藏的Markdown内容用于复制 -->
+  <textarea id="markdown-content">
+# SCADA Platform - UI 设计提示文稿
+
+## 项目概述
+工业组态可视化编辑平台，用于创建和监控工业设备流程图。采用暗色主题，专业工业风格。
+技术栈：Vue 3 + TypeScript + Konva.js + Element Plus
+
+---
+
+## 整体布局
+主编辑器页面 - 三栏布局，背景色: #1a1a2e
+
++------------------------------------------------------------------+
+|                           工具栏 (48px)                           |
++----------+----------------------------------+--------------------+
+|          |                                  |                    |
+|  组件面板 |           画布区域               |    属性面板         |
+|  (240px) |         (自适应)                 |    (280px)         |
+|          |                                  |                    |
++----------+----------------------------------+--------------------+
+|                      图层管理面板 (200px)                         |
++------------------------------------------------------------------+
+
+---
+
+## 工具栏组件
+
+布局: [Logo] 项目名称 [未保存] 工具按钮组 [配置] [保存] [预览]
+
+左侧区域:
+- Logo图标 (32x32)
+- 项目名称文本
+- "未保存"警告标签 (橙色)
+
+中间工具区:
+1. 模式切换按钮组 - 选择工具(V) / 连线工具(L) - 选中背景 #00d4aa
+2. 撤销/重做按钮组 - Ctrl+Z / Ctrl+Y - 禁用状态灰色
+3. 缩放控制按钮组 - 放大/缩小/适应画布 - 显示百分比
+
+右侧区域:
+1. 配置按钮组 - 画布配置(Setting) / 数据源配置(DataLine)
+2. 文件操作按钮组 - 保存(Ctrl+S) / 导出JSON / 导入JSON
+3. 预览按钮 - 绿色背景 #00b894
+
+---
+
+## 左侧 - 组件面板
+
+面板头部: 背景 #0f3460，白色文字 14px 加粗
+
+组件分组:
+1. 基础组件: 阀门、泵、储罐
+2. 管道组件: 管道
+3. 电气组件: 电机、传感器
+
+组件项样式:
+- 背景: #1a1a2e
+- 边框: #333333
+- 悬停: 边框 #00d4aa，背景 #0f3460
+- 图标: #00d4aa，32x32
+- 文字: #e0e0e0
+
+---
+
+## 中间 - 画布区域
+
+画布配置:
+- 背景色: #1e1e1e
+- 默认尺寸: 1920 x 1080 (可自定义)
+
+网格系统:
+- 小网格: 20px，#2a2a2a，透明度 0.5
+- 大网格: 100px，#333333，透明度 0.7
+
+画布边界: #444444，2px
+
+组件渲染:
+- 默认填充: #2a2a2a
+- 选中边框: #00d4aa，2px
+- 未选中边框: #444444，1px
+- 圆角: 4px
+
+组件端口 (连线模式):
+- 圆形，半径 6px
+- 填充: #1a1a2e
+- 边框: #00d4aa，2px
+- 位置: 上、下、左、右
+
+画布信息 (右下角): "1920 x 1080 100%" - 背景 rgba(0,0,0,0.6)
+
+选中变换器: 边框 #00d4aa，锚点 8px
+
+---
+
+## 右侧 - 属性面板
+
+未选中状态: 显示图标 + "请选择一个组件"
+
+选中后显示:
+1. 基本属性区: 名称、类型(禁用)
+2. 位置属性区: X、Y、宽度、高度、旋转(滑块)
+3. 组件属性区: 根据组件类型动态显示
+4. 状态规则区: "配置状态规则"按钮
+
+---
+
+## 底部 - 图层管理面板
+
+面板头部: "图层管理" + "[+] 添加图层" 按钮
+
+图层列表:
+| 可见 | 锁定 | 名称 | 类型 | 操作 |
+|------|------|------|------|------|
+| 👁 | 🔒 | 背景层 | 背景 | ⬆⬇ |
+| 👁 | 🔓 | 管道层 | 管道 | ⬆⬇🗑️ |
+| 👁 | 🔓 | 设备层 | 设备 | ⬆⬇🗑️ |
+| 👁 | 🔓 | 标注层 | 标注 | ⬆⬇🗑️ |
+
+图层项样式:
+- 激活: 左边框 3px #00d4aa
+- 背景: #1a1a2e
+- 悬停: #0f3460
+
+类型标签颜色:
+- 背景: 灰色
+- 管道: 橙色
+- 设备: 绿色
+- 标注: 蓝色
+
+---
+
+## 对话框组件
+
+### 1. 画布配置对话框
+- 画布宽度 (800-7680)
+- 画布高度 (600-4320)
+- 背景颜色
+- 显示网格开关
+- 网格大小 (10-100)
+- 网格颜色
+- 缩放范围 (10%-500%)
+- 预设尺寸: 1080P / 2K / 4K / 自定义
+
+### 2. 数据源配置对话框
+- 数据源类型: 模拟数据 / WebSocket / HTTP轮询
+- 数据源名称
+- WebSocket配置: 服务地址、自动重连、重连间隔
+- HTTP配置: 请求地址、轮询间隔
+- 连接状态显示
+
+### 3. 状态规则配置对话框
+- 左侧规则列表: 添加/删除规则
+- 右侧规则详情:
+  - 状态名称
+  - 状态颜色
+  - 优先级
+  - 条件类型: 比较/区间/逻辑与/逻辑或/表达式
+
+---
+
+## 预览页面
+
+布局: [返回编辑器] 项目名称 - 预览模式 [● 已连接] 最后更新
+
+特点:
+- 全屏画布
+- 禁用拖拽和编辑
+- 实时数据更新
+- 组件颜色根据状态变化
+
+---
+
+## 仪表盘页面
+
+顶部: SCADA Platform 标题
+
+卡片区域:
+1. 新建项目 - 创建一个新的组态项目
+2. 打开项目 - 从本地加载已有项目
+3. 导入项目 - 从JSON文件导入项目
+
+最近项目表格: 项目名称、最后修改、操作(打开/删除)
+
+---
+
+## 状态颜色规范
+
+| 状态 | 颜色代码 | 用途 |
+|------|----------|------|
+| 运行 | #00d4aa | 设备运行状态、选中高亮 |
+| 停止 | #ff4757 | 设备停止状态、错误 |
+| 警告 | #ffa502 | 高温、高液位警告 |
+| 未知 | #666666 | 未连接、未知状态 |
+| 主强调 | #00d4aa | 按钮、链接、激活状态 |
+| 次强调 | #00b894 | 预览按钮、成功状态 |
+
+---
+
+## 交互状态
+
+按钮状态:
+- 默认: 背景 #1a1a2e，边框 #333333
+- 悬停: 背景 #0f3460，边框 #00d4aa
+- 激活: 背景 #00d4aa，文字白色
+- 禁用: 透明度 0.5
+
+输入框状态:
+- 默认: 背景 #1a1a2e，边框 #333333
+- 聚焦: 边框 #00d4aa
+- 禁用: 背景 #16213e
+
+拖拽状态:
+- 组件拖拽中: 透明度 0.8，阴影
+- 放置区域高亮: 边框 #00d4aa 闪烁
+
+---
+
+## 图标规范
+
+工具栏图标: 18x18，#e0e0e0，激活 #ffffff
+组件面板图标: 32x32，#00d4aa
+图层面板图标: 14x14，#a0a0a0，悬停 #00d4aa
+
+---
+
+## 字体规范
+
+| 用途 | 大小 | 粗细 | 颜色 |
+|------|------|------|------|
+| 面板标题 | 14px | 600 | #e0e0e0 |
+| 分组标题 | 12px | 500 | #a0a0a0 |
+| 组件名称 | 13px | 400 | #e0e0e0 |
+| 属性标签 | 12px | 400 | #a0a0a0 |
+| 输入文字 | 13px | 400 | #e0e0e0 |
+| 提示文字 | 11px | 400 | #666666 |
+
+---
+
+## 间距规范
+
+- 面板内边距: 12px
+- 组件间距: 8px
+- 输入框间距: 12px
+- 分组间距: 16px
+- 图标与文字间距: 8px
+  </textarea>
+
+  <script>
+    function copyContent() {
+      const content = document.getElementById('markdown-content').value;
+      
+      navigator.clipboard.writeText(content).then(() => {
+        showSuccess();
+      }).catch(() => {
+        // 降级方案
+        const textarea = document.createElement('textarea');
+        textarea.value = content;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showSuccess();
+      });
+    }
+
+    function showSuccess() {
+      const btn = document.querySelector('.copy-btn');
+      const toast = document.getElementById('toast');
+      
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        已复制
+      `;
+      btn.classList.add('copied');
+      toast.classList.add('show');
+      
+      setTimeout(() => {
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          一键复制全部内容
+        `;
+        btn.classList.remove('copied');
+        toast.classList.remove('show');
+      }, 2000);
+    }
+  </script>
+</body>
+</html>

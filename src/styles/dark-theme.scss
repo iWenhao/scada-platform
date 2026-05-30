@@ -1,0 +1,166 @@
+// Element Plus 暗色主题覆盖
+.el-dialog {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+  
+  .el-dialog__title {
+    color: var(--text-primary) !important;
+  }
+  
+  .el-dialog__body {
+    color: var(--text-primary) !important;
+  }
+}
+
+.el-form-item__label {
+  color: var(--text-secondary) !important;
+}
+
+.el-input__wrapper {
+  background-color: var(--bg-primary) !important;
+  border: 1px solid var(--border-primary) !important;
+  box-shadow: none !important;
+  
+  .el-input__inner {
+    color: var(--text-primary) !important;
+  }
+}
+
+.el-select .el-input__wrapper {
+  background-color: var(--bg-primary) !important;
+}
+
+.el-textarea__inner {
+  background-color: var(--bg-primary) !important;
+  border: 1px solid var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.el-button {
+  border-color: var(--border-primary) !important;
+}
+
+.el-button--primary {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  color: #fff !important;
+}
+
+.el-switch__core {
+  background-color: var(--border-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.el-switch.is-checked .el-switch__core {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+.el-slider__runway {
+  background-color: var(--border-primary) !important;
+}
+
+.el-slider__bar {
+  background-color: var(--accent-primary) !important;
+}
+
+.el-color-picker__trigger {
+  border-color: var(--border-primary) !important;
+}
+
+.el-tabs__item {
+  color: var(--text-secondary) !important;
+  
+  &.is-active {
+    color: var(--accent-primary) !important;
+  }
+}
+
+.el-tabs__nav-wrap::after {
+  background-color: var(--border-primary) !important;
+}
+
+.el-collapse-item__header {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-bottom-color: var(--border-primary) !important;
+}
+
+.el-collapse-item__wrap {
+  background-color: var(--bg-secondary) !important;
+  border-bottom-color: var(--border-primary) !important;
+}
+
+.el-collapse-item__content {
+  color: var(--text-primary) !important;
+}
+
+.el-table {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  
+  th.el-table__cell {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-bottom-color: var(--border-primary) !important;
+  }
+  
+  td.el-table__cell {
+    border-bottom-color: var(--border-primary) !important;
+  }
+  
+  &::before,
+  &::after {
+    background-color: var(--border-primary) !important;
+  }
+}
+
+.el-message-box {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+  
+  .el-message-box__title {
+    color: var(--text-primary) !important;
+  }
+  
+  .el-message-box__content {
+    color: var(--text-primary) !important;
+  }
+}
+
+.el-dropdown-menu {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+}
+
+.el-dropdown-menu__item {
+  color: var(--text-primary) !important;
+  
+  &:hover {
+    background-color: var(--bg-tertiary) !important;
+  }
+}
+
+.el-color-dropdown {
+  background-color: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 4px;
+  
+  &:hover {
+    background: var(--border-primary);
+  }
+}

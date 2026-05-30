@@ -1,0 +1,38 @@
+{
+  "name": "scada-platform",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "开源工业组态可视化编辑平台",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .vue,.ts,.tsx",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0",
+    "pinia": "^2.1.0",
+    "konva": "^9.0.0",
+    "vue-konva": "^3.0.0",
+    "@vueuse/core": "^10.0.0",
+    "element-plus": "^2.7.0",
+    "@element-plus/icons-vue": "^2.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0",
+    "vue-tsc": "^2.0.0",
+    "sass": "^1.100.0",
+    "unplugin-auto-import": "^0.17.0",
+    "unplugin-vue-components": "^0.27.0",
+    "vitest": "^1.0.0",
+    "@vue/test-utils": "^2.4.0",
+    "jsdom": "^23.0.0"
+  }
+}

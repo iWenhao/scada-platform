@@ -1,0 +1,40 @@
+// 暗色主题变量
+:root {
+  // 背景色
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --bg-canvas: #1e1e1e;
+  
+  // 文字色
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+  
+  // 边框色
+  --border-primary: #333333;
+  --border-secondary: #444444;
+  --border-active: #00d4aa;
+  
+  // 强调色
+  --accent-primary: #00d4aa;
+  --accent-secondary: #00b894;
+  --accent-warning: #ffa502;
+  --accent-danger: #ff4757;
+  --accent-info: #3498db;
+  
+  // 组件状态色
+  --status-running: #00d4aa;
+  --status-stopped: #ff4757;
+  --status-warning: #ffa502;
+  --status-unknown: #666666;
+  
+  // 画布网格
+  --grid-color: #2a2a2a;
+  --grid-color-major: #333333;
+  
+  // 阴影
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+}

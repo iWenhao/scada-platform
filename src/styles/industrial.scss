@@ -1,0 +1,67 @@
+// 工业组件通用样式
+.industrial-component {
+  cursor: pointer;
+  transition: filter 0.2s;
+  
+  &:hover {
+    filter: brightness(1.1);
+  }
+  
+  &.selected {
+    filter: brightness(1.2);
+  }
+}
+
+// 状态颜色
+.status-running {
+  color: var(--status-running);
+}
+
+.status-stopped {
+  color: var(--status-stopped);
+}
+
+.status-warning {
+  color: var(--status-warning);
+}
+
+.status-unknown {
+  color: var(--status-unknown);
+}
+
+// 连线样式
+.connection-line {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+// 流动动画
+@keyframes flowAnimation {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.flow-animated {
+  animation: flowAnimation 0.5s linear infinite;
+}
+
+.flow-animated-reverse {
+  animation: flowAnimation 0.5s linear infinite reverse;
+}
+
+// 端口样式
+.port {
+  cursor: crosshair;
+  
+  &:hover {
+    filter: brightness(1.3);
+  }
+}
+
+.port-highlight {
+  filter: brightness(1.5);
+}
