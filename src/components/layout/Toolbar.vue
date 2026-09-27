@@ -2,8 +2,13 @@
   <div class="toolbar-container">
     <!-- 左侧Logo和项目名 -->
     <div class="toolbar-left">
-      <img src="/logo.svg" alt="Logo" class="logo" />
-      <span class="project-name">{{ projectStore.projectName }}</span>
+      <el-tooltip content="返回主页" placement="bottom">
+        <img src="/logo.svg" alt="返回主页" class="logo" @click="goHome" />
+      </el-tooltip>
+      <div class="project-name-group" title="点击重命名" @click="handleRename">
+        <span class="project-name">{{ projectStore.projectName }}</span>
+        <el-icon class="rename-icon"><Edit /></el-icon>
+      </div>
       <el-tag v-if="projectStore.hasUnsavedChanges" type="warning" size="small">
         未保存
       </el-tag>
@@ -70,6 +75,24 @@
         <el-tooltip content="重做 (Ctrl+Y)" placement="bottom">
           <el-button @click="handleRedo" :disabled="!canRedo">
             <el-icon><Right /></el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip content="复制 (Ctrl+C)" placement="bottom">
+          <el-button
+            :disabled="!canvasStore.selectedIds.length"
+            @click="handleCopy"
+          >
+            <el-icon><CopyDocument /></el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip content="粘贴 (Ctrl+V)" placement="bottom">
+          <el-button
+            :disabled="!clipboard.length"
+            @click="handlePaste"
+          >
+            <el-icon><DocumentAdd /></el-icon>
           </el-button>
         </el-tooltip>
 
@@ -174,6 +197,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -195,21 +219,21 @@ const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
 
-// 复制粘贴剪贴板（支持多选批量复制）
-let clipboard: ComponentInstance[] = []
+// 复制粘贴剪贴板（支持多选批量复制，响应式以驱动按钮禁用态）
+const clipboard = ref<ComponentInstance[]>([])
 
 function handleCopy() {
   const selected = canvasStore.selectedElements
   if (selected.length) {
-    clipboard = JSON.parse(JSON.stringify(selected))
+    clipboard.value = JSON.parse(JSON.stringify(selected))
   }
 }
 
 function handlePaste() {
-  if (!clipboard.length) return
+  if (!clipboard.value.length) return
 
   const stamp = Date.now()
-  const pasted = clipboard.map((el, i) => ({
+  const pasted = clipboard.value.map((el, i) => ({
     ...JSON.parse(JSON.stringify(el)),
     id: `el_${stamp}_${i}`,
     x: el.x + 20,
@@ -234,8 +258,51 @@ function handleDelete() {
   }
 }
 
+// 重命名项目
+function handleRename() {
+  ElMessageBox.prompt('请输入新的项目名称', '重命名项目', {
+    inputValue: projectStore.projectName,
+    inputPattern: /\S+/,
+    inputErrorMessage: '名称不能为空',
+    confirmButtonText: '重命名',
+    cancelButtonText: '取消',
+  })
+    .then(async ({ value }) => {
+      if (await projectStore.renameProject(value)) {
+        ElMessage.success('已重命名')
+      } else {
+        ElMessage.error('重命名失败：名称为空或与已有项目重名')
+      }
+    })
+    .catch(() => {})
+}
+
 function handleUndo() {
   undo()
+}
+
+// 返回主页（有未保存更改时先确认）
+function goHome() {
+  if (projectStore.hasUnsavedChanges) {
+    ElMessageBox.confirm('当前项目有未保存的更改，返回主页前要先保存吗？', '未保存的更改', {
+      type: 'warning',
+      confirmButtonText: '保存并返回',
+      cancelButtonText: '不保存，直接返回',
+      distinguishCancelAndClose: true,
+    })
+      .then(async () => {
+        await projectStore.saveProject()
+        router.push('/')
+      })
+      .catch((action) => {
+        if (action === 'cancel') {
+          router.push('/')
+        }
+        // close(右上角X)则留在编辑器
+      })
+  } else {
+    router.push('/')
+  }
 }
 
 function handleRedo() {
@@ -255,9 +322,9 @@ function handleZoomFit() {
   canvasStore.setOffset(0, 0)
 }
 
-function handleSave() {
+async function handleSave() {
   saveState()
-  projectStore.saveProject()
+  await projectStore.saveProject()
 }
 
 function handleExport() {
@@ -291,8 +358,8 @@ function handleImport() {
   input.click()
 }
 
-function handlePreview() {
-  projectStore.saveProject()
+async function handlePreview() {
+  await projectStore.saveProject()
   router.push('/preview')
 }
 
@@ -371,12 +438,41 @@ onUnmounted(() => {
   .logo {
     width: 32px;
     height: 32px;
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.1);
+    }
   }
   
+  .project-name-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
   .project-name {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
+  }
+
+  .rename-icon {
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .project-name-group:hover {
+    .project-name {
+      color: var(--accent-primary);
+    }
+
+    .rename-icon {
+      opacity: 1;
+    }
   }
 }
 

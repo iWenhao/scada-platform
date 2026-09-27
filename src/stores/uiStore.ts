@@ -5,18 +5,29 @@ import { getStorage } from '@/storage'
 export type ThemeName = 'dark' | 'light'
 
 export const useUiStore = defineStore('ui', () => {
-  // 主题（持久化，启动时恢复）
-  const theme = ref<ThemeName>(getStorage().get('scada_theme') === 'light' ? 'light' : 'dark')
+  // 主题（持久化，main.ts 挂载前已应用；此处异步恢复到 ref 供切换按钮显示）
+  const theme = ref<ThemeName>('dark')
+  getStorage()
+    .get('scada_theme')
+    .then(v => {
+      if (v === 'light' || v === 'dark') {
+        theme.value = v
+        applyTheme()
+      }
+    })
+    .catch(() => {})
 
   function applyTheme() {
     document.documentElement.dataset.theme = theme.value
+    // 同步 Element Plus 官方暗色类, 驱动 dark/css-vars.css 的变量体系
+    document.documentElement.classList.toggle('dark', theme.value === 'dark')
   }
   applyTheme()
 
   function toggleTheme() {
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
-    getStorage().set('scada_theme', theme.value)
     applyTheme()
+    void getStorage().set('scada_theme', theme.value)
   }
   // 左侧面板是否展开
   const leftPanelOpen = ref<boolean>(true)

@@ -1,0 +1,108 @@
+import { ref } from 'vue'
+import type { useDeviceStore } from '@/stores/deviceStore'
+import type { useLayerStore } from '@/stores/layerStore'
+import { statusEngine } from '@/status/StatusEngine'
+import { getIconImage } from './iconImage'
+import { getComponentDefinition } from '@/industrial/registry'
+import type { ComponentInstance } from '@/types/scada'
+import type { PortPosition } from '@/types/connection'
+
+type DeviceStore = ReturnType<typeof useDeviceStore>
+type LayerStore = ReturnType<typeof useLayerStore>
+
+/**
+ * 元素视觉呈现：状态着色、实时数值、图标、端口与图层可见性/锁定。
+ */
+export function useElementVisuals(options: {
+  deviceStore: DeviceStore
+  layerStore: LayerStore
+}) {
+  const { deviceStore, layerStore } = options
+
+  // 获取元素状态颜色
+  function getElementColor(element: ComponentInstance): string {
+    const data = deviceStore.getDeviceData(element.deviceId || element.id)
+    const status = statusEngine.evaluate(element.statusRules, data)
+    return status?.color || '#2a2a2a'
+  }
+
+  // 元素上展示的实时数值（取第一个数据绑定变量）
+  function getElementValueText(element: ComponentInstance): string {
+    const binding = element.dataBindings?.[0]
+    if (!binding) return ''
+
+    const data = deviceStore.getDeviceData(element.deviceId || element.id)
+    const value = data[binding.variable]
+    if (value === undefined) return ''
+
+    const formatted = typeof value === 'number' ? Math.round(value * 10) / 10 : value
+    return `${binding.variable}: ${formatted}`
+  }
+
+  // 底部标签条高度（有实时数值时更高）
+  function getLabelHeight(element: ComponentInstance): number {
+    return getElementValueText(element) ? 26 : 16
+  }
+
+  // 图标加载完成后递增以触发画布重绘
+  const iconVersion = ref(0)
+
+  // 组件图形（SVG 图标按比例适配到元素内部）
+  function getIconImageConfig(element: ComponentInstance) {
+    const def = getComponentDefinition(element.type)
+    if (!def?.icon) return null
+
+    const img = getIconImage(element.type, def.icon, '#e8f0ef', () => {
+      iconVersion.value++
+    })
+    if (!img) return null
+
+    const labelH = getLabelHeight(element)
+    const boxW = Math.max(element.width - 12, 4)
+    const boxH = Math.max(element.height - labelH - 10, 4)
+    const scale = Math.min(boxW / 100, boxH / 100)
+    const iconW = 100 * scale
+    const iconH = 100 * scale
+
+    return {
+      image: img,
+      x: (element.width - iconW) / 2,
+      y: 4 + (boxH - iconH) / 2,
+      width: iconW,
+      height: iconH,
+      listening: false,
+    }
+  }
+
+  // 检查图层是否锁定
+  function isLayerLocked(layerId: string): boolean {
+    const layer = layerStore.getLayer(layerId)
+    return layer?.locked ?? false
+  }
+
+  // 检查图层是否可见
+  function isLayerVisible(layerId: string): boolean {
+    const layer = layerStore.getLayer(layerId)
+    return layer?.visible ?? true
+  }
+
+  // 获取元素端口
+  function getElementPorts(element: ComponentInstance) {
+    return [
+      { id: 'top', position: 'top' as PortPosition, x: element.width / 2, y: 0 },
+      { id: 'bottom', position: 'bottom' as PortPosition, x: element.width / 2, y: element.height },
+      { id: 'left', position: 'left' as PortPosition, x: 0, y: element.height / 2 },
+      { id: 'right', position: 'right' as PortPosition, x: element.width, y: element.height / 2 },
+    ]
+  }
+
+  return {
+    getElementColor,
+    getElementValueText,
+    getLabelHeight,
+    getIconImageConfig,
+    isLayerLocked,
+    isLayerVisible,
+    getElementPorts,
+  }
+}

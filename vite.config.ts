@@ -32,5 +32,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: {
+      // 存储后端(见 server/index.mjs): 前端 /api 请求转发到存储服务
+      '/api': 'http://localhost:5174',
+    },
   },
 })

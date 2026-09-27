@@ -47,7 +47,22 @@
       <div class="recent-projects" v-if="recentProjects.length > 0">
         <h2>最近项目</h2>
         <el-table :data="recentProjects" style="width: 100%">
-          <el-table-column prop="name" label="项目名称" />
+          <el-table-column prop="name" label="项目名称（双击可重命名）">
+            <template #default="{ row }">
+              <input
+                v-if="editingName === row.name"
+                v-model="editingValue"
+                v-focus
+                class="rename-input"
+                @keyup.enter="confirmRename(row.name)"
+                @keyup.escape="cancelRename"
+                @blur="confirmRename(row.name)"
+              />
+              <span v-else class="project-name-text" @dblclick="startRename(row.name)">
+                {{ row.name }}
+              </span>
+            </template>
+          </el-table-column>
           <el-table-column prop="lastModified" label="最后修改" width="200" />
           <el-table-column label="操作" width="200">
             <template #default="{ row }">
@@ -82,6 +97,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
+import { getStorage } from '@/storage'
 import { ElMessageBox, ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -90,24 +106,58 @@ const projectStore = useProjectStore()
 const recentProjects = ref<Array<{ name: string; lastModified: string }>>([])
 const showOpenDialog = ref(false)
 
+// 双击重命名：正在编辑的项目名与输入值
+const editingName = ref<string | null>(null)
+const editingValue = ref('')
+
+// v-focus 局部指令：输入框出现时自动聚焦
+const vFocus = {
+  mounted: (el: HTMLInputElement) => el.focus(),
+}
+
+function startRename(name: string) {
+  editingName.value = name
+  editingValue.value = name
+}
+
+async function confirmRename(oldName: string) {
+  if (editingName.value === null) return
+  const newName = editingValue.value.trim()
+  editingName.value = null
+  if (!newName || newName === oldName) return
+
+  if (await projectStore.renameSavedProject(oldName, newName)) {
+    ElMessage.success('已重命名')
+  } else {
+    ElMessage.error('重命名失败：名称为空或与已有项目重名')
+  }
+  await loadRecentProjects()
+}
+
+function cancelRename() {
+  editingName.value = null
+}
+
 onMounted(() => {
-  loadRecentProjects()
+  void loadRecentProjects()
 })
 
-function loadRecentProjects() {
-  const projects = projectStore.getSavedProjects()
-  recentProjects.value = projects.map(name => {
-    try {
-      const raw = localStorage.getItem(`scada_project_${name}`)
-      const data = raw ? JSON.parse(raw) : null
-      return {
-        name,
-        lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
+async function loadRecentProjects() {
+  const names = await projectStore.getSavedProjects()
+  recentProjects.value = await Promise.all(
+    names.map(async name => {
+      try {
+        const raw = await getStorage().get(`scada_project_${name}`)
+        const data = raw ? JSON.parse(raw) : null
+        return {
+          name,
+          lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
+        }
+      } catch {
+        return { name, lastModified: '未知' }
       }
-    } catch {
-      return { name, lastModified: '未知' }
-    }
-  })
+    }),
+  )
 }
 
 function goToEditor() {
@@ -115,8 +165,8 @@ function goToEditor() {
   router.push('/editor')
 }
 
-function openProject() {
-  loadRecentProjects()
+async function openProject() {
+  await loadRecentProjects()
   if (recentProjects.value.length === 0) {
     ElMessage.info('暂无已保存的项目，请先新建或导入')
     return
@@ -147,8 +197,8 @@ function importProject() {
   input.click()
 }
 
-function loadProject(name: string) {
-  if (projectStore.loadProject(name)) {
+async function loadProject(name: string) {
+  if (await projectStore.loadProject(name)) {
     router.push('/editor')
   } else {
     ElMessage.error('项目加载失败')
@@ -160,7 +210,7 @@ async function deleteProject(name: string) {
     await ElMessageBox.confirm(`确定要删除项目"${name}"吗？`, '确认', {
       type: 'warning',
     })
-    projectStore.deleteProject(name)
+    await projectStore.deleteProject(name)
     loadRecentProjects()
     ElMessage.success('项目已删除')
   } catch {
@@ -243,6 +293,21 @@ async function deleteProject(name: string) {
   gap: 8px;
   max-height: 400px;
   overflow-y: auto;
+}
+
+.rename-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 4px;
+  outline: none;
+}
+
+.project-name-text {
+  cursor: text;
 }
 
 .open-project-item {

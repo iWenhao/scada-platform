@@ -10,6 +10,7 @@ declare module 'vue' {
     CanvasConfigDialog: typeof import('./src/components/dialogs/CanvasConfigDialog.vue')['default']
     CanvasRuler: typeof import('./src/components/layout/CanvasRuler.vue')['default']
     ComponentPanel: typeof import('./src/components/layout/ComponentPanel.vue')['default']
+    CustomComponentDialog: typeof import('./src/components/dialogs/CustomComponentDialog.vue')['default']
     DataSourceDialog: typeof import('./src/components/dialogs/DataSourceDialog.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElButtonGroup: typeof import('element-plus/es')['ElButtonGroup']

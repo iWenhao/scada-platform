@@ -19,9 +19,9 @@ export const useProjectStore = defineStore('project', () => {
   const hasUnsavedChanges = ref<boolean>(false)
 
   /**
-   * 保存项目到localStorage
+   * 保存项目到存储
    */
-  function saveProject(name?: string) {
+  async function saveProject(name?: string) {
     const canvasStore = useCanvasStore()
     const connectionStore = useConnectionStore()
     const layerStore = useLayerStore()
@@ -41,7 +41,7 @@ export const useProjectStore = defineStore('project', () => {
     }
     
     const json = JSON.stringify(projectData)
-    getStorage().set(`scada_project_${projectName.value}`, json)
+    await getStorage().set(`scada_project_${projectName.value}`, json)
     
     lastSaveTime.value = Date.now()
     hasUnsavedChanges.value = false
@@ -50,14 +50,14 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
-   * 从localStorage加载项目
+   * 从存储加载项目
    */
-  function loadProject(name: string): boolean {
+  async function loadProject(name: string): Promise<boolean> {
     const canvasStore = useCanvasStore()
     const connectionStore = useConnectionStore()
     const layerStore = useLayerStore()
     
-    const json = getStorage().get(`scada_project_${name}`)
+    const json = await getStorage().get(`scada_project_${name}`)
     if (!json) {
       console.error(`Project not found: ${name}`)
       return false
@@ -133,11 +133,55 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
+   * 重命名当前项目：未保存过的仅改名称并标记未保存；
+   * 已保存的迁移存储键到新名称。重名或空名返回 false。
+   */
+  async function renameProject(newName: string): Promise<boolean> {
+    const trimmed = newName.trim()
+    if (!trimmed || trimmed === projectName.value) return false
+
+    const storage = getStorage()
+    // 与已有项目重名时拒绝，避免覆盖别人的数据
+    if ((await storage.get(`scada_project_${trimmed}`)) !== null) return false
+
+    const oldKey = `scada_project_${projectName.value}`
+    const wasSaved = (await storage.get(oldKey)) !== null
+    if (wasSaved) {
+      await storage.set(`scada_project_${trimmed}`, (await storage.get(oldKey))!)
+      await storage.remove(oldKey)
+    }
+    projectName.value = trimmed
+    hasUnsavedChanges.value = !wasSaved
+    return true
+  }
+
+  /**
+   * 重命名任意一个已保存的项目（首页列表用）。
+   * 若它恰好是当前打开的项目，同步当前名称。重名/不存在返回 false。
+   */
+  async function renameSavedProject(oldName: string, newName: string): Promise<boolean> {
+    const trimmed = newName.trim()
+    if (!trimmed || trimmed === oldName) return false
+
+    const storage = getStorage()
+    const oldKey = `scada_project_${oldName}`
+    const newKey = `scada_project_${trimmed}`
+    if ((await storage.get(oldKey)) === null || (await storage.get(newKey)) !== null) return false
+
+    await storage.set(newKey, (await storage.get(oldKey))!)
+    await storage.remove(oldKey)
+    if (projectName.value === oldName) {
+      projectName.value = trimmed
+    }
+    return true
+  }
+
+  /**
    * 获取已保存的项目列表
    */
-  function getSavedProjects(): string[] {
-    return getStorage()
-      .keys()
+  async function getSavedProjects(): Promise<string[]> {
+    const keys = await getStorage().keys()
+    return keys
       .filter(key => key.startsWith('scada_project_'))
       .map(key => key.replace('scada_project_', ''))
   }
@@ -145,8 +189,8 @@ export const useProjectStore = defineStore('project', () => {
   /**
    * 删除项目
    */
-  function deleteProject(name: string) {
-    getStorage().remove(`scada_project_${name}`)
+  async function deleteProject(name: string) {
+    await getStorage().remove(`scada_project_${name}`)
   }
 
   /**
@@ -175,6 +219,8 @@ export const useProjectStore = defineStore('project', () => {
     loadProject,
     exportProject,
     importProject,
+    renameProject,
+    renameSavedProject,
     getSavedProjects,
     deleteProject,
     markDirty,

@@ -1,4 +1,5 @@
-// Element Plus 暗色主题覆盖
+// Element Plus 暗色主题覆盖(仅在 html.dark 时生效; 亮色主题由 EP 默认变量 + 项目亮色变量)
+html.dark {
 .el-dialog {
   background-color: var(--bg-secondary) !important;
   border: 1px solid var(--border-primary) !important;
@@ -30,6 +31,34 @@
   background-color: var(--bg-primary) !important;
 }
 
+// 新版 el-select 的输入框本体（.el-select__wrapper 结构）
+.el-select__wrapper {
+  background-color: var(--bg-primary) !important;
+  box-shadow: 0 0 0 1px var(--border-primary) inset !important;
+  color: var(--text-primary) !important;
+
+  &.is-hovering {
+    box-shadow: 0 0 0 1px var(--border-active) inset !important;
+  }
+
+  &.is-focused {
+    box-shadow: 0 0 0 1px var(--accent-primary) inset !important;
+  }
+
+  .el-select__selected-item,
+  .el-select__input {
+    color: var(--text-primary) !important;
+  }
+
+  .el-select__caret {
+    color: var(--text-secondary) !important;
+  }
+
+  .el-select__placeholder {
+    color: var(--text-muted) !important;
+  }
+}
+
 .el-textarea__inner {
   background-color: var(--bg-primary) !important;
   border: 1px solid var(--border-primary) !important;
@@ -37,13 +66,50 @@
 }
 
 .el-button {
+  background-color: var(--bg-primary) !important;
   border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--bg-tertiary) !important;
+    border-color: var(--border-active) !important;
+  }
+
+  &.is-disabled,
+  &.is-disabled:hover,
+  &.is-disabled:focus {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-muted) !important;
+  }
 }
 
 .el-button--primary {
   background-color: var(--accent-primary) !important;
   border-color: var(--accent-primary) !important;
   color: #fff !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--accent-secondary) !important;
+    border-color: var(--accent-secondary) !important;
+  }
+}
+
+.el-button--danger {
+  background-color: var(--accent-danger) !important;
+  border-color: var(--accent-danger) !important;
+  color: #fff !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--accent-danger) !important;
+    color: #fff !important;
+  }
+}
+
+.el-radio__label {
+  color: var(--text-primary) !important;
 }
 
 .el-switch__core {
@@ -62,6 +128,11 @@
 
 .el-slider__bar {
   background-color: var(--accent-primary) !important;
+}
+
+.el-slider__button {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--accent-primary) !important;
 }
 
 .el-color-picker__trigger {
@@ -96,19 +167,33 @@
 }
 
 .el-table {
+  // el-table 行背景走自身 CSS 变量, 必须在变量层覆盖
+  --el-table-bg-color: var(--bg-secondary);
+  --el-table-tr-bg-color: var(--bg-secondary);
+  --el-table-header-bg-color: var(--bg-tertiary);
+  --el-table-row-hover-bg-color: var(--bg-tertiary);
+  --el-table-border-color: var(--border-primary);
+  --el-table-text-color: var(--text-primary);
+  --el-table-header-text-color: var(--text-primary);
+
   background-color: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
-  
+
   th.el-table__cell {
     background-color: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-bottom-color: var(--border-primary) !important;
   }
-  
+
   td.el-table__cell {
     border-bottom-color: var(--border-primary) !important;
+    background-color: transparent !important;
   }
-  
+
+  tbody tr:hover > td.el-table__cell {
+    background-color: var(--bg-tertiary) !important;
+  }
+
   &::before,
   &::after {
     background-color: var(--border-primary) !important;
@@ -163,4 +248,42 @@
   &:hover {
     background: var(--border-primary);
   }
+}
+
+// 弹出浮层（select 下拉、color-picker 面板等 teleport 到 body 的弹层）
+.el-popper.is-light {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+  color: var(--text-primary) !important;
+
+  .el-popper__arrow::before {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-primary) !important;
+  }
+}
+
+.el-select-dropdown {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.el-select-dropdown__item {
+  color: var(--text-primary) !important;
+
+  &.is-hovering,
+  &:hover {
+    background-color: var(--bg-tertiary) !important;
+  }
+
+  &.is-selected {
+    color: var(--accent-primary) !important;
+  }
+}
+
+// 数字输入框步进按钮
+.el-input-number__decrease,
+.el-input-number__increase {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-secondary) !important;
+}
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { MemoryStorageAdapter, LocalStorageAdapter, getStorage, setStorage } from './index'
 import { useProjectStore } from '@/stores/projectStore'
@@ -10,18 +10,18 @@ describe('MemoryStorageAdapter', () => {
     storage = new MemoryStorageAdapter()
   })
 
-  it('应该支持存取与删除', () => {
-    storage.set('a', '1')
-    expect(storage.get('a')).toBe('1')
+  it('应该支持存取与删除', async () => {
+    await storage.set('a', '1')
+    expect(await storage.get('a')).toBe('1')
 
-    storage.remove('a')
-    expect(storage.get('a')).toBeNull()
+    await storage.remove('a')
+    expect(await storage.get('a')).toBeNull()
   })
 
-  it('keys 应该枚举全部键', () => {
-    storage.set('a', '1')
-    storage.set('b', '2')
-    expect(storage.keys().sort()).toEqual(['a', 'b'])
+  it('keys 应该枚举全部键', async () => {
+    await storage.set('a', '1')
+    await storage.set('b', '2')
+    expect((await storage.keys()).sort()).toEqual(['a', 'b'])
   })
 })
 
@@ -33,18 +33,19 @@ describe('LocalStorageAdapter', () => {
     storage = new LocalStorageAdapter()
   })
 
-  it('应该读写 localStorage', () => {
-    storage.set('k', 'v')
+  it('应该读写 localStorage', async () => {
+    await storage.set('k', 'v')
     expect(localStorage.getItem('k')).toBe('v')
-    expect(storage.get('k')).toBe('v')
+    expect(await storage.get('k')).toBe('v')
 
-    storage.remove('k')
+    await storage.remove('k')
     expect(localStorage.getItem('k')).toBeNull()
   })
 })
 
 describe('getStorage / setStorage', () => {
-  afterEach(() => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
     setStorage(new MemoryStorageAdapter())
   })
 
@@ -52,25 +53,20 @@ describe('getStorage / setStorage', () => {
     expect(getStorage()).toBeDefined()
   })
 
-  it('注入内存适配器后 projectStore 应完整走通保存/加载/列表/删除', () => {
-    setActivePinia(createPinia())
-    const memory = new MemoryStorageAdapter()
-    setStorage(memory)
-
+  it('注入内存适配器后 projectStore 应完整走通保存/加载/列表/删除', async () => {
     const store = useProjectStore()
     store.projectName = '测试项目'
 
-    expect(store.saveProject('测试项目')).toBe(true)
-    expect(memory.keys()).toEqual(['scada_project_测试项目'])
+    expect(await store.saveProject('测试项目')).toBe(true)
+    expect(await getStorage().get('scada_project_测试项目')).not.toBeNull()
 
-    // 清空当前状态后重新加载
-    useProjectStore().resetProject()
-    expect(store.loadProject('测试项目')).toBe(true)
+    store.resetProject()
+    expect(await store.loadProject('测试项目')).toBe(true)
     expect(store.projectName).toBe('测试项目')
 
-    expect(store.getSavedProjects()).toEqual(['测试项目'])
+    expect(await store.getSavedProjects()).toEqual(['测试项目'])
 
-    store.deleteProject('测试项目')
-    expect(store.getSavedProjects()).toEqual([])
+    await store.deleteProject('测试项目')
+    expect(await store.getSavedProjects()).toEqual([])
   })
 })
