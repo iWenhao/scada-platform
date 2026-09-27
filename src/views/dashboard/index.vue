@@ -58,6 +58,23 @@
         </el-table>
       </div>
     </div>
+
+    <el-dialog v-model="showOpenDialog" title="打开项目" width="420px">
+      <div class="open-project-list">
+        <div
+          v-for="project in recentProjects"
+          :key="project.name"
+          class="open-project-item"
+          @click="loadProject(project.name); showOpenDialog = false"
+        >
+          <el-icon :size="20"><FolderOpened /></el-icon>
+          <div class="open-project-info">
+            <div class="open-project-name">{{ project.name }}</div>
+            <div class="open-project-time">{{ project.lastModified }}</div>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -71,6 +88,7 @@ const router = useRouter()
 const projectStore = useProjectStore()
 
 const recentProjects = ref<Array<{ name: string; lastModified: string }>>([])
+const showOpenDialog = ref(false)
 
 onMounted(() => {
   loadRecentProjects()
@@ -78,10 +96,18 @@ onMounted(() => {
 
 function loadRecentProjects() {
   const projects = projectStore.getSavedProjects()
-  recentProjects.value = projects.map(name => ({
-    name,
-    lastModified: '未知', // 实际应该从项目数据中读取
-  }))
+  recentProjects.value = projects.map(name => {
+    try {
+      const raw = localStorage.getItem(`scada_project_${name}`)
+      const data = raw ? JSON.parse(raw) : null
+      return {
+        name,
+        lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
+      }
+    } catch {
+      return { name, lastModified: '未知' }
+    }
+  })
 }
 
 function goToEditor() {
@@ -90,7 +116,12 @@ function goToEditor() {
 }
 
 function openProject() {
-  // TODO: 打开项目选择对话框
+  loadRecentProjects()
+  if (recentProjects.value.length === 0) {
+    ElMessage.info('暂无已保存的项目，请先新建或导入')
+    return
+  }
+  showOpenDialog.value = true
 }
 
 function importProject() {
@@ -203,6 +234,43 @@ async function deleteProject(name: string) {
     font-size: 20px;
     color: var(--text-primary);
     margin-bottom: 20px;
+  }
+}
+
+.open-project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.open-project-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-tertiary);
+  }
+
+  .open-project-info {
+    .open-project-name {
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .open-project-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
   }
 }
 
