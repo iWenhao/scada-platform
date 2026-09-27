@@ -66,11 +66,13 @@
               visible: isLayerVisible(element.layerId),
               // 连线模式下禁用组件拖拽，避免端口拖拽被组件拖动劫持
               draggable: !isLayerLocked(element.layerId) && uiStore.activeTool !== 'connect',
+              dragBoundFunc: canvasStore.canvasConfig.snapToGrid ? gridSnapFunc : undefined,
             }"
             @click="selectElement(element.id)"
             @mouseenter="hoveredElementId = element.id"
             @mouseleave="hoveredElementId = null"
             @dragstart="onDragStart(element.id)"
+            @dragmove="onDragMove(element, $event)"
             @dragend="(e: any) => updatePosition(element.id, e)"
             @transformend="onTransformEnd(element.id)"
           >
@@ -157,6 +159,21 @@
           :config="transformerConfig"
         />
       </v-layer>
+
+      <!-- 对齐参考线 -->
+      <v-layer :config="{ listening: false }">
+        <v-line
+          v-for="(guide, index) in alignGuides"
+          :key="index"
+          :config="{
+            points: guide,
+            stroke: '#ff4bd8',
+            strokeWidth: 1,
+            dash: [4, 4],
+            listening: false,
+          }"
+        />
+      </v-layer>
     </v-stage>
     
     <!-- 画布信息 -->
@@ -178,6 +195,7 @@ import { statusEngine } from '@/status/StatusEngine'
 import { pathCalculator } from '@/core/connection/PathCalculator'
 import { useHistory } from '@/core/canvas/useHistory'
 import { getIconImage } from '@/core/canvas/iconImage'
+import { computeAlignment } from '@/core/canvas/alignment'
 import { getComponentDefinition } from '@/industrial/registry'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
@@ -199,6 +217,20 @@ const hoveredElementId = ref<string | null>(null)
 // 空白处拖拽平移状态
 let panning = false
 const panStart = { x: 0, y: 0, offsetX: 0, offsetY: 0 }
+
+// 对齐参考线（画布坐标 [x1,y1,x2,y2]）
+const alignGuides = ref<number[][]>([])
+
+// 网格吸附：Konva dragBoundFunc 收到的是舞台绝对坐标，需换算到画布坐标取整
+function gridSnapFunc(pos: { x: number; y: number }) {
+  const gridSize = canvasStore.canvasConfig.gridSize || 20
+  const zoom = canvasStore.zoom
+  const offsetX = canvasStore.offset.x
+  const offsetY = canvasStore.offset.y
+  const cx = Math.round((pos.x - offsetX) / zoom / gridSize) * gridSize
+  const cy = Math.round((pos.y - offsetY) / zoom / gridSize) * gridSize
+  return { x: cx * zoom + offsetX, y: cy * zoom + offsetY }
+}
 
 // 画布Stage配置
 const stageConfig = computed(() => ({
@@ -474,12 +506,31 @@ function onDragStart(id: string) {
   canvasStore.selectElement(id)
 }
 
+// 拖动中：对齐吸附计算并更新参考线
+function onDragMove(element: ComponentInstance, e: any) {
+  const node = e.target
+  const others = canvasStore.elements
+    .filter(el => el.id !== element.id)
+    .map(o => ({ x: o.x, y: o.y, width: o.width, height: o.height }))
+
+  const result = computeAlignment(
+    { x: node.x(), y: node.y(), width: element.width, height: element.height },
+    others,
+    6 / canvasStore.zoom,
+  )
+
+  if (result.x !== null) node.x(result.x)
+  if (result.y !== null) node.y(result.y)
+  alignGuides.value = result.guides
+}
+
 // 更新位置
 function updatePosition(id: string, e: any) {
   canvasStore.updateElement(id, {
     x: e.target.x(),
     y: e.target.y(),
   })
+  alignGuides.value = []
   recalcElementConnections(id)
   saveState()
 }

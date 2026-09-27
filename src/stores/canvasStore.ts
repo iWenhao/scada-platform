@@ -106,7 +106,7 @@ export const useCanvasStore = defineStore('canvas', () => {
   function loadFromJSON(json: string) {
     try {
       const data = JSON.parse(json)
-      canvasConfig.value = data.canvasConfig || { ...defaultCanvasConfig }
+      canvasConfig.value = { ...defaultCanvasConfig, ...data.canvasConfig }
       elements.value = data.elements || []
       zoom.value = data.zoom || 1
       offset.value = data.offset || { x: 0, y: 0 }

@@ -17,7 +17,10 @@ export interface CanvasConfig {
   
   /** 网格颜色 */
   gridColor: string
-  
+
+  /** 是否启用网格吸附（拖动时对齐网格） */
+  snapToGrid: boolean
+
   /** 是否启用缩放 */
   enableZoom: boolean
   
@@ -39,6 +42,7 @@ export const defaultCanvasConfig: CanvasConfig = {
   showGrid: true,
   gridSize: 20,
   gridColor: '#2a2a2a',
+  snapToGrid: true,
   enableZoom: true,
   minZoom: 0.1,
   maxZoom: 5,

@@ -47,6 +47,11 @@
       <el-form-item label="网格颜色">
         <el-color-picker v-model="form.gridColor" />
       </el-form-item>
+
+      <el-form-item label="网格吸附">
+        <el-switch v-model="form.snapToGrid" />
+        <span class="unit">拖动组件时对齐网格</span>
+      </el-form-item>
       
       <el-form-item label="缩放范围">
         <div class="zoom-range">
