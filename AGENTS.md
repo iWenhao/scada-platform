@@ -35,6 +35,7 @@ pnpm lint               # ESLint
 
 - **分支**：日常开发提交到 `dev` 分支并推送 `origin dev`；master 用于发布合并。
 - **提交粒度**：一个功能/修复一个提交，信息用中文，格式 `功能:/修复:/重构:/清理:/测试:/文档: 一句话说明`。
+- **变更日志**：功能与修复类提交需同步更新 `CHANGELOG.md` 的 `[Unreleased]` 区。
 - **不提交**：`node_modules/`、`dist/`、诊断用的临时代码（如 index.html 里的错误钩子）。
 - `components.d.ts` / `auto-imports.d.ts` 是 unplugin 自动生成的，跟随相关改动一起提交即可。
 
