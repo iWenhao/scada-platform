@@ -64,7 +64,8 @@
               height: element.height,
               rotation: element.rotation,
               visible: isLayerVisible(element.layerId),
-              draggable: !isLayerLocked(element.layerId),
+              // 连线模式下禁用组件拖拽，避免端口拖拽被组件拖动劫持
+              draggable: !isLayerLocked(element.layerId) && uiStore.activeTool !== 'connect',
             }"
             @click="selectElement(element.id)"
             @mouseenter="hoveredElementId = element.id"
