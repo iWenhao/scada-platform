@@ -63,6 +63,7 @@
               width: element.width,
               height: element.height,
               rotation: element.rotation,
+              visible: isLayerVisible(element.layerId),
               draggable: !isLayerLocked(element.layerId),
             }"
             @click="selectElement(element.id)"
@@ -338,6 +339,12 @@ function getElementValueText(element: ComponentInstance): string {
 function isLayerLocked(layerId: string): boolean {
   const layer = layerStore.getLayer(layerId)
   return layer?.locked ?? false
+}
+
+// 检查图层是否可见
+function isLayerVisible(layerId: string): boolean {
+  const layer = layerStore.getLayer(layerId)
+  return layer?.visible ?? true
 }
 
 // 获取元素端口
