@@ -1,5 +1,131 @@
 import type { ComponentDefinition } from '@/types/scada'
 
+/** 采煤机 */
+export const ShearerDefinition: ComponentDefinition = {
+  type: 'shearer',
+  name: '采煤机',
+  group: 'coal',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="3">
+      <line x1="6" y1="80" x2="94" y2="80" />
+      <rect x="38" y="46" width="24" height="26" />
+      <circle cx="20" cy="60" r="13" />
+      <circle cx="80" cy="60" r="13" />
+      <line x1="33" y1="55" x2="38" y2="55" />
+      <line x1="62" y1="55" x2="67" y2="55" />
+      <line x1="11" y1="50" x2="7" y2="46" />
+      <line x1="29" y1="50" x2="33" y2="46" />
+      <line x1="11" y1="70" x2="7" y2="74" />
+      <line x1="29" y1="70" x2="33" y2="74" />
+      <line x1="71" y1="50" x2="67" y2="46" />
+      <line x1="89" y1="50" x2="93" y2="46" />
+      <line x1="71" y1="70" x2="67" y2="74" />
+      <line x1="89" y1="70" x2="93" y2="74" />
+    </g>
+  </svg>`,
+  defaultWidth: 110,
+  defaultHeight: 60,
+  defaultConfig: {
+    haulSpeed: 0,
+    load: 0,
+  },
+  statusRules: [
+    {
+      id: 'overload',
+      name: '截割过载',
+      color: '#ffa502',
+      condition: { type: 'compare', variable: 'load', operator: '>', value: 90 },
+      priority: 1,
+    },
+    {
+      id: 'cutting',
+      name: '割煤中',
+      color: '#00d4aa',
+      condition: { type: 'compare', variable: 'speed', operator: '>', value: 0.1 },
+      priority: 2,
+    },
+    {
+      id: 'stopped',
+      name: '停机',
+      color: '#666666',
+      condition: { type: 'compare', variable: 'speed', operator: '=', value: 0 },
+      priority: 3,
+    },
+  ],
+  dataBindings: [
+    { property: 'haulSpeed', variable: 'speed' },
+    { property: 'load', variable: 'load' },
+  ],
+  properties: [
+    { key: 'name', label: '名称', type: 'string', default: '采煤机', group: '基本' },
+    { key: 'haulSpeed', label: '牵引速度(m/min)', type: 'number', default: 0, min: 0, max: 15, group: '运行参数' },
+  ],
+}
+
+/** 掘进机 */
+export const RoadheaderDefinition: ComponentDefinition = {
+  type: 'roadheader',
+  name: '掘进机',
+  group: 'coal',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="3">
+      <rect x="40" y="64" width="46" height="16" rx="8" />
+      <circle cx="53" cy="72" r="4" />
+      <circle cx="74" cy="72" r="4" />
+      <rect x="44" y="42" width="34" height="22" />
+      <line x1="44" y1="52" x2="23" y2="38" />
+      <circle cx="16" cy="33" r="11" />
+      <line x1="9" y1="25" x2="5" y2="21" />
+      <line x1="23" y1="24" x2="27" y2="20" />
+      <line x1="6" y1="33" x2="1" y2="33" />
+      <line x1="24" y1="41" x2="28" y2="44" />
+    </g>
+  </svg>`,
+  defaultWidth: 100,
+  defaultHeight: 60,
+  defaultConfig: {
+    cutting: 0,
+    load: 0,
+  },
+  statusRules: [
+    {
+      id: 'overload',
+      name: '截割过载',
+      color: '#ffa502',
+      condition: {
+        type: 'and',
+        conditions: [
+          { type: 'compare', variable: 'cutting', operator: '=', value: 1 },
+          { type: 'compare', variable: 'load', operator: '>', value: 90 },
+        ],
+      },
+      priority: 1,
+    },
+    {
+      id: 'driving',
+      name: '掘进中',
+      color: '#00d4aa',
+      condition: { type: 'compare', variable: 'cutting', operator: '=', value: 1 },
+      priority: 2,
+    },
+    {
+      id: 'stopped',
+      name: '停机',
+      color: '#666666',
+      condition: { type: 'compare', variable: 'cutting', operator: '=', value: 0 },
+      priority: 3,
+    },
+  ],
+  dataBindings: [
+    { property: 'cutting', variable: 'cutting' },
+    { property: 'load', variable: 'load' },
+  ],
+  properties: [
+    { key: 'name', label: '名称', type: 'string', default: '掘进机', group: '基本' },
+    { key: 'load', label: '截割载荷(%)', type: 'number', default: 0, min: 0, max: 120, group: '运行参数' },
+  ],
+}
+
 /** 皮带输送机 */
 export const ConveyorDefinition: ComponentDefinition = {
   type: 'conveyor',
@@ -224,6 +350,8 @@ export const HoistDefinition: ComponentDefinition = {
 }
 
 export const coalComponents: ComponentDefinition[] = [
+  ShearerDefinition,
+  RoadheaderDefinition,
   ConveyorDefinition,
   FanDefinition,
   GasSensorDefinition,
