@@ -64,6 +64,9 @@ const uiStore = useUiStore()
   width: 240px;
   flex-shrink: 0;
   border-right: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .canvas-area {
@@ -75,6 +78,9 @@ const uiStore = useUiStore()
   width: 280px;
   flex-shrink: 0;
   border-left: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .bottom-panel {
