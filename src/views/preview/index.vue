@@ -21,6 +21,15 @@
     
     <div class="preview-canvas">
       <v-stage :config="stageConfig">
+        <!-- 连线图层 -->
+        <v-layer>
+          <ConnectionLine
+            v-for="conn in connectionStore.connections"
+            :key="conn.id"
+            :connection="conn"
+          />
+        </v-layer>
+
         <v-layer>
           <template v-for="element in canvasStore.elements" :key="element.id">
             <v-group
@@ -30,6 +39,7 @@
                 width: element.width,
                 height: element.height,
                 rotation: element.rotation,
+                visible: isLayerVisible(element.layerId),
               }"
             >
               <v-rect
@@ -49,7 +59,18 @@
                   fill: '#e0e0e0',
                   width: element.width,
                   align: 'center',
-                  y: element.height / 2 - 6,
+                  y: element.height / 2 - (getElementValueText(element) ? 12 : 6),
+                }"
+              />
+              <v-text
+                v-if="getElementValueText(element)"
+                :config="{
+                  text: getElementValueText(element),
+                  fontSize: 10,
+                  fill: '#00d4aa',
+                  width: element.width,
+                  align: 'center',
+                  y: element.height / 2 + 4,
                 }"
               />
             </v-group>
@@ -64,15 +85,20 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCanvasStore } from '@/stores/canvasStore'
+import { useConnectionStore } from '@/stores/connectionStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
+import { useLayerStore } from '@/stores/layerStore'
 import { statusEngine } from '@/status/StatusEngine'
+import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
 
 const router = useRouter()
 const canvasStore = useCanvasStore()
+const connectionStore = useConnectionStore()
 const deviceStore = useDeviceStore()
 const projectStore = useProjectStore()
+const layerStore = useLayerStore()
 
 const stageConfig = computed(() => ({
   width: window.innerWidth,
@@ -105,6 +131,24 @@ function getElementColor(element: ComponentInstance): string {
   const data = deviceStore.getDeviceData(element.deviceId || element.id)
   const status = statusEngine.evaluate(element.statusRules, data)
   return status?.color || '#2a2a2a'
+}
+
+// 元素上展示的实时数值（取第一个数据绑定变量）
+function getElementValueText(element: ComponentInstance): string {
+  const binding = element.dataBindings?.[0]
+  if (!binding) return ''
+
+  const data = deviceStore.getDeviceData(element.deviceId || element.id)
+  const value = data[binding.variable]
+  if (value === undefined) return ''
+
+  const formatted = typeof value === 'number' ? Math.round(value * 10) / 10 : value
+  return `${binding.variable}: ${formatted}`
+}
+
+// 检查图层是否可见
+function isLayerVisible(layerId: string): boolean {
+  return layerStore.getLayer(layerId)?.visible ?? true
 }
 
 function backToEditor() {
