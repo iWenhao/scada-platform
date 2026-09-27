@@ -164,3 +164,40 @@
     background: var(--border-primary);
   }
 }
+
+// 弹出浮层（select 下拉、color-picker 面板等 teleport 到 body 的弹层）
+.el-popper.is-light {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-primary) !important;
+  color: var(--text-primary) !important;
+
+  .el-popper__arrow::before {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-primary) !important;
+  }
+}
+
+.el-select-dropdown {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.el-select-dropdown__item {
+  color: var(--text-primary) !important;
+
+  &.is-hovering,
+  &:hover {
+    background-color: var(--bg-tertiary) !important;
+  }
+
+  &.is-selected {
+    color: var(--accent-primary) !important;
+  }
+}
+
+// 数字输入框步进按钮
+.el-input-number__decrease,
+.el-input-number__increase {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-secondary) !important;
+}
