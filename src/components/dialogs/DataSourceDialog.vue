@@ -116,6 +116,20 @@
           {{ statusText }}
         </el-tag>
       </el-form-item>
+
+      <!-- 实时数据 -->
+      <el-form-item label="实时数据">
+        <div v-if="deviceStore.connectionStatus === 'connected' && liveDevices.length" class="live-data">
+          <div v-for="dev in liveDevices" :key="dev.id" class="live-device">
+            <div class="live-device-name">{{ dev.id }}</div>
+            <div v-for="v in dev.vars" :key="v.name" class="live-var">
+              <span class="live-var-name">{{ v.name }}</span>
+              <span class="live-var-value">{{ v.value }}</span>
+            </div>
+          </div>
+        </div>
+        <el-tag v-else size="small" type="info">连接后显示设备实时数据</el-tag>
+      </el-form-item>
     </el-form>
     
     <template #footer>
@@ -157,6 +171,18 @@ const form = reactive({
 const autoReconnect = ref(true)
 const reconnectInterval = ref(5000)
 const mockInterval = ref(1000)
+
+// 实时数据快照（随 Pinia 状态自动刷新）
+const liveDevices = computed(() => {
+  const data = deviceStore.deviceData
+  return Object.keys(data).sort().map(id => ({
+    id,
+    vars: Object.entries(data[id]).map(([name, value]) => ({
+      name,
+      value: typeof value === 'number' ? String(Math.round(value * 10) / 10) : String(value),
+    })),
+  }))
+})
 const nodeList = ref('')
 
 const statusType = computed(() => {
@@ -240,6 +266,47 @@ function handleConfirm() {
   margin-top: 4px;
   color: var(--text-muted);
   font-size: 12px;
+}
+
+.live-data {
+  width: 100%;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+}
+
+.live-device {
+  margin-bottom: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.live-device-name {
+  font-weight: 600;
+  color: var(--accent-primary);
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.live-var {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 8px;
+  font-size: 12px;
+
+  .live-var-name {
+    color: var(--text-secondary);
+  }
+
+  .live-var-value {
+    color: var(--text-primary);
+    font-family: monospace;
+  }
 }
 
 :deep(.el-radio-group) {
