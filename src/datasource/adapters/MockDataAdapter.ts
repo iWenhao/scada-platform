@@ -35,6 +35,59 @@ export class MockDataAdapter implements DataSourceAdapter {
         sensor_1: {
           value: Math.random() * 120,
         },
+        conveyor_1: {
+          speed: Math.random() > 0.25 ? Math.random() * 2 : 0,
+          load: Math.random() * 100,
+        },
+        fan_1: {
+          speed: Math.random() > 0.15 ? 1480 : 0,
+          vibration: Math.random() * 8,
+        },
+        gas_sensor_1: {
+          density: Math.random() * 1.5,
+        },
+        hoist_1: {
+          speed: Math.random() > 0.3 ? (Math.random() > 0.5 ? 3.5 : -3.5) : 0,
+          load: 20 + Math.random() * 75,
+        },
+        turbine_1: {
+          speed: 2900 + Math.random() * 420,
+          temp: 400 + Math.random() * 120,
+        },
+        generator_1: {
+          power: Math.random() * 620,
+          voltage: 10.5 + Math.random() * 0.8,
+        },
+        boiler_1: {
+          pressure: 4 + Math.random() * 10,
+          level: 30 + Math.random() * 60,
+          temp: 300 + Math.random() * 200,
+        },
+        transformer_1: {
+          temp: 35 + Math.random() * 70,
+          load: Math.random() * 120,
+        },
+        breaker_1: {
+          closed: Math.random() > 0.3 ? 1 : 0,
+        },
+        reactor_1: {
+          temp: 40 + Math.random() * 220,
+          pressure: 0.5 + Math.random() * 2,
+          level: 40 + Math.random() * 55,
+        },
+        heat_exchanger_1: {
+          flow: Math.random() > 0.25 ? Math.random() * 100 : 0,
+          tempIn: 60 + Math.random() * 60,
+          tempOut: 30 + Math.random() * 20,
+        },
+        sediment_tank_1: {
+          level: 20 + Math.random() * 75,
+          turbidity: Math.random() * 60,
+        },
+        sub_pump_1: {
+          running: Math.random() > 0.4 ? 1 : 0,
+          flow: Math.random() * 200,
+        },
       }
       this.updateCallback?.(update)
     }, interval)
@@ -42,7 +95,13 @@ export class MockDataAdapter implements DataSourceAdapter {
 
   /** 可绑定的模拟设备清单 */
   listDevices(): string[] {
-    return ['motor_1', 'pump_1', 'valve_1', 'tank_1', 'pipe_1', 'sensor_1']
+    return [
+      'motor_1', 'pump_1', 'valve_1', 'tank_1', 'pipe_1', 'sensor_1',
+      'conveyor_1', 'fan_1', 'gas_sensor_1', 'hoist_1',
+      'turbine_1', 'generator_1', 'boiler_1', 'transformer_1', 'breaker_1',
+      'reactor_1', 'heat_exchanger_1',
+      'sediment_tank_1', 'sub_pump_1',
+    ]
   }
 
   disconnect() {

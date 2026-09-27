@@ -32,10 +32,22 @@ import type { ComponentDefinition } from '@/types/scada'
 import { basicComponents } from '@/industrial/basic'
 import { pipelineComponents } from '@/industrial/pipeline'
 import { electricalComponents } from '@/industrial/electrical'
+import { coalComponents } from '@/industrial/coal'
+import { powerComponents } from '@/industrial/power'
+import { chemicalComponents } from '@/industrial/chemical'
+import { waterComponents } from '@/industrial/water'
 import { registerComponents } from '@/industrial/registry'
 
 // 注册所有组件
-registerComponents([...basicComponents, ...pipelineComponents, ...electricalComponents])
+registerComponents([
+  ...basicComponents,
+  ...pipelineComponents,
+  ...electricalComponents,
+  ...coalComponents,
+  ...powerComponents,
+  ...chemicalComponents,
+  ...waterComponents,
+])
 
 const groupedComponents = computed(() => getComponentsByGroup())
 
@@ -43,6 +55,10 @@ const groupNames: Record<string, string> = {
   basic: '基础组件',
   pipeline: '管道组件',
   electrical: '电气组件',
+  coal: '煤矿组件',
+  power: '电厂组件',
+  chemical: '化工组件',
+  water: '水处理组件',
   custom: '自定义组件',
 }
 

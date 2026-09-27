@@ -9,9 +9,9 @@
 
 SCADA Platform 是一个基于 **Vue 3 + TypeScript + Konva.js** 的开源工业组态可视化编辑平台。无需后端，打开浏览器即可：
 
-- 从组件库拖入阀门、泵、储罐、管道、电机、传感器等工业组件搭建工艺流程画面
+- 从组件库拖入工业组件搭建工艺流程画面：**7 个分组、19 种组件**，覆盖通用设备与煤矿、电厂、化工、水处理行业
 - 通过端口拖拽建立组件连线
-- 配置状态规则，让组件颜色随实时数据自动变化（运行/停止/高温/高液位报警等）
+- 配置状态规则，让组件颜色随实时数据自动变化（运行/停止/高温/瓦斯报警等）
 - 接入 WebSocket 实时数据源或使用内置模拟数据调试
 - 保存/导出/导入项目，一键进入只读预览模式
 
@@ -59,7 +59,7 @@ npx vitest run   # 单次运行
 | 区域 | 位置 | 作用 |
 |------|------|------|
 | 工具栏 | 顶部 | 选择/连线工具切换、撤销重做、缩放、画布配置、数据源配置、保存/导出/导入、预览 |
-| 组件库 | 左侧 | 基础组件（阀门/泵/储罐）、管道组件（管道）、电气组件（电机/传感器），拖拽到画布使用 |
+| 组件库 | 左侧 | 基础/管道/电气/煤矿/电厂/化工/水处理 7 个分组 19 种组件，拖拽到画布使用 |
 | 画布 | 中间 | 1920x1080 画布，支持网格显示、组件拖放、连线绘制 |
 | 属性面板 | 右侧 | 选中组件后编辑名称、位置、尺寸、旋转、组件属性、数据绑定、状态规则 |
 | 图层管理 | 底部 | 每个图层可切换可见性（眼睛）与锁定（锁头），可新增图层 |
@@ -141,16 +141,15 @@ npx vitest run   # 单次运行
 
 ### 7.1 模拟数据（默认）
 
-内置 6 台模拟设备，每秒随机刷新，用于开发调试：
+内置 19 台模拟设备，每秒随机刷新，覆盖全部组件分组，用于开发调试：
 
-| 设备 | 变量 |
+| 分组 | 设备（变量） |
 |------|------|
-| motor_1 | speed、temp、vibration |
-| pump_1 | speed、flow、pressure |
-| valve_1 | openDegree |
-| tank_1 | level、temp |
-| pipe_1 | flowRate |
-| sensor_1 | value |
+| 基础/管道/电气 | motor_1（speed, temp, vibration）、pump_1（speed, flow, pressure）、valve_1（openDegree）、tank_1（level, temp）、pipe_1（flowRate）、sensor_1（value） |
+| 煤矿 | conveyor_1（speed, load）、fan_1（speed, vibration）、gas_sensor_1（density, %CH4）、hoist_1（speed, load） |
+| 电厂 | turbine_1（speed, temp）、generator_1（power, voltage）、boiler_1（pressure, level, temp）、transformer_1（temp, load）、breaker_1（closed） |
+| 化工 | reactor_1（temp, pressure, level）、heat_exchanger_1（flow, tempIn, tempOut） |
+| 水处理 | sediment_tank_1（level, turbidity）、sub_pump_1（running, flow） |
 
 可调整更新间隔（500–10000ms）。
 

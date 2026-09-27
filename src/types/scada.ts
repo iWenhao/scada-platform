@@ -1,5 +1,13 @@
 /** 组件分组 */
-export type ComponentGroup = 'basic' | 'pipeline' | 'electrical' | 'custom'
+export type ComponentGroup =
+  | 'basic'
+  | 'pipeline'
+  | 'electrical'
+  | 'coal'
+  | 'power'
+  | 'chemical'
+  | 'water'
+  | 'custom'
 
 /** 组件定义（注册时使用） */
 export interface ComponentDefinition {
