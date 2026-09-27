@@ -267,8 +267,8 @@ function handleRename() {
     confirmButtonText: '重命名',
     cancelButtonText: '取消',
   })
-    .then(({ value }) => {
-      if (projectStore.renameProject(value)) {
+    .then(async ({ value }) => {
+      if (await projectStore.renameProject(value)) {
         ElMessage.success('已重命名')
       } else {
         ElMessage.error('重命名失败：名称为空或与已有项目重名')
@@ -290,8 +290,8 @@ function goHome() {
       cancelButtonText: '不保存，直接返回',
       distinguishCancelAndClose: true,
     })
-      .then(() => {
-        projectStore.saveProject()
+      .then(async () => {
+        await projectStore.saveProject()
         router.push('/')
       })
       .catch((action) => {
@@ -322,9 +322,9 @@ function handleZoomFit() {
   canvasStore.setOffset(0, 0)
 }
 
-function handleSave() {
+async function handleSave() {
   saveState()
-  projectStore.saveProject()
+  await projectStore.saveProject()
 }
 
 function handleExport() {
@@ -358,8 +358,8 @@ function handleImport() {
   input.click()
 }
 
-function handlePreview() {
-  projectStore.saveProject()
+async function handlePreview() {
+  await projectStore.saveProject()
   router.push('/preview')
 }
 

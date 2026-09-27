@@ -9,12 +9,14 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 import './styles/index.scss'
 import App from './App.vue'
 import router from './router'
-import { getStorage } from '@/storage'
+import { getStorage, initStorage } from '@/storage'
 
-// 挂载前应用保存的主题, 保证所有页面(含首页)一致并避免闪屏
-const savedTheme = getStorage().get('scada_theme') === 'light' ? 'light' : 'dark'
-document.documentElement.dataset.theme = savedTheme
-document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+// 挂载前探测存储后端并应用保存的主题, 保证所有页面(含首页)一致并避免闪屏
+const applyTheme = (t: 'light' | 'dark') => {
+  document.documentElement.dataset.theme = t
+  document.documentElement.classList.toggle('dark', t === 'dark')
+}
+applyTheme('dark')
 
 const app = createApp(App)
 
@@ -28,4 +30,12 @@ app.use(router)
 app.use(ElementPlus)
 app.use(VueKonva)
 
-app.mount('#app')
+initStorage()
+  .then(async () => {
+    const saved = await getStorage().get('scada_theme')
+    if (saved === 'light' || saved === 'dark') applyTheme(saved)
+  })
+  .catch(() => {})
+  .finally(() => {
+    app.mount('#app')
+  })

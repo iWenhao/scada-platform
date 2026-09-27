@@ -14,12 +14,17 @@ SCADA Platform：基于 **Vue 3 + TypeScript + Konva.js (vue-konva) + Pinia + El
 ```bash
 pnpm install            # 安装依赖（pnpm-workspace.yaml 已内置构建脚本白名单）
 pnpm dev                # 开发服务器，http://localhost:5173
+pnpm server             # 存储后端(http://localhost:5174)，数据存 server/data/*.json
 pnpm build              # 生产构建 = vue-tsc --noEmit + vite build，提交前必跑
 npx vitest run          # 测试单次运行（pnpm test 是 watch 模式，会挂住终端）
 pnpm lint               # ESLint
 ```
 
 验证基准：任何功能提交前，`vue-tsc --noEmit` 零错误 + `vitest run` 全过 + `pnpm build` 成功；UI 改动需浏览器实测交互。
+
+## 存储后端
+
+`server/index.mjs` 是零依赖的键值存储服务（数据为 `server/data/*.json`），前端 `RemoteStorageAdapter` 通过 `/api/storage/*` 访问，Vite 代理 `/api`。启动时 `initStorage()` 自动探测：后端在线用远程存储，不在线回落 localStorage。改 `vite.config.ts` 代理或 server 路由后需重启 dev server。
 
 ## 环境与已知坑
 

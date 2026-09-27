@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
 import type { ComponentDefinition } from '@/types/scada'
 
@@ -79,7 +79,12 @@ registerComponents([
   ...chemicalComponents,
   ...waterComponents,
 ])
-const customDefs = ref<ComponentDefinition[]>(loadCustomComponents())
+const customDefs = ref<ComponentDefinition[]>([])
+
+onMounted(async () => {
+  // 从存储恢复自定义组件并注册
+  customDefs.value = await loadCustomComponents()
+})
 
 // 内置分组(自定义组件由独立区块展示, 此处排除避免重复)
 const groupedComponents = computed(() => {
@@ -100,8 +105,8 @@ const groupNames: Record<string, string> = {
 }
 
 // 创建自定义组件: 注册 + 持久化 + 出现在面板
-function onCustomCreated(def: ComponentDefinition) {
-  addCustomComponent(def)
+async function onCustomCreated(def: ComponentDefinition) {
+  await addCustomComponent(def)
   customDefs.value = [...customDefs.value, def]
 }
 

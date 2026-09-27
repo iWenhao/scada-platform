@@ -213,16 +213,13 @@ function updateLastUpdateTime() {
 
 let updateInterval: number | null = null
 
-onMounted(() => {
+onMounted(async () => {
   // 加载项目数据
-  const savedProject = localStorage.getItem(`scada_project_${projectStore.projectName}`)
-  if (savedProject) {
-    projectStore.loadProject(projectStore.projectName)
-  }
-  
+  await projectStore.loadProject(projectStore.projectName)
+
   // 初始化数据源
   deviceStore.initDataSource({ type: 'mock' })
-  
+
   // 定时更新显示
   updateInterval = window.setInterval(updateLastUpdateTime, 1000)
 })

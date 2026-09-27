@@ -10,8 +10,8 @@ const STORAGE_KEY = 'scada_custom_components'
  */
 
 /** 启动时调用：从存储恢复自定义组件并注册（按 type 去重，并回写清理存储） */
-export function loadCustomComponents(): ComponentDefinition[] {
-  const raw = getStorage().get(STORAGE_KEY)
+export async function loadCustomComponents(): Promise<ComponentDefinition[]> {
+  const raw = await getStorage().get(STORAGE_KEY)
   if (!raw) return []
 
   try {
@@ -20,7 +20,7 @@ export function loadCustomComponents(): ComponentDefinition[] {
     defs.forEach(d => unique.set(d.type, d))
     const result = [...unique.values()]
     result.forEach(registerComponent)
-    getStorage().set(STORAGE_KEY, JSON.stringify(result))
+    await getStorage().set(STORAGE_KEY, JSON.stringify(result))
     return result
   } catch {
     return []
@@ -28,11 +28,11 @@ export function loadCustomComponents(): ComponentDefinition[] {
 }
 
 /** 注册并持久化一个自定义组件（同 type 幂等覆盖） */
-export function addCustomComponent(def: ComponentDefinition): void {
+export async function addCustomComponent(def: ComponentDefinition): Promise<void> {
   registerComponent(def)
-  const list = getCustomComponents().filter(c => c.type !== def.type)
+  const list = (await getCustomComponents()).filter(c => c.type !== def.type)
   list.push(def)
-  getStorage().set(STORAGE_KEY, JSON.stringify(list))
+  await getStorage().set(STORAGE_KEY, JSON.stringify(list))
 }
 
 /** 当前全部自定义组件（来自注册表） */
