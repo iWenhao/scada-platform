@@ -2,7 +2,9 @@
   <div class="toolbar-container">
     <!-- 左侧Logo和项目名 -->
     <div class="toolbar-left">
-      <img src="/logo.svg" alt="Logo" class="logo" />
+      <el-tooltip content="返回主页" placement="bottom">
+        <img src="/logo.svg" alt="返回主页" class="logo" @click="goHome" />
+      </el-tooltip>
       <span class="project-name">{{ projectStore.projectName }}</span>
       <el-tag v-if="projectStore.hasUnsavedChanges" type="warning" size="small">
         未保存
@@ -174,6 +176,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -236,6 +239,30 @@ function handleDelete() {
 
 function handleUndo() {
   undo()
+}
+
+// 返回主页（有未保存更改时先确认）
+function goHome() {
+  if (projectStore.hasUnsavedChanges) {
+    ElMessageBox.confirm('当前项目有未保存的更改，返回主页前要先保存吗？', '未保存的更改', {
+      type: 'warning',
+      confirmButtonText: '保存并返回',
+      cancelButtonText: '不保存，直接返回',
+      distinguishCancelAndClose: true,
+    })
+      .then(() => {
+        projectStore.saveProject()
+        router.push('/')
+      })
+      .catch((action) => {
+        if (action === 'cancel') {
+          router.push('/')
+        }
+        // close(右上角X)则留在编辑器
+      })
+  } else {
+    router.push('/')
+  }
 }
 
 function handleRedo() {
@@ -371,6 +398,12 @@ onUnmounted(() => {
   .logo {
     width: 32px;
     height: 32px;
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.1);
+    }
   }
   
   .project-name {
