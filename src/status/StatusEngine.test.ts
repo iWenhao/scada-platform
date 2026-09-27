@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { StatusEngine } from '../StatusEngine'
+import { StatusEngine } from './StatusEngine'
 import type { StatusRule, Condition } from '@/types/scada'
 
 describe('StatusEngine', () => {

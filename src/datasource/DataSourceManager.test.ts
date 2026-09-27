@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { DataSourceManager } from '../DataSourceManager'
+import { DataSourceManager } from './DataSourceManager'
 
 describe('DataSourceManager', () => {
   let manager: DataSourceManager
