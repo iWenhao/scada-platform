@@ -52,25 +52,38 @@
                   cornerRadius: 4,
                 }"
               />
+              <v-image
+                v-if="getIconImageConfig(element)"
+                :config="getIconImageConfig(element)"
+              />
+              <v-rect
+                :config="{
+                  y: element.height - getLabelHeight(element),
+                  width: element.width,
+                  height: getLabelHeight(element),
+                  fill: 'rgba(10,14,26,0.55)',
+                  cornerRadius: [0, 0, 4, 4],
+                }"
+              />
               <v-text
                 :config="{
                   text: element.name,
-                  fontSize: 12,
+                  fontSize: 11,
                   fill: '#e0e0e0',
                   width: element.width,
                   align: 'center',
-                  y: element.height / 2 - (getElementValueText(element) ? 12 : 6),
+                  y: element.height - getLabelHeight(element) + 2,
                 }"
               />
               <v-text
                 v-if="getElementValueText(element)"
                 :config="{
                   text: getElementValueText(element),
-                  fontSize: 10,
-                  fill: '#00d4aa',
+                  fontSize: 9,
+                  fill: '#8fe6d3',
                   width: element.width,
                   align: 'center',
-                  y: element.height / 2 + 4,
+                  y: element.height - 11,
                 }"
               />
             </v-group>
@@ -90,6 +103,8 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { statusEngine } from '@/status/StatusEngine'
+import { getIconImage } from '@/core/canvas/iconImage'
+import { getComponentDefinition } from '@/industrial/registry'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
 
@@ -144,6 +159,40 @@ function getElementValueText(element: ComponentInstance): string {
 
   const formatted = typeof value === 'number' ? Math.round(value * 10) / 10 : value
   return `${binding.variable}: ${formatted}`
+}
+
+// 底部标签条高度（有实时数值时更高）
+function getLabelHeight(element: ComponentInstance): number {
+  return getElementValueText(element) ? 26 : 16
+}
+
+// 图标加载完成后递增以触发画布重绘
+const iconVersion = ref(0)
+
+// 组件图形（SVG 图标按比例适配到元素内部）
+function getIconImageConfig(element: ComponentInstance) {
+  const def = getComponentDefinition(element.type)
+  if (!def?.icon) return null
+
+  const img = getIconImage(element.type, def.icon, '#e8f0ef', () => {
+    iconVersion.value++
+  })
+  if (!img) return null
+
+  const labelH = getLabelHeight(element)
+  const boxW = Math.max(element.width - 12, 4)
+  const boxH = Math.max(element.height - labelH - 10, 4)
+  const scale = Math.min(boxW / 100, boxH / 100)
+  const iconW = 100 * scale
+  const iconH = 100 * scale
+
+  return {
+    image: img,
+    x: (element.width - iconW) / 2,
+    y: 4 + (boxH - iconH) / 2,
+    width: iconW,
+    height: iconH,
+  }
 }
 
 // 检查图层是否可见
