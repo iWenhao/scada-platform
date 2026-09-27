@@ -1,4 +1,5 @@
-// Element Plus 暗色主题覆盖
+// Element Plus 暗色主题覆盖(仅在 html.dark 时生效; 亮色主题由 EP 默认变量 + 项目亮色变量)
+html.dark {
 .el-dialog {
   background-color: var(--bg-secondary) !important;
   border: 1px solid var(--border-primary) !important;
@@ -284,4 +285,5 @@
 .el-input-number__increase {
   background-color: var(--bg-tertiary) !important;
   color: var(--text-secondary) !important;
+}
 }
