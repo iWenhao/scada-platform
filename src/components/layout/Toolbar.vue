@@ -75,6 +75,24 @@
           </el-button>
         </el-tooltip>
 
+        <el-tooltip content="复制 (Ctrl+C)" placement="bottom">
+          <el-button
+            :disabled="!canvasStore.selectedIds.length"
+            @click="handleCopy"
+          >
+            <el-icon><CopyDocument /></el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip content="粘贴 (Ctrl+V)" placement="bottom">
+          <el-button
+            :disabled="!clipboard.length"
+            @click="handlePaste"
+          >
+            <el-icon><DocumentAdd /></el-icon>
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="删除选中 (Delete)" placement="bottom">
           <el-button
             :disabled="!canvasStore.selectedIds.length && !connectionStore.selectedConnectionId"
@@ -198,21 +216,21 @@ const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
 
-// 复制粘贴剪贴板（支持多选批量复制）
-let clipboard: ComponentInstance[] = []
+// 复制粘贴剪贴板（支持多选批量复制，响应式以驱动按钮禁用态）
+const clipboard = ref<ComponentInstance[]>([])
 
 function handleCopy() {
   const selected = canvasStore.selectedElements
   if (selected.length) {
-    clipboard = JSON.parse(JSON.stringify(selected))
+    clipboard.value = JSON.parse(JSON.stringify(selected))
   }
 }
 
 function handlePaste() {
-  if (!clipboard.length) return
+  if (!clipboard.value.length) return
 
   const stamp = Date.now()
-  const pasted = clipboard.map((el, i) => ({
+  const pasted = clipboard.value.map((el, i) => ({
     ...JSON.parse(JSON.stringify(el)),
     id: `el_${stamp}_${i}`,
     x: el.x + 20,
