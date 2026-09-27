@@ -11,6 +11,7 @@
           <el-radio value="mock">模拟数据</el-radio>
           <el-radio value="websocket">WebSocket</el-radio>
           <el-radio value="http">HTTP轮询</el-radio>
+          <el-radio value="opcua">OPC UA</el-radio>
         </el-radio-group>
       </el-form-item>
       
@@ -50,7 +51,7 @@
             placeholder="http://localhost:3001/api/data"
           />
         </el-form-item>
-        
+
         <el-form-item label="轮询间隔">
           <el-input-number
             v-model="form.interval"
@@ -59,6 +60,40 @@
             :step="1000"
           />
           <span class="unit">毫秒</span>
+        </el-form-item>
+      </template>
+
+      <!-- OPC UA 网关配置 -->
+      <template v-if="form.type === 'opcua'">
+        <el-form-item label="网关地址">
+          <el-input
+            v-model="form.url"
+            placeholder="ws://localhost:8081/opcua-gateway"
+          />
+        </el-form-item>
+
+        <el-form-item label="订阅节点">
+          <el-input
+            v-model="nodeList"
+            type="textarea"
+            :rows="4"
+            placeholder="每行一个 NodeId，例如:&#10;ns=2;s=motor_1.speed&#10;ns=2;s=boiler_1.pressure"
+          />
+          <span class="hint">NodeId 按"设备.变量"映射到组件绑定</span>
+        </el-form-item>
+
+        <el-form-item label="采样间隔">
+          <el-input-number
+            v-model="form.interval"
+            :min="500"
+            :max="60000"
+            :step="500"
+          />
+          <span class="unit">毫秒</span>
+        </el-form-item>
+
+        <el-form-item label="自动重连">
+          <el-switch v-model="autoReconnect" />
         </el-form-item>
       </template>
       
@@ -122,6 +157,7 @@ const form = reactive({
 const autoReconnect = ref(true)
 const reconnectInterval = ref(5000)
 const mockInterval = ref(1000)
+const nodeList = ref('')
 
 const statusType = computed(() => {
   switch (deviceStore.connectionStatus) {
@@ -155,10 +191,21 @@ function buildConfig() {
     interval:
       form.type === 'http' ? form.interval
       : form.type === 'mock' ? mockInterval.value
+      : form.type === 'opcua' ? form.interval
       : undefined,
-    reconnect: form.type === 'websocket' ? autoReconnect.value : false,
+    reconnect:
+      form.type === 'websocket' || form.type === 'opcua' ? autoReconnect.value : false,
     reconnectInterval: reconnectInterval.value,
+    options: form.type === 'opcua' ? { nodes: parseNodeList() } : undefined,
   }
+}
+
+// 解析节点列表输入（每行一个 NodeId）
+function parseNodeList(): string[] {
+  return nodeList.value
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
 }
 
 async function handleTest() {
@@ -186,6 +233,13 @@ function handleConfirm() {
   margin-left: 8px;
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+.hint {
+  width: 100%;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 :deep(.el-radio-group) {

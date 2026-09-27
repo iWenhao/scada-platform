@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CanvasConfigDialog: typeof import('./src/components/dialogs/CanvasConfigDialog.vue')['default']
+    CanvasRuler: typeof import('./src/components/layout/CanvasRuler.vue')['default']
     ComponentPanel: typeof import('./src/components/layout/ComponentPanel.vue')['default']
     DataSourceDialog: typeof import('./src/components/dialogs/DataSourceDialog.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -35,6 +36,7 @@ declare module 'vue' {
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     LayerPanel: typeof import('./src/components/layout/LayerPanel.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
+    MiniMap: typeof import('./src/components/layout/MiniMap.vue')['default']
     PropertyPanel: typeof import('./src/components/layout/PropertyPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
