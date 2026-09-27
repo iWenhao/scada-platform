@@ -130,14 +130,17 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCanvasStore } from '@/stores/canvasStore'
+import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
+import type { ComponentInstance } from '@/types/scada'
 
 const router = useRouter()
 const canvasStore = useCanvasStore()
+const connectionStore = useConnectionStore()
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
 
@@ -146,6 +149,45 @@ const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
 // 对话框显示状态
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
+
+// 复制粘贴剪贴板
+let clipboard: ComponentInstance | null = null
+
+function handleCopy() {
+  const selected = canvasStore.selectedElement
+  if (selected) {
+    clipboard = JSON.parse(JSON.stringify(selected))
+  }
+}
+
+function handlePaste() {
+  if (!clipboard) return
+
+  const copy: ComponentInstance = {
+    ...JSON.parse(JSON.stringify(clipboard)),
+    id: `el_${Date.now()}`,
+    x: clipboard.x + 20,
+    y: clipboard.y + 20,
+    name: `${clipboard.name} 副本`,
+  }
+  canvasStore.addElement(copy)
+  canvasStore.selectElement(copy.id)
+  saveState()
+}
+
+function handleDelete() {
+  const selectedId = canvasStore.selectedId
+  const selectedConnectionId = connectionStore.selectedConnectionId
+
+  if (selectedId) {
+    canvasStore.removeElement(selectedId)
+    connectionStore.deleteConnectionsByElement(selectedId)
+    saveState()
+  } else if (selectedConnectionId) {
+    connectionStore.deleteConnection(selectedConnectionId)
+    saveState()
+  }
+}
 
 function handleUndo() {
   undo()
@@ -211,6 +253,17 @@ function handlePreview() {
 
 // 键盘快捷键
 function handleKeydown(e: KeyboardEvent) {
+  // 输入框聚焦时不响应快捷键，避免打字误触
+  const target = e.target as HTMLElement | null
+  if (target && (
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.tagName === 'SELECT' ||
+    target.isContentEditable
+  )) {
+    return
+  }
+
   if (e.ctrlKey || e.metaKey) {
     if (e.key === 'z') {
       e.preventDefault()
@@ -221,10 +274,20 @@ function handleKeydown(e: KeyboardEvent) {
     } else if (e.key === 's') {
       e.preventDefault()
       handleSave()
+    } else if (e.key === 'c' || e.key === 'C') {
+      e.preventDefault()
+      handleCopy()
+    } else if (e.key === 'v' || e.key === 'V') {
+      e.preventDefault()
+      handlePaste()
     }
+    return
   }
-  
-  if (e.key === 'v' || e.key === 'V') {
+
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault()
+    handleDelete()
+  } else if (e.key === 'v' || e.key === 'V') {
     uiStore.setActiveTool('select')
   } else if (e.key === 'l' || e.key === 'L') {
     uiStore.setActiveTool('connect')
