@@ -29,6 +29,24 @@
             <el-icon><Connection /></el-icon>
           </el-button>
         </el-tooltip>
+
+        <el-tooltip content="标尺" placement="bottom">
+          <el-button
+            :type="uiStore.showRuler ? 'primary' : 'default'"
+            @click="uiStore.toggleRuler()"
+          >
+            <el-icon><Grid /></el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip content="小地图" placement="bottom">
+          <el-button
+            :type="uiStore.showMinimap ? 'primary' : 'default'"
+            @click="uiStore.toggleMinimap()"
+          >
+            <el-icon><MapLocation /></el-icon>
+          </el-button>
+        </el-tooltip>
       </el-button-group>
       
       <el-divider direction="vertical" />

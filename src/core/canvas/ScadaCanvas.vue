@@ -4,14 +4,37 @@
     @dragover.prevent
     @drop="onDrop"
   >
-    <v-stage
-      ref="stageRef"
-      :config="stageConfig"
-      @mousedown="onMouseDown"
-      @mousemove="onMouseMove"
-      @mouseup="onMouseUp"
-      @wheel="onWheel"
-    >
+    <div class="canvas-frame">
+      <div v-if="uiStore.showRuler" class="ruler-row">
+        <div class="ruler-corner"></div>
+        <CanvasRuler
+          orientation="horizontal"
+          :canvas-length="canvasStore.canvasConfig.width"
+          :zoom="canvasStore.zoom"
+          :offset="canvasStore.offset.x"
+          :viewport="stageSize.width"
+        />
+      </div>
+
+      <div class="canvas-row">
+        <CanvasRuler
+          v-if="uiStore.showRuler"
+          orientation="vertical"
+          :canvas-length="canvasStore.canvasConfig.height"
+          :zoom="canvasStore.zoom"
+          :offset="canvasStore.offset.y"
+          :viewport="stageSize.height"
+        />
+
+        <div ref="stageContainerRef" class="stage-container">
+          <v-stage
+            ref="stageRef"
+            :config="stageConfig"
+            @mousedown="onMouseDown"
+            @mousemove="onMouseMove"
+            @mouseup="onMouseUp"
+            @wheel="onWheel"
+          >
       <!-- 网格图层 -->
       <v-layer>
         <v-group :config="gridGroupConfig">
@@ -175,17 +198,33 @@
         />
       </v-layer>
     </v-stage>
-    
-    <!-- 画布信息 -->
-    <div class="canvas-info">
-      <span>{{ canvasStore.canvasConfig.width }} x {{ canvasStore.canvasConfig.height }}</span>
-      <span>{{ Math.round(canvasStore.zoom * 100) }}%</span>
+
+          <MiniMap
+            v-if="uiStore.showMinimap"
+            :elements="canvasStore.elements"
+            :canvas-width="canvasStore.canvasConfig.width"
+            :canvas-height="canvasStore.canvasConfig.height"
+            :viewport-x="canvasStore.offset.x"
+            :viewport-y="canvasStore.offset.y"
+            :viewport-w="stageSize.width"
+            :viewport-h="stageSize.height"
+            :zoom="canvasStore.zoom"
+            @navigate="onMinimapNavigate"
+          />
+
+          <!-- 画布信息 -->
+          <div class="canvas-info">
+            <span>{{ canvasStore.canvasConfig.width }} x {{ canvasStore.canvasConfig.height }}</span>
+            <span>{{ Math.round(canvasStore.zoom * 100) }}%</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useConnectionStore } from '@/stores/connectionStore'
@@ -197,6 +236,8 @@ import { useHistory } from '@/core/canvas/useHistory'
 import { getIconImage } from '@/core/canvas/iconImage'
 import { computeAlignment } from '@/core/canvas/alignment'
 import { getComponentDefinition } from '@/industrial/registry'
+import CanvasRuler from '@/components/layout/CanvasRuler.vue'
+import MiniMap from '@/components/layout/MiniMap.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
 import type { PortPosition, ConnectionType } from '@/types/connection'
@@ -210,6 +251,11 @@ const { saveState } = useHistory()
 
 const stageRef = ref()
 const transformerRef = ref()
+const stageContainerRef = ref<HTMLElement | null>(null)
+
+// 舞台实际尺寸（随容器尺寸自适应）
+const stageSize = ref({ width: 800, height: 400 })
+let containerObserver: ResizeObserver | null = null
 
 // 连线模式下鼠标悬停的元素ID
 const hoveredElementId = ref<string | null>(null)
@@ -234,8 +280,8 @@ function gridSnapFunc(pos: { x: number; y: number }) {
 
 // 画布Stage配置
 const stageConfig = computed(() => ({
-  width: window.innerWidth - 520,
-  height: window.innerHeight - 250,
+  width: stageSize.value.width,
+  height: stageSize.value.height,
   scaleX: canvasStore.zoom,
   scaleY: canvasStore.zoom,
   x: canvasStore.offset.x,
@@ -734,7 +780,31 @@ function onWheel(e: any) {
 // 初始化
 onMounted(() => {
   deviceStore.initDataSource({ type: 'mock' })
+
+  // 监听舞台容器尺寸，舞台自适应并支持窗口缩放
+  if (stageContainerRef.value && 'ResizeObserver' in window) {
+    containerObserver = new ResizeObserver((entries) => {
+      const rect = entries[0].contentRect
+      stageSize.value = {
+        width: Math.max(rect.width, 100),
+        height: Math.max(rect.height, 100),
+      }
+    })
+    containerObserver.observe(stageContainerRef.value)
+  }
 })
+
+onUnmounted(() => {
+  containerObserver?.disconnect()
+})
+
+// 小地图导航：把画布坐标居中显示
+function onMinimapNavigate(x: number, y: number) {
+  canvasStore.setOffset(
+    stageSize.value.width / 2 - x * canvasStore.zoom,
+    stageSize.value.height / 2 - y * canvasStore.zoom,
+  )
+}
 </script>
 
 <style scoped lang="scss">
@@ -743,6 +813,48 @@ onMounted(() => {
   height: 100%;
   background: var(--bg-canvas);
   position: relative;
+  overflow: hidden;
+}
+
+.canvas-frame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ruler-row {
+  height: 20px;
+  display: flex;
+  flex: 0 0 auto;
+
+  .ruler-corner {
+    width: 20px;
+    background: #151a28;
+    border-bottom: 1px solid #2a3244;
+    border-right: 1px solid #2a3244;
+  }
+
+  > .canvas-ruler.horizontal {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.canvas-row {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+
+  > .canvas-ruler.vertical {
+    flex: 0 0 20px;
+  }
+}
+
+.stage-container {
+  flex: 1;
+  position: relative;
+  min-width: 0;
   overflow: hidden;
 }
 
