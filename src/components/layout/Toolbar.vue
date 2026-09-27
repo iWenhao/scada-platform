@@ -5,7 +5,10 @@
       <el-tooltip content="返回主页" placement="bottom">
         <img src="/logo.svg" alt="返回主页" class="logo" @click="goHome" />
       </el-tooltip>
-      <span class="project-name">{{ projectStore.projectName }}</span>
+      <el-tooltip content="点击重命名" placement="bottom">
+        <span class="project-name" @click="handleRename">{{ projectStore.projectName }}</span>
+      </el-tooltip>
+      <el-icon class="rename-icon" title="重命名" @click="handleRename"><Edit /></el-icon>
       <el-tag v-if="projectStore.hasUnsavedChanges" type="warning" size="small">
         未保存
       </el-tag>
@@ -194,7 +197,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -253,6 +256,25 @@ function handleDelete() {
     connectionStore.deleteConnection(connectionStore.selectedConnectionId)
     saveState()
   }
+}
+
+// 重命名项目
+function handleRename() {
+  ElMessageBox.prompt('请输入新的项目名称', '重命名项目', {
+    inputValue: projectStore.projectName,
+    inputPattern: /\S+/,
+    inputErrorMessage: '名称不能为空',
+    confirmButtonText: '重命名',
+    cancelButtonText: '取消',
+  })
+    .then(({ value }) => {
+      if (projectStore.renameProject(value)) {
+        ElMessage.success('已重命名')
+      } else {
+        ElMessage.error('重命名失败：名称为空或与已有项目重名')
+      }
+    })
+    .catch(() => {})
 }
 
 function handleUndo() {
@@ -428,6 +450,20 @@ onUnmounted(() => {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--accent-primary);
+    }
+  }
+
+  .rename-icon {
+    cursor: pointer;
+    color: var(--text-muted);
+
+    &:hover {
+      color: var(--accent-primary);
+    }
   }
 }
 
