@@ -146,7 +146,7 @@ npx vitest run   # 单次运行
 | 分组 | 设备（变量） |
 |------|------|
 | 基础/管道/电气 | motor_1（speed, temp, vibration）、pump_1（speed, flow, pressure）、valve_1（openDegree）、tank_1（level, temp）、pipe_1（flowRate）、sensor_1（value） |
-| 煤矿 | shearer_1（speed, load）、roadheader_1（cutting, load）、conveyor_1（speed, load）、fan_1（speed, vibration）、gas_sensor_1（density, %CH4）、hoist_1（speed, load） |
+| 煤矿 | shearer_1（speed, load）、roadheader_1（cutting, load）、conveyor_1（speed, load）、fan_1（speed, vibration）、gas_sensor_1（density, %CH4）、hoist_1（speed, load）、coal_bunker_1（level, temp） |
 | 电厂 | turbine_1（speed, temp）、generator_1（power, voltage）、boiler_1（pressure, level, temp）、transformer_1（temp, load）、breaker_1（closed） |
 | 化工 | reactor_1（temp, pressure, level）、heat_exchanger_1（flow, tempIn, tempOut） |
 | 水处理 | sediment_tank_1（level, turbidity）、sub_pump_1（running, flow） |

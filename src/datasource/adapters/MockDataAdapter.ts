@@ -43,6 +43,10 @@ export class MockDataAdapter implements DataSourceAdapter {
           speed: Math.random() > 0.3 ? Math.random() * 8 : 0,
           load: Math.random() * 100,
         },
+        coal_bunker_1: {
+          level: 20 + Math.random() * 75,
+          temp: 20 + Math.random() * 40,
+        },
         roadheader_1: {
           cutting: Math.random() > 0.35 ? 1 : 0,
           load: 30 + Math.random() * 70,
@@ -106,7 +110,7 @@ export class MockDataAdapter implements DataSourceAdapter {
     return [
       'motor_1', 'pump_1', 'valve_1', 'tank_1', 'pipe_1', 'sensor_1',
       'conveyor_1', 'fan_1', 'gas_sensor_1', 'hoist_1',
-      'shearer_1', 'roadheader_1',
+      'shearer_1', 'roadheader_1', 'coal_bunker_1',
       'turbine_1', 'generator_1', 'boiler_1', 'transformer_1', 'breaker_1',
       'reactor_1', 'heat_exchanger_1',
       'sediment_tank_1', 'sub_pump_1',

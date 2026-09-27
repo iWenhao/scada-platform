@@ -349,6 +349,60 @@ export const HoistDefinition: ComponentDefinition = {
   ],
 }
 
+/** 原煤仓 */
+export const CoalBunkerDefinition: ComponentDefinition = {
+  type: 'coal_bunker',
+  name: '原煤仓',
+  group: 'coal',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="3">
+      <path d="M30,14 L70,14 L70,50 L58,76 L42,76 L30,50 Z" />
+      <line x1="30" y1="28" x2="70" y2="28" stroke-dasharray="5,3" opacity="0.6" />
+      <rect x="44" y="76" width="12" height="8" />
+      <line x1="38" y1="76" x2="34" y2="92" />
+      <line x1="62" y1="76" x2="66" y2="92" />
+      <line x1="28" y1="92" x2="72" y2="92" />
+    </g>
+  </svg>`,
+  defaultWidth: 70,
+  defaultHeight: 105,
+  defaultConfig: {
+    level: 0,
+    temp: 25,
+  },
+  statusRules: [
+    {
+      id: 'high-level',
+      name: '高煤位',
+      color: '#ffa502',
+      condition: { type: 'compare', variable: 'level', operator: '>', value: 85 },
+      priority: 1,
+    },
+    {
+      id: 'normal',
+      name: '正常',
+      color: '#00d4aa',
+      condition: { type: 'range', variable: 'level', min: 40, max: 85 },
+      priority: 2,
+    },
+    {
+      id: 'low-level',
+      name: '低煤位',
+      color: '#ff4757',
+      condition: { type: 'compare', variable: 'level', operator: '<', value: 40 },
+      priority: 3,
+    },
+  ],
+  dataBindings: [
+    { property: 'level', variable: 'level' },
+    { property: 'temp', variable: 'temp' },
+  ],
+  properties: [
+    { key: 'name', label: '名称', type: 'string', default: '原煤仓', group: '基本' },
+    { key: 'level', label: '煤位(%)', type: 'range', default: 0, min: 0, max: 100, step: 1, group: '运行参数' },
+  ],
+}
+
 export const coalComponents: ComponentDefinition[] = [
   ShearerDefinition,
   RoadheaderDefinition,
@@ -356,4 +410,5 @@ export const coalComponents: ComponentDefinition[] = [
   FanDefinition,
   GasSensorDefinition,
   HoistDefinition,
+  CoalBunkerDefinition,
 ]
