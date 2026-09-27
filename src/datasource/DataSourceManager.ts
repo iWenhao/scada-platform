@@ -2,6 +2,8 @@ import { ref } from 'vue'
 import type { DataSourceConfig, DataSourceAdapter, DataUpdate } from './types'
 import { MockDataAdapter } from './adapters/MockDataAdapter'
 import { WebSocketAdapter } from './adapters/WebSocketAdapter'
+import { HttpPollingAdapter } from './adapters/HttpPollingAdapter'
+import { OpcUaGatewayAdapter } from './adapters/OpcUaGatewayAdapter'
 
 export class DataSourceManager {
   /** 当前活跃的数据源 */
@@ -28,8 +30,10 @@ export class DataSourceManager {
         return new MockDataAdapter()
       case 'websocket':
         return new WebSocketAdapter()
-      // case 'http':
-      //   return new HttpPollingAdapter()
+      case 'http':
+        return new HttpPollingAdapter()
+      case 'opcua':
+        return new OpcUaGatewayAdapter()
       default:
         throw new Error(`Unknown adapter type: ${type}`)
     }

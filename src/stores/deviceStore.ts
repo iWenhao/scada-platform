@@ -38,6 +38,7 @@ export const useDeviceStore = defineStore('device', () => {
     interval?: number
     reconnect?: boolean
     reconnectInterval?: number
+    options?: Record<string, any>
   }) {
     // 连接数据源
     await dataSourceManager.connect({
@@ -47,6 +48,7 @@ export const useDeviceStore = defineStore('device', () => {
       interval: config.interval,
       reconnect: config.reconnect,
       reconnectInterval: config.reconnectInterval,
+      options: config.options,
     })
 
     connectionStatus.value = dataSourceManager.getStatus()

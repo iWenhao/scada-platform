@@ -1,4 +1,5 @@
 import type { DataSourceAdapter, DataSourceConfig, DataUpdate } from '../types'
+import { parseDataUpdate } from '../parseUpdate'
 
 /**
  * WebSocket 实时数据适配器
@@ -49,7 +50,7 @@ export class WebSocketAdapter implements DataSourceAdapter {
     this.ws.onmessage = (event: MessageEvent) => {
       let update: DataUpdate | null = null
       try {
-        update = this.parseMessage(event.data)
+        update = parseDataUpdate(event.data)
       } catch {
         // 非 JSON 消息忽略
         return
@@ -87,28 +88,6 @@ export class WebSocketAdapter implements DataSourceAdapter {
         this.open()
       }
     }, interval)
-  }
-
-  /** 解析服务端消息为统一 DataUpdate 格式 */
-  private parseMessage(raw: unknown): DataUpdate | null {
-    const data = typeof raw === 'string' ? JSON.parse(raw) : raw
-
-    if (!data || typeof data !== 'object') return null
-
-    // 格式2: { deviceId, data | variables }
-    if (typeof (data as any).deviceId === 'string') {
-      const variables = (data as any).data ?? (data as any).variables ?? {}
-      return { [(data as any).deviceId]: variables }
-    }
-
-    // 格式1: { deviceId: { 变量: 值 } }
-    const update: DataUpdate = {}
-    for (const [deviceId, variables] of Object.entries(data as Record<string, unknown>)) {
-      if (variables && typeof variables === 'object') {
-        update[deviceId] = variables as Record<string, any>
-      }
-    }
-    return Object.keys(update).length ? update : null
   }
 
   disconnect() {
