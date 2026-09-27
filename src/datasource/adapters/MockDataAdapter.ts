@@ -18,6 +18,7 @@ export class MockDataAdapter implements DataSourceAdapter {
           vibration: Math.random() * 10,
         },
         pump_1: {
+          speed: Math.random() * 3000,
           flow: Math.random() * 100,
           pressure: Math.random() * 10,
         },
@@ -28,9 +29,20 @@ export class MockDataAdapter implements DataSourceAdapter {
           level: Math.random() * 100,
           temp: 20 + Math.random() * 30,
         },
+        pipe_1: {
+          flowRate: Math.random() > 0.3 ? Math.random() * 100 : 0,
+        },
+        sensor_1: {
+          value: Math.random() * 120,
+        },
       }
       this.updateCallback?.(update)
     }, 1000)
+  }
+
+  /** 可绑定的模拟设备清单 */
+  listDevices(): string[] {
+    return ['motor_1', 'pump_1', 'valve_1', 'tank_1', 'pipe_1', 'sensor_1']
   }
 
   disconnect() {

@@ -27,4 +27,6 @@ export interface DataSourceAdapter {
   onUpdate(callback: (update: DataUpdate) => void): void
   onError(callback: (error: Error) => void): void
   getStatus(): ConnectionStatus
+  /** 可绑定的设备/变量清单（如数据源支持枚举） */
+  listDevices?(): string[]
 }

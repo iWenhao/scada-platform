@@ -111,6 +111,13 @@ export class DataSourceManager {
   }
 
   /**
+   * 获取当前数据源可绑定的设备清单
+   */
+  listDevices(): string[] {
+    return this.activeAdapter?.listDevices?.() ?? []
+  }
+
+  /**
    * 获取连接状态
    */
   getStatus() {

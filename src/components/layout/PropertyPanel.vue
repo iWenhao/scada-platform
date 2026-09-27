@@ -160,6 +160,38 @@
         </div>
       </div>
       
+      <!-- 数据绑定 -->
+      <div class="property-section">
+        <div class="section-title">数据绑定</div>
+
+        <div class="property-item">
+          <div class="property-label">数据源设备</div>
+          <el-select
+            :model-value="selectedElement.deviceId || ''"
+            size="small"
+            clearable
+            placeholder="选择设备"
+            @change="handleDeviceChange"
+          >
+            <el-option
+              v-for="device in deviceStore.availableDevices"
+              :key="device"
+              :label="device"
+              :value="device"
+            />
+          </el-select>
+        </div>
+
+        <div
+          v-for="binding in componentDef?.dataBindings || []"
+          :key="binding.variable"
+          class="binding-row"
+        >
+          <span class="binding-label">{{ binding.variable }}</span>
+          <span class="binding-value">{{ formatBindingValue(binding.variable) }}</span>
+        </div>
+      </div>
+
       <!-- 状态规则配置 -->
       <div class="property-section">
         <div class="section-title">状态规则</div>
@@ -185,11 +217,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
+import { useDeviceStore } from '@/stores/deviceStore'
 import { getComponentDefinition } from '@/industrial/registry'
 import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
 import type { StatusRule } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
+const deviceStore = useDeviceStore()
 
 const selectedElement = computed(() => canvasStore.selectedElement)
 const componentDef = computed(() => 
@@ -263,6 +297,23 @@ function openStatusRuleDialog() {
   }
 }
 
+function handleDeviceChange(deviceId: string) {
+  if (selectedElement.value) {
+    canvasStore.updateElement(selectedElement.value.id, { deviceId: deviceId || undefined })
+  }
+}
+
+// 显示绑定变量的实时值
+function formatBindingValue(variable: string): string {
+  const element = selectedElement.value
+  if (!element) return '-'
+
+  const data = deviceStore.getDeviceData(element.deviceId || element.id)
+  const value = data[variable]
+  if (value === undefined) return '-'
+  return typeof value === 'number' ? String(Math.round(value * 10) / 10) : String(value)
+}
+
 function handleStatusRulesConfirm(rules: StatusRule[]) {
   if (selectedElement.value) {
     canvasStore.updateElement(selectedElement.value.id, { statusRules: rules })
@@ -315,9 +366,26 @@ function handleStatusRulesConfirm(rules: StatusRule[]) {
 .property-row {
   display: flex;
   gap: 12px;
-  
+
   .property-item {
     flex: 1;
+  }
+}
+
+.binding-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+
+  .binding-label {
+    color: var(--text-secondary);
+  }
+
+  .binding-value {
+    color: var(--accent-primary, #00d4aa);
+    font-family: monospace;
   }
 }
 

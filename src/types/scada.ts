@@ -19,6 +19,8 @@ export interface ComponentDefinition {
 export interface ComponentInstance {
   id: string
   type: string
+  /** 绑定的数据源设备ID，实时状态与数值展示按此设备取数 */
+  deviceId?: string
   x: number
   y: number
   width: number

@@ -90,7 +90,22 @@
                 fill: '#e0e0e0',
                 width: element.width,
                 align: 'center',
-                y: element.height / 2 - 6,
+                y: element.height / 2 - (getElementValueText(element) ? 12 : 6),
+                listening: false,
+              }"
+            />
+
+            <!-- 实时数值 -->
+            <v-text
+              v-if="getElementValueText(element)"
+              :config="{
+                text: getElementValueText(element),
+                fontSize: 10,
+                fill: '#00d4aa',
+                width: element.width,
+                align: 'center',
+                y: element.height / 2 + 4,
+                listening: false,
               }"
             />
             
@@ -278,9 +293,22 @@ const drawingLineConfig = computed(() => {
 
 // 获取元素颜色
 function getElementColor(element: ComponentInstance): string {
-  const data = deviceStore.getDeviceData(element.id)
+  const data = deviceStore.getDeviceData(element.deviceId || element.id)
   const status = statusEngine.evaluate(element.statusRules, data)
   return status?.color || '#2a2a2a'
+}
+
+// 元素上展示的实时数值（取第一个数据绑定变量）
+function getElementValueText(element: ComponentInstance): string {
+  const binding = element.dataBindings?.[0]
+  if (!binding) return ''
+
+  const data = deviceStore.getDeviceData(element.deviceId || element.id)
+  const value = data[binding.variable]
+  if (value === undefined) return ''
+
+  const formatted = typeof value === 'number' ? Math.round(value * 10) / 10 : value
+  return `${binding.variable}: ${formatted}`
 }
 
 // 检查图层是否锁定
@@ -322,6 +350,7 @@ function onDrop(e: DragEvent) {
   const newElement: ComponentInstance = {
     id: `el_${Date.now()}`,
     type: data.type,
+    deviceId: deviceStore.suggestDeviceId(data.type),
     x: pointerPosition.x - data.defaultWidth / 2,
     y: pointerPosition.y - data.defaultHeight / 2,
     width: data.defaultWidth,

@@ -35,7 +35,9 @@ export const ValveDefinition: ComponentDefinition = {
       priority: 2,
     },
   ],
-  dataBindings: [],
+  dataBindings: [
+    { property: 'openDegree', variable: 'openDegree' },
+  ],
   properties: [
     {
       key: 'name',
@@ -106,7 +108,9 @@ export const PumpDefinition: ComponentDefinition = {
       priority: 2,
     },
   ],
-  dataBindings: [],
+  dataBindings: [
+    { property: 'speed', variable: 'speed' },
+  ],
   properties: [
     {
       key: 'name',
@@ -171,7 +175,9 @@ export const TankDefinition: ComponentDefinition = {
       priority: 3,
     },
   ],
-  dataBindings: [],
+  dataBindings: [
+    { property: 'level', variable: 'level' },
+  ],
   properties: [
     {
       key: 'name',

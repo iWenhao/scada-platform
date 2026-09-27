@@ -52,7 +52,10 @@ export const MotorDefinition: ComponentDefinition = {
       priority: 3,
     },
   ],
-  dataBindings: [],
+  dataBindings: [
+    { property: 'speed', variable: 'speed' },
+    { property: 'temp', variable: 'temp' },
+  ],
   properties: [
     {
       key: 'name',
@@ -127,7 +130,9 @@ export const SensorDefinition: ComponentDefinition = {
       priority: 3,
     },
   ],
-  dataBindings: [],
+  dataBindings: [
+    { property: 'value', variable: 'value' },
+  ],
   properties: [
     {
       key: 'name',

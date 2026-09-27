@@ -37,7 +37,9 @@ export const PipeDefinition: ComponentDefinition = {
       priority: 2,
     },
   ],
-  dataBindings: [],
+  dataBindings: [
+    { property: 'flowRate', variable: 'flowRate' },
+  ],
   properties: [
     {
       key: 'name',

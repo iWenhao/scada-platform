@@ -9,7 +9,10 @@ export const useDeviceStore = defineStore('device', () => {
   
   // 连接状态
   const connectionStatus = ref<'connected' | 'disconnected' | 'error'>('disconnected')
-  
+
+  // 当前数据源可绑定的设备清单
+  const availableDevices = ref<string[]>([])
+
   // 最后更新时间
   const lastUpdateTime = ref<number>(0)
 
@@ -37,6 +40,7 @@ export const useDeviceStore = defineStore('device', () => {
     })
 
     connectionStatus.value = dataSourceManager.getStatus()
+    availableDevices.value = dataSourceManager.listDevices()
   }
 
   /**
@@ -54,6 +58,16 @@ export const useDeviceStore = defineStore('device', () => {
   }
 
   /**
+   * 按组件类型推荐要绑定的设备（如 motor -> motor_1）
+   */
+  function suggestDeviceId(componentType: string): string | undefined {
+    const lower = componentType.toLowerCase()
+    return availableDevices.value.find(device =>
+      device.toLowerCase().startsWith(lower)
+    )
+  }
+
+  /**
    * 断开数据源
    */
   function disconnect() {
@@ -67,16 +81,19 @@ export const useDeviceStore = defineStore('device', () => {
   function reset() {
     deviceData.value = {}
     connectionStatus.value = 'disconnected'
+    availableDevices.value = []
     lastUpdateTime.value = 0
   }
 
   return {
     deviceData,
     connectionStatus,
+    availableDevices,
     lastUpdateTime,
     initDataSource,
     getDeviceData,
     getVariableValue,
+    suggestDeviceId,
     disconnect,
     reset,
   }

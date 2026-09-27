@@ -102,7 +102,7 @@ const connectionStatusText = computed(() => {
 const lastUpdateTime = ref('')
 
 function getElementColor(element: ComponentInstance): string {
-  const data = deviceStore.getDeviceData(element.id)
+  const data = deviceStore.getDeviceData(element.deviceId || element.id)
   const status = statusEngine.evaluate(element.statusRules, data)
   return status?.color || '#2a2a2a'
 }
