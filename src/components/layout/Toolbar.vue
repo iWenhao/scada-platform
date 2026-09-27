@@ -30,6 +30,15 @@
           </el-button>
         </el-tooltip>
 
+        <el-tooltip content="平移 (H)" placement="bottom">
+          <el-button
+            :type="uiStore.activeTool === 'hand' ? 'primary' : 'default'"
+            @click="uiStore.setActiveTool('hand')"
+          >
+            <el-icon><Rank /></el-icon>
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="标尺" placement="bottom">
           <el-button
             :type="uiStore.showRuler ? 'primary' : 'default'"
@@ -66,7 +75,7 @@
 
         <el-tooltip content="删除选中 (Delete)" placement="bottom">
           <el-button
-            :disabled="!canvasStore.selectedId && !connectionStore.selectedConnectionId"
+            :disabled="!canvasStore.selectedIds.length && !connectionStore.selectedConnectionId"
             @click="handleDelete"
           >
             <el-icon><Delete /></el-icon>
@@ -186,41 +195,41 @@ const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
 
-// 复制粘贴剪贴板
-let clipboard: ComponentInstance | null = null
+// 复制粘贴剪贴板（支持多选批量复制）
+let clipboard: ComponentInstance[] = []
 
 function handleCopy() {
-  const selected = canvasStore.selectedElement
-  if (selected) {
+  const selected = canvasStore.selectedElements
+  if (selected.length) {
     clipboard = JSON.parse(JSON.stringify(selected))
   }
 }
 
 function handlePaste() {
-  if (!clipboard) return
+  if (!clipboard.length) return
 
-  const copy: ComponentInstance = {
-    ...JSON.parse(JSON.stringify(clipboard)),
-    id: `el_${Date.now()}`,
-    x: clipboard.x + 20,
-    y: clipboard.y + 20,
-    name: `${clipboard.name} 副本`,
-  }
-  canvasStore.addElement(copy)
-  canvasStore.selectElement(copy.id)
+  const stamp = Date.now()
+  const pasted = clipboard.map((el, i) => ({
+    ...JSON.parse(JSON.stringify(el)),
+    id: `el_${stamp}_${i}`,
+    x: el.x + 20,
+    y: el.y + 20,
+    name: `${el.name} 副本`,
+  }))
+  pasted.forEach(p => canvasStore.addElement(p))
+  canvasStore.selectMany(pasted.map(p => p.id))
   saveState()
 }
 
 function handleDelete() {
-  const selectedId = canvasStore.selectedId
-  const selectedConnectionId = connectionStore.selectedConnectionId
+  const ids = [...canvasStore.selectedIds]
 
-  if (selectedId) {
-    canvasStore.removeElement(selectedId)
-    connectionStore.deleteConnectionsByElement(selectedId)
+  if (ids.length) {
+    canvasStore.removeElements(ids)
+    ids.forEach(id => connectionStore.deleteConnectionsByElement(id))
     saveState()
-  } else if (selectedConnectionId) {
-    connectionStore.deleteConnection(selectedConnectionId)
+  } else if (connectionStore.selectedConnectionId) {
+    connectionStore.deleteConnection(connectionStore.selectedConnectionId)
     saveState()
   }
 }
@@ -323,10 +332,15 @@ function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault()
     handleDelete()
+  } else if (e.key === 'Escape') {
+    canvasStore.clearSelection()
+    connectionStore.selectConnection(null)
   } else if (e.key === 'v' || e.key === 'V') {
     uiStore.setActiveTool('select')
   } else if (e.key === 'l' || e.key === 'L') {
     uiStore.setActiveTool('connect')
+  } else if (e.key === 'h' || e.key === 'H') {
+    uiStore.setActiveTool('hand')
   }
 }
 

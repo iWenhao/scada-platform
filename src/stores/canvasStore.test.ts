@@ -76,4 +76,44 @@ describe('canvasStore', () => {
     expect(store.loadFromJSON('{broken')).toBe(false)
     expect(store.elements).toHaveLength(1)
   })
+
+  it('多选: selectMany/toggleElement/clearSelection 应正常工作', () => {
+    store.addElement(makeElement('el_1'))
+    store.addElement(makeElement('el_2'))
+    store.addElement(makeElement('el_3'))
+
+    store.selectMany(['el_1', 'el_2'])
+    expect(store.selectedIds).toEqual(['el_1', 'el_2'])
+    expect(store.selectedElements.map(el => el.id)).toEqual(['el_1', 'el_2'])
+    expect(store.selectedId).toBe('el_1')
+
+    // Shift+点击切换
+    store.toggleElement('el_3')
+    expect(store.selectedIds).toEqual(['el_1', 'el_2', 'el_3'])
+    store.toggleElement('el_1')
+    expect(store.selectedIds).toEqual(['el_2', 'el_3'])
+
+    store.clearSelection()
+    expect(store.selectedIds).toEqual([])
+  })
+
+  it('批量删除应同步清理选中列表', () => {
+    store.addElement(makeElement('el_1'))
+    store.addElement(makeElement('el_2'))
+    store.addElement(makeElement('el_3'))
+    store.selectMany(['el_1', 'el_2'])
+
+    store.removeElements(['el_1', 'el_2'])
+    expect(store.elements.map(el => el.id)).toEqual(['el_3'])
+    expect(store.selectedIds).toEqual([])
+  })
+
+  it('删除单选元素应清空选中状态', () => {
+    store.addElement(makeElement('el_1'))
+    store.selectElement('el_1')
+    store.removeElement('el_1')
+
+    expect(store.selectedIds).toEqual([])
+    expect(store.selectedId).toBeNull()
+  })
 })

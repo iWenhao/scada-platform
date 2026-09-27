@@ -332,12 +332,12 @@ function formatBindingValue(variable: string): string {
   return typeof value === 'number' ? String(Math.round(value * 10) / 10) : String(value)
 }
 
-// 删除当前选中组件（连同相关连线）
+// 删除全部选中组件（连同相关连线）
 function handleDeleteElement() {
-  const element = selectedElement.value
-  if (!element) return
-  canvasStore.removeElement(element.id)
-  connectionStore.deleteConnectionsByElement(element.id)
+  const ids = [...canvasStore.selectedIds]
+  if (!ids.length) return
+  canvasStore.removeElements(ids)
+  ids.forEach(id => connectionStore.deleteConnectionsByElement(id))
   saveState()
 }
 

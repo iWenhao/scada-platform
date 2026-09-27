@@ -9,25 +9,30 @@ export const useCanvasStore = defineStore('canvas', () => {
   
   // 画布元素
   const elements = ref<ComponentInstance[]>([])
-  
-  // 选中的元素ID
-  const selectedId = ref<string | null>(null)
-  
+
+  // 选中的元素ID列表（支持多选，第一个为主选中元素）
+  const selectedIds = ref<string[]>([])
+
   // 缩放比例
   const zoom = ref(1)
-  
+
   // 偏移量
   const offset = ref({ x: 0, y: 0 })
-  
+
   // 画布尺寸（响应式）
   const canvasSize = computed(() => ({
     width: canvasConfig.value.width,
     height: canvasConfig.value.height,
   }))
-  
-  // 选中的元素
-  const selectedElement = computed(() => 
-    elements.value.find(el => el.id === selectedId.value)
+
+  // 主选中元素（多选时为第一个，属性面板展示用）
+  const selectedElement = computed(() =>
+    elements.value.find(el => selectedIds.value.includes(el.id))
+  )
+
+  // 全部选中元素
+  const selectedElements = computed(() =>
+    elements.value.filter(el => selectedIds.value.includes(el.id))
   )
   
   // 更新画布配置
@@ -56,27 +61,35 @@ export const useCanvasStore = defineStore('canvas', () => {
   // 删除元素
   function removeElement(id: string) {
     elements.value = elements.value.filter(el => el.id !== id)
-    if (selectedId.value === id) {
-      selectedId.value = null
-    }
+    selectedIds.value = selectedIds.value.filter(sid => sid !== id)
   }
-  
+
   // 批量删除元素
   function removeElements(ids: string[]) {
     elements.value = elements.value.filter(el => !ids.includes(el.id))
-    if (selectedId.value && ids.includes(selectedId.value)) {
-      selectedId.value = null
-    }
+    selectedIds.value = selectedIds.value.filter(sid => !ids.includes(sid))
   }
-  
-  // 选择元素
+
+  // 选择元素（单选；传 null 清空选择）
   function selectElement(id: string | null) {
-    selectedId.value = id
+    selectedIds.value = id ? [id] : []
   }
-  
+
+  // 设置多选
+  function selectMany(ids: string[]) {
+    selectedIds.value = [...ids]
+  }
+
+  // 切换元素选中状态（Shift+点击）
+  function toggleElement(id: string) {
+    selectedIds.value = selectedIds.value.includes(id)
+      ? selectedIds.value.filter(sid => sid !== id)
+      : [...selectedIds.value, id]
+  }
+
   // 清除选择
   function clearSelection() {
-    selectedId.value = null
+    selectedIds.value = []
   }
   
   // 设置缩放
@@ -110,7 +123,7 @@ export const useCanvasStore = defineStore('canvas', () => {
       elements.value = data.elements || []
       zoom.value = data.zoom || 1
       offset.value = data.offset || { x: 0, y: 0 }
-      selectedId.value = null
+      selectedIds.value = []
       return true
     } catch (e) {
       console.error('Failed to load canvas JSON:', e)
@@ -121,17 +134,19 @@ export const useCanvasStore = defineStore('canvas', () => {
   // 清空画布
   function clearCanvas() {
     elements.value = []
-    selectedId.value = null
+    selectedIds.value = []
   }
-  
+
   return {
     canvasConfig,
     elements,
-    selectedId,
+    selectedIds,
+    selectedId: computed(() => selectedIds.value[0] ?? null),
     zoom,
     offset,
     canvasSize,
     selectedElement,
+    selectedElements,
     updateCanvasConfig,
     resetCanvasConfig,
     addElement,
@@ -139,6 +154,8 @@ export const useCanvasStore = defineStore('canvas', () => {
     removeElement,
     removeElements,
     selectElement,
+    selectMany,
+    toggleElement,
     clearSelection,
     setZoom,
     setOffset,

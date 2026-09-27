@@ -91,12 +91,12 @@
               draggable: !isLayerLocked(element.layerId) && uiStore.activeTool !== 'connect',
               dragBoundFunc: canvasStore.canvasConfig.snapToGrid ? gridSnapFunc : undefined,
             }"
-            @click="selectElement(element.id)"
+            @click="onElementClick(element, $event)"
             @mouseenter="hoveredElementId = element.id"
             @mouseleave="hoveredElementId = null"
-            @dragstart="onDragStart(element.id)"
+            @dragstart="onDragStart(element, $event)"
             @dragmove="onDragMove(element, $event)"
-            @dragend="(e: any) => updatePosition(element.id, e)"
+            @dragend="onDragEnd(element, $event)"
             @transformend="onTransformEnd(element.id)"
           >
             <!-- 组件主体 -->
@@ -105,8 +105,8 @@
                 width: element.width,
                 height: element.height,
                 fill: getElementColor(element),
-                stroke: element.id === canvasStore.selectedId ? '#00d4aa' : '#444',
-                strokeWidth: element.id === canvasStore.selectedId ? 2 : 1,
+                stroke: canvasStore.selectedIds.includes(element.id) ? '#00d4aa' : '#444',
+                strokeWidth: canvasStore.selectedIds.includes(element.id) ? 2 : 1,
                 cornerRadius: 4,
               }"
             />
@@ -177,14 +177,24 @@
         
         <!-- 选中变换器 -->
         <v-transformer
-          v-if="canvasStore.selectedId"
+          v-if="canvasStore.selectedIds.length"
           ref="transformerRef"
           :config="transformerConfig"
         />
       </v-layer>
 
-      <!-- 对齐参考线 -->
+      <!-- 对齐参考线与框选框 -->
       <v-layer :config="{ listening: false }">
+        <v-rect
+          v-if="selectionRect"
+          :config="{
+            ...selectionRect,
+            fill: 'rgba(0, 212, 170, 0.08)',
+            stroke: '#00d4aa',
+            strokeWidth: 1,
+            dash: [4, 4],
+          }"
+        />
         <v-line
           v-for="(guide, index) in alignGuides"
           :key="index"
@@ -260,12 +270,27 @@ let containerObserver: ResizeObserver | null = null
 // 连线模式下鼠标悬停的元素ID
 const hoveredElementId = ref<string | null>(null)
 
-// 空白处拖拽平移状态
+// 空白处拖拽平移状态（平移工具/中键）
 let panning = false
 const panStart = { x: 0, y: 0, offsetX: 0, offsetY: 0 }
 
+// 框选橡皮筋状态
+let rubberActive = false
+let rubberStart = { x: 0, y: 0 }
+const selectionRect = ref<{ x: number; y: number; width: number; height: number } | null>(null)
+
 // 对齐参考线（画布坐标 [x1,y1,x2,y2]）
 const alignGuides = ref<number[][]>([])
+
+// 元素矩形与框选矩形是否相交
+function rectsIntersect(el: ComponentInstance, r: { x: number; y: number; width: number; height: number }) {
+  return (
+    el.x < r.x + r.width &&
+    el.x + el.width > r.x &&
+    el.y < r.y + r.height &&
+    el.y + el.height > r.y
+  )
+}
 
 // 网格吸附：Konva dragBoundFunc 收到的是舞台绝对坐标，需换算到画布坐标取整
 function gridSnapFunc(pos: { x: number; y: number }) {
@@ -391,21 +416,19 @@ const transformerConfig = {
     newBox.width < 10 || newBox.height < 10 ? oldBox : newBox,
 }
 
-// 选中变化时把变换器绑定到目标节点
-watch(() => canvasStore.selectedId, async (id) => {
+// 选中变化时把变换器绑定到目标节点（支持多选）
+watch(() => canvasStore.selectedIds, async (ids) => {
   await nextTick()
   const transformer = transformerRef.value?.getNode()
   if (!transformer) return
 
-  if (id) {
-    const stage = stageRef.value.getNode()
-    const node = stage.findOne('#' + id)
-    transformer.nodes(node ? [node] : [])
-  } else {
-    transformer.nodes([])
-  }
+  const stage = stageRef.value.getNode()
+  const nodes = (ids ?? [])
+    .map(id => stage.findOne('#' + id))
+    .filter(Boolean)
+  transformer.nodes(nodes)
   transformer.getLayer()?.batchDraw()
-})
+}, { deep: true })
 
 // 正在绘制的连线配置
 const drawingLineConfig = computed(() => {
@@ -537,9 +560,13 @@ function onDrop(e: DragEvent) {
   saveState()
 }
 
-// 选择元素
-function selectElement(id: string) {
-  canvasStore.selectElement(id)
+// 点击元素：Shift+点击切换选中（多选），普通点击单选
+function onElementClick(element: ComponentInstance, e: any) {
+  if (e.evt?.shiftKey) {
+    canvasStore.toggleElement(element.id)
+  } else {
+    canvasStore.selectElement(element.id)
+  }
 }
 
 // 选择连线
@@ -547,37 +574,69 @@ function selectConnection(id: string) {
   connectionStore.selectConnection(id)
 }
 
-// 开始拖拽
-function onDragStart(id: string) {
-  canvasStore.selectElement(id)
+// 拖拽开始：未选中的元素单独选中；记录多选拖动的起始位置
+let dragStartPos: { x: number; y: number } | null = null
+let multiDragStarts: Array<{ node: any; x: number; y: number }> = []
+
+function onDragStart(element: ComponentInstance, e: any) {
+  if (!canvasStore.selectedIds.includes(element.id)) {
+    canvasStore.selectElement(element.id)
+  }
+  dragStartPos = { x: e.target.x(), y: e.target.y() }
+  const stage = stageRef.value.getNode()
+  multiDragStarts = canvasStore.selectedIds
+    .filter(id => id !== element.id)
+    .map(id => {
+      const node = stage.findOne('#' + id)
+      return node ? { node, x: node.x(), y: node.y() } : null
+    })
+    .filter((entry): entry is { node: any; x: number; y: number } => entry !== null)
 }
 
-// 拖动中：对齐吸附计算并更新参考线
+// 拖动中：多选整体位移 + 对齐吸附（仅单选时计算参考线）
 function onDragMove(element: ComponentInstance, e: any) {
   const node = e.target
-  const others = canvasStore.elements
-    .filter(el => el.id !== element.id)
-    .map(o => ({ x: o.x, y: o.y, width: o.width, height: o.height }))
+  const dx = node.x() - (dragStartPos?.x ?? node.x())
+  const dy = node.y() - (dragStartPos?.y ?? node.y())
 
-  const result = computeAlignment(
-    { x: node.x(), y: node.y(), width: element.width, height: element.height },
-    others,
-    6 / canvasStore.zoom,
-  )
+  for (const entry of multiDragStarts) {
+    entry.node.position({ x: entry.x + dx, y: entry.y + dy })
+  }
 
-  if (result.x !== null) node.x(result.x)
-  if (result.y !== null) node.y(result.y)
-  alignGuides.value = result.guides
+  if (canvasStore.selectedIds.length <= 1) {
+    const others = canvasStore.elements
+      .filter(el => el.id !== element.id)
+      .map(o => ({ x: o.x, y: o.y, width: o.width, height: o.height }))
+
+    const result = computeAlignment(
+      { x: node.x(), y: node.y(), width: element.width, height: element.height },
+      others,
+      6 / canvasStore.zoom,
+    )
+
+    if (result.x !== null) node.x(result.x)
+    if (result.y !== null) node.y(result.y)
+    alignGuides.value = result.guides
+  }
 }
 
-// 更新位置
-function updatePosition(id: string, e: any) {
-  canvasStore.updateElement(id, {
-    x: e.target.x(),
-    y: e.target.y(),
-  })
+// 拖动结束：批量写回所有选中元素的位置
+function onDragEnd(element: ComponentInstance, e: any) {
+  const movedIds = canvasStore.selectedIds.includes(element.id)
+    ? [...canvasStore.selectedIds]
+    : [element.id]
+  const stage = stageRef.value.getNode()
+
+  for (const id of movedIds) {
+    const node = id === element.id ? e.target : stage.findOne('#' + id)
+    if (!node) continue
+    canvasStore.updateElement(id, {
+      x: node.x(),
+      y: node.y(),
+    })
+    recalcElementConnections(id)
+  }
   alignGuides.value = []
-  recalcElementConnections(id)
   saveState()
 }
 
@@ -673,14 +732,13 @@ function startConnection(elementId: string, port: PortPosition, _e: any) {
 }
 
 // 鼠标按下
-function onMouseDown(_e: any) {
+function onMouseDown(e: any) {
   const stage = stageRef.value.getNode()
-  const clickedOnEmpty = _e.target === stage
-  if (clickedOnEmpty) {
-    canvasStore.clearSelection()
-    connectionStore.selectConnection(null)
+  const clickedOnEmpty = e.target === stage
+  const isMiddleButton = e.evt?.button === 1
 
-    // 空白处按下开始拖拽平移
+  // 中键或平移工具：拖拽平移
+  if (isMiddleButton || uiStore.activeTool === 'hand') {
     const pos = stage.getPointerPosition()
     if (pos) {
       panning = true
@@ -689,6 +747,27 @@ function onMouseDown(_e: any) {
       panStart.offsetX = canvasStore.offset.x
       panStart.offsetY = canvasStore.offset.y
     }
+    return
+  }
+
+  if (clickedOnEmpty) {
+    // 选择工具：空白处按下开始框选
+    if (uiStore.activeTool === 'select') {
+      const pos = stage.getPointerPosition()
+      if (pos) {
+        rubberActive = true
+        rubberStart = {
+          x: (pos.x - canvasStore.offset.x) / canvasStore.zoom,
+          y: (pos.y - canvasStore.offset.y) / canvasStore.zoom,
+        }
+        selectionRect.value = { x: rubberStart.x, y: rubberStart.y, width: 0, height: 0 }
+      }
+      return
+    }
+
+    // 其他工具：空白点击仅清除选择
+    canvasStore.clearSelection()
+    connectionStore.selectConnection(null)
   }
 }
 
@@ -708,6 +787,22 @@ function onMouseMove(_e: any) {
     return
   }
 
+  // 框选中：更新橡皮筋矩形
+  if (rubberActive) {
+    const pos = stage.getPointerPosition()
+    if (pos) {
+      const cx = (pos.x - canvasStore.offset.x) / canvasStore.zoom
+      const cy = (pos.y - canvasStore.offset.y) / canvasStore.zoom
+      selectionRect.value = {
+        x: Math.min(rubberStart.x, cx),
+        y: Math.min(rubberStart.y, cy),
+        width: Math.abs(cx - rubberStart.x),
+        height: Math.abs(cy - rubberStart.y),
+      }
+    }
+    return
+  }
+
   if (connectionStore.drawingConnection) {
     const point = stage.getPointerPosition()
 
@@ -721,6 +816,24 @@ function onMouseMove(_e: any) {
 // 鼠标释放
 function onMouseUp(_e: any) {
   panning = false
+
+  // 完成框选
+  if (rubberActive) {
+    const rect = selectionRect.value
+    if (rect && (rect.width > 2 || rect.height > 2)) {
+      const ids = canvasStore.elements
+        .filter(el => rectsIntersect(el, rect))
+        .map(el => el.id)
+      canvasStore.selectMany(ids)
+    } else {
+      // 空白单击：清除选择
+      canvasStore.clearSelection()
+      connectionStore.selectConnection(null)
+    }
+    rubberActive = false
+    selectionRect.value = null
+    return
+  }
 
   const drawing = connectionStore.drawingConnection
   if (!drawing) return
