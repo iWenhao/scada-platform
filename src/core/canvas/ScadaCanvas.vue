@@ -176,6 +176,10 @@ const transformerRef = ref()
 // 连线模式下鼠标悬停的元素ID
 const hoveredElementId = ref<string | null>(null)
 
+// 空白处拖拽平移状态
+let panning = false
+const panStart = { x: 0, y: 0, offsetX: 0, offsetY: 0 }
+
 // 画布Stage配置
 const stageConfig = computed(() => ({
   width: window.innerWidth - 520,
@@ -190,6 +194,7 @@ const stageConfig = computed(() => ({
 const gridGroupConfig = computed(() => ({
   x: 0,
   y: 0,
+  listening: false,
 }))
 
 // 画布边界配置
@@ -201,6 +206,7 @@ const canvasBorderConfig = computed(() => ({
   stroke: '#444',
   strokeWidth: 2,
   fill: 'transparent',
+  listening: false,
 }))
 
 // 小网格线
@@ -515,20 +521,44 @@ function startConnection(elementId: string, port: PortPosition, _e: any) {
 }
 
 // 鼠标按下
-function onMouseDown(e: any) {
-  const clickedOnEmpty = e.target === e.target.getStage()
+function onMouseDown(_e: any) {
+  const stage = stageRef.value.getNode()
+  const clickedOnEmpty = _e.target === stage
   if (clickedOnEmpty) {
     canvasStore.clearSelection()
     connectionStore.selectConnection(null)
+
+    // 空白处按下开始拖拽平移
+    const pos = stage.getPointerPosition()
+    if (pos) {
+      panning = true
+      panStart.x = pos.x
+      panStart.y = pos.y
+      panStart.offsetX = canvasStore.offset.x
+      panStart.offsetY = canvasStore.offset.y
+    }
   }
 }
 
 // 鼠标移动
 function onMouseMove(_e: any) {
+  const stage = stageRef.value.getNode()
+
+  // 拖拽平移
+  if (panning) {
+    const pos = stage.getPointerPosition()
+    if (pos) {
+      canvasStore.setOffset(
+        panStart.offsetX + (pos.x - panStart.x),
+        panStart.offsetY + (pos.y - panStart.y),
+      )
+    }
+    return
+  }
+
   if (connectionStore.drawingConnection) {
-    const stage = stageRef.value.getNode()
     const point = stage.getPointerPosition()
-    
+
     connectionStore.updateDrawingConnection({
       x: point.x / canvasStore.zoom,
       y: point.y / canvasStore.zoom,
@@ -538,6 +568,8 @@ function onMouseMove(_e: any) {
 
 // 鼠标释放
 function onMouseUp(_e: any) {
+  panning = false
+
   const drawing = connectionStore.drawingConnection
   if (!drawing) return
 
@@ -569,14 +601,28 @@ function onMouseUp(_e: any) {
   hoveredElementId.value = null
 }
 
-// 滚轮缩放
+// 滚轮缩放（以指针为中心）
 function onWheel(e: any) {
   e.evt.preventDefault()
   const scaleBy = 1.1
   const stage = stageRef.value.getNode()
   const oldScale = stage.scaleX()
-  const newScale = e.evt.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy
-  canvasStore.setZoom(newScale)
+  const pointer = stage.getPointerPosition()
+  if (!pointer) return
+
+  const rawScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy
+  canvasStore.setZoom(rawScale)
+  const newScale = canvasStore.zoom
+
+  // 保持指针下的画布点不动：pointer = point * scale + offset
+  const pointTo = {
+    x: (pointer.x - stage.x()) / oldScale,
+    y: (pointer.y - stage.y()) / oldScale,
+  }
+  canvasStore.setOffset(
+    pointer.x - pointTo.x * newScale,
+    pointer.y - pointTo.y * newScale,
+  )
 }
 
 // 初始化
