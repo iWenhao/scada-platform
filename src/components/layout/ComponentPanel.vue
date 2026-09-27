@@ -1,6 +1,13 @@
 <template>
   <div class="component-panel">
-    <div class="panel-header">组件库</div>
+    <div class="panel-header">
+      <span>组件库</span>
+      <el-tooltip content="创建自定义组件" placement="bottom">
+        <el-button size="small" circle @click="showCustomDialog = true">
+          <el-icon><Plus /></el-icon>
+        </el-button>
+      </el-tooltip>
+    </div>
     
     <div
       v-for="[group, components] in groupedComponents"
@@ -25,12 +32,7 @@
 
     <!-- 自定义组件分组 -->
     <div class="component-group custom-group">
-      <div class="group-title custom-title">
-        <span>自定义组件</span>
-        <el-button size="small" circle title="创建自定义组件" @click="showCustomDialog = true">
-          <el-icon><Plus /></el-icon>
-        </el-button>
-      </div>
+      <div class="group-title">自定义组件</div>
 
       <div v-if="customDefs.length" class="component-items">
         <div
