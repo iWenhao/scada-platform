@@ -2,6 +2,8 @@
 
 基于 Vue 3 + TypeScript + Konva.js 的工业组态可视化编辑平台。
 
+> 📘 **使用说明书**：[docs/USER_GUIDE.md](docs/USER_GUIDE.md) —— 安装启动、界面操作、状态规则配置、数据源接入与常见问题，面向所有使用者。
+
 ## 功能特性
 
 ### 可视化编辑
@@ -25,15 +27,16 @@
 - 数据绑定
 
 ### 管道连线
-- 直线/折线/曲线连接
+- 端口拖拽连线，自动吸附目标最近端口
+- 直线/折线/曲线三种路径算法
 - 流动动画效果
-- 连接端口管理
+- 元素移动后连线自动跟随
 
 ### 多数据源支持
-- WebSocket 实时推送
-- HTTP 定时轮询
-- OPC UA 工业协议
-- 模拟数据（开发调试）
+- WebSocket 实时推送（支持断线自动重连）✅
+- 模拟数据（开发调试，6 台内置设备）✅
+- HTTP 定时轮询 🚧 规划中
+- OPC UA 工业协议 🚧 规划中
 
 ### 图层管理
 - 背景层/管道层/设备层/标注层
@@ -382,6 +385,8 @@
 pnpm install
 ```
 
+> pnpm v10+ 默认拦截依赖的构建脚本，本项目已在 `pnpm-workspace.yaml` 中声明允许 esbuild、@parcel/watcher、vue-demi 执行构建，直接安装即可。若曾中断安装导致依赖损坏（报 `Cannot find module .../vite/...`），删除 `node_modules` 后重装。
+
 ### 开发
 
 ```bash
@@ -422,6 +427,8 @@ scada-platform/
 ├── vite.config.ts
 ├── vitest.config.ts
 ├── README.md
+├── docs/
+│   └── USER_GUIDE.md                # 使用说明书
 │
 ├── public/
 │   └── logo.svg
