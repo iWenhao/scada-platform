@@ -173,6 +173,12 @@
       <el-icon :size="48"><Select /></el-icon>
       <p>请选择一个组件</p>
     </div>
+
+    <StatusRuleDialog
+      v-model="showStatusRuleDialog"
+      :initial-rules="selectedElement?.statusRules || []"
+      @confirm="handleStatusRulesConfirm"
+    />
   </div>
 </template>
 
@@ -180,6 +186,8 @@
 import { ref, computed, watch } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { getComponentDefinition } from '@/industrial/registry'
+import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
+import type { StatusRule } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
 
@@ -196,6 +204,7 @@ const width = ref(0)
 const height = ref(0)
 const rotation = ref(0)
 const properties = ref<Record<string, any>>({})
+const showStatusRuleDialog = ref(false)
 
 // 监听选中元素变化
 watch(selectedElement, (newVal) => {
@@ -249,7 +258,15 @@ function handlePropertyChange() {
 }
 
 function openStatusRuleDialog() {
-  // TODO: 打开状态规则配置对话框
+  if (selectedElement.value) {
+    showStatusRuleDialog.value = true
+  }
+}
+
+function handleStatusRulesConfirm(rules: StatusRule[]) {
+  if (selectedElement.value) {
+    canvasStore.updateElement(selectedElement.value.id, { statusRules: rules })
+  }
 }
 </script>
 
