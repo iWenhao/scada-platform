@@ -166,19 +166,33 @@
 }
 
 .el-table {
+  // el-table 行背景走自身 CSS 变量, 必须在变量层覆盖
+  --el-table-bg-color: var(--bg-secondary);
+  --el-table-tr-bg-color: var(--bg-secondary);
+  --el-table-header-bg-color: var(--bg-tertiary);
+  --el-table-row-hover-bg-color: var(--bg-tertiary);
+  --el-table-border-color: var(--border-primary);
+  --el-table-text-color: var(--text-primary);
+  --el-table-header-text-color: var(--text-primary);
+
   background-color: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
-  
+
   th.el-table__cell {
     background-color: var(--bg-tertiary) !important;
     color: var(--text-primary) !important;
     border-bottom-color: var(--border-primary) !important;
   }
-  
+
   td.el-table__cell {
     border-bottom-color: var(--border-primary) !important;
+    background-color: transparent !important;
   }
-  
+
+  tbody tr:hover > td.el-table__cell {
+    background-color: var(--bg-tertiary) !important;
+  }
+
   &::before,
   &::after {
     background-color: var(--border-primary) !important;

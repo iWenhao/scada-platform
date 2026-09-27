@@ -10,6 +10,8 @@ export const useUiStore = defineStore('ui', () => {
 
   function applyTheme() {
     document.documentElement.dataset.theme = theme.value
+    // 同步 Element Plus 官方暗色类, 驱动 dark/css-vars.css 的变量体系
+    document.documentElement.classList.toggle('dark', theme.value === 'dark')
   }
   applyTheme()
 
