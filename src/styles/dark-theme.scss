@@ -30,6 +30,34 @@
   background-color: var(--bg-primary) !important;
 }
 
+// 新版 el-select 的输入框本体（.el-select__wrapper 结构）
+.el-select__wrapper {
+  background-color: var(--bg-primary) !important;
+  box-shadow: 0 0 0 1px var(--border-primary) inset !important;
+  color: var(--text-primary) !important;
+
+  &.is-hovering {
+    box-shadow: 0 0 0 1px var(--border-active) inset !important;
+  }
+
+  &.is-focused {
+    box-shadow: 0 0 0 1px var(--accent-primary) inset !important;
+  }
+
+  .el-select__selected-item,
+  .el-select__input {
+    color: var(--text-primary) !important;
+  }
+
+  .el-select__caret {
+    color: var(--text-secondary) !important;
+  }
+
+  .el-select__placeholder {
+    color: var(--text-muted) !important;
+  }
+}
+
 .el-textarea__inner {
   background-color: var(--bg-primary) !important;
   border: 1px solid var(--border-primary) !important;
@@ -37,13 +65,50 @@
 }
 
 .el-button {
+  background-color: var(--bg-primary) !important;
   border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--bg-tertiary) !important;
+    border-color: var(--border-active) !important;
+  }
+
+  &.is-disabled,
+  &.is-disabled:hover,
+  &.is-disabled:focus {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-muted) !important;
+  }
 }
 
 .el-button--primary {
   background-color: var(--accent-primary) !important;
   border-color: var(--accent-primary) !important;
   color: #fff !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--accent-secondary) !important;
+    border-color: var(--accent-secondary) !important;
+  }
+}
+
+.el-button--danger {
+  background-color: var(--accent-danger) !important;
+  border-color: var(--accent-danger) !important;
+  color: #fff !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--accent-danger) !important;
+    color: #fff !important;
+  }
+}
+
+.el-radio__label {
+  color: var(--text-primary) !important;
 }
 
 .el-switch__core {
@@ -62,6 +127,11 @@
 
 .el-slider__bar {
   background-color: var(--accent-primary) !important;
+}
+
+.el-slider__button {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--accent-primary) !important;
 }
 
 .el-color-picker__trigger {
