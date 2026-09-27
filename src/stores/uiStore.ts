@@ -1,7 +1,23 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { getStorage } from '@/storage'
+
+export type ThemeName = 'dark' | 'light'
 
 export const useUiStore = defineStore('ui', () => {
+  // 主题（持久化，启动时恢复）
+  const theme = ref<ThemeName>(getStorage().get('scada_theme') === 'light' ? 'light' : 'dark')
+
+  function applyTheme() {
+    document.documentElement.dataset.theme = theme.value
+  }
+  applyTheme()
+
+  function toggleTheme() {
+    theme.value = theme.value === 'dark' ? 'light' : 'dark'
+    getStorage().set('scada_theme', theme.value)
+    applyTheme()
+  }
   // 左侧面板是否展开
   const leftPanelOpen = ref<boolean>(true)
   
@@ -100,6 +116,7 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   return {
+    theme,
     leftPanelOpen,
     rightPanelOpen,
     bottomPanelOpen,
@@ -115,6 +132,7 @@ export const useUiStore = defineStore('ui', () => {
     openDialog,
     closeDialog,
     setActiveTool,
+    toggleTheme,
     toggleGrid,
     togglePorts,
     toggleRuler,

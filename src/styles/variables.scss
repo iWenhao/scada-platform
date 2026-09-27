@@ -38,3 +38,31 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
 }
+
+// 亮色主题变量（暗色为 :root 默认，通过 html[data-theme] 切换）
+html[data-theme='light'] {
+  // 背景色
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eef1f6;
+  --bg-canvas: #e8eaee;
+
+  // 文字色
+  --text-primary: #303133;
+  --text-secondary: #606266;
+  --text-muted: #909399;
+
+  // 边框色
+  --border-primary: #dcdfe6;
+  --border-secondary: #c0c4cc;
+  --border-active: #00b894;
+
+  // 画布网格
+  --grid-color: #d5dae2;
+  --grid-color-major: #c3cad6;
+
+  // 阴影
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+}

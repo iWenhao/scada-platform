@@ -93,6 +93,15 @@
     <!-- 右侧操作 -->
     <div class="toolbar-right">
       <el-button-group>
+        <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
+          <el-button @click="uiStore.toggleTheme()">
+            <el-icon>
+              <Moon v-if="uiStore.theme === 'dark'" />
+              <Sunny v-else />
+            </el-icon>
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="画布配置" placement="bottom">
           <el-button @click="showCanvasConfig = true">
             <el-icon><Setting /></el-icon>
