@@ -28,6 +28,8 @@ pnpm lint               # ESLint
 - 大规模重构后 Vite HMR 可能残留陈旧模块导致白屏/诡异行为：**重启 dev server** 再判断，不要急着改代码。
 - git 推送报 `SSL_ERROR_SYSCALL`：github.com 被网络重置，走本地代理推送：
   `git -c http.proxy=http://127.0.0.1:7897 push origin dev`（端口以实际代理为准）。
+- **推送失败不重试**：如果 push 失败（网络被墙等），提交保留在本地即可，不要连续多次重试；
+  等待一段时间后再试一次，仍失败就留到下次推送，避免浪费时间和触发网络风控。
 
 ## 工作流约定
 
