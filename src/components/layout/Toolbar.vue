@@ -141,7 +141,7 @@ const canvasStore = useCanvasStore()
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
 
-const { canUndo, canRedo, undo, redo, saveState } = useHistory()
+const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
 
 // 对话框显示状态
 const showCanvasConfig = ref(false)
@@ -195,6 +195,8 @@ function handleImport() {
       reader.onload = (e) => {
         const json = e.target?.result as string
         projectStore.importProject(json)
+        clearHistory()
+        saveState()
       }
       reader.readAsText(file)
     }

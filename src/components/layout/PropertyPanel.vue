@@ -219,11 +219,13 @@ import { ref, computed, watch } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { getComponentDefinition } from '@/industrial/registry'
+import { useHistory } from '@/core/canvas/useHistory'
 import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
 import type { StatusRule } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
 const deviceStore = useDeviceStore()
+const { saveState } = useHistory()
 
 const selectedElement = computed(() => canvasStore.selectedElement)
 const componentDef = computed(() => 
@@ -256,6 +258,7 @@ watch(selectedElement, (newVal) => {
 function handleNameChange(val: string) {
   if (selectedElement.value) {
     canvasStore.updateElement(selectedElement.value.id, { name: val })
+    saveState()
   }
 }
 
@@ -265,6 +268,7 @@ function handlePositionChange() {
       x: x.value,
       y: y.value,
     })
+    saveState()
   }
 }
 
@@ -274,12 +278,14 @@ function handleSizeChange() {
       width: width.value,
       height: height.value,
     })
+    saveState()
   }
 }
 
 function handleRotationChange(val: number) {
   if (selectedElement.value) {
     canvasStore.updateElement(selectedElement.value.id, { rotation: val })
+    saveState()
   }
 }
 
@@ -288,6 +294,7 @@ function handlePropertyChange() {
     canvasStore.updateElement(selectedElement.value.id, {
       properties: { ...properties.value },
     })
+    saveState()
   }
 }
 
@@ -300,6 +307,7 @@ function openStatusRuleDialog() {
 function handleDeviceChange(deviceId: string) {
   if (selectedElement.value) {
     canvasStore.updateElement(selectedElement.value.id, { deviceId: deviceId || undefined })
+    saveState()
   }
 }
 
@@ -317,6 +325,7 @@ function formatBindingValue(variable: string): string {
 function handleStatusRulesConfirm(rules: StatusRule[]) {
   if (selectedElement.value) {
     canvasStore.updateElement(selectedElement.value.id, { statusRules: rules })
+    saveState()
   }
 }
 </script>

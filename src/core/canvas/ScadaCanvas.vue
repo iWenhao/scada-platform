@@ -154,6 +154,7 @@ import { useLayerStore } from '@/stores/layerStore'
 import { useUiStore } from '@/stores/uiStore'
 import { statusEngine } from '@/status/StatusEngine'
 import { pathCalculator } from '@/core/connection/PathCalculator'
+import { useHistory } from '@/core/canvas/useHistory'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
 import type { PortPosition, ConnectionType } from '@/types/connection'
@@ -163,6 +164,7 @@ const deviceStore = useDeviceStore()
 const connectionStore = useConnectionStore()
 const layerStore = useLayerStore()
 const uiStore = useUiStore()
+const { saveState } = useHistory()
 
 const stageRef = ref()
 const transformerRef = ref()
@@ -364,6 +366,7 @@ function onDrop(e: DragEvent) {
   }
   
   canvasStore.addElement(newElement)
+  saveState()
 }
 
 // 选择元素
@@ -388,6 +391,7 @@ function updatePosition(id: string, e: any) {
     y: e.target.y(),
   })
   recalcElementConnections(id)
+  saveState()
 }
 
 // 获取元素指定端口的画布绝对坐标
@@ -506,6 +510,7 @@ function onMouseUp(_e: any) {
     const type: ConnectionType = drawing.type || 'polyline'
     const points = computeConnectionPoints(sourceElement, drawing.sourcePort!, targetElement, targetPort, type)
     connectionStore.finishConnection(targetId, targetPort, points)
+    saveState()
   } else {
     connectionStore.cancelConnection()
   }
