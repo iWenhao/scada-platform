@@ -57,6 +57,7 @@
         <template v-for="element in canvasStore.elements" :key="element.id">
           <v-group
             :config="{
+              id: element.id,
               x: element.x,
               y: element.y,
               width: element.width,
@@ -69,6 +70,7 @@
             @mouseleave="hoveredElementId = null"
             @dragstart="onDragStart(element.id)"
             @dragend="(e: any) => updatePosition(element.id, e)"
+            @transformend="onTransformEnd(element.id)"
           >
             <!-- 组件主体 -->
             <v-rect
@@ -146,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useConnectionStore } from '@/stores/connectionStore'
@@ -278,7 +280,26 @@ const transformerConfig = {
   anchorFill: '#1a1a2e',
   anchorSize: 8,
   anchorCornerRadius: 2,
+  rotateEnabled: true,
+  boundBoxFunc: (oldBox: any, newBox: any) =>
+    newBox.width < 10 || newBox.height < 10 ? oldBox : newBox,
 }
+
+// 选中变化时把变换器绑定到目标节点
+watch(() => canvasStore.selectedId, async (id) => {
+  await nextTick()
+  const transformer = transformerRef.value?.getNode()
+  if (!transformer) return
+
+  if (id) {
+    const stage = stageRef.value.getNode()
+    const node = stage.findOne('#' + id)
+    transformer.nodes(node ? [node] : [])
+  } else {
+    transformer.nodes([])
+  }
+  transformer.getLayer()?.batchDraw()
+})
 
 // 正在绘制的连线配置
 const drawingLineConfig = computed(() => {
@@ -390,6 +411,29 @@ function updatePosition(id: string, e: any) {
     x: e.target.x(),
     y: e.target.y(),
   })
+  recalcElementConnections(id)
+  saveState()
+}
+
+// 变换结束：把缩放固化为宽高，旋转写入元素
+function onTransformEnd(id: string) {
+  const stage = stageRef.value.getNode()
+  const node = stage.findOne('#' + id)
+  const element = canvasStore.elements.find(el => el.id === id)
+  if (!node || !element) return
+
+  canvasStore.updateElement(id, {
+    x: node.x(),
+    y: node.y(),
+    rotation: Math.round(node.rotation() * 10) / 10,
+    width: Math.max(10, Math.round(element.width * node.scaleX())),
+    height: Math.max(10, Math.round(element.height * node.scaleY())),
+  })
+
+  // 尺寸已固化到宽高，重置节点缩放避免叠加
+  node.scaleX(1)
+  node.scaleY(1)
+
   recalcElementConnections(id)
   saveState()
 }
