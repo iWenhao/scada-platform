@@ -47,7 +47,22 @@
       <div class="recent-projects" v-if="recentProjects.length > 0">
         <h2>最近项目</h2>
         <el-table :data="recentProjects" style="width: 100%">
-          <el-table-column prop="name" label="项目名称" />
+          <el-table-column prop="name" label="项目名称（双击可重命名）">
+            <template #default="{ row }">
+              <input
+                v-if="editingName === row.name"
+                v-model="editingValue"
+                v-focus
+                class="rename-input"
+                @keyup.enter="confirmRename(row.name)"
+                @keyup.escape="cancelRename"
+                @blur="confirmRename(row.name)"
+              />
+              <span v-else class="project-name-text" @dblclick="startRename(row.name)">
+                {{ row.name }}
+              </span>
+            </template>
+          </el-table-column>
           <el-table-column prop="lastModified" label="最后修改" width="200" />
           <el-table-column label="操作" width="200">
             <template #default="{ row }">
@@ -89,6 +104,38 @@ const projectStore = useProjectStore()
 
 const recentProjects = ref<Array<{ name: string; lastModified: string }>>([])
 const showOpenDialog = ref(false)
+
+// 双击重命名：正在编辑的项目名与输入值
+const editingName = ref<string | null>(null)
+const editingValue = ref('')
+
+// v-focus 局部指令：输入框出现时自动聚焦
+const vFocus = {
+  mounted: (el: HTMLInputElement) => el.focus(),
+}
+
+function startRename(name: string) {
+  editingName.value = name
+  editingValue.value = name
+}
+
+function confirmRename(oldName: string) {
+  if (editingName.value === null) return
+  const newName = editingValue.value.trim()
+  editingName.value = null
+  if (!newName || newName === oldName) return
+
+  if (projectStore.renameSavedProject(oldName, newName)) {
+    ElMessage.success('已重命名')
+  } else {
+    ElMessage.error('重命名失败：名称为空或与已有项目重名')
+  }
+  loadRecentProjects()
+}
+
+function cancelRename() {
+  editingName.value = null
+}
 
 onMounted(() => {
   loadRecentProjects()
@@ -243,6 +290,21 @@ async function deleteProject(name: string) {
   gap: 8px;
   max-height: 400px;
   overflow-y: auto;
+}
+
+.rename-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--accent-primary);
+  border-radius: 4px;
+  outline: none;
+}
+
+.project-name-text {
+  cursor: text;
 }
 
 .open-project-item {

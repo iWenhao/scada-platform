@@ -133,7 +133,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
-   * 重命名项目：未保存过的仅改名称并标记未保存；
+   * 重命名当前项目：未保存过的仅改名称并标记未保存；
    * 已保存的迁移存储键到新名称。重名或空名返回 false。
    */
   function renameProject(newName: string): boolean {
@@ -141,18 +141,37 @@ export const useProjectStore = defineStore('project', () => {
     if (!trimmed || trimmed === projectName.value) return false
 
     const storage = getStorage()
-    const oldKey = `scada_project_${projectName.value}`
-    const newKey = `scada_project_${trimmed}`
     // 与已有项目重名时拒绝，避免覆盖别人的数据
-    if (storage.get(newKey) !== null) return false
+    if (storage.get(`scada_project_${trimmed}`) !== null) return false
 
+    const oldKey = `scada_project_${projectName.value}`
     const wasSaved = storage.get(oldKey) !== null
-    projectName.value = trimmed
     if (wasSaved) {
-      saveProject()
+      storage.set(`scada_project_${trimmed}`, storage.get(oldKey)!)
       storage.remove(oldKey)
-    } else {
-      hasUnsavedChanges.value = true
+    }
+    projectName.value = trimmed
+    hasUnsavedChanges.value = !wasSaved
+    return true
+  }
+
+  /**
+   * 重命名任意一个已保存的项目（首页列表用）。
+   * 若它恰好是当前打开的项目，同步当前名称。重名/不存在返回 false。
+   */
+  function renameSavedProject(oldName: string, newName: string): boolean {
+    const trimmed = newName.trim()
+    if (!trimmed || trimmed === oldName) return false
+
+    const storage = getStorage()
+    const oldKey = `scada_project_${oldName}`
+    const newKey = `scada_project_${trimmed}`
+    if (storage.get(oldKey) === null || storage.get(newKey) !== null) return false
+
+    storage.set(newKey, storage.get(oldKey)!)
+    storage.remove(oldKey)
+    if (projectName.value === oldName) {
+      projectName.value = trimmed
     }
     return true
   }
@@ -201,6 +220,7 @@ export const useProjectStore = defineStore('project', () => {
     exportProject,
     importProject,
     renameProject,
+    renameSavedProject,
     getSavedProjects,
     deleteProject,
     markDirty,

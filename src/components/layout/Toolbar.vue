@@ -5,10 +5,10 @@
       <el-tooltip content="返回主页" placement="bottom">
         <img src="/logo.svg" alt="返回主页" class="logo" @click="goHome" />
       </el-tooltip>
-      <el-tooltip content="点击重命名" placement="bottom">
-        <span class="project-name" @click="handleRename">{{ projectStore.projectName }}</span>
-      </el-tooltip>
-      <el-icon class="rename-icon" title="重命名" @click="handleRename"><Edit /></el-icon>
+      <div class="project-name-group" title="点击重命名" @click="handleRename">
+        <span class="project-name">{{ projectStore.projectName }}</span>
+        <el-icon class="rename-icon"><Edit /></el-icon>
+      </div>
       <el-tag v-if="projectStore.hasUnsavedChanges" type="warning" size="small">
         未保存
       </el-tag>
@@ -446,23 +446,32 @@ onUnmounted(() => {
     }
   }
   
+  .project-name-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
   .project-name {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
-    cursor: pointer;
-
-    &:hover {
-      color: var(--accent-primary);
-    }
   }
 
   .rename-icon {
-    cursor: pointer;
     color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
 
-    &:hover {
+  .project-name-group:hover {
+    .project-name {
       color: var(--accent-primary);
+    }
+
+    .rename-icon {
+      opacity: 1;
     }
   }
 }

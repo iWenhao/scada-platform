@@ -44,3 +44,40 @@ describe('projectStore.renameProject', () => {
     expect(store.projectName).toBe('未命名项目')
   })
 })
+
+describe('projectStore.renameSavedProject', () => {
+  let store: ReturnType<typeof useProjectStore>
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    setStorage(new MemoryStorageAdapter())
+    store = useProjectStore()
+  })
+
+  it('应迁移存储键并在重命名当前项目时同步名称', () => {
+    store.saveProject('A')
+
+    expect(store.renameSavedProject('A', 'B')).toBe(true)
+    expect(getStorage().get('scada_project_B')).not.toBeNull()
+    expect(getStorage().get('scada_project_A')).toBeNull()
+    expect(store.projectName).toBe('B')
+  })
+
+  it('重命名非当前项目时不应改变当前项目名', () => {
+    store.saveProject('A')
+    store.saveProject('B')
+
+    expect(store.renameSavedProject('A', 'C')).toBe(true)
+    expect(store.projectName).toBe('B')
+    expect(store.getSavedProjects().sort()).toEqual(['B', 'C'])
+  })
+
+  it('重名或项目不存在应被拒绝', () => {
+    store.saveProject('A')
+    store.saveProject('B')
+
+    expect(store.renameSavedProject('A', 'B')).toBe(false)
+    expect(store.renameSavedProject('不存在', 'X')).toBe(false)
+    expect(store.getSavedProjects().sort()).toEqual(['A', 'B'])
+  })
+})
