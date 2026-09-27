@@ -72,7 +72,6 @@
 
 <script setup lang="ts">
 import { useLayerStore } from '@/stores/layerStore'
-import type { LayerType } from '@/types/layer'
 import { ElMessageBox, ElMessage } from 'element-plus'
 
 const layerStore = useLayerStore()

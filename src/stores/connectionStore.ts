@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Connection, ConnectionStyle, ConnectionType, PortPosition } from '@/types/connection'
+import type { Connection, ConnectionStyle, PortPosition } from '@/types/connection'
 import { defaultConnectionStyle } from '@/types/connection'
 
 export const useConnectionStore = defineStore('connection', () => {

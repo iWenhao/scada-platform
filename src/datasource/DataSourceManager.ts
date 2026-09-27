@@ -5,10 +5,7 @@ import { MockDataAdapter } from './adapters/MockDataAdapter'
 export class DataSourceManager {
   /** 当前活跃的数据源 */
   private activeAdapter: DataSourceAdapter | null = null
-  
-  /** 数据源配置 */
-  private config: DataSourceConfig | null = null
-  
+
   /** 最新数据快照 */
   private data = ref<Record<string, Record<string, any>>>({})
   
@@ -44,7 +41,6 @@ export class DataSourceManager {
     // 断开现有连接
     this.disconnect()
 
-    this.config = config
     this.activeAdapter = this.getAdapter(config.type)
 
     // 监听数据更新

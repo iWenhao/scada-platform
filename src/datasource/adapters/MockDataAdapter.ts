@@ -3,10 +3,9 @@ import type { DataSourceAdapter, DataSourceConfig, DataUpdate } from '../types'
 export class MockDataAdapter implements DataSourceAdapter {
   private interval: number | null = null
   private updateCallback: ((update: DataUpdate) => void) | null = null
-  private errorCallback: ((error: Error) => void) | null = null
   private status: 'connected' | 'disconnected' | 'error' = 'disconnected'
 
-  async connect(config: DataSourceConfig): Promise<void> {
+  async connect(_config: DataSourceConfig): Promise<void> {
     this.status = 'connected'
     
     // 每秒生成模拟数据
@@ -57,8 +56,8 @@ export class MockDataAdapter implements DataSourceAdapter {
     this.updateCallback = callback
   }
 
-  onError(callback: (error: Error) => void) {
-    this.errorCallback = callback
+  onError(_callback: (error: Error) => void) {
+    // 模拟数据源不会产生错误
   }
 
   getStatus() {

@@ -126,7 +126,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { StatusRule, Condition } from '@/types/scada'
+import type { StatusRule } from '@/types/scada'
 
 const props = defineProps<{
   modelValue: boolean

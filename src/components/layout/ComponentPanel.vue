@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
-import type { ComponentDefinition, ComponentGroup } from '@/types/scada'
+import type { ComponentDefinition } from '@/types/scada'
 
 // 初始化组件注册
 import { basicComponents } from '@/industrial/basic'
