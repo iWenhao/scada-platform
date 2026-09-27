@@ -65,6 +65,8 @@
               draggable: !isLayerLocked(element.layerId),
             }"
             @click="selectElement(element.id)"
+            @mouseenter="hoveredElementId = element.id"
+            @mouseleave="hoveredElementId = null"
             @dragstart="onDragStart(element.id)"
             @dragend="(e: any) => updatePosition(element.id, e)"
           >
@@ -136,9 +138,10 @@ import { useConnectionStore } from '@/stores/connectionStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useUiStore } from '@/stores/uiStore'
 import { statusEngine } from '@/status/StatusEngine'
+import { pathCalculator } from '@/core/connection/PathCalculator'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
-import type { PortPosition } from '@/types/connection'
+import type { PortPosition, ConnectionType } from '@/types/connection'
 
 const canvasStore = useCanvasStore()
 const deviceStore = useDeviceStore()
@@ -148,6 +151,9 @@ const uiStore = useUiStore()
 
 const stageRef = ref()
 const transformerRef = ref()
+
+// 连线模式下鼠标悬停的元素ID
+const hoveredElementId = ref<string | null>(null)
 
 // 画布Stage配置
 const stageConfig = computed(() => ({
@@ -352,10 +358,68 @@ function updatePosition(id: string, e: any) {
     x: e.target.x(),
     y: e.target.y(),
   })
+  recalcElementConnections(id)
+}
+
+// 获取元素指定端口的画布绝对坐标
+function getElementPortPoint(element: ComponentInstance, port: PortPosition) {
+  switch (port) {
+    case 'top': return { x: element.x + element.width / 2, y: element.y }
+    case 'bottom': return { x: element.x + element.width / 2, y: element.y + element.height }
+    case 'left': return { x: element.x, y: element.y + element.height / 2 }
+    case 'right': return { x: element.x + element.width, y: element.y + element.height / 2 }
+  }
+}
+
+// 找出元素上距离指针最近的端口
+function getNearestPort(element: ComponentInstance, px: number, py: number): PortPosition {
+  const ports: PortPosition[] = ['top', 'bottom', 'left', 'right']
+  let nearest: PortPosition = 'top'
+  let minDist = Infinity
+  for (const port of ports) {
+    const pt = getElementPortPoint(element, port)
+    const dist = (pt.x - px) ** 2 + (pt.y - py) ** 2
+    if (dist < minDist) {
+      minDist = dist
+      nearest = port
+    }
+  }
+  return nearest
+}
+
+// 根据连线类型计算两端端口间的路径点
+function computeConnectionPoints(
+  source: ComponentInstance, sourcePort: PortPosition,
+  target: ComponentInstance, targetPort: PortPosition,
+  type: ConnectionType
+): number[] {
+  const s = getElementPortPoint(source, sourcePort)
+  const t = getElementPortPoint(target, targetPort)
+  const sourceInfo = { position: sourcePort, x: s.x, y: s.y }
+  const targetInfo = { position: targetPort, x: t.x, y: t.y }
+
+  if (type === 'straight') return pathCalculator.calculateStraightPath(sourceInfo, targetInfo)
+  if (type === 'curve') return pathCalculator.calculateCurvePath(sourceInfo, targetInfo)
+  return pathCalculator.calculatePolylinePath(sourceInfo, targetInfo)
+}
+
+// 元素移动后重算与它相连的所有连线
+function recalcElementConnections(elementId: string) {
+  const moved = canvasStore.elements.find(el => el.id === elementId)
+  if (!moved) return
+
+  for (const conn of connectionStore.getConnectionsByElement(elementId)) {
+    const source = canvasStore.elements.find(el => el.id === conn.sourceId)
+    const target = canvasStore.elements.find(el => el.id === conn.targetId)
+    if (!source || !target) continue
+    connectionStore.updateConnection(conn.id, {
+      points: computeConnectionPoints(source, conn.sourcePort, target, conn.targetPort, conn.type),
+    })
+  }
 }
 
 // 开始连线
-function startConnection(elementId: string, port: PortPosition, e: any) {
+function startConnection(elementId: string, port: PortPosition, _e: any) {
   const stage = stageRef.value.getNode()
   const point = stage.getPointerPosition()
   
@@ -375,7 +439,7 @@ function onMouseDown(e: any) {
 }
 
 // 鼠标移动
-function onMouseMove(e: any) {
+function onMouseMove(_e: any) {
   if (connectionStore.drawingConnection) {
     const stage = stageRef.value.getNode()
     const point = stage.getPointerPosition()
@@ -388,10 +452,35 @@ function onMouseMove(e: any) {
 }
 
 // 鼠标释放
-function onMouseUp(e: any) {
-  if (connectionStore.drawingConnection) {
+function onMouseUp(_e: any) {
+  const drawing = connectionStore.drawingConnection
+  if (!drawing) return
+
+  const stage = stageRef.value.getNode()
+  const pointer = stage.getPointerPosition()
+  const point = pointer
+    ? { x: pointer.x / canvasStore.zoom, y: pointer.y / canvasStore.zoom }
+    : { x: 0, y: 0 }
+
+  const sourceId = drawing.sourceId
+  const targetId = hoveredElementId.value
+  const sourceElement = sourceId
+    ? canvasStore.elements.find(el => el.id === sourceId)
+    : null
+  const targetElement = targetId
+    ? canvasStore.elements.find(el => el.id === targetId)
+    : null
+
+  // 释放位置在另一个组件上时完成连线，否则取消
+  if (sourceElement && targetElement && targetId && targetId !== sourceId) {
+    const targetPort = getNearestPort(targetElement, point.x, point.y)
+    const type: ConnectionType = drawing.type || 'polyline'
+    const points = computeConnectionPoints(sourceElement, drawing.sourcePort!, targetElement, targetPort, type)
+    connectionStore.finishConnection(targetId, targetPort, points)
+  } else {
     connectionStore.cancelConnection()
   }
+  hoveredElementId.value = null
 }
 
 // 滚轮缩放
