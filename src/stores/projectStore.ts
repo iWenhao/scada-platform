@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useCanvasStore } from './canvasStore'
 import { useConnectionStore } from './connectionStore'
 import { useLayerStore } from './layerStore'
+import { getStorage } from '@/storage'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -40,7 +41,7 @@ export const useProjectStore = defineStore('project', () => {
     }
     
     const json = JSON.stringify(projectData)
-    localStorage.setItem(`scada_project_${projectName.value}`, json)
+    getStorage().set(`scada_project_${projectName.value}`, json)
     
     lastSaveTime.value = Date.now()
     hasUnsavedChanges.value = false
@@ -56,7 +57,7 @@ export const useProjectStore = defineStore('project', () => {
     const connectionStore = useConnectionStore()
     const layerStore = useLayerStore()
     
-    const json = localStorage.getItem(`scada_project_${name}`)
+    const json = getStorage().get(`scada_project_${name}`)
     if (!json) {
       console.error(`Project not found: ${name}`)
       return false
@@ -135,21 +136,17 @@ export const useProjectStore = defineStore('project', () => {
    * 获取已保存的项目列表
    */
   function getSavedProjects(): string[] {
-    const projects: string[] = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key?.startsWith('scada_project_')) {
-        projects.push(key.replace('scada_project_', ''))
-      }
-    }
-    return projects
+    return getStorage()
+      .keys()
+      .filter(key => key.startsWith('scada_project_'))
+      .map(key => key.replace('scada_project_', ''))
   }
 
   /**
    * 删除项目
    */
   function deleteProject(name: string) {
-    localStorage.removeItem(`scada_project_${name}`)
+    getStorage().remove(`scada_project_${name}`)
   }
 
   /**
