@@ -8,16 +8,18 @@
       class="component-group"
     >
       <div class="group-title">{{ getGroupName(group) }}</div>
-      
-      <div
-        v-for="comp in components"
-        :key="comp.type"
-        class="component-item"
-        draggable="true"
-        @dragstart="(e) => onDragStart(e, comp)"
-      >
-        <div class="component-icon" v-html="comp.icon"></div>
-        <span class="component-name">{{ comp.name }}</span>
+
+      <div class="component-items">
+        <div
+          v-for="comp in components"
+          :key="comp.type"
+          class="component-item"
+          draggable="true"
+          @dragstart="(e) => onDragStart(e, comp)"
+        >
+          <div class="component-icon" v-html="comp.icon"></div>
+          <span class="component-name">{{ comp.name }}</span>
+        </div>
       </div>
     </div>
   </div>

@@ -22,7 +22,7 @@
   .component-group {
     padding: 12px;
     border-bottom: 1px solid var(--border-primary);
-    
+
     .group-title {
       color: var(--text-secondary);
       font-size: 12px;
@@ -30,39 +30,50 @@
       margin-bottom: 8px;
       font-weight: 500;
     }
-    
+
+    .component-items {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
     .component-item {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      padding: 8px 12px;
-      margin-bottom: 4px;
+      justify-content: center;
+      padding: 10px 4px 8px;
       border-radius: 4px;
       cursor: grab;
       transition: all 0.2s;
       background: var(--bg-primary);
       border: 1px solid var(--border-primary);
-      
+
       &:hover {
         background: var(--bg-tertiary);
         border-color: var(--border-active);
       }
-      
+
       &:active {
         cursor: grabbing;
         transform: scale(0.98);
       }
-      
+
       .component-icon {
-        width: 32px;
-        height: 32px;
-        margin-right: 12px;
+        width: 30px;
+        height: 30px;
+        margin-bottom: 6px;
         color: var(--accent-primary);
         flex-shrink: 0;
       }
-      
+
       .component-name {
         color: var(--text-primary);
-        font-size: 13px;
+        font-size: 12px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
   }
