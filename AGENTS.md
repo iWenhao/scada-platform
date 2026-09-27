@@ -24,7 +24,7 @@ pnpm lint               # ESLint
 
 ## 存储后端
 
-`server/index.mjs` 是零依赖的键值存储服务（数据为 `server/data/*.json`），前端 `RemoteStorageAdapter` 通过 `/api/storage/*` 访问，Vite 代理 `/api`。启动时 `initStorage()` 自动探测：后端在线用远程存储，不在线回落 localStorage。改 `vite.config.ts` 代理或 server 路由后需重启 dev server。
+`server/index.mjs` 是零依赖的键值存储服务（数据为 `DATA_DIR` 下的 `*.json`，默认 `server/data/`），前端 `RemoteStorageAdapter` 通过 `/api/storage/*` 访问，Vite 代理 `/api`。启动时 `initStorage()` 自动探测：后端在线用远程存储，不在线回落 localStorage。API 根路径由 `VITE_API_BASE` 配置（默认 `/api`），Token 由 `VITE_API_TOKEN` 配置；后端支持 `PORT` / `DATA_DIR` / `MAX_BODY_BYTES` / `CORS_ORIGIN` / `AUTH_TOKEN`（见 `.env.example`），便于前后端分开部署。改 `vite.config.ts` 代理或 server 路由后需重启 dev server。
 
 ## 环境与已知坑
 

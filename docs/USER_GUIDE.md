@@ -1,7 +1,7 @@
 # SCADA Platform 使用说明书
 
 > 面向使用者的完整操作手册：安装启动、界面介绍、编辑器操作、状态规则配置、数据源接入、项目管理与常见问题。
-> 架构设计与二次开发请看项目根目录的 [README.md](../README.md)。
+> 架构设计与二次开发请看项目根目录的 [README.md](../README.md)。生产部署见 [DEPLOY.md](./DEPLOY.md)。
 
 ---
 
@@ -40,6 +40,8 @@ npx vitest run   # 单次运行
 ```
 
 > **提示**：pnpm v10+ 默认拦截依赖的构建脚本。本项目已在 `pnpm-workspace.yaml` 中声明允许 esbuild、@parcel/watcher、vue-demi 执行构建，直接 `pnpm install` 即可，无需手动确认。
+>
+> **生产部署**（Nginx、存储后端、前后端分开部署、鉴权与备份）见 [DEPLOY.md](./DEPLOY.md)。
 
 ---
 

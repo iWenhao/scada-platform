@@ -6,9 +6,11 @@
  * 接口为异步：本地与远程存储统一语义。
  */
 import { RemoteStorageAdapter } from './remote'
+import { resolveApiBase, resolveApiToken } from './config'
 
-// re-export 远程适配器, 供 main.ts 使用
+// re-export 远程适配器与连接配置, 供 main.ts / 部署环境使用
 export { RemoteStorageAdapter } from './remote'
+export { resolveApiBase, resolveApiToken } from './config'
 
 export interface StorageAdapter {
   get(key: string): Promise<string | null>
@@ -86,13 +88,19 @@ export function setStorage(adapter: StorageAdapter): void {
 
 /**
  * 启动时探测存储后端：后端在线则使用远程存储(KV 服务), 否则回落 localStorage。
+ * baseUrl 默认取 VITE_API_BASE(未配置时为 '/api'), 便于前后端分开部署。
  * 由 main.ts 在挂载前调用。
  */
-export async function initStorage(baseUrl = '/api'): Promise<'remote' | 'local'> {
+export async function initStorage(baseUrl = resolveApiBase()): Promise<'remote' | 'local'> {
+  const token = resolveApiToken()
+  const headers: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {}
   try {
-    const res = await fetch(baseUrl + '/health', { signal: AbortSignal.timeout(1500) })
+    const res = await fetch(baseUrl + '/health', {
+      signal: AbortSignal.timeout(1500),
+      headers,
+    })
     if (res.ok) {
-      setStorage(new RemoteStorageAdapter(baseUrl + '/storage'))
+      setStorage(new RemoteStorageAdapter(baseUrl + '/storage', token))
       return 'remote'
     }
   } catch {
