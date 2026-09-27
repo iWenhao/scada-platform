@@ -57,10 +57,19 @@
             <el-icon><Back /></el-icon>
           </el-button>
         </el-tooltip>
-        
+
         <el-tooltip content="重做 (Ctrl+Y)" placement="bottom">
           <el-button @click="handleRedo" :disabled="!canRedo">
             <el-icon><Right /></el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip content="删除选中 (Delete)" placement="bottom">
+          <el-button
+            :disabled="!canvasStore.selectedId && !connectionStore.selectedConnectionId"
+            @click="handleDelete"
+          >
+            <el-icon><Delete /></el-icon>
           </el-button>
         </el-tooltip>
       </el-button-group>

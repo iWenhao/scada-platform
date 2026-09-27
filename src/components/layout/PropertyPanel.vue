@@ -199,6 +199,14 @@
           配置状态规则
         </el-button>
       </div>
+
+      <!-- 删除组件 -->
+      <div class="property-section">
+        <el-button type="danger" size="small" class="delete-btn" @click="handleDeleteElement">
+          <el-icon><Delete /></el-icon>
+          删除组件
+        </el-button>
+      </div>
     </div>
     
     <div v-else class="empty-state">
@@ -218,6 +226,7 @@
 import { ref, computed, watch } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { useConnectionStore } from '@/stores/connectionStore'
 import { getComponentDefinition } from '@/industrial/registry'
 import { useHistory } from '@/core/canvas/useHistory'
 import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
@@ -225,6 +234,7 @@ import type { StatusRule } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
 const deviceStore = useDeviceStore()
+const connectionStore = useConnectionStore()
 const { saveState } = useHistory()
 
 const selectedElement = computed(() => canvasStore.selectedElement)
@@ -322,6 +332,15 @@ function formatBindingValue(variable: string): string {
   return typeof value === 'number' ? String(Math.round(value * 10) / 10) : String(value)
 }
 
+// 删除当前选中组件（连同相关连线）
+function handleDeleteElement() {
+  const element = selectedElement.value
+  if (!element) return
+  canvasStore.removeElement(element.id)
+  connectionStore.deleteConnectionsByElement(element.id)
+  saveState()
+}
+
 function handleStatusRulesConfirm(rules: StatusRule[]) {
   if (selectedElement.value) {
     canvasStore.updateElement(selectedElement.value.id, { statusRules: rules })
@@ -396,6 +415,10 @@ function handleStatusRulesConfirm(rules: StatusRule[]) {
     color: var(--accent-primary, #00d4aa);
     font-family: monospace;
   }
+}
+
+.delete-btn {
+  width: 100%;
 }
 
 .empty-state {
