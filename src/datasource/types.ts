@@ -6,7 +6,12 @@ export interface DataSourceConfig {
   type: DataSourceType
   name: string
   url?: string
+  /** 更新/轮询间隔（毫秒） */
   interval?: number
+  /** 断线后是否自动重连 */
+  reconnect?: boolean
+  /** 重连间隔（毫秒） */
+  reconnectInterval?: number
   options?: Record<string, any>
 }
 

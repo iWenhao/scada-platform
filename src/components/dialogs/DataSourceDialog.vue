@@ -94,6 +94,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { ElMessage } from 'element-plus'
 import type { DataSourceType } from '@/datasource/types'
 
 const props = defineProps<{
@@ -145,22 +146,37 @@ watch(() => props.modelValue, (val) => {
   }
 })
 
+// 组装当前表单对应的数据源配置
+function buildConfig() {
+  return {
+    type: form.type,
+    name: form.name,
+    url: form.url || undefined,
+    interval:
+      form.type === 'http' ? form.interval
+      : form.type === 'mock' ? mockInterval.value
+      : undefined,
+    reconnect: form.type === 'websocket' ? autoReconnect.value : false,
+    reconnectInterval: reconnectInterval.value,
+  }
+}
+
 async function handleTest() {
   try {
-    await deviceStore.initDataSource({
-      type: form.type,
-      url: form.url,
-    })
+    await deviceStore.initDataSource(buildConfig())
+    if (deviceStore.connectionStatus === 'connected') {
+      ElMessage.success('连接成功')
+    } else {
+      ElMessage.warning('连接未完成，请检查地址与网络')
+    }
   } catch (error) {
     console.error('连接测试失败:', error)
+    ElMessage.error(`连接测试失败: ${error instanceof Error ? error.message : error}`)
   }
 }
 
 function handleConfirm() {
-  deviceStore.initDataSource({
-    type: form.type,
-    url: form.url,
-  })
+  deviceStore.initDataSource(buildConfig())
   visible.value = false
 }
 </script>

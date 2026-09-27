@@ -5,10 +5,11 @@ export class MockDataAdapter implements DataSourceAdapter {
   private updateCallback: ((update: DataUpdate) => void) | null = null
   private status: 'connected' | 'disconnected' | 'error' = 'disconnected'
 
-  async connect(_config: DataSourceConfig): Promise<void> {
+  async connect(config: DataSourceConfig): Promise<void> {
     this.status = 'connected'
-    
-    // 每秒生成模拟数据
+    const interval = config.interval || 1000
+
+    // 按配置间隔生成模拟数据
     this.interval = window.setInterval(() => {
       const update: DataUpdate = {
         motor_1: {
@@ -36,7 +37,7 @@ export class MockDataAdapter implements DataSourceAdapter {
         },
       }
       this.updateCallback?.(update)
-    }, 1000)
+    }, interval)
   }
 
   /** 可绑定的模拟设备清单 */

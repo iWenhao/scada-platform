@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import type { DataSourceConfig, DataSourceAdapter, DataUpdate } from './types'
 import { MockDataAdapter } from './adapters/MockDataAdapter'
+import { WebSocketAdapter } from './adapters/WebSocketAdapter'
 
 export class DataSourceManager {
   /** 当前活跃的数据源 */
@@ -25,8 +26,8 @@ export class DataSourceManager {
     switch (type) {
       case 'mock':
         return new MockDataAdapter()
-      // case 'websocket':
-      //   return new WebSocketAdapter()
+      case 'websocket':
+        return new WebSocketAdapter()
       // case 'http':
       //   return new HttpPollingAdapter()
       default:

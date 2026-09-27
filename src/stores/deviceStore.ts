@@ -16,27 +16,37 @@ export const useDeviceStore = defineStore('device', () => {
   // 最后更新时间
   const lastUpdateTime = ref<number>(0)
 
+  // 注册数据更新回调（store 生命周期内仅注册一次，避免重复监听）
+  dataSourceManager.onUpdate((update: DataUpdate) => {
+    // 合并更新
+    for (const [deviceId, variables] of Object.entries(update)) {
+      if (!deviceData.value[deviceId]) {
+        deviceData.value[deviceId] = {}
+      }
+      Object.assign(deviceData.value[deviceId], variables)
+    }
+    lastUpdateTime.value = Date.now()
+  })
+
   /**
    * 初始化数据源连接
    */
-  async function initDataSource(config: { type: string; url?: string }) {
-    // 注册数据更新回调
-    dataSourceManager.onUpdate((update: DataUpdate) => {
-      // 合并更新
-      for (const [deviceId, variables] of Object.entries(update)) {
-        if (!deviceData.value[deviceId]) {
-          deviceData.value[deviceId] = {}
-        }
-        Object.assign(deviceData.value[deviceId], variables)
-      }
-      lastUpdateTime.value = Date.now()
-    })
-
+  async function initDataSource(config: {
+    type: string
+    name?: string
+    url?: string
+    interval?: number
+    reconnect?: boolean
+    reconnectInterval?: number
+  }) {
     // 连接数据源
     await dataSourceManager.connect({
       type: config.type as any,
-      name: 'default',
+      name: config.name || 'default',
       url: config.url,
+      interval: config.interval,
+      reconnect: config.reconnect,
+      reconnectInterval: config.reconnectInterval,
     })
 
     connectionStatus.value = dataSourceManager.getStatus()
