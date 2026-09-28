@@ -1,8 +1,79 @@
 <template>
   <div class="property-panel">
     <div class="panel-header">属性面板</div>
-    
-    <div v-if="selectedElement" class="panel-content">
+
+    <!-- 连线属性（选中连线时优先显示） -->
+    <div v-if="selectedConnection" class="panel-content">
+      <div class="property-section">
+        <div class="section-title">连线类型</div>
+        <el-select
+          :model-value="selectedConnection.type"
+          @change="handleConnTypeChange"
+        >
+          <el-option label="直线" value="straight" />
+          <el-option label="折线" value="polyline" />
+          <el-option label="曲线" value="curve" />
+        </el-select>
+      </div>
+
+      <div class="property-section">
+        <div class="section-title">样式</div>
+        <div class="property-item">
+          <div class="property-label">颜色</div>
+          <el-color-picker
+            :model-value="selectedConnection.style.stroke"
+            @change="(v: any) => updateConnStyle({ stroke: v || '#666666' })"
+          />
+        </div>
+        <div class="property-item">
+          <div class="property-label">线宽</div>
+          <el-input-number
+            :model-value="selectedConnection.style.strokeWidth"
+            :min="1"
+            :max="10"
+            @change="(v: any) => updateConnStyle({ strokeWidth: v || 2 })"
+          />
+        </div>
+        <div class="property-item">
+          <div class="property-label">流动动画</div>
+          <el-switch
+            :model-value="selectedConnection.style.animated"
+            @change="(v: any) => updateConnStyle({ animated: !!v })"
+          />
+        </div>
+        <template v-if="selectedConnection.style.animated">
+          <div class="property-item">
+            <div class="property-label">流速</div>
+            <el-slider
+              :model-value="selectedConnection.style.flowSpeed || 1"
+              :min="0.5"
+              :max="5"
+              :step="0.5"
+              @change="(v: any) => updateConnStyle({ flowSpeed: v })"
+            />
+          </div>
+          <div class="property-item">
+            <div class="property-label">方向</div>
+            <el-select
+              :model-value="selectedConnection.style.flowDirection || 'forward'"
+              @change="(v: any) => updateConnStyle({ flowDirection: v })"
+            >
+              <el-option label="正向" value="forward" />
+              <el-option label="反向" value="reverse" />
+            </el-select>
+          </div>
+        </template>
+      </div>
+
+      <div class="property-section">
+        <el-button type="danger" size="small" class="delete-btn" @click="handleDeleteConnection">
+          <el-icon><Delete /></el-icon>
+          删除连线
+        </el-button>
+      </div>
+    </div>
+
+    <div v-else-if="selectedElement" class="panel-content">
       <!-- 基本属性 -->
       <div class="property-section">
         <div class="section-title">基本属性</div>
@@ -231,6 +302,7 @@ import { getComponentDefinition } from '@/industrial/registry'
 import { useHistory } from '@/core/canvas/useHistory'
 import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
 import type { StatusRule } from '@/types/scada'
+import type { ConnectionStyle, ConnectionType } from '@/types/connection'
 
 const canvasStore = useCanvasStore()
 const deviceStore = useDeviceStore()
@@ -238,6 +310,32 @@ const connectionStore = useConnectionStore()
 const { saveState } = useHistory()
 
 const selectedElement = computed(() => canvasStore.selectedElement)
+
+// 选中的连线（连接选中优先于元素选中，两者互斥清除）
+const selectedConnection = computed(() =>
+  connectionStore.connections.find(c => c.id === connectionStore.selectedConnectionId)
+)
+
+function updateConnStyle(patch: Partial<ConnectionStyle>) {
+  if (selectedConnection.value) {
+    connectionStore.updateConnectionStyle(selectedConnection.value.id, patch)
+  }
+}
+
+function handleConnTypeChange(type: ConnectionType) {
+  const conn = selectedConnection.value
+  if (!conn) return
+  connectionStore.updateConnection(conn.id, { type })
+  connectionStore.recalcConnection(conn.id)
+  saveState()
+}
+
+function handleDeleteConnection() {
+  const conn = selectedConnection.value
+  if (!conn) return
+  connectionStore.deleteConnection(conn.id)
+  saveState()
+}
 const componentDef = computed(() => 
   selectedElement.value ? getComponentDefinition(selectedElement.value.type) : null
 )

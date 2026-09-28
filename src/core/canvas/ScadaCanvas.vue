@@ -369,8 +369,9 @@ function onMouseUp(_e: any) {
   finishOnMouseUp()
 }
 
-// 点击元素：Shift+点击切换选中（多选），普通点击单选
+// 点击元素：Shift+点击切换选中（多选），普通点击单选；连线选中清除
 function onElementClick(element: ComponentInstance, e: any) {
+  connectionStore.selectConnection(null)
   if (e.evt?.shiftKey) {
     canvasStore.toggleElement(element.id)
   } else {
@@ -378,8 +379,9 @@ function onElementClick(element: ComponentInstance, e: any) {
   }
 }
 
-// 选择连线
+// 选择连线：清除元素选中
 function selectConnection(id: string) {
+  canvasStore.clearSelection()
   connectionStore.selectConnection(id)
 }
 

@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import type { useCanvasStore } from '@/stores/canvasStore'
 import type { useConnectionStore } from '@/stores/connectionStore'
-import { pathCalculator } from '@/core/connection/PathCalculator'
+import { computeConnectionPoints, getElementPortPoint } from '@/core/connection/portPoints'
 import type { ComponentInstance } from '@/types/scada'
 import type { ConnectionType, PortPosition } from '@/types/connection'
 
@@ -99,17 +99,7 @@ export function useConnectionDraw(options: {
     return true
   }
 
-  // 获取元素指定端口的画布绝对坐标
-  function getElementPortPoint(element: ComponentInstance, port: PortPosition) {
-    switch (port) {
-      case 'top': return { x: element.x + element.width / 2, y: element.y }
-      case 'bottom': return { x: element.x + element.width / 2, y: element.y + element.height }
-      case 'left': return { x: element.x, y: element.y + element.height / 2 }
-      case 'right': return { x: element.x + element.width, y: element.y + element.height / 2 }
-    }
-  }
-
-  // 找出元素上距离指针最近的端口
+  // 找出元素上距离指针最近的端口（端口坐标计算见 portPoints.ts）
   function getNearestPort(element: ComponentInstance, px: number, py: number): PortPosition {
     const ports: PortPosition[] = ['top', 'bottom', 'left', 'right']
     let nearest: PortPosition = 'top'
@@ -123,22 +113,6 @@ export function useConnectionDraw(options: {
       }
     }
     return nearest
-  }
-
-  // 根据连线类型计算两端端口间的路径点
-  function computeConnectionPoints(
-    source: ComponentInstance, sourcePort: PortPosition,
-    target: ComponentInstance, targetPort: PortPosition,
-    type: ConnectionType
-  ): number[] {
-    const s = getElementPortPoint(source, sourcePort)
-    const t = getElementPortPoint(target, targetPort)
-    const sourceInfo = { position: sourcePort, x: s.x, y: s.y }
-    const targetInfo = { position: targetPort, x: t.x, y: t.y }
-
-    if (type === 'straight') return pathCalculator.calculateStraightPath(sourceInfo, targetInfo)
-    if (type === 'curve') return pathCalculator.calculateCurvePath(sourceInfo, targetInfo)
-    return pathCalculator.calculatePolylinePath(sourceInfo, targetInfo)
   }
 
   // 元素移动后重算与它相连的所有连线
