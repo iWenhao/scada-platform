@@ -66,6 +66,7 @@
 
 ### 清理
 
+- 预览页不再重复实现 `getElementColor` / `getElementValueText` / `getLabelHeight` / `getIconImageConfig` / `isLayerVisible`，改为与编辑器共用 `useElementVisuals`（顺带补齐运行视图图标此前缺失的 `listening: false`，减少命中检测开销）
 - CHANGELOG `[Unreleased]` 中重复堆砌的多个「### 修复」区块合并去重
 - `node_modules` 移出 git 跟踪；移除未使用的类型导入、死代码文件与冗余字段
 - 重构 ScadaCanvas.vue（987 → 497 行）：逻辑拆分为视口/网格/元素渲染/框选/连线/拖拽 6 个组合式函数

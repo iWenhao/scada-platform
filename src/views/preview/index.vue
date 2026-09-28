@@ -122,9 +122,7 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useAlarmStore } from '@/stores/alarmStore'
-import { statusEngine } from '@/status/StatusEngine'
-import { getIconImage } from '@/core/canvas/iconImage'
-import { getComponentDefinition } from '@/industrial/registry'
+import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
@@ -138,6 +136,15 @@ const deviceStore = useDeviceStore()
 const projectStore = useProjectStore()
 const layerStore = useLayerStore()
 const alarmStore = useAlarmStore()
+
+// 与编辑器共用同一套元素呈现逻辑，避免运行视图与编辑视图的渲染 gradually 漂移
+const {
+  getElementColor,
+  getElementValueText,
+  getLabelHeight,
+  getIconImageConfig,
+  isLayerVisible,
+} = useElementVisuals({ deviceStore, layerStore })
 
 // 趋势图弹窗：运行期点击元素即可查看该变量的近期曲线
 const showTrendDialog = ref(false)
@@ -181,64 +188,6 @@ const connectionStatusText = computed(() => {
 })
 
 const lastUpdateTime = ref('')
-
-function getElementColor(element: ComponentInstance): string {
-  const data = deviceStore.getDeviceData(element.deviceId || element.id)
-  const status = statusEngine.evaluate(element.statusRules, data)
-  return status?.color || '#2a2a2a'
-}
-
-// 元素上展示的实时数值（取第一个数据绑定变量）
-function getElementValueText(element: ComponentInstance): string {
-  const binding = element.dataBindings?.[0]
-  if (!binding) return ''
-
-  const data = deviceStore.getDeviceData(element.deviceId || element.id)
-  const value = data[binding.variable]
-  if (value === undefined) return ''
-
-  const formatted = typeof value === 'number' ? Math.round(value * 10) / 10 : value
-  return `${binding.variable}: ${formatted}`
-}
-
-// 底部标签条高度（有实时数值时更高）
-function getLabelHeight(element: ComponentInstance): number {
-  return getElementValueText(element) ? 26 : 16
-}
-
-// 图标加载完成后递增以触发画布重绘
-const iconVersion = ref(0)
-
-// 组件图形（SVG 图标按比例适配到元素内部）
-function getIconImageConfig(element: ComponentInstance) {
-  const def = getComponentDefinition(element.type)
-  if (!def?.icon) return null
-
-  const img = getIconImage(element.type, def.icon, '#e8f0ef', () => {
-    iconVersion.value++
-  })
-  if (!img) return null
-
-  const labelH = getLabelHeight(element)
-  const boxW = Math.max(element.width - 12, 4)
-  const boxH = Math.max(element.height - labelH - 10, 4)
-  const scale = Math.min(boxW / 100, boxH / 100)
-  const iconW = 100 * scale
-  const iconH = 100 * scale
-
-  return {
-    image: img,
-    x: (element.width - iconW) / 2,
-    y: 4 + (boxH - iconH) / 2,
-    width: iconW,
-    height: iconH,
-  }
-}
-
-// 检查图层是否可见
-function isLayerVisible(layerId: string): boolean {
-  return layerStore.getLayer(layerId)?.visible ?? true
-}
 
 function backToEditor() {
   router.push('/editor')
