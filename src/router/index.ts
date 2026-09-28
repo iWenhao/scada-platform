@@ -18,6 +18,11 @@ const router = createRouter({
       name: 'Preview',
       component: () => import('@/views/preview/index.vue'),
     },
+    // 404 兜底: 未知路径回首页
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/',
+    },
   ],
 })
 

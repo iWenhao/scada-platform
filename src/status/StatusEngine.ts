@@ -94,8 +94,8 @@ export class StatusEngine {
       for (const [key, value] of Object.entries(data)) {
         processed = processed.replace(new RegExp(`\\b${key}\\b`, 'g'), String(Number(value) || 0))
       }
-      // 替换逻辑运算符
-      processed = processed.replace(/\bAND\b/g, '&&').replace(/\bOR\b/g, '||')
+      // 替换逻辑运算符（大小写均可）
+      processed = processed.replace(/\bAND\b/gi, '&&').replace(/\bOR\b/gi, '||')
       // 安全求值
       return Function(`"use strict"; return (${processed})`)()
     } catch {
