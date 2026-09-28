@@ -23,3 +23,6 @@ build/
 
 # AI 工具本地配置
 .zcodeignore
+
+# 存储后端运行时数据
+server/data/
