@@ -133,6 +133,17 @@
     
     <!-- 右侧操作 -->
     <div class="toolbar-right">
+      <el-badge :value="alarmCount" :hidden="!alarmCount" class="alarm-badge">
+        <el-popover placement="bottom" :width="320" trigger="click">
+          <template #reference>
+            <el-button size="small" circle :type="alarmCount ? 'danger' : 'default'" title="报警列表">
+              <el-icon><Bell /></el-icon>
+            </el-button>
+          </template>
+          <AlarmPanel @update:count="alarmCount = $event" />
+        </el-popover>
+      </el-badge>
+
       <el-button-group>
         <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
           <el-button @click="uiStore.toggleTheme()">
@@ -211,6 +222,7 @@ import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
+import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 
 const router = useRouter()
 const canvasStore = useCanvasStore()
@@ -223,6 +235,7 @@ const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
 // 对话框显示状态
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
+const alarmCount = ref(0)
 
 // 复制粘贴剪贴板（支持多选批量复制，响应式以驱动按钮禁用态）
 

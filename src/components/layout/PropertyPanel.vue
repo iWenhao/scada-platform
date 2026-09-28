@@ -262,6 +262,12 @@
               @change="commitBindings"
             />
             <span class="binding-value">{{ formatBindingValue(b.variable) }}</span>
+            <el-icon
+              v-if="selectedElement.deviceId && b.variable"
+              class="binding-trend"
+              title="查看趋势图"
+              @click="openTrendChart(selectedElement.deviceId!, b.variable)"
+            ><TrendCharts /></el-icon>
             <el-icon class="binding-remove" @click="removeBinding(idx)"><Delete /></el-icon>
           </div>
           <el-button size="small" class="binding-add" @click="addBinding">
@@ -270,6 +276,13 @@
           </el-button>
         </div>
       </div>
+
+      <!-- 趋势图弹窗 -->
+      <TrendChartDialog
+        v-model="showTrendDialog"
+        :device-id="trendDeviceId"
+        :variable="trendVariable"
+      />
 
       <!-- 状态规则配置 -->
       <div class="property-section">
@@ -309,6 +322,7 @@ import { useConnectionStore } from '@/stores/connectionStore'
 import { getComponentDefinition } from '@/industrial/registry'
 import { useHistory } from '@/core/canvas/useHistory'
 import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
+import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
 import type { StatusRule } from '@/types/scada'
 import type { ConnectionStyle, ConnectionType } from '@/types/connection'
 
@@ -357,6 +371,17 @@ const height = ref(0)
 const rotation = ref(0)
 const properties = ref<Record<string, any>>({})
 const showStatusRuleDialog = ref(false)
+
+// 趋势图弹窗
+const showTrendDialog = ref(false)
+const trendDeviceId = ref('')
+const trendVariable = ref('')
+
+function openTrendChart(deviceId: string, variable: string) {
+  trendDeviceId.value = deviceId
+  trendVariable.value = variable
+  showTrendDialog.value = true
+}
 
 // 监听选中元素变化
 // 数据绑定编辑（本地草稿, 变更即写回元素）
