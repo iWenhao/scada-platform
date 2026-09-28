@@ -4,6 +4,7 @@ import { useCanvasStore } from './canvasStore'
 import { useConnectionStore } from './connectionStore'
 import { useLayerStore } from './layerStore'
 import { getStorage } from '@/storage'
+import { defaultLayers } from '@/types/layer'
 import type { DataSourceConfig } from '@/datasource/types'
 
 export const useProjectStore = defineStore('project', () => {
@@ -218,6 +219,15 @@ export const useProjectStore = defineStore('project', () => {
     lastSaveTime.value = null
     hasUnsavedChanges.value = false
     dataSourceConfig.value = { type: 'mock', name: 'default' }
+
+    // 新建项目必须连同画布内容一起清空：残留的旧元素/连线会让人以为还在编辑上一个工程，
+    // 一保存就把原工程覆盖掉了
+    const canvasStore = useCanvasStore()
+    const connectionStore = useConnectionStore()
+    const layerStore = useLayerStore()
+    canvasStore.clearCanvas()
+    connectionStore.connections = []
+    layerStore.layers = [...defaultLayers]
   }
 
   return {

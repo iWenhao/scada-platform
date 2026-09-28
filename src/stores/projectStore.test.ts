@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useProjectStore } from './projectStore'
+import { useCanvasStore } from './canvasStore'
+import { useConnectionStore } from './connectionStore'
 import { MemoryStorageAdapter, getStorage, setStorage } from '@/storage'
 
 describe('projectStore.renameProject', () => {
@@ -130,5 +132,32 @@ describe('projectStore 数据源持久化', () => {
     expect(store.hasUnsavedChanges).toBe(false)
     store.setDataSource({ type: 'websocket', name: 'ws', url: 'ws://x' })
     expect(store.hasUnsavedChanges).toBe(true)
+  })
+})
+
+describe('projectStore.resetProject', () => {
+  let store: ReturnType<typeof useProjectStore>
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    setStorage(new MemoryStorageAdapter())
+    store = useProjectStore()
+  })
+
+  it('新建项目应清空上一项目的画布元素与连线', () => {
+    const canvasStore = useCanvasStore()
+    const connectionStore = useConnectionStore()
+    canvasStore.addElement({
+      id: 'e1', type: 'tank', name: '罐', x: 0, y: 0, width: 60, height: 60,
+      rotation: 0, layerId: 'device',
+      properties: {}, statusRules: [], dataBindings: [],
+    })
+    connectionStore.connections = [{ id: 'c1' } as never]
+
+    store.resetProject()
+
+    expect(canvasStore.elements).toHaveLength(0)
+    expect(connectionStore.connections).toHaveLength(0)
+    expect(store.dataSourceConfig.type).toBe('mock')
   })
 })
