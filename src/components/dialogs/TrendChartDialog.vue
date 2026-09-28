@@ -17,51 +17,69 @@
         <span class="trend-value">{{ maxValue }}</span>
       </div>
 
-      <svg
-        ref="svgRef"
-        :width="chartW"
-        :height="chartH"
-        class="trend-svg"
-      >
-        <!-- 网格线 -->
-        <line
-          v-for="i in 5" :key="'h' + i"
-          :x1="padL" :x2="chartW - padR"
-          :y1="padT + (chartH - padT - padB) / 5 * (i - 1)"
-          :y2="padT + (chartH - padT - padB) / 5 * (i - 1)"
-          stroke="var(--border-primary)" stroke-width="0.5" opacity="0.4"
-        />
-        <!-- Y 轴标签 -->
-        <text
-          v-for="i in 6" :key="'yl' + i"
-          :x="padL - 6" :y="padT + (chartH - padT - padB) / 5 * (i - 1) + 4"
-          text-anchor="end" font-size="10" fill="var(--text-muted)"
+      <div v-if="!points.length" class="trend-empty">
+        暂无历史数据，等待数据源推送后自动采集
+      </div>
+
+      <template v-else>
+        <!-- viewBox 与 width/height 保持一致：丢掉 viewBox 时 CSS 的 width:100% 会横向拉伸、
+             纵向不变，导致折线与坐标轴错位 -->
+        <svg
+          ref="svgRef"
+          :viewBox="`0 0 ${chartW} ${chartH}`"
+          :width="chartW"
+          :height="chartH"
+          preserveAspectRatio="xMidYMid meet"
+          class="trend-svg"
         >
-          {{ yLabels[i - 1] }}
-        </text>
-        <!-- 折线 -->
-        <polyline
-          v-if="svgPoints.length > 1"
-          :points="svgPoints"
-          fill="none"
-          stroke="var(--accent-primary)"
-          stroke-width="1.5"
-          stroke-linejoin="round"
-        />
-        <!-- 最后值标记 -->
-        <circle
-          v-if="svgPoints.length"
-          :cx="lastPt.x" :cy="lastPt.y" r="4"
-          fill="var(--accent-primary)"
-        />
-        <text
-          v-if="svgPoints.length"
-          :x="lastPt.x + 8" :y="lastPt.y - 6"
-          font-size="11" font-weight="bold" fill="var(--accent-primary)"
-        >
-          {{ lastValue }}
-        </text>
-      </svg>
+          <!-- 网格线 -->
+          <line
+            v-for="i in 5" :key="'h' + i"
+            :x1="padL" :x2="chartW - padR"
+            :y1="padT + innerH / 5 * (i - 1)"
+            :y2="padT + innerH / 5 * (i - 1)"
+            stroke="var(--border-primary)" stroke-width="0.5" opacity="0.4"
+          />
+          <!-- Y 轴标签 -->
+          <text
+            v-for="i in 6" :key="'yl' + i"
+            :x="padL - 6" :y="padT + innerH / 5 * (i - 1) + 4"
+            text-anchor="end" font-size="10" fill="var(--text-muted)"
+          >
+            {{ yLabels[i - 1] }}
+          </text>
+          <!-- X 轴时间刻度 -->
+          <text
+            v-for="label in xLabels" :key="'xl' + label.x"
+            :x="label.x" :y="chartH - padB + 14"
+            text-anchor="middle" font-size="10" fill="var(--text-muted)"
+          >
+            {{ label.text }}
+          </text>
+          <!-- 折线 -->
+          <polyline
+            v-if="svgPoints.length > 1"
+            :points="svgPoints"
+            fill="none"
+            stroke="var(--accent-primary)"
+            stroke-width="1.5"
+            stroke-linejoin="round"
+          />
+          <!-- 最后值标记 -->
+          <circle
+            v-if="svgPoints.length"
+            :cx="lastPt.x" :cy="lastPt.y" r="4"
+            fill="var(--accent-primary)"
+          />
+          <text
+            v-if="svgPoints.length"
+            :x="lastPt.x + 8" :y="lastPt.y - 6"
+            font-size="11" font-weight="bold" fill="var(--accent-primary)"
+          >
+            {{ lastValue }}
+          </text>
+        </svg>
+      </template>
     </div>
 
     <template #footer>
@@ -98,7 +116,9 @@ const chartH = 320
 const padL = 50
 const padR = 60
 const padT = 20
-const padB = 20
+const padB = 24
+const innerW = chartW - padL - padR
+const innerH = chartH - padT - padB
 
 const svgRef = ref<SVGSVGElement>()
 const tick = ref(0)
@@ -111,52 +131,63 @@ const points = computed(() => {
 
 const stats = computed(() => {
   const pts = points.value
-  if (!pts.length) return { min: 0, max: 1, range: 1 }
+  if (!pts.length) return { min: 0, max: 1, range: 1, base: 0 }
   let min = Infinity, max = -Infinity
   for (const p of pts) {
     if (p.v < min) min = p.v
     if (p.v > max) max = p.v
   }
-  const range = max - min || 1
-  return { min, max, range }
+  // 值域为 0 时兜底展宽，避免除零导致所有点堆在一条线上
+  const range = max - min || Math.abs(max) || 1
+  return { min, max, range, base: max - range }
 })
 
-const minValue = computed(() => {
-  const v = stats.value.min
-  return typeof v === 'number' ? String(Math.round(v * 100) / 100) : String(v)
+/** 时间跨度（X 轴按真实时间而非数组下标映射，采样不均时才不会失真） */
+const timeRange = computed(() => {
+  const pts = points.value
+  if (pts.length < 2) return { t0: pts[0]?.t ?? 0, span: 1 }
+  const span = pts[pts.length - 1].t - pts[0].t
+  return { t0: pts[0].t, span: span || 1 }
 })
 
-const maxValue = computed(() => {
-  const v = stats.value.max
-  return typeof v === 'number' ? String(Math.round(v * 100) / 100) : String(v)
-})
+function round(v: number): string {
+  return String(Math.round(v * 100) / 100)
+}
+
+const minValue = computed(() => round(stats.value.min))
+const maxValue = computed(() => round(stats.value.max))
 
 const lastValue = computed(() => {
   const pts = points.value
   if (!pts.length) return '-'
-  const v = pts[pts.length - 1].v
-  return typeof v === 'number' ? String(Math.round(v * 100) / 100) : String(v)
+  return round(pts[pts.length - 1].v)
 })
 
 const yLabels = computed(() => {
   const { max, range } = stats.value
-  return Array.from({ length: 6 }, (_, i) => {
-    const val = max - (range / 5) * i
-    return typeof val === 'number' ? String(Math.round(val * 100) / 100) : String(val)
-  })
+  return Array.from({ length: 6 }, (_, i) => round(max - (range / 5) * i))
+})
+
+const xLabels = computed(() => {
+  const pts = points.value
+  if (pts.length < 2) return []
+  const { t0, span } = timeRange.value
+  return [0, 0.25, 0.5, 0.75, 1].map(r => ({
+    x: padL + r * innerW,
+    text: formatClock(t0 + span * r),
+  }))
 })
 
 const svgPoints = computed(() => {
   const pts = points.value
   if (pts.length < 2) return ''
-  const { max, range } = stats.value
-  const innerW = chartW - padL - padR
-  const innerH = chartH - padT - padB
+  const { range, base } = stats.value
+  const { t0, span } = timeRange.value
 
   return pts
-    .map((p, i) => {
-      const x = padL + (i / (pts.length - 1)) * innerW
-      const y = padT + innerH - ((p.v - (max - range)) / range) * innerH
+    .map(p => {
+      const x = padL + ((p.t - t0) / span) * innerW
+      const y = padT + innerH - ((p.v - base) / range) * innerH
       return `${x.toFixed(1)},${y.toFixed(1)}`
     })
     .join(' ')
@@ -164,28 +195,38 @@ const svgPoints = computed(() => {
 
 const lastPt = computed(() => {
   const pts = points.value
-  if (!pts.length) return { x: 0, y: 0 }
-  const { max, range } = stats.value
-  const innerH = chartH - padT - padB
+  if (!pts.length) return { x: padL, y: padT + innerH }
+  const { range, base } = stats.value
+  const { t0, span } = timeRange.value
   const last = pts[pts.length - 1]
   return {
-    x: padL + (pts.length > 1 ? (pts.length - 1) / (pts.length - 1) * (chartW - padL - padR) : 0),
-    y: padT + innerH - ((last.v - (max - range)) / range) * innerH,
+    x: padL + (pts.length > 1 ? ((last.t - t0) / span) * innerW : 0),
+    y: padT + innerH - ((last.v - base) / range) * innerH,
   }
 })
 
-watch(() => props.modelValue, (val) => {
-  if (val) {
-    timer = window.setInterval(() => { tick.value++ }, 1000)
-  } else if (timer) {
+function formatClock(t: number): string {
+  return new Date(t).toLocaleTimeString('zh-CN', { hour12: false })
+}
+
+function startTimer() {
+  stopTimer()
+  timer = window.setInterval(() => { tick.value++ }, 1000)
+}
+
+function stopTimer() {
+  if (timer !== null) {
     clearInterval(timer)
     timer = null
   }
+}
+
+watch(() => props.modelValue, (val) => {
+  if (val) startTimer()
+  else stopTimer()
 })
 
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
+onUnmounted(stopTimer)
 </script>
 
 <style scoped lang="scss">
@@ -220,8 +261,17 @@ onUnmounted(() => {
   }
 }
 
+.trend-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* 配合 viewBox 等比缩放：只设 width 而不设 height 会让画布被横向拉伸 */
 .trend-svg {
   display: block;
   width: 100%;
+  height: auto;
 }
 </style>
