@@ -7,11 +7,14 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AlarmPanel: typeof import('./src/components/layout/AlarmPanel.vue')['default']
     CanvasConfigDialog: typeof import('./src/components/dialogs/CanvasConfigDialog.vue')['default']
     CanvasRuler: typeof import('./src/components/layout/CanvasRuler.vue')['default']
     ComponentPanel: typeof import('./src/components/layout/ComponentPanel.vue')['default']
+    ContextMenu: typeof import('./src/components/layout/ContextMenu.vue')['default']
     CustomComponentDialog: typeof import('./src/components/dialogs/CustomComponentDialog.vue')['default']
     DataSourceDialog: typeof import('./src/components/dialogs/DataSourceDialog.vue')['default']
+    ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElButtonGroup: typeof import('element-plus/es')['ElButtonGroup']
     ElCard: typeof import('element-plus/es')['ElCard']
@@ -25,6 +28,7 @@ declare module 'vue' {
     ElInput: typeof import('element-plus/es')['ElInput']
     ElInputNumber: typeof import('element-plus/es')['ElInputNumber']
     ElOption: typeof import('element-plus/es')['ElOption']
+    ElPopover: typeof import('element-plus/es')['ElPopover']
     ElRadio: typeof import('element-plus/es')['ElRadio']
     ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElRow: typeof import('element-plus/es')['ElRow']
@@ -43,5 +47,6 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     StatusRuleDialog: typeof import('./src/components/dialogs/StatusRuleDialog.vue')['default']
     Toolbar: typeof import('./src/components/layout/Toolbar.vue')['default']
+    TrendChartDialog: typeof import('./src/components/dialogs/TrendChartDialog.vue')['default']
   }
 }

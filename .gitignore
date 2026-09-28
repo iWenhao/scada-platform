@@ -26,3 +26,7 @@ build/
 
 # 存储后端运行时数据
 server/data/
+
+# AI 工具本地配置
+.zcodeignore
+.workbuddy/
