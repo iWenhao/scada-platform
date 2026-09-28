@@ -170,7 +170,13 @@
             <el-icon><Download /></el-icon>
           </el-button>
         </el-tooltip>
-        
+
+        <el-tooltip content="导出图片(PNG)" placement="bottom">
+          <el-button @click="handleExportImage">
+            <el-icon><Picture /></el-icon>
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="导入JSON" placement="bottom">
           <el-button @click="handleImport">
             <el-icon><Upload /></el-icon>
@@ -325,6 +331,20 @@ function handleZoomFit() {
 async function handleSave() {
   saveState()
   await projectStore.saveProject()
+}
+
+function handleExportImage() {
+  // 画布截图: Konva 全局由 vue-konva 引入后可用
+  const stage = (window as any).Konva?.stages?.[0]
+  if (!stage) {
+    ElMessage.warning('画布尚未就绪')
+    return
+  }
+  const url = stage.toDataURL({ pixelRatio: 2 })
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${projectStore.projectName}.png`
+  a.click()
 }
 
 function handleExport() {
