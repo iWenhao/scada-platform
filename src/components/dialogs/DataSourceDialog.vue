@@ -143,8 +143,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { ElMessage } from 'element-plus'
-import type { DataSourceType } from '@/datasource/types'
+import type { DataSourceConfig, DataSourceType } from '@/datasource/types'
 
 const props = defineProps<{
   modelValue: boolean
@@ -155,6 +156,7 @@ const emit = defineEmits<{
 }>()
 
 const deviceStore = useDeviceStore()
+const projectStore = useProjectStore()
 
 const visible = computed({
   get: () => props.modelValue,
@@ -201,15 +203,23 @@ const statusText = computed(() => {
   }
 })
 
+// 打开对话框时用工程中已保存的配置回填，而不是清空表单重新填
 watch(() => props.modelValue, (val) => {
-  if (val) {
-    form.url = ''
-    form.interval = 5000
-  }
+  if (!val) return
+  const cfg = projectStore.dataSourceConfig
+  form.type = cfg.type
+  form.name = cfg.name || 'default'
+  form.url = cfg.url || ''
+  form.interval = cfg.interval || 5000
+  autoReconnect.value = cfg.reconnect ?? true
+  reconnectInterval.value = cfg.reconnectInterval || 5000
+  mockInterval.value = cfg.type === 'mock' ? (cfg.interval || 1000) : 1000
+  const nodes = (cfg.options?.nodes as string[] | undefined) || []
+  nodeList.value = nodes.join('\n')
 })
 
 // 组装当前表单对应的数据源配置
-function buildConfig() {
+function buildConfig(): DataSourceConfig {
   return {
     type: form.type,
     name: form.name,
@@ -249,7 +259,10 @@ async function handleTest() {
 }
 
 function handleConfirm() {
-  deviceStore.initDataSource(buildConfig())
+  const config = buildConfig()
+  // 先落盘到工程，否则保存出去的 JSON 里仍然没有数据源配置
+  projectStore.setDataSource(config)
+  deviceStore.initDataSource(config)
   visible.value = false
 }
 </script>

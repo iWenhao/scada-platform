@@ -396,7 +396,8 @@ function handleImport() {
 
 async function handlePreview() {
   await projectStore.saveProject()
-  router.push('/preview')
+  // 带上工程名，预览页据此加载对应工程（刷新后仍有效）
+  router.push({ path: '/preview', query: { project: projectStore.projectName } })
 }
 
 // 键盘快捷键

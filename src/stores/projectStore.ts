@@ -4,6 +4,7 @@ import { useCanvasStore } from './canvasStore'
 import { useConnectionStore } from './connectionStore'
 import { useLayerStore } from './layerStore'
 import { getStorage } from '@/storage'
+import type { DataSourceConfig } from '@/datasource/types'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -18,19 +19,19 @@ export const useProjectStore = defineStore('project', () => {
   // 是否有未保存的更改
   const hasUnsavedChanges = ref<boolean>(false)
 
+  // 数据源配置：属于工程的一部分，必须随工程一起持久化，
+  // 否则保存后重开就没有数据源可用，预览只能退回 mock。
+  const dataSourceConfig = ref<DataSourceConfig>({ type: 'mock', name: 'default' })
+
   /**
-   * 保存项目到存储
+   * 组装完整的工程数据（保存 / 导出共用，避免两处结构漂移）
    */
-  async function saveProject(name?: string) {
+  function buildProjectData() {
     const canvasStore = useCanvasStore()
     const connectionStore = useConnectionStore()
     const layerStore = useLayerStore()
-    
-    if (name) {
-      projectName.value = name
-    }
-    
-    const projectData = {
+
+    return {
       version: '1.0',
       name: projectName.value,
       description: projectDescription.value,
@@ -38,9 +39,35 @@ export const useProjectStore = defineStore('project', () => {
       canvas: canvasStore.toJSON(),
       connections: connectionStore.toJSON(),
       layers: layerStore.toJSON(),
+      dataSource: dataSourceConfig.value,
     }
-    
-    const json = JSON.stringify(projectData)
+  }
+
+  /**
+   * 应用加载到的工程数据（加载 / 导入共用）
+   */
+  function applyProjectData(projectData: Record<string, any>) {
+    const canvasStore = useCanvasStore()
+    const connectionStore = useConnectionStore()
+    const layerStore = useLayerStore()
+
+    canvasStore.loadFromJSON(projectData.canvas)
+    connectionStore.loadFromJSON(projectData.connections)
+    layerStore.loadFromJSON(projectData.layers)
+
+    // 旧工程没有 dataSource 字段，回落 mock 以保证向后兼容
+    dataSourceConfig.value = projectData.dataSource || { type: 'mock', name: 'default' }
+  }
+
+  /**
+   * 保存项目到存储
+   */
+  async function saveProject(name?: string) {
+    if (name) {
+      projectName.value = name
+    }
+
+    const json = JSON.stringify(buildProjectData())
     await getStorage().set(`scada_project_${projectName.value}`, json)
     
     lastSaveTime.value = Date.now()
@@ -53,10 +80,6 @@ export const useProjectStore = defineStore('project', () => {
    * 从存储加载项目
    */
   async function loadProject(name: string): Promise<boolean> {
-    const canvasStore = useCanvasStore()
-    const connectionStore = useConnectionStore()
-    const layerStore = useLayerStore()
-    
     const json = await getStorage().get(`scada_project_${name}`)
     if (!json) {
       console.error(`Project not found: ${name}`)
@@ -70,9 +93,7 @@ export const useProjectStore = defineStore('project', () => {
       projectDescription.value = projectData.description || ''
       lastSaveTime.value = projectData.timestamp
       
-      canvasStore.loadFromJSON(projectData.canvas)
-      connectionStore.loadFromJSON(projectData.connections)
-      layerStore.loadFromJSON(projectData.layers)
+      applyProjectData(projectData)
       
       hasUnsavedChanges.value = false
       
@@ -87,31 +108,13 @@ export const useProjectStore = defineStore('project', () => {
    * 导出项目为JSON文件
    */
   function exportProject(): string {
-    const canvasStore = useCanvasStore()
-    const connectionStore = useConnectionStore()
-    const layerStore = useLayerStore()
-    
-    const projectData = {
-      version: '1.0',
-      name: projectName.value,
-      description: projectDescription.value,
-      timestamp: Date.now(),
-      canvas: canvasStore.toJSON(),
-      connections: connectionStore.toJSON(),
-      layers: layerStore.toJSON(),
-    }
-    
-    return JSON.stringify(projectData, null, 2)
+    return JSON.stringify(buildProjectData(), null, 2)
   }
 
   /**
    * 从JSON文件导入项目
    */
   function importProject(json: string): boolean {
-    const canvasStore = useCanvasStore()
-    const connectionStore = useConnectionStore()
-    const layerStore = useLayerStore()
-    
     try {
       const projectData = JSON.parse(json)
       
@@ -119,9 +122,7 @@ export const useProjectStore = defineStore('project', () => {
       projectDescription.value = projectData.description || ''
       lastSaveTime.value = projectData.timestamp
       
-      canvasStore.loadFromJSON(projectData.canvas)
-      connectionStore.loadFromJSON(projectData.connections)
-      layerStore.loadFromJSON(projectData.layers)
+      applyProjectData(projectData)
       
       hasUnsavedChanges.value = false
       
@@ -201,6 +202,14 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
+   * 设置数据源配置。改数据源属于改动工程本身，要标记脏状态。
+   */
+  function setDataSource(config: DataSourceConfig) {
+    dataSourceConfig.value = config
+    hasUnsavedChanges.value = true
+  }
+
+  /**
    * 重置项目
    */
   function resetProject() {
@@ -208,6 +217,7 @@ export const useProjectStore = defineStore('project', () => {
     projectDescription.value = ''
     lastSaveTime.value = null
     hasUnsavedChanges.value = false
+    dataSourceConfig.value = { type: 'mock', name: 'default' }
   }
 
   return {
@@ -215,6 +225,7 @@ export const useProjectStore = defineStore('project', () => {
     projectDescription,
     lastSaveTime,
     hasUnsavedChanges,
+    dataSourceConfig,
     saveProject,
     loadProject,
     exportProject,
@@ -223,6 +234,7 @@ export const useProjectStore = defineStore('project', () => {
     renameSavedProject,
     getSavedProjects,
     deleteProject,
+    setDataSource,
     markDirty,
     resetProject,
   }

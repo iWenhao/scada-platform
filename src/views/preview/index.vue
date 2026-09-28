@@ -95,8 +95,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useDeviceStore } from '@/stores/deviceStore'
@@ -109,6 +110,7 @@ import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
 
 const router = useRouter()
+const route = useRoute()
 const canvasStore = useCanvasStore()
 const connectionStore = useConnectionStore()
 const deviceStore = useDeviceStore()
@@ -214,15 +216,29 @@ function updateLastUpdateTime() {
 let updateInterval: number | null = null
 
 onMounted(async () => {
-  // 加载项目数据
-  await projectStore.loadProject(projectStore.projectName)
+  // 支持 /preview?project=xxx 直接打开指定工程，刷新或长期挂在大屏上时也能回到同一画面
+  const target = (route.query.project as string) || projectStore.projectName
+  const ok = await projectStore.loadProject(target)
+  if (!ok) {
+    // 长期挂在大屏上的页面最怕静默白屏，这里必须看得见失败原因
+    ElMessage.error(`未能加载工程「${target}」，请从编辑器重新进入预览`)
+    return
+  }
 
-  // 初始化数据源
-  deviceStore.initDataSource({ type: 'mock' })
+  // 用工程里保存的数据源配置连接，不再写死 mock
+  deviceStore.initDataSource(projectStore.dataSourceConfig)
 
   // 定时更新显示
   updateInterval = window.setInterval(updateLastUpdateTime, 1000)
 })
+
+// 工程切换后（如导入/打开别的工程）跟随切换数据源
+watch(
+  () => projectStore.dataSourceConfig,
+  (config) => {
+    deviceStore.initDataSource(config)
+  },
+)
 
 onUnmounted(() => {
   deviceStore.disconnect()

@@ -244,9 +244,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useUiStore } from '@/stores/uiStore'
@@ -266,6 +267,7 @@ import type { ComponentInstance } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
 const deviceStore = useDeviceStore()
+const projectStore = useProjectStore()
 const connectionStore = useConnectionStore()
 const layerStore = useLayerStore()
 const uiStore = useUiStore()
@@ -476,10 +478,14 @@ function onDrop(e: DragEvent) {
   saveState()
 }
 
-// 初始化
-onMounted(() => {
-  deviceStore.initDataSource({ type: 'mock' })
-})
+// 按工程保存的数据源配置连接；切换或加载工程时自动切到对应数据源
+watch(
+  () => projectStore.dataSourceConfig,
+  (config) => {
+    deviceStore.initDataSource(config)
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped lang="scss">
