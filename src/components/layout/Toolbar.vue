@@ -89,7 +89,7 @@
 
         <el-tooltip content="粘贴 (Ctrl+V)" placement="bottom">
           <el-button
-            :disabled="!clipboard.length"
+            :disabled="!canvasStore.clipboard.length"
             @click="handlePaste"
           >
             <el-icon><DocumentAdd /></el-icon>
@@ -211,7 +211,6 @@ import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
-import type { ComponentInstance } from '@/types/scada'
 
 const router = useRouter()
 const canvasStore = useCanvasStore()
@@ -226,20 +225,19 @@ const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
 
 // 复制粘贴剪贴板（支持多选批量复制，响应式以驱动按钮禁用态）
-const clipboard = ref<ComponentInstance[]>([])
 
 function handleCopy() {
   const selected = canvasStore.selectedElements
   if (selected.length) {
-    clipboard.value = JSON.parse(JSON.stringify(selected))
+    canvasStore.clipboard = JSON.parse(JSON.stringify(selected))
   }
 }
 
 function handlePaste() {
-  if (!clipboard.value.length) return
+  if (!canvasStore.clipboard.length) return
 
   const stamp = Date.now()
-  const pasted = clipboard.value.map((el, i) => ({
+  const pasted = canvasStore.clipboard.map((el, i) => ({
     ...JSON.parse(JSON.stringify(el)),
     id: `el_${stamp}_${i}`,
     x: el.x + 20,

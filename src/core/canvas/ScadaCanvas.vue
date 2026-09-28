@@ -87,11 +87,12 @@
               height: element.height,
               rotation: element.rotation,
               visible: isLayerVisible(element.layerId),
-              // 连线模式下禁用组件拖拽，避免端口拖拽被组件拖动劫持
-              draggable: !isLayerLocked(element.layerId) && uiStore.activeTool !== 'connect',
+              // 连线模式下禁用组件拖拽，避免端口拖拽被组件拖动劫持；元素级锁定同理
+              draggable: !isLayerLocked(element.layerId) && !element.locked && uiStore.activeTool !== 'connect',
               dragBoundFunc: canvasStore.canvasConfig.snapToGrid ? gridSnapFunc : undefined,
             }"
             @click="onElementClick(element, $event)"
+            @contextmenu="onElementContextMenu(element, $event)"
             @mouseenter="setHovered(element.id)"
             @mouseleave="setHovered(null)"
             @dragstart="onDragStart(element, $event)"
@@ -227,6 +228,15 @@
             <span>{{ canvasStore.canvasConfig.width }} x {{ canvasStore.canvasConfig.height }}</span>
             <span>{{ Math.round(canvasStore.zoom * 100) }}%</span>
           </div>
+
+          <!-- 右键菜单 -->
+          <ContextMenu
+            :visible="ctxMenuVisible"
+            :x="ctxMenuX"
+            :y="ctxMenuY"
+            :items="ctxMenuItems"
+            @close="ctxMenuVisible = false"
+          />
         </div>
       </div>
     </div>
@@ -249,6 +259,8 @@ import { useConnectionDraw } from '@/core/canvas/useConnectionDraw'
 import { useElementDrag } from '@/core/canvas/useElementDrag'
 import CanvasRuler from '@/components/layout/CanvasRuler.vue'
 import MiniMap from '@/components/layout/MiniMap.vue'
+import ContextMenu from '@/components/layout/ContextMenu.vue'
+import type { ContextMenuItem } from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
 
@@ -290,6 +302,42 @@ const {
 const { selectionRect, beginRubber, moveRubber, endRubber } = selection
 const { setHovered, beginConnection, trackMove, finishOnMouseUp, drawingLineConfig } = connectionDraw
 const { alignGuides, gridSnapFunc, onDragStart, onDragMove, onDragEnd, onTransformEnd } = drag
+
+// 右键菜单
+const ctxMenuVisible = ref(false)
+const ctxMenuX = ref(0)
+const ctxMenuY = ref(0)
+const ctxMenuItems = ref<ContextMenuItem[]>([])
+
+function onElementContextMenu(element: ComponentInstance, e: any) {
+  e.evt.preventDefault()
+  if (uiStore.activeTool === 'connect') return
+  canvasStore.selectElement(element.id)
+  ctxMenuX.value = e.evt.clientX
+  ctxMenuY.value = e.evt.clientY
+  const isLocked = !!element.locked
+  ctxMenuItems.value = [
+    { label: '复制', icon: 'CopyDocument', shortcut: 'Ctrl+C', action: () => handleCopyFromCanvas() },
+    { label: '删除', icon: 'Delete', shortcut: 'Del', danger: true, action: () => handleDeleteFromCanvas() },
+    { label: isLocked ? '解锁' : '锁定', icon: 'Lock', action: () => canvasStore.updateElement(element.id, { locked: !isLocked }) },
+  ]
+  ctxMenuVisible.value = true
+}
+
+function handleCopyFromCanvas() {
+  const selected = canvasStore.selectedElements
+  if (selected.length) {
+    canvasStore.clipboard = JSON.parse(JSON.stringify(selected))
+  }
+}
+
+function handleDeleteFromCanvas() {
+  const ids = [...canvasStore.selectedIds]
+  if (!ids.length) return
+  canvasStore.removeElements(ids)
+  ids.forEach(id => connectionStore.deleteConnectionsByElement(id))
+  saveState()
+}
 
 // 变换器配置
 const transformerConfig = {
@@ -353,6 +401,9 @@ function onMouseMove(_e: any) {
 // 鼠标释放
 function onMouseUp(_e: any) {
   endPan()
+
+  // 隐藏右键菜单
+  ctxMenuVisible.value = false
 
   const ids = endRubber()
   if (ids !== null) {
