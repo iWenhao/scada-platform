@@ -10,6 +10,16 @@
       </div>
       
       <div class="header-right">
+        <el-badge :value="alarmStore.unackedCount" :hidden="!alarmStore.unackedCount" class="alarm-badge">
+          <el-popover placement="bottom" :width="320" trigger="click">
+            <template #reference>
+              <el-button size="small" circle :type="alarmStore.activeCount ? 'danger' : 'default'" title="报警列表">
+                <el-icon><Bell /></el-icon>
+              </el-button>
+            </template>
+            <AlarmPanel />
+          </el-popover>
+        </el-badge>
         <el-tag :type="connectionStatusType">
           {{ connectionStatusText }}
         </el-tag>
@@ -41,6 +51,7 @@
                 rotation: element.rotation,
                 visible: isLayerVisible(element.layerId),
               }"
+              @click="handleElementClick(element)"
             >
               <v-rect
                 :config="{
@@ -91,6 +102,13 @@
         </v-layer>
       </v-stage>
     </div>
+
+    <!-- 运行期查看历史曲线 -->
+    <TrendChartDialog
+      v-model="showTrendDialog"
+      :device-id="trendDeviceId"
+      :variable="trendVariable"
+    />
   </div>
 </template>
 
@@ -103,9 +121,12 @@ import { useConnectionStore } from '@/stores/connectionStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useLayerStore } from '@/stores/layerStore'
+import { useAlarmStore } from '@/stores/alarmStore'
 import { statusEngine } from '@/status/StatusEngine'
 import { getIconImage } from '@/core/canvas/iconImage'
 import { getComponentDefinition } from '@/industrial/registry'
+import AlarmPanel from '@/components/layout/AlarmPanel.vue'
+import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import type { ComponentInstance } from '@/types/scada'
 
@@ -116,6 +137,23 @@ const connectionStore = useConnectionStore()
 const deviceStore = useDeviceStore()
 const projectStore = useProjectStore()
 const layerStore = useLayerStore()
+const alarmStore = useAlarmStore()
+
+// 趋势图弹窗：运行期点击元素即可查看该变量的近期曲线
+const showTrendDialog = ref(false)
+const trendDeviceId = ref('')
+const trendVariable = ref('')
+
+function handleElementClick(element: ComponentInstance) {
+  const variable = element.dataBindings?.[0]?.variable
+  if (!variable) {
+    ElMessage.info('该元素没有绑定数据变量，无法查看趋势')
+    return
+  }
+  trendDeviceId.value = element.deviceId || element.id
+  trendVariable.value = variable
+  showTrendDialog.value = true
+}
 
 const stageConfig = computed(() => ({
   width: window.innerWidth,
