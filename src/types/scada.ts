@@ -56,6 +56,9 @@ export interface PropertyDefinition {
   group?: string
 }
 
+/** 报警级别：决定该状态是否计入报警面板 */
+export type AlarmSeverity = 'normal' | 'warning' | 'critical'
+
 /** 状态规则 */
 export interface StatusRule {
   id: string
@@ -63,6 +66,12 @@ export interface StatusRule {
   color: string
   condition: Condition
   priority: number
+  /**
+   * 报警级别。未设置时按颜色兜底推断（历史数据兼容）。
+   * 注意："关闭/停止"这类正常工艺状态即便用了红色也应标为 normal，
+   * 否则设备停机就会刷满报警列表。
+   */
+  severity?: AlarmSeverity
 }
 
 /** 条件类型 */

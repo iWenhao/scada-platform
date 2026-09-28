@@ -27,6 +27,7 @@ export const ReactorDefinition: ComponentDefinition = {
       id: 'over-temp',
       name: '超温',
       color: '#ff4757',
+      severity: 'critical',
       condition: { type: 'compare', variable: 'temp', operator: '>', value: 180 },
       priority: 1,
     },

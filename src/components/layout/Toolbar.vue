@@ -133,14 +133,14 @@
     
     <!-- 右侧操作 -->
     <div class="toolbar-right">
-      <el-badge :value="alarmCount" :hidden="!alarmCount" class="alarm-badge">
-        <el-popover placement="bottom" :width="320" trigger="click">
+      <el-badge :value="unackedCount" :hidden="!unackedCount" class="alarm-badge">
+        <el-popover placement="bottom" :width="360" trigger="click">
           <template #reference>
-            <el-button size="small" circle :type="alarmCount ? 'danger' : 'default'" title="报警列表">
+            <el-button size="small" circle :type="activeCount ? 'danger' : 'default'" title="报警列表">
               <el-icon><Bell /></el-icon>
             </el-button>
           </template>
-          <AlarmPanel @update:count="alarmCount = $event" />
+          <AlarmPanel />
         </el-popover>
       </el-badge>
 
@@ -212,13 +212,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useUiStore } from '@/stores/uiStore'
+import { useAlarmStore } from '@/stores/alarmStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
@@ -229,13 +230,17 @@ const canvasStore = useCanvasStore()
 const connectionStore = useConnectionStore()
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
+const alarmStore = useAlarmStore()
 
 const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
 
 // 对话框显示状态
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
-const alarmCount = ref(0)
+
+// 报警计数从 store 读取：报警面板随 popover 关闭而销毁，计数不能依赖组件存活
+const activeCount = computed(() => alarmStore.activeCount)
+const unackedCount = computed(() => alarmStore.unackedCount)
 
 // 复制粘贴剪贴板（支持多选批量复制，响应式以驱动按钮禁用态）
 
