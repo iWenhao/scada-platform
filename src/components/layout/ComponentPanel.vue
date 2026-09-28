@@ -38,10 +38,14 @@
         <div
           v-for="comp in customDefs"
           :key="comp.type"
-          class="component-item"
+          class="component-item custom-card"
           draggable="true"
           @dragstart="(e) => onDragStart(e, comp)"
         >
+          <div class="card-actions">
+            <el-icon title="编辑" @click.stop="startEditCustom(comp)"><Edit /></el-icon>
+            <el-icon title="删除" @click.stop="removeCustom(comp)"><Delete /></el-icon>
+          </div>
           <div class="component-icon" v-html="comp.icon"></div>
           <span class="component-name">{{ comp.name }}</span>
         </div>
@@ -49,13 +53,19 @@
       <div v-else class="custom-empty">点击 + 创建自定义组件</div>
     </div>
 
-    <CustomComponentDialog v-model="showCustomDialog" @confirm="onCustomCreated" />
+    <CustomComponentDialog
+      v-model="showCustomDialog"
+      :editing="editingDef"
+      @confirm="onCustomSaved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
+import { updateCustomComponent, removeCustomComponent } from '@/industrial/customLibrary'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import type { ComponentDefinition } from '@/types/scada'
 
 // 初始化组件注册
@@ -80,6 +90,8 @@ registerComponents([
   ...waterComponents,
 ])
 const customDefs = ref<ComponentDefinition[]>([])
+const showCustomDialog = ref(false)
+const editingDef = ref<ComponentDefinition | null>(null)
 
 onMounted(async () => {
   // 从存储恢复自定义组件并注册
@@ -104,13 +116,39 @@ const groupNames: Record<string, string> = {
   custom: '自定义组件',
 }
 
-// 创建自定义组件: 注册 + 持久化 + 出现在面板
-async function onCustomCreated(def: ComponentDefinition) {
-  await addCustomComponent(def)
-  customDefs.value = [...customDefs.value, def]
+// 保存自定义组件(创建或编辑): 新 type 走新增, 已有 type 覆盖
+async function onCustomSaved(def: ComponentDefinition) {
+  const exists = customDefs.value.some(c => c.type === def.type)
+  if (exists) {
+    await updateCustomComponent(def)
+    customDefs.value = customDefs.value.map(c => (c.type === def.type ? def : c))
+  } else {
+    await addCustomComponent(def)
+    customDefs.value = [...customDefs.value, def]
+  }
 }
 
-const showCustomDialog = ref(false)
+// 删除自定义组件（确认后）；画布上已放置的实例会退化为默认样式
+async function removeCustom(def: ComponentDefinition) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除自定义组件「${def.name}」吗？画布上已放置的实例将保留但显示为默认样式。`,
+      '删除自定义组件',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  await removeCustomComponent(def.type)
+  customDefs.value = customDefs.value.filter(c => c.type !== def.type)
+  ElMessage.success('已删除')
+}
+
+// 进入编辑模式
+function startEditCustom(def: ComponentDefinition) {
+  editingDef.value = def
+  showCustomDialog.value = true
+}
 
 function getGroupName(group: string): string {
   return groupNames[group] || group

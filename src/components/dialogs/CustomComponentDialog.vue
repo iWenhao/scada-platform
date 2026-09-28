@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="创建自定义组件"
+    :title="dialogTitle"
     width="440px"
     :close-on-click-modal="false"
   >
@@ -54,11 +54,13 @@ import type { ComponentDefinition } from '@/types/scada'
 
 const props = defineProps<{
   modelValue: boolean
+  /** 编辑模式：传入要修改的自定义组件定义 */
+  editing?: ComponentDefinition | null
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  /** 创建成功，返回组件定义 */
+  /** 创建/保存成功，返回组件定义 */
   confirm: [def: ComponentDefinition]
 }>()
 
@@ -90,12 +92,30 @@ const previewSvg = computed(
     `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="${form.color}" stroke-width="3">${SHAPES[form.shape] || ''}</g></svg>`,
 )
 
+const dialogTitle = computed(() => (props.editing ? '编辑自定义组件' : '创建自定义组件'))
+
+// 从已有图标反解形状与颜色（编辑模式回填用）
+function parseIcon(icon: string): { shape: string; color: string } {
+  const shape = Object.entries(SHAPES).find(([, markup]) => icon.includes(markup))?.[0] || 'rect'
+  const color = icon.match(/stroke="([^"]+)"/)?.[1] || '#00d4aa'
+  return { shape, color }
+}
+
 watch(() => props.modelValue, (val) => {
   if (val) {
-    form.name = ''
-    form.shape = 'rect'
-    form.width = 80
-    form.height = 80
+    if (props.editing) {
+      form.name = props.editing.name
+      form.width = props.editing.defaultWidth
+      form.height = props.editing.defaultHeight
+      const parsed = parseIcon(props.editing.icon)
+      form.shape = parsed.shape
+      form.color = parsed.color
+    } else {
+      form.name = ''
+      form.shape = 'rect'
+      form.width = 80
+      form.height = 80
+    }
   }
 })
 
@@ -107,22 +127,23 @@ function handleConfirm() {
   }
 
   const def: ComponentDefinition = {
-    type: `custom_${Date.now()}`,
+    // 编辑模式保持原 type，创建模式生成新 type
+    type: props.editing?.type || `custom_${Date.now()}`,
     name,
     group: 'custom',
     icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="currentColor" stroke-width="3">${SHAPES[form.shape] || ''}</g></svg>`,
     defaultWidth: form.width,
     defaultHeight: form.height,
     defaultConfig: {},
-    statusRules: [],
-    dataBindings: [],
+    statusRules: props.editing?.statusRules || [],
+    dataBindings: props.editing?.dataBindings || [],
     properties: [
       { key: 'name', label: '名称', type: 'string', default: name, group: '基本' },
     ],
   }
 
   emit('confirm', def)
-  ElMessage.success(`已创建组件「${name}」`)
+  ElMessage.success(props.editing ? '已保存修改' : `已创建组件「${name}」`)
   visible.value = false
 }
 </script>

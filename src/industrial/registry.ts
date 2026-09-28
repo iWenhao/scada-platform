@@ -8,6 +8,11 @@ export function registerComponent(component: ComponentDefinition) {
   componentRegistry.set(component.type, component)
 }
 
+/** 注销组件（删除自定义组件时使用） */
+export function unregisterComponent(type: string): void {
+  componentRegistry.delete(type)
+}
+
 /** 批量注册组件 */
 export function registerComponents(components: ComponentDefinition[]) {
   components.forEach(registerComponent)
