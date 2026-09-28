@@ -222,23 +222,31 @@ async function deleteProject(name: string) {
 <style scoped lang="scss">
 .dashboard-container {
   min-height: 100vh;
-  background: var(--bg-primary);
-  padding: 40px;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 212, 170, 0.06), transparent),
+    var(--bg-primary);
+  padding: 48px 40px;
 }
 
 .dashboard-header {
   text-align: center;
-  margin-bottom: 60px;
-  
+  margin-bottom: 56px;
+
   h1 {
-    font-size: 36px;
-    color: var(--accent-primary);
-    margin-bottom: 8px;
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 10px;
   }
-  
+
   p {
-    font-size: 16px;
-    color: var(--text-secondary);
+    font-size: 15px;
+    color: var(--text-muted);
+    letter-spacing: 3px;
   }
 }
 
@@ -249,41 +257,84 @@ async function deleteProject(name: string) {
 
 .dashboard-card {
   cursor: pointer;
-  transition: all 0.3s;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   background: var(--bg-secondary);
-  border-color: var(--border-primary);
-  
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--accent-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent-primary), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.25s;
   }
-  
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--accent-primary);
+    border-color: var(--accent-primary);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(-2px);
+  }
+
+  :deep(.el-card__header) {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-primary);
+    background: var(--bg-tertiary);
+  }
+
+  :deep(.el-card__body) {
+    padding: 16px 20px;
+  }
+
   .card-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     color: var(--text-primary);
-    
+
+    .el-icon {
+      color: var(--accent-primary);
+      font-size: 22px;
+    }
+
     span {
-      font-size: 18px;
-      font-weight: 500;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
   }
-  
+
   p {
-    color: var(--text-secondary);
-    font-size: 14px;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
   }
 }
 
 .recent-projects {
-  margin-top: 60px;
-  
+  margin-top: 56px;
+
   h2 {
-    font-size: 20px;
+    font-size: 18px;
+    font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent-primary);
   }
 }
 
@@ -308,54 +359,5 @@ async function deleteProject(name: string) {
 
 .project-name-text {
   cursor: text;
-}
-
-.open-project-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--border-primary);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: var(--accent-primary);
-    background: var(--bg-tertiary);
-  }
-
-  .open-project-info {
-    .open-project-name {
-      font-size: 14px;
-      color: var(--text-primary);
-    }
-
-    .open-project-time {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-  }
-}
-
-:deep(.el-card__header) {
-  background: var(--bg-tertiary);
-  border-bottom-color: var(--border-primary);
-}
-
-:deep(.el-table) {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  
-  th.el-table__cell {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-bottom-color: var(--border-primary);
-  }
-  
-  td.el-table__cell {
-    border-bottom-color: var(--border-primary);
-  }
 }
 </style>
