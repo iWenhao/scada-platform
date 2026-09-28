@@ -3,10 +3,21 @@ import { ref } from 'vue'
 import { dataSourceManager } from '@/datasource/DataSourceManager'
 import type { DataUpdate } from '@/datasource/types'
 
+/** 单个历史数据点 */
+export interface HistoryPoint {
+  /** 时间戳(ms) */
+  t: number
+  /** 值 */
+  v: number
+}
+
+/** 每个设备+变量组合的环形缓冲区大小 */
+const MAX_HISTORY_PER_VARIABLE = 300
+
 export const useDeviceStore = defineStore('device', () => {
   // 设备实时数据
   const deviceData = ref<Record<string, Record<string, any>>>({})
-  
+
   // 连接状态
   const connectionStatus = ref<'connected' | 'disconnected' | 'error'>('disconnected')
 
@@ -16,6 +27,9 @@ export const useDeviceStore = defineStore('device', () => {
   // 最后更新时间
   const lastUpdateTime = ref<number>(0)
 
+  // 历史数据: { "motor_1.speed": [{t, v}, ...] }
+  const historyData = ref<Record<string, HistoryPoint[]>>({})
+
   // 注册数据更新回调（store 生命周期内仅注册一次，避免重复监听）
   dataSourceManager.onUpdate((update: DataUpdate) => {
     // 合并更新
@@ -24,6 +38,21 @@ export const useDeviceStore = defineStore('device', () => {
         deviceData.value[deviceId] = {}
       }
       Object.assign(deviceData.value[deviceId], variables)
+
+      // 采集历史数据（仅数值类型）
+      const now = Date.now()
+      for (const [varName, val] of Object.entries(variables)) {
+        if (typeof val !== 'number') continue
+        const key = `${deviceId}.${varName}`
+        if (!historyData.value[key]) {
+          historyData.value[key] = []
+        }
+        const arr = historyData.value[key]
+        arr.push({ t: now, v: val })
+        if (arr.length > MAX_HISTORY_PER_VARIABLE) {
+          arr.shift()
+        }
+      }
     }
     lastUpdateTime.value = Date.now()
   })
@@ -80,6 +109,20 @@ export const useDeviceStore = defineStore('device', () => {
   }
 
   /**
+   * 获取某个设备+变量的历史数据
+   */
+  function getHistory(deviceId: string, variable: string): HistoryPoint[] {
+    return historyData.value[`${deviceId}.${variable}`] || []
+  }
+
+  /**
+   * 清空历史数据
+   */
+  function clearHistory() {
+    historyData.value = {}
+  }
+
+  /**
    * 断开数据源
    */
   function disconnect() {
@@ -94,6 +137,7 @@ export const useDeviceStore = defineStore('device', () => {
     deviceData.value = {}
     connectionStatus.value = 'disconnected'
     availableDevices.value = []
+    historyData.value = {}
     lastUpdateTime.value = 0
   }
 
@@ -101,10 +145,13 @@ export const useDeviceStore = defineStore('device', () => {
     deviceData,
     connectionStatus,
     availableDevices,
+    historyData,
     lastUpdateTime,
     initDataSource,
     getDeviceData,
     getVariableValue,
+    getHistory,
+    clearHistory,
     suggestDeviceId,
     disconnect,
     reset,
