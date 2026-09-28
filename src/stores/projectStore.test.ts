@@ -135,6 +135,46 @@ describe('projectStore 数据源持久化', () => {
   })
 })
 
+describe('projectStore 草稿', () => {
+  let store: ReturnType<typeof useProjectStore>
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    setStorage(new MemoryStorageAdapter())
+    store = useProjectStore()
+  })
+
+  it('自动草稿应能恢复，且恢复后仍记为未保存', async () => {
+    store.setDataSource({ type: 'websocket', name: 'ws', url: 'ws://a' })
+    await store.saveDraft()
+    expect(await store.hasDraft()).toBe(true)
+
+    // 模拟改动丢失
+    store.resetProject()
+    expect(store.dataSourceConfig.type).toBe('mock')
+
+    expect(await store.restoreDraft()).toBe(true)
+    expect(store.dataSourceConfig.url).toBe('ws://a')
+    // 草稿不是正式落盘，仍需用户保存
+    expect(store.hasUnsavedChanges).toBe(true)
+    expect(store.lastSaveTime).toBeNull()
+  })
+
+  it('正式保存后草稿应被清除', async () => {
+    store.setDataSource({ type: 'websocket', name: 'ws', url: 'ws://a' })
+    await store.saveDraft()
+    expect(await store.hasDraft()).toBe(true)
+
+    await store.saveProject()
+    expect(await store.hasDraft()).toBe(false)
+  })
+
+  it('草稿不应混进正式项目列表', async () => {
+    await store.saveDraft()
+    expect(await store.getSavedProjects()).toEqual([])
+  })
+})
+
 describe('projectStore.resetProject', () => {
   let store: ReturnType<typeof useProjectStore>
 

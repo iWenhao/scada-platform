@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
+import { useProjectStore } from '@/stores/projectStore'
 
 interface HistoryState {
   elements: any[]
@@ -13,6 +14,10 @@ const currentIndex = ref(-1)
 
 // 最大历史记录数
 const maxHistory = 50
+
+// 是否已建立基线：编辑器挂载时的第一次 saveState 只是记录初始状态，
+// 不能被当成用户改动，否则一进页面就显示「未保存」
+let baselineEstablished = false
 
 // 是否可以撤销
 const canUndo = computed(() => currentIndex.value > 0)
@@ -60,6 +65,12 @@ export function useHistory() {
     } else {
       currentIndex.value++
     }
+
+    if (baselineEstablished) {
+      useProjectStore().markDirty()
+    } else {
+      baselineEstablished = true
+    }
   }
 
   /**
@@ -70,6 +81,8 @@ export function useHistory() {
 
     currentIndex.value--
     restoreState(historyStack.value[currentIndex.value])
+    // 撤销改变了内容，同样要提醒尚未保存回工程文件
+    useProjectStore().markDirty()
   }
 
   /**
@@ -80,6 +93,7 @@ export function useHistory() {
 
     currentIndex.value++
     restoreState(historyStack.value[currentIndex.value])
+    useProjectStore().markDirty()
   }
 
   /**
@@ -107,6 +121,8 @@ export function useHistory() {
   function clearHistory() {
     historyStack.value = []
     currentIndex.value = -1
+    // 下次 saveState 重新建立基线
+    baselineEstablished = false
   }
 
   return {

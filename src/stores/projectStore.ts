@@ -24,6 +24,9 @@ export const useProjectStore = defineStore('project', () => {
   // 否则保存后重开就没有数据源可用，预览只能退回 mock。
   const dataSourceConfig = ref<DataSourceConfig>({ type: 'mock', name: 'default' })
 
+  /** 草稿存储键：独立于正式工程前缀 */
+  const draftKey = (name: string) => `scada_draft_${name}`
+
   /**
    * 组装完整的工程数据（保存 / 导出共用，避免两处结构漂移）
    */
@@ -70,7 +73,10 @@ export const useProjectStore = defineStore('project', () => {
 
     const json = JSON.stringify(buildProjectData())
     await getStorage().set(`scada_project_${projectName.value}`, json)
-    
+
+    // 已正式落盘，自动草稿不再需要
+    await clearDraft()
+
     lastSaveTime.value = Date.now()
     hasUnsavedChanges.value = false
     
@@ -203,6 +209,46 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
+   * 自动保存草稿。用独立前缀，不会被工程列表误当成正式项目。
+   */
+  async function saveDraft() {
+    await getStorage().set(draftKey(projectName.value), JSON.stringify(buildProjectData()))
+  }
+
+  /**
+   * 当前工程是否存在草稿
+   */
+  async function hasDraft(): Promise<boolean> {
+    return (await getStorage().get(draftKey(projectName.value))) !== null
+  }
+
+  /**
+   * 从草稿恢复。恢复的内容尚未写回正式工程，所以仍然标记为未保存。
+   */
+  async function restoreDraft(): Promise<boolean> {
+    const json = await getStorage().get(draftKey(projectName.value))
+    if (!json) return false
+
+    try {
+      const projectData = JSON.parse(json)
+      applyProjectData(projectData)
+      lastSaveTime.value = null
+      hasUnsavedChanges.value = true
+      return true
+    } catch (e) {
+      console.error('Failed to restore draft:', e)
+      return false
+    }
+  }
+
+  /**
+   * 丢弃草稿
+   */
+  async function clearDraft() {
+    await getStorage().remove(draftKey(projectName.value))
+  }
+
+  /**
    * 设置数据源配置。改数据源属于改动工程本身，要标记脏状态。
    */
   function setDataSource(config: DataSourceConfig) {
@@ -245,6 +291,10 @@ export const useProjectStore = defineStore('project', () => {
     getSavedProjects,
     deleteProject,
     setDataSource,
+    saveDraft,
+    hasDraft,
+    restoreDraft,
+    clearDraft,
     markDirty,
     resetProject,
   }
