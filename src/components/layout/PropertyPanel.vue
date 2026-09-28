@@ -253,13 +253,21 @@
           </el-select>
         </div>
 
-        <div
-          v-for="binding in componentDef?.dataBindings || []"
-          :key="binding.variable"
-          class="binding-row"
-        >
-          <span class="binding-label">{{ binding.variable }}</span>
-          <span class="binding-value">{{ formatBindingValue(binding.variable) }}</span>
+        <div class="binding-editor">
+          <div v-for="(b, idx) in bindings" :key="idx" class="binding-row">
+            <el-input
+              v-model="b.variable"
+              size="small"
+              placeholder="变量名"
+              @change="commitBindings"
+            />
+            <span class="binding-value">{{ formatBindingValue(b.variable) }}</span>
+            <el-icon class="binding-remove" @click="removeBinding(idx)"><Delete /></el-icon>
+          </div>
+          <el-button size="small" class="binding-add" @click="addBinding">
+            <el-icon><Plus /></el-icon>
+            添加绑定
+          </el-button>
         </div>
       </div>
 
@@ -351,6 +359,9 @@ const properties = ref<Record<string, any>>({})
 const showStatusRuleDialog = ref(false)
 
 // 监听选中元素变化
+// 数据绑定编辑（本地草稿, 变更即写回元素）
+const bindings = ref<Array<{ property: string; variable: string }>>([])
+
 watch(selectedElement, (newVal) => {
   if (newVal) {
     name.value = newVal.name
@@ -360,8 +371,28 @@ watch(selectedElement, (newVal) => {
     height.value = newVal.height
     rotation.value = newVal.rotation
     properties.value = { ...newVal.properties }
+    bindings.value = JSON.parse(JSON.stringify(newVal.dataBindings || []))
   }
 }, { immediate: true })
+
+function addBinding() {
+  bindings.value.push({ property: '', variable: '' })
+}
+
+function removeBinding(idx: number) {
+  bindings.value.splice(idx, 1)
+  commitBindings()
+}
+
+function commitBindings() {
+  if (!selectedElement.value) return
+  canvasStore.updateElement(selectedElement.value.id, {
+    dataBindings: bindings.value
+      .filter(b => b.variable.trim())
+      .map(b => ({ property: b.variable.trim(), variable: b.variable.trim() })),
+  })
+  saveState()
+}
 
 function handleNameChange(val: string) {
   if (selectedElement.value) {
