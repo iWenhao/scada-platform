@@ -11,6 +11,8 @@ import {
   type Quality,
   type VariableMeta,
 } from '@/types/quality'
+import { tagKey } from '@/types/tag'
+import { useProjectStore } from './projectStore'
 import type { DataUpdate } from '@/datasource/types'
 
 /** 单个历史数据点 */
@@ -54,6 +56,26 @@ export const useDeviceStore = defineStore('device', () => {
    */
   const dataTick = ref(0)
   let clockTimer: number | null = null
+
+  /**
+   * 点位历史入库死区索引：`deviceId.variable` → deadband。
+   * 点表在 deviceStore 之后初始化不会有问题——这里是 computed，
+   * 推送回调执行时才求值。
+   */
+  const deadbandMap = computed(() => {
+    const map = new Map<string, number>()
+    try {
+      const { tagTable } = useProjectStore()
+      for (const t of tagTable) {
+        if (typeof t.deadband === 'number' && t.deadband > 0) {
+          map.set(tagKey(t), t.deadband)
+        }
+      }
+    } catch {
+      // pinia 未激活时（极端初始化顺序）忽略死区，历史照常全量记录
+    }
+    return map
+  })
 
   function ensureClock() {
     if (clockTimer !== null) return
@@ -108,12 +130,21 @@ export const useDeviceStore = defineStore('device', () => {
         variableMeta.value[key] = { t: now, q: 'good' }
 
         // 采集历史数据（仅数值类型）：内存缓冲供实时曲线，同时喂给
-        // historian 批量落盘（刷新后趋势仍可查历史区间）
+        // historian 批量落盘（刷新后趋势仍可查历史区间）。
+        // 点表设置了入库死区的点位：变化幅度小于死区时跳过记录，
+        // 慢变量不再产生大量重复点（实时值照常更新，画面不受影响）
         if (item.numeric) {
           if (!historyData.value[key]) {
             historyData.value[key] = []
           }
           const arr = historyData.value[key]
+          const deadband = deadbandMap.value.get(key) ?? 0
+          const lastPoint = arr[arr.length - 1]
+          if (deadband > 0 && lastPoint !== undefined) {
+            if (Math.abs((item.value as number) - lastPoint.v) < deadband) {
+              continue
+            }
+          }
           arr.push({ t: now, v: item.value as number })
           if (arr.length > MAX_HISTORY_PER_VARIABLE) {
             arr.shift()

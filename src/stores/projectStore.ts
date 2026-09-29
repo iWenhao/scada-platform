@@ -129,6 +129,7 @@ export const useProjectStore = defineStore('project', () => {
             min: typeof t.min === 'number' ? t.min : undefined,
             max: typeof t.max === 'number' ? t.max : undefined,
             writable: t.writable === undefined ? undefined : !!t.writable,
+            deadband: typeof t.deadband === 'number' && t.deadband > 0 ? t.deadband : undefined,
             note: t.note || undefined,
           }))
       : []

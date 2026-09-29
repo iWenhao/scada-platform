@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useDeviceStore } from './deviceStore'
+import { useProjectStore } from './projectStore'
 import { setStorage, MemoryStorageAdapter } from '@/storage'
 import { resetHistorian } from '@/history/historian'
 
@@ -93,5 +94,21 @@ describe('deviceStore 数据质量', () => {
       expect(Number.isFinite(p.v)).toBe(true)
     }
     expect(Number.isFinite(before)).toBe(true)
+  })
+
+  it('点表设置死区后，慢变化采样不入历史（实时值仍更新）', async () => {
+    const project = useProjectStore()
+    // Mock 游走单步最大 ±150，死区 5000 覆盖全部相邻变化 → 只记录首个点
+    project.setTagTable([
+      { id: 't', deviceId: 'motor_1', name: 'speed', dataType: 'number', deadband: 5000 },
+    ])
+
+    vi.advanceTimersByTime(1000) // 首个采样入库
+    expect(device.getHistory('motor_1', 'speed').length).toBe(1)
+
+    vi.advanceTimersByTime(4000) // 后续 4 个采样均在死区内，被过滤
+    expect(device.getHistory('motor_1', 'speed').length).toBe(1)
+    // 实时值照常更新
+    expect(device.getVariableValue('motor_1', 'speed')).toBeDefined()
   })
 })

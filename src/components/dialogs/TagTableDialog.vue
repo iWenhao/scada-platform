@@ -161,6 +161,10 @@
           <el-input-number v-model="editing.min" class="half" />
           <el-input-number v-model="editing.max" class="half" />
         </el-form-item>
+        <el-form-item v-if="editing.dataType === 'number'" label="入库死区">
+          <el-input-number v-model="editing.deadband" :min="0" :step="0.1" class="half" />
+          <span class="hint">变化小于该值的采样不写历史；0 = 全部记录</span>
+        </el-form-item>
         <el-form-item label="可写">
           <el-select v-model="editing.writable" clearable placeholder="未指定">
             <el-option label="允许写值" :value="true" />
@@ -194,7 +198,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/stores/projectStore'
 import { usePageStore } from '@/stores/pageStore'
 import { useDeviceStore } from '@/stores/deviceStore'
@@ -204,6 +208,8 @@ import {
   tagKey,
   createTagId,
   findTag,
+  collectConditionVariables,
+  computeImportSummary,
   WRITE_POLICY_TEXT,
   type TagDef,
   type WritePolicy,
@@ -323,6 +329,8 @@ function typeLabel(t: string) {
 
 function collectBindings(tag: TagDef) {
   const rows: Array<{ pageName: string; elementName: string; type: string }> = []
+
+  // 数据绑定（元素/图表）
   for (const page of pageStore.pages) {
     for (const el of page.elements) {
       const hit = el.dataBindings?.some(
@@ -332,7 +340,22 @@ function collectBindings(tag: TagDef) {
       )
       if (hit) {
         rows.push({ pageName: page.name, elementName: el.name, type: el.type })
+        continue
       }
+      // 状态规则引用（着色也会因该点位变化）
+      const ruleHit = el.deviceId === tag.deviceId || !el.deviceId
+        ? el.statusRules?.some(r => collectConditionVariables(r.condition).includes(tag.name))
+        : false
+      if (ruleHit) {
+        rows.push({ pageName: page.name, elementName: el.name, type: `${el.type}（状态规则）` })
+      }
+    }
+  }
+
+  // 报警定义（工程级，不属于任何画面）
+  for (const def of projectStore.alarmDefs) {
+    if (def.deviceId === tag.deviceId && def.variable === tag.name) {
+      rows.push({ pageName: '—', elementName: def.name, type: '报警定义' })
     }
   }
   return rows
@@ -418,11 +441,31 @@ function onFileChange(e: Event) {
       ElMessage.warning('未解析到有效点位（需包含 deviceId 与 name）')
       return
     }
-    const map = new Map<string, TagDef>()
-    for (const t of tags.value) map.set(tagKey(t), t)
-    for (const t of parsed) map.set(tagKey(t), t)
-    tags.value = [...map.values()]
-    ElMessage.success(`已导入 ${parsed.length} 个点位`)
+    // 差异摘要确认：让操作者知道导入会新增/覆盖多少点位，而不是默默合并
+    const summary = computeImportSummary(tags.value, parsed)
+    if (summary.added.length === 0 && summary.updated === 0) {
+      ElMessage.info('CSV 与当前点表内容一致，无需导入')
+      return
+    }
+    ElMessageBox.confirm(
+      `新增 ${summary.added.length} 个点位，更新 ${summary.updated} 个已有点位` +
+        (summary.unchanged ? `，${summary.unchanged} 个无变化` : ''),
+      '确认导入',
+      { type: 'info', confirmButtonText: '导入', cancelButtonText: '取消' },
+    )
+      .then(() => {
+        const map = new Map<string, TagDef>()
+        for (const t of tags.value) map.set(tagKey(t), t)
+        // 更新的保留原 id（绑定反查与外部引用不受影响），新增才生成新 id
+        for (const t of summary.added) map.set(tagKey(t), t)
+        for (const t of tags.value) {
+          const incoming = parsed.find(p => tagKey(p) === tagKey(t))
+          if (incoming) map.set(tagKey(t), { ...incoming, id: t.id })
+        }
+        tags.value = [...map.values()]
+        ElMessage.success(`已导入：新增 ${summary.added.length}，更新 ${summary.updated}`)
+      })
+      .catch(() => {})
   }
   reader.readAsText(file, 'utf-8')
   input.value = ''

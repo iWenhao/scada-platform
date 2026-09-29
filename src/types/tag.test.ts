@@ -7,7 +7,10 @@ import {
   findTag,
   checkWriteAllowed,
   checkUnregisteredPolicy,
+  collectConditionVariables,
+  computeImportSummary,
   type TagDef,
+  type Condition,
 } from './tag'
 
 const sample: TagDef = {
@@ -37,6 +40,7 @@ describe('tagKey / tagToCsvRow', () => {
       '0',
       '3000',
       '1',
+      '',
       '主泵',
     ])
   })
@@ -165,5 +169,63 @@ describe('checkUnregisteredPolicy', () => {
   it('已登记点位不受策略影响', () => {
     const tag: TagDef = { id: 'x', deviceId: 'd', name: 'v', dataType: 'number' }
     expect(checkUnregisteredPolicy('deny', tag)).toBeNull()
+  })
+})
+
+describe('collectConditionVariables', () => {
+  it('compare/range 提取变量名', () => {
+    expect(collectConditionVariables({ type: 'compare', variable: 'level', operator: '>', value: 1 })).toEqual(['level'])
+    expect(collectConditionVariables({ type: 'range', variable: 'temp', min: 0, max: 5 })).toEqual(['temp'])
+  })
+
+  it('递归提取 and/or 嵌套条件', () => {
+    const cond: Condition = {
+      type: 'and',
+      conditions: [
+        { type: 'compare', variable: 'a', operator: '>', value: 1 },
+        { type: 'or', conditions: [
+          { type: 'compare', variable: 'b', operator: '<', value: 2 },
+          { type: 'range', variable: 'c', min: 0, max: 1 },
+        ] },
+      ],
+    }
+    expect(collectConditionVariables(cond).sort()).toEqual(['a', 'b', 'c'])
+  })
+
+  it('expression 条件返回空（不做文本解析）', () => {
+    expect(collectConditionVariables({ type: 'expression', expr: 'a > 1' })).toEqual([])
+  })
+})
+
+describe('computeImportSummary', () => {
+  const base: TagDef = {
+    id: 'old',
+    deviceId: 'motor_1',
+    name: 'speed',
+    dataType: 'number',
+    unit: 'rpm',
+    writable: true,
+  }
+
+  it('区分新增 / 更新 / 无变化', () => {
+    const existing = [base, { ...base, id: 'old2', name: 'temp' }]
+    const incoming = [
+      base,                                      // 无变化（id 不同但字段相同）
+      { ...base, id: 'x', name: 'temp', unit: '℃' }, // 更新
+      { ...base, id: 'y', name: 'vib' },         // 新增
+    ]
+
+    const summary = computeImportSummary(existing, incoming)
+
+    expect(summary.added.map(t => t.name)).toEqual(['vib'])
+    expect(summary.updated).toBe(1)
+    expect(summary.unchanged).toBe(1)
+  })
+
+  it('全无变化时 added/updated 均为 0', () => {
+    const summary = computeImportSummary([base], [base])
+    expect(summary.added).toHaveLength(0)
+    expect(summary.updated).toBe(0)
+    expect(summary.unchanged).toBe(1)
   })
 })

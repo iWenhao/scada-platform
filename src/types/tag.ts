@@ -3,6 +3,9 @@
  * 与数据源实时值解耦——点表描述点位元数据（单位/量程/可写），
  * 实时值仍由 deviceStore 按 deviceId.variable 取数。
  */
+import type { Condition } from './scada'
+
+export type { Condition }
 export interface TagDef {
   id: string
   /** 设备 ID，如 motor_1 */
@@ -20,6 +23,12 @@ export interface TagDef {
   max?: number
   /** 是否允许写值下发 */
   writable?: boolean
+  /**
+   * 历史入库死区（数值点）：变化幅度小于该值的采样不写历史，
+   * 显著减少慢变量的存储量。0/undefined = 每个采样都记录。
+   * 实时画面不受影响（实时值始终更新）。
+   */
+  deadband?: number
   /** 备注 */
   note?: string
 }
@@ -122,6 +131,7 @@ export const TAG_CSV_HEADERS = [
   'min',
   'max',
   'writable',
+  'deadband',
   'note',
 ] as const
 
@@ -136,6 +146,7 @@ export function tagToCsvRow(tag: TagDef): string[] {
     tag.min !== undefined ? String(tag.min) : '',
     tag.max !== undefined ? String(tag.max) : '',
     tag.writable === undefined ? '' : tag.writable ? '1' : '0',
+    tag.deadband !== undefined ? String(tag.deadband) : '',
     tag.note ?? '',
   ]
 }
@@ -169,6 +180,7 @@ export function parseTagCsv(text: string): TagDef[] {
   const iMin = col(['min', '最小'])
   const iMax = col(['max', '最大'])
   const iWrite = col(['writable', 'write', '可写'])
+  const iDeadband = col(['deadband', '死区'])
   const iNote = col(['note', 'remark', '备注'])
 
   // 无表头时假定：deviceId,name,unit
@@ -200,6 +212,7 @@ export function parseTagCsv(text: string): TagDef[] {
 
     const min = pick(iMin)
     const max = pick(iMax)
+    const deadband = pick(iDeadband)
 
     out.push({
       id: createTagId(),
@@ -211,6 +224,9 @@ export function parseTagCsv(text: string): TagDef[] {
       min: min && !Number.isNaN(Number(min)) ? Number(min) : undefined,
       max: max && !Number.isNaN(Number(max)) ? Number(max) : undefined,
       writable,
+      deadband: deadband && !Number.isNaN(Number(deadband)) && Number(deadband) > 0
+        ? Number(deadband)
+        : undefined,
       note: pick(iNote) || undefined,
     })
   }
@@ -222,6 +238,56 @@ export function tagsToCsv(tags: TagDef[]): string {
   const esc = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s)
   const rows = [TAG_CSV_HEADERS.join(','), ...tags.map(t => tagToCsvRow(t).map(esc).join(','))]
   return rows.join('\n') + '\n'
+}
+
+/**
+ * 提取条件中引用的全部变量名（递归 and/or）。
+ * 绑定反查用：状态规则/报警定义引用了哪些点位。
+ * expression 条件是自由文本，无法可靠解析，跳过。
+ */
+export function collectConditionVariables(condition: Condition): string[] {
+  switch (condition.type) {
+    case 'compare':
+    case 'range':
+      return [condition.variable]
+    case 'and':
+    case 'or':
+      return condition.conditions.flatMap(c => collectConditionVariables(c))
+    default:
+      return []
+  }
+}
+
+/**
+ * 计算 CSV 导入与现有点表的差异摘要（按 deviceId.name 对齐）。
+ * id 不参与比较（导入会重新生成），内容由其余字段决定。
+ */
+export function computeImportSummary(
+  existing: TagDef[],
+  incoming: TagDef[],
+): { added: TagDef[]; updated: number; unchanged: number } {
+  const existingByKey = new Map(existing.map(t => [tagKey(t), t]))
+
+  const added: TagDef[] = []
+  let updated = 0
+  let unchanged = 0
+
+  for (const tag of incoming) {
+    const old = existingByKey.get(tagKey(tag))
+    if (!old) {
+      added.push(tag)
+      continue
+    }
+    // 比较 id 之外的所有字段
+    const { id: _oldId, ...oldFields } = old
+    const { id: _newId, ...newFields } = tag
+    if (JSON.stringify(oldFields) === JSON.stringify(newFields)) {
+      unchanged++
+    } else {
+      updated++
+    }
+  }
+  return { added, updated, unchanged }
 }
 
 /** 轻量 CSV 切分（支持引号包裹与转义） */
