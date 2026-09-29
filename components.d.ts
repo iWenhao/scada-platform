@@ -54,6 +54,7 @@ declare module 'vue' {
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     LayerPanel: typeof import('./src/components/layout/LayerPanel.vue')['default']
+    LivePointsTable: typeof import('./src/components/dialogs/LivePointsTable.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     MiniMap: typeof import('./src/components/layout/MiniMap.vue')['default']
     NotifyConfigDialog: typeof import('./src/components/dialogs/NotifyConfigDialog.vue')['default']
