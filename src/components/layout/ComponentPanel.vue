@@ -47,8 +47,28 @@
         </div>
       </template>
 
-      <!-- 自定义组件 -->
+      <!-- 自定义组件：设备模板 + 自定义图形 -->
       <template v-else>
+        <div v-if="deviceTemplates.length" class="component-group custom-group">
+          <div class="component-items">
+            <div
+              v-for="tpl in deviceTemplates"
+              :key="tpl.id"
+              class="component-item custom-card template-card"
+              draggable="true"
+              @dragstart="(e) => onTemplateDragStart(e, tpl)"
+            >
+              <div class="card-actions">
+                <el-icon title="删除" @click.stop="removeTemplate(tpl)"><Delete /></el-icon>
+              </div>
+              <div class="component-icon">
+                <el-icon :size="26"><Box /></el-icon>
+              </div>
+              <span class="component-name">{{ tpl.name }}</span>
+            </div>
+          </div>
+        </div>
+
         <div v-if="customDefs.length" class="component-group custom-group">
           <div class="component-items">
             <div
@@ -67,7 +87,10 @@
             </div>
           </div>
         </div>
-        <div v-else class="custom-empty">暂无自定义组件</div>
+
+        <div v-if="!deviceTemplates.length && !customDefs.length" class="custom-empty">
+          暂无自定义组件
+        </div>
       </template>
     </div>
 
@@ -80,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
 import { updateCustomComponent, removeCustomComponent } from '@/industrial/customLibrary'
 import { ElMessageBox, ElMessage } from 'element-plus'
@@ -96,7 +119,9 @@ import { chemicalComponents } from '@/industrial/chemical'
 import { waterComponents } from '@/industrial/water'
 import { chartComponents } from '@/industrial/chart'
 import { loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
+import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/templateLibrary'
 import { registerComponents } from '@/industrial/registry'
+import type { DeviceTemplate } from '@/types/template'
 
 // 注册内置组件（自定义从存储恢复后单独注册）
 registerComponents([
@@ -127,12 +152,24 @@ const BASIC_GROUPS: ComponentGroup[] = ['basic', 'pipeline', 'electrical', 'char
 const INDUSTRY_GROUPS: ComponentGroup[] = ['coal', 'power', 'chemical', 'water']
 
 const customDefs = ref<ComponentDefinition[]>([])
+const deviceTemplates = ref<DeviceTemplate[]>([])
 const showCustomDialog = ref(false)
 const editingDef = ref<ComponentDefinition | null>(null)
 
 onMounted(async () => {
   customDefs.value = await loadCustomComponents()
+  deviceTemplates.value = await loadDeviceTemplates()
+  window.addEventListener('scada-templates-changed', refreshTemplates)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('scada-templates-changed', refreshTemplates)
+})
+
+/** 刷新设备模板列表 */
+async function refreshTemplates() {
+  deviceTemplates.value = await loadDeviceTemplates()
+}
 
 /** 当前 Tab 下的分组（保持原有组内顺序，空组不展示） */
 const tabGroups = computed(() => {
@@ -201,4 +238,30 @@ function onDragStart(e: DragEvent, comp: ComponentDefinition) {
   e.dataTransfer!.setData('component', JSON.stringify(comp))
   e.dataTransfer!.effectAllowed = 'copy'
 }
+
+function onTemplateDragStart(e: DragEvent, tpl: DeviceTemplate) {
+  e.dataTransfer!.setData(
+    'component',
+    JSON.stringify({ kind: 'template', template: tpl }),
+  )
+  e.dataTransfer!.effectAllowed = 'copy'
+}
+
+async function removeTemplate(tpl: DeviceTemplate) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除设备模板「${tpl.name}」吗？画布上已放置的实例将保留。`,
+      '删除设备模板',
+      { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  await removeDeviceTemplate(tpl.id)
+  await refreshTemplates()
+  ElMessage.success('已删除')
+}
+
+// 编辑器内「存为模板」后轮询刷新成本高，导出刷新方法供外部调用
+defineExpose({ refreshTemplates })
 </script>

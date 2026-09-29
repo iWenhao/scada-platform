@@ -273,6 +273,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -292,6 +293,7 @@ import ContextMenu from '@/components/layout/ContextMenu.vue'
 import type { ContextMenuItem } from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import ChartElement from '@/industrial/chart/ChartElement.vue'
+import { saveDeviceTemplate, templateFromElement } from '@/industrial/templateLibrary'
 import type { ComponentInstance } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
@@ -369,10 +371,31 @@ function onElementContextMenu(element: ComponentInstance, e: any) {
   const isLocked = !!element.locked
   ctxMenuItems.value = [
     { label: '复制', icon: 'CopyDocument', shortcut: 'Ctrl+C', action: () => handleCopyFromCanvas() },
+    { label: '存为模板', icon: 'Collection', action: () => handleSaveAsTemplate(element) },
     { label: '删除', icon: 'Delete', shortcut: 'Del', danger: true, action: () => handleDeleteFromCanvas() },
     { label: isLocked ? '解锁' : '锁定', icon: 'Lock', action: () => canvasStore.updateElement(element.id, { locked: !isLocked }) },
   ]
   ctxMenuVisible.value = true
+}
+
+async function handleSaveAsTemplate(element: ComponentInstance) {
+  let name: string
+  try {
+    const result = await ElMessageBox.prompt('模板名称', '存为设备模板', {
+      inputValue: `${element.name} 模板`,
+      inputPattern: /\S+/,
+      inputErrorMessage: '名称不能为空',
+      confirmButtonText: '保存',
+      cancelButtonText: '取消',
+    })
+    name = result.value
+  } catch {
+    return
+  }
+  const body = templateFromElement(element, name)
+  const saved = await saveDeviceTemplate(body)
+  canvasStore.updateElement(element.id, { templateId: saved.id })
+  ElMessage.success(`已保存设备模板「${name}」`)
 }
 
 function handleCopyFromCanvas() {
@@ -504,6 +527,31 @@ function onDrop(e: DragEvent) {
 
   if (!pointerPosition) {
     console.warn('无法获取指针位置')
+    return
+  }
+
+  // 设备模板：带出属性/绑定/规则；普通组件走注册表默认值
+  if (data.kind === 'template' && data.template) {
+    const tpl = data.template
+    const fromTemplate: ComponentInstance = {
+      id: `el_${Date.now()}`,
+      type: tpl.baseType,
+      templateId: tpl.id,
+      deviceId: deviceStore.suggestDeviceId(tpl.baseType),
+      x: pointerPosition.x - tpl.width / 2,
+      y: pointerPosition.y - tpl.height / 2,
+      width: tpl.width,
+      height: tpl.height,
+      rotation: 0,
+      name: tpl.name,
+      layerId: layerStore.activeLayerId,
+      properties: JSON.parse(JSON.stringify(tpl.properties || {})),
+      statusRules: JSON.parse(JSON.stringify(tpl.statusRules || [])),
+      dataBindings: JSON.parse(JSON.stringify(tpl.dataBindings || [])),
+      locked: tpl.locked,
+    }
+    canvasStore.addElement(fromTemplate)
+    saveState()
     return
   }
 

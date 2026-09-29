@@ -44,6 +44,8 @@ export interface ComponentInstance {
    * 未设置表示不跳转；目标画面不存在时预览端忽略。
    */
   navigateTo?: string
+  /** 来源设备模板 ID（可选，便于「从模板更新」等扩展） */
+  templateId?: string
   properties: Record<string, any>
   statusRules: StatusRule[]
   dataBindings: DataBinding[]
