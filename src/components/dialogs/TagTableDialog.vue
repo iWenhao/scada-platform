@@ -2,9 +2,11 @@
   <el-dialog
     :model-value="modelValue"
     title="点表管理"
-    width="920px"
+    width="960px"
     @update:model-value="emit('update:modelValue', $event)"
   >
+    <el-tabs v-model="activeTab">
+      <el-tab-pane label="点表" name="tags">
     <div class="tag-toolbar">
       <el-button type="primary" size="small" @click="addTag">
         <el-icon><Plus /></el-icon>
@@ -63,6 +65,54 @@
         </template>
       </el-table-column>
     </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="实时数据" name="live">
+        <div class="live-header">
+          <el-tag :type="connTagType" size="small">{{ connText }}</el-tag>
+          <span class="hint">共 {{ livePoints.length }} 个在线点位</span>
+          <div class="spacer" />
+          <el-input
+            v-model="liveKeyword"
+            size="small"
+            placeholder="搜索设备 / 变量"
+            clearable
+            class="search"
+          />
+        </div>
+        <el-table :data="filteredLive" size="small" max-height="420" empty-text="连接数据源后此处列出实时点位">
+          <el-table-column prop="deviceId" label="设备" width="130" show-overflow-tooltip />
+          <el-table-column prop="variable" label="变量" width="130" show-overflow-tooltip />
+          <el-table-column label="当前值" width="140">
+            <template #default="{ row }">
+              <span class="live-value">{{ formatVal(row.value) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="点表" width="80">
+            <template #default="{ row }">
+              <el-tag v-if="row.tag" size="small" type="success">已登记</el-tag>
+              <el-tag v-else size="small" type="info">未登记</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="unit" label="单位" width="80">
+            <template #default="{ row }">{{ row.tag?.unit || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="可写" width="70">
+            <template #default="{ row }">
+              <template v-if="row.tag">
+                <el-tag v-if="row.tag.writable" size="small" type="success">可写</el-tag>
+                <el-tag v-else-if="row.tag.writable === false" size="small" type="danger">只读</el-tag>
+                <span v-else>-</span>
+              </template>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="description" label="描述" min-width="120" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.tag?.description || '-' }}</template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+    </el-tabs>
 
     <el-dialog
       v-model="editVisible"
@@ -144,6 +194,7 @@ import {
   tagsToCsv,
   tagKey,
   createTagId,
+  findTag,
   type TagDef,
 } from '@/types/tag'
 
@@ -156,6 +207,8 @@ const deviceStore = useDeviceStore()
 
 const tags = ref<TagDef[]>([])
 const keyword = ref('')
+const liveKeyword = ref('')
+const activeTab = ref<'tags' | 'live'>('tags')
 const saving = ref(false)
 
 const editVisible = ref(false)
@@ -177,6 +230,66 @@ const filtered = computed(() => {
       (t.description || '').toLowerCase().includes(kw),
   )
 })
+
+/** 实时点位：数据源已推送的所有设备.变量 + 点表元数据 */
+const livePoints = computed(() => {
+  const rows: Array<{
+    deviceId: string
+    variable: string
+    value: unknown
+    tag: TagDef | null
+    unit: string
+    description: string
+  }> = []
+  const data = deviceStore.deviceData as Record<string, Record<string, unknown>>
+  for (const [deviceId, vars] of Object.entries(data)) {
+    for (const [variable, value] of Object.entries(vars || {})) {
+      const tag = findTag(tags.value, deviceId, variable)
+      rows.push({
+        deviceId,
+        variable,
+        value,
+        tag,
+        unit: tag?.unit || '',
+        description: tag?.description || '',
+      })
+    }
+  }
+  return rows
+})
+
+const filteredLive = computed(() => {
+  const kw = liveKeyword.value.trim().toLowerCase()
+  if (!kw) return livePoints.value
+  return livePoints.value.filter(
+    r =>
+      r.deviceId.toLowerCase().includes(kw) ||
+      r.variable.toLowerCase().includes(kw) ||
+      (r.description || '').toLowerCase().includes(kw),
+  )
+})
+
+const connTagType = computed(() => {
+  switch (deviceStore.connectionStatus) {
+    case 'connected': return 'success'
+    case 'error': return 'danger'
+    default: return 'info'
+  }
+})
+
+const connText = computed(() => {
+  switch (deviceStore.connectionStatus) {
+    case 'connected': return '已连接'
+    case 'error': return '连接错误'
+    default: return '未连接'
+  }
+})
+
+function formatVal(v: unknown): string {
+  if (v === undefined || v === null) return '-'
+  if (typeof v === 'number') return String(Math.round(v * 100) / 100)
+  return String(v)
+}
 
 function typeLabel(t: string) {
   return t === 'boolean' ? '布尔' : t === 'string' ? '字符串' : '数值'
@@ -335,5 +448,30 @@ function handleSave() {
 .half {
   width: 45%;
   margin-right: 4%;
+}
+
+.live-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .search {
+    width: 220px;
+  }
+}
+
+.live-value {
+  font-family: monospace;
+  color: var(--accent-primary);
 }
 </style>
