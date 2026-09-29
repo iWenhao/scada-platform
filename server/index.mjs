@@ -41,32 +41,55 @@ import {
   appendNotifyLog,
 } from './notify.mjs'
 
+// ---- 路径与环境 ----
+
+/** 当前文件所在目录（ESM 下用 fileURLToPath 还原 __dirname） */
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+/** 数据目录：可用 DATA_DIR 覆盖；默认 <server>/data（容器部署时挂卷） */
 const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : path.join(__dirname, 'data')
+/** 时序历史分片目录 */
 const HISTORY_DIR = path.join(DATA_DIR, 'history')
+/** 写值/系统审计日志（JSONL） */
 const AUDIT_FILE = path.join(DATA_DIR, '_audit.jsonl')
+
 const PORT = Number(process.env.PORT || 5174)
+/** 单次请求体上限（字节），超出返回 413 */
 const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES || 20 * 1024 * 1024)
+/** 允许的跨域来源，逗号分隔；默认 *（仅建议内网） */
 const CORS_ORIGIN = (process.env.CORS_ORIGIN || '*').trim()
+/** 可选服务主密钥：持有者拥有全部权限，用于探针/CI */
 const AUTH_TOKEN = (process.env.AUTH_TOKEN || '').trim()
+/** 历史数据保留天数，超期分片每日清理 */
 const RETENTION_DAYS = Number(process.env.HISTORY_RETENTION_DAYS || 30)
+/** 审计内存/接口返回条数上限 */
 const AUDIT_MAX = 500
 
 const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
 const ALLOWED_HEADERS = 'content-type, authorization'
 
+/** 账号/会话服务 */
 const auth = createAuthStore(DATA_DIR)
-/** 通知节流：channelId -> last sent at */
+/** 通知节流：channelId -> 上次发送时间戳 */
 const notifyLastSent = new Map()
 
-// 键名 -> 安全文件名(URL 编码, 防路径穿越)
+// ---- 键值存储辅助 ----
+
+/**
+ * 键名 → 安全文件名。
+ * encodeURIComponent 防止 key 里的 `../` 造成路径穿越。
+ */
 function fileFor(key) {
   return path.join(DATA_DIR, encodeURIComponent(key) + '.json')
 }
 
 // ---- 时序历史（按天分片 JSONL）----
+// 每个 key 一天一个文件：`<key>.<YYYYMMDD>.jsonl`，每行 {t,v}。
+// 按天分片的好处：「最近几小时」这类查询只触碰少量小文件。
+
+/** 时间戳 → `YYYYMMDD` 分片名 */
 function dayString(ms) {
   const d = new Date(ms)
   const mm = String(d.getMonth() + 1).padStart(2, '0')
@@ -74,14 +97,20 @@ function dayString(ms) {
   return `${d.getFullYear()}${mm}${dd}`
 }
 
+/** 某 key 某天的分片文件路径 */
 function shardFile(key, day) {
   return path.join(HISTORY_DIR, `${encodeURIComponent(key)}.${day}.jsonl`)
 }
 
+/** 判断目录项是否属于指定 key 的历史分片 */
 function isHistoryShard(fileName, encodedKey) {
   return fileName.startsWith(encodedKey + '.') && fileName.endsWith('.jsonl')
 }
 
+/**
+ * 按天分组追加采样。非法点（t/v 非有限数）跳过。
+ * @returns {Promise<number>} 实际写入的点数
+ */
 async function appendSamples(key, samples) {
   const byDay = new Map()
   let count = 0
@@ -100,6 +129,11 @@ async function appendSamples(key, samples) {
   return count
 }
 
+/**
+ * 查询 [from, to] 区间采样。超过 maxPoints 时均匀抽稀（保留首尾）。
+ * 只读可能相交的分片，避免大范围查询扫全目录。
+ * @returns {Promise<Array<{t: number, v: number}>>}
+ */
 async function querySamples(key, from, to, maxPoints) {
   const encodedKey = encodeURIComponent(key)
   let files = []
@@ -156,6 +190,10 @@ async function querySamples(key, from, to, maxPoints) {
   return points
 }
 
+/**
+ * 清理超过 RETENTION_DAYS 的历史分片（文件名里的日期 < 过期日）。
+ * @returns {Promise<number>} 删除的文件数
+ */
 async function cleanupExpiredShards() {
   if (RETENTION_DAYS <= 0) return 0
   let files
@@ -177,11 +215,19 @@ async function cleanupExpiredShards() {
 }
 
 // ---- 审计（服务端留痕，操作者从会话取）----
+/**
+ * 追加一条审计记录到 _audit.jsonl。
+ * 操作者由调用方传入（路由层从会话取，防止前端伪造）。
+ */
 async function appendAudit(entry) {
   await fs.mkdir(DATA_DIR, { recursive: true })
   await fs.appendFile(AUDIT_FILE, JSON.stringify(entry) + '\n', 'utf8')
 }
 
+/**
+ * 读取最近 limit 条审计（新→旧）。
+ * 坏行跳过，文件不存在返回空数组。
+ */
 async function readAudit(limit = 100) {
   try {
     const text = await fs.readFile(AUDIT_FILE, 'utf8')
@@ -200,6 +246,10 @@ async function readAudit(limit = 100) {
   }
 }
 
+/**
+ * 构造 CORS 响应头。
+ * CORS_ORIGIN=* 时放行任意来源；否则只回显白名单内的 Origin。
+ */
 function corsHeaders(req) {
   const requestOrigin = req.headers.origin
   if (CORS_ORIGIN === '*') {
@@ -220,6 +270,7 @@ function corsHeaders(req) {
   }
 }
 
+/** 发送 JSON 响应（自动附带 CORS 头） */
 function sendJson(res, req, status, body) {
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
@@ -228,6 +279,7 @@ function sendJson(res, req, status, body) {
   res.end(JSON.stringify(body))
 }
 
+/** 从 Authorization 头取出 Bearer token（无则空串） */
 function bearer(req) {
   const h = req.headers.authorization || ''
   return h.startsWith('Bearer ') ? h.slice(7).trim() : ''
@@ -247,12 +299,21 @@ function authenticate(req) {
   return user ? { user, master: false } : null
 }
 
+/**
+ * 角色门禁。master（服务主密钥）视为最高权限。
+ * @param {{ user: object|null, master: boolean } | null} authn authenticate() 的返回值
+ * @param {string} minRole 最低角色
+ */
 function requireRole(authn, minRole) {
   if (!authn) return false
   if (authn.master) return true
   return roleAtLeast(authn.user.role, minRole)
 }
 
+/**
+ * 读取请求体为字符串；超过 limit 抛 status=413。
+ * @param {number} limit 字节上限
+ */
 async function readBody(req, limit) {
   let size = 0
   const chunks = []
@@ -268,7 +329,10 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
+// ---- HTTP 路由 ----
+// 路由约定：health/login 公开；其余需 Bearer 会话或 AUTH_TOKEN。
 const server = createServer(async (req, res) => {
+  // CORS 预检：不鉴权，直接放行
   if (req.method === 'OPTIONS') {
     res.writeHead(204, corsHeaders(req))
     res.end()
@@ -278,7 +342,7 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`)
 
   try {
-    // 公开接口
+    // ---------- 公开接口 ----------
     if (url.pathname === '/api/health') {
       sendJson(res, req, 200, { ok: true })
       return
@@ -300,12 +364,14 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    // 以下均需鉴权
+    // ---------- 以下均需鉴权 ----------
     const authn = authenticate(req)
     if (!authn) {
       sendJson(res, req, 401, { error: 'unauthorized' })
       return
     }
+
+    // 会话：注销 / 当前用户 / 自助改口令
 
     if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
       await auth.logout(bearer(req))
@@ -339,7 +405,7 @@ const server = createServer(async (req, res) => {
       return sendJson(res, req, result.ok ? 200 : 400, result)
     }
 
-    // 用户管理：仅 admin（或主密钥）
+    // ---------- 用户管理（admin）----------
     if (url.pathname === '/api/auth/users') {
       if (!requireRole(authn, 'admin')) {
         return sendJson(res, req, 403, { error: 'forbidden' })
@@ -368,6 +434,7 @@ const server = createServer(async (req, res) => {
       }
     }
 
+    // ---------- 通知通道配置 / 测试 / 发送 ----------
     // 通知通道配置（密钥只存服务端）：读改需 engineer+；测试发送也需 engineer+
     if (url.pathname === '/api/notify/channels') {
       if (!requireRole(authn, 'engineer')) {
@@ -448,6 +515,7 @@ const server = createServer(async (req, res) => {
       return sendJson(res, req, 200, { ok: true, results })
     }
 
+    // ---------- 写值/系统审计 ----------
     // 审计
     if (url.pathname === '/api/audit') {
       if (req.method === 'POST') {
@@ -481,7 +549,7 @@ const server = createServer(async (req, res) => {
       }
     }
 
-    // 键值存储：读任意登录用户；写需 engineer+
+    // ---------- 键值存储（读任意登录用户，写 engineer+）----------
     if ((url.pathname === '/api/keys' || url.pathname === '/api/storage/keys') && req.method === 'GET') {
       await fs.mkdir(DATA_DIR, { recursive: true })
       const files = await fs.readdir(DATA_DIR)
@@ -528,7 +596,7 @@ const server = createServer(async (req, res) => {
       return
     }
 
-    // 历史：上报需 operator+；查询任意登录用户
+    // ---------- 时序历史（写 operator+，读任意登录）----------
     if (url.pathname === '/api/history/write' && req.method === 'POST') {
       if (!requireRole(authn, 'operator')) {
         return sendJson(res, req, 403, { error: 'forbidden' })

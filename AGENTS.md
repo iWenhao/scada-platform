@@ -86,6 +86,7 @@ pnpm lint               # ESLint
 - TypeScript 严格模式开启 `noUnusedLocals/noUnusedParameters`：未使用的变量/参数会挂构建，事件参数不用时改名 `_e`。
 - Vue SFC 中 Element Plus 组件与图标（`@element-plus/icons-vue` 全局注册于 main.ts）无需手动导入。
 - 注释用中文，说明"为什么"而非"做了什么"。
+- **凡是涉及服务端代码（`server/**`）的改动都必须加上注释**：新增/修改的函数、配置项、路由、数据文件格式要有中文说明（模块职责、接口约定、安全/兼容注意点），风格对齐现有 `server/auth.mjs`、`server/notify.mjs`、`server/index.mjs`。
 
 ## 测试
 

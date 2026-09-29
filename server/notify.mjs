@@ -1,5 +1,13 @@
-// 报警通知通道：Webhook / 企业微信 / 钉钉 / 邮件(SMTP) / 短信(HTTP)
-// 配置存 DATA_DIR/_notify.json，发送在此进程执行，密钥不进前端。
+/**
+ * 报警通知通道模块（零依赖）
+ *
+ * 支持五类通道：Webhook / 企业微信机器人 / 钉钉机器人 / 邮件 SMTP / 短信 HTTP 网关。
+ * 配置与发送均在服务端：密钥不进前端，浏览器只提交「报警事件」。
+ *
+ * 数据文件（DATA_DIR 下）：
+ *   _notify.json       通道配置与节流间隔
+ *   _notify_log.jsonl  发送记录（成功/失败/节流，保留最近 500 条）
+ */
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import net from 'node:net'
@@ -8,12 +16,15 @@ import { createHmac } from 'node:crypto'
 
 const NOTIFY_FILE_NAME = '_notify.json'
 const NOTIFY_LOG_FILE_NAME = '_notify_log.jsonl'
+/** 发送记录条数上限：超出后裁掉最旧的 */
 const NOTIFY_LOG_MAX = 500
 
+/** 通道配置文件完整路径 */
 export function notifyFilePath(dataDir) {
   return path.join(dataDir, NOTIFY_FILE_NAME)
 }
 
+/** 发送记录文件完整路径（JSONL，每行一条） */
 export function notifyLogPath(dataDir) {
   return path.join(dataDir, NOTIFY_LOG_FILE_NAME)
 }
@@ -65,6 +76,7 @@ export async function readNotifyLog(dataDir, limit = 100) {
   }
 }
 
+/** 清空发送记录（保留文件本身） */
 export async function clearNotifyLog(dataDir) {
   await fs.mkdir(dataDir, { recursive: true })
   await fs.writeFile(notifyLogPath(dataDir), '', 'utf8')
@@ -75,6 +87,10 @@ export function renderTemplate(tpl, vars) {
   return String(tpl || '').replace(/\{\{(\w+)\}\}/g, (_, k) => String(vars[k] ?? ''))
 }
 
+/**
+ * 读取通知配置。文件不存在或损坏时返回空配置（不抛错，便于首次启动）。
+ * @returns {Promise<{ channels: Array, minIntervalMs: number }>}
+ */
 export async function loadNotifyConfig(dataDir) {
   try {
     const raw = await fs.readFile(notifyFilePath(dataDir), 'utf8')
@@ -88,6 +104,10 @@ export async function loadNotifyConfig(dataDir) {
   }
 }
 
+/**
+ * 覆盖保存通知配置。minIntervalMs 非法时回落 60 秒。
+ * @returns {Promise<{ channels: Array, minIntervalMs: number }>} 落盘后的内容
+ */
 export async function saveNotifyConfig(dataDir, config) {
   await fs.mkdir(dataDir, { recursive: true })
   const body = {
@@ -103,11 +123,19 @@ export function channelId(name, type) {
   return `nc_${type}_${String(name || 'ch').replace(/\W+/g, '')}_${Math.random().toString(36).slice(2, 6)}`
 }
 
+/**
+ * 拼装企微/钉钉共用的 Markdown 正文。
+ * 级别映射：critical → 报警，其余 → 预警。
+ */
 function defaultBody(channel, event) {
   const text = `【${event.level === 'critical' ? '报警' : '预警'}】${event.title}\n${event.message}\n时间: ${event.timeText}`
   return text
 }
 
+/**
+ * Webhook 通道：按配置的 URL/Method/Headers/Body 模板发 HTTP。
+ * bodyTemplate 留空时发送默认 JSON（title/message/level/time/source）。
+ */
 async function sendWebhook(channel, event) {
   const url = channel.config?.url
   if (!url) return { ok: false, error: 'webhook url 为空' }
@@ -365,6 +393,9 @@ function smtpSend({ host, port, secure, user, pass, from, to, subject, text }) {
   })
 }
 
+/**
+ * 邮件通道：使用 smtpSend 发信，主题/正文支持 {{title}} 等模板变量。
+ */
 async function sendEmail(channel, event) {
   const c = channel.config || {}
   return smtpSend({
@@ -424,6 +455,10 @@ async function sendSms(channel, event) {
   return { ok: true }
 }
 
+/**
+ * 按通道类型分发到具体发送器。
+ * @returns {Promise<{ ok: boolean, error?: string }>} ok=false 时带失败原因
+ */
 export async function sendToChannel(channel, event) {
   try {
     switch (channel.type) {
@@ -445,6 +480,10 @@ export async function sendToChannel(channel, event) {
   }
 }
 
+/**
+ * 判断某通道是否应当为该事件外发。
+ * 过滤维度：启用开关、报警级别（levels）、触发时机（notifyOn: active/recover）。
+ */
 function shouldNotify(channel, event) {
   if (channel.enabled === false) return false
   const levels = channel.levels?.length ? channel.levels : ['warning', 'critical']
