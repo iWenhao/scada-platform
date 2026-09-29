@@ -198,7 +198,9 @@
         <span class="user-chip">
           <ToolIcon name="user" />
           {{ authStore.displayName }}
-          <el-tag size="small" :type="roleTag">{{ roleLabel }}</el-tag>
+          <el-tag v-if="roleLabel && roleLabel !== authStore.displayName" size="small" :type="roleTag">
+            {{ roleLabel }}
+          </el-tag>
         </span>
         <template #dropdown>
           <el-dropdown-menu>

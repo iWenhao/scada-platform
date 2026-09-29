@@ -27,7 +27,9 @@
         <span class="user-chip">
           <el-icon><UserFilled /></el-icon>
           {{ displayName }}
-          <el-tag size="small" :type="roleTag">{{ roleLabel }}</el-tag>
+          <el-tag v-if="roleLabel && roleLabel !== displayName" size="small" :type="roleTag">
+            {{ roleLabel }}
+          </el-tag>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
