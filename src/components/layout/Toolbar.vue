@@ -132,56 +132,8 @@
       <span class="zoom-level">{{ Math.round(canvasStore.zoom * 100) }}%</span>
     </div>
 
-    <!-- 右侧操作 -->
+    <!-- 右侧：画布/文件/预览 + 账号（系统与项目配置在首页） -->
     <div class="toolbar-right">
-      <el-badge :value="unackedCount" :hidden="!unackedCount" class="alarm-badge">
-        <el-popover placement="bottom" :width="360" trigger="click">
-          <template #reference>
-            <el-button size="small" circle :type="activeCount ? 'danger' : 'default'" title="报警列表">
-              <el-icon><Bell /></el-icon>
-            </el-button>
-          </template>
-          <AlarmPanel />
-        </el-popover>
-      </el-badge>
-
-      <el-tooltip content="报警配置" placement="bottom">
-        <el-button size="small" circle title="报警配置" @click="showAlarmConfig = true">
-          <el-icon><AlarmClock /></el-icon>
-        </el-button>
-      </el-tooltip>
-
-      <el-tooltip content="点表管理" placement="bottom">
-        <el-button size="small" circle title="点表管理" @click="showTagTable = true">
-          <el-icon><Memo /></el-icon>
-        </el-button>
-      </el-tooltip>
-
-      <el-tooltip content="通知通道" placement="bottom">
-        <el-button size="small" circle title="通知通道" @click="showNotifyConfig = true">
-          <el-icon><Promotion /></el-icon>
-        </el-button>
-      </el-tooltip>
-
-      <el-tooltip v-if="authStore.canManageUsers" content="用户管理" placement="bottom">
-        <el-button size="small" circle title="用户管理" @click="showUserManage = true">
-          <el-icon><User /></el-icon>
-        </el-button>
-      </el-tooltip>
-
-      <el-dropdown @command="handleUserCommand">
-        <span class="user-chip">
-          <el-icon><UserFilled /></el-icon>
-          {{ authStore.displayName }}
-          <el-tag size="small" :type="roleTag">{{ roleLabel }}</el-tag>
-        </span>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-
       <el-button-group>
         <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
           <el-button @click="uiStore.toggleTheme()">
@@ -194,16 +146,12 @@
 
         <el-tooltip content="画布配置" placement="bottom">
           <el-button @click="showCanvasConfig = true">
-            <el-icon><Setting /></el-icon>
-          </el-button>
-        </el-tooltip>
-
-        <el-tooltip content="数据源配置" placement="bottom">
-          <el-button @click="showDataSource = true">
-            <el-icon><DataLine /></el-icon>
+            <el-icon><Crop /></el-icon>
           </el-button>
         </el-tooltip>
       </el-button-group>
+
+      <el-divider direction="vertical" />
 
       <el-divider direction="vertical" />
 
@@ -241,14 +189,26 @@
           预览
         </el-button>
       </el-tooltip>
+
+      <el-dropdown @command="handleUserCommand">
+        <span class="user-chip">
+          <el-icon><UserFilled /></el-icon>
+          {{ authStore.displayName }}
+          <el-tag size="small" :type="roleTag">{{ roleLabel }}</el-tag>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item v-if="authStore.canManageUsers" command="users">
+              用户管理
+            </el-dropdown-item>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
 
     <!-- 对话框 -->
     <CanvasConfigDialog v-model="showCanvasConfig" />
-    <DataSourceDialog v-model="showDataSource" />
-    <AlarmConfigDialog v-model="showAlarmConfig" />
-    <TagTableDialog v-model="showTagTable" />
-    <NotifyConfigDialog v-model="showNotifyConfig" />
     <UserManageDialog v-model="showUserManage" />
   </div>
 </template>
@@ -259,15 +219,9 @@ import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useUiStore } from '@/stores/uiStore'
-import { useAlarmStore } from '@/stores/alarmStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
-import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
-import AlarmConfigDialog from '@/components/dialogs/AlarmConfigDialog.vue'
-import TagTableDialog from '@/components/dialogs/TagTableDialog.vue'
-import NotifyConfigDialog from '@/components/dialogs/NotifyConfigDialog.vue'
 import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
-import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import { useEditClipboard } from './toolbar/useEditClipboard'
 import { useProjectActions } from './toolbar/useProjectActions'
 import { useToolbarShortcuts } from './toolbar/useToolbarShortcuts'
@@ -278,16 +232,11 @@ const canvasStore = useCanvasStore()
 const connectionStore = useConnectionStore()
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
-const alarmStore = useAlarmStore()
 const authStore = useAuthStore()
 
 const { canUndo, canRedo, undo, redo, saveState } = useHistory()
 
 const showCanvasConfig = ref(false)
-const showDataSource = ref(false)
-const showAlarmConfig = ref(false)
-const showTagTable = ref(false)
-const showNotifyConfig = ref(false)
 const showUserManage = ref(false)
 
 const roleLabel = computed(() =>
@@ -303,15 +252,13 @@ const roleTag = computed(() => {
 })
 
 async function handleUserCommand(cmd: string) {
-  if (cmd === 'logout') {
+  if (cmd === 'users') {
+    showUserManage.value = true
+  } else if (cmd === 'logout') {
     await authStore.logout()
     window.location.href = '/login'
   }
 }
-
-// 报警计数从 store 读取：报警面板随 popover 关闭而销毁，计数不能依赖组件存活
-const activeCount = computed(() => alarmStore.activeCount)
-const unackedCount = computed(() => alarmStore.unackedCount)
 
 const { handleCopy, handlePaste, handleDelete } = useEditClipboard()
 const {

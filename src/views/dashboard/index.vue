@@ -1,8 +1,44 @@
 <template>
   <div class="dashboard-container">
     <div class="dashboard-header">
-      <h1>SCADA Platform</h1>
-      <p>工业组态可视化编辑平台</p>
+      <div class="header-top">
+        <div class="header-brand">
+          <h1>SCADA Platform</h1>
+          <p>工业组态可视化编辑平台</p>
+        </div>
+        <div class="header-actions">
+          <el-dropdown @command="handleSystemCommand">
+            <el-button>
+              <el-icon><Tools /></el-icon>
+              系统设置
+              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="notify">通知通道</el-dropdown-item>
+                <el-dropdown-item v-if="authStore.canManageUsers" command="users">
+                  用户管理
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-dropdown @command="handleUserCommand">
+            <span class="user-chip">
+              <el-icon><UserFilled /></el-icon>
+              {{ authStore.displayName }}
+              <el-tag size="small" :type="roleTag">{{ roleLabel }}</el-tag>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item v-if="authStore.canManageUsers" command="users">
+                  用户管理
+                </el-dropdown-item>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </div>
     </div>
     
     <div class="dashboard-content">
@@ -64,15 +100,37 @@
             </template>
           </el-table-column>
           <el-table-column prop="lastModified" label="最后修改" width="200" />
-          <el-table-column label="操作" width="200">
+          <el-table-column label="操作" width="280">
             <template #default="{ row }">
               <el-button size="small" @click="loadProject(row.name)">打开</el-button>
+              <el-dropdown @command="(cmd: string) => openProjectConfig(row.name, cmd)">
+                <el-button size="small">
+                  配置
+                  <el-icon><ArrowDown /></el-icon>
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="datasource">数据源</el-dropdown-item>
+                    <el-dropdown-item command="alarm">报警</el-dropdown-item>
+                    <el-dropdown-item command="tags">点表</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
               <el-button size="small" type="danger" @click="deleteProject(row.name)">删除</el-button>
             </template>
           </el-table-column>
         </el-table>
       </div>
     </div>
+
+    <!-- 系统设置 -->
+    <NotifyConfigDialog v-model="showNotifyConfig" />
+    <UserManageDialog v-model="showUserManage" />
+
+    <!-- 项目配置（先加载工程到 store，再开对应对话框） -->
+    <DataSourceDialog v-model="showDataSource" />
+    <AlarmConfigDialog v-model="showAlarmConfig" />
+    <TagTableDialog v-model="showTagTable" />
 
     <el-dialog v-model="showOpenDialog" title="打开项目" width="420px">
       <div class="open-project-list">
@@ -94,17 +152,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
+import { useAuthStore } from '@/stores/authStore'
 import { getStorage } from '@/storage'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { ROLE_LABELS } from '@/types/auth'
+import NotifyConfigDialog from '@/components/dialogs/NotifyConfigDialog.vue'
+import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
+import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
+import AlarmConfigDialog from '@/components/dialogs/AlarmConfigDialog.vue'
+import TagTableDialog from '@/components/dialogs/TagTableDialog.vue'
 
 const router = useRouter()
 const projectStore = useProjectStore()
+const authStore = useAuthStore()
 
 const recentProjects = ref<Array<{ name: string; lastModified: string }>>([])
 const showOpenDialog = ref(false)
+
+const showNotifyConfig = ref(false)
+const showUserManage = ref(false)
+const showDataSource = ref(false)
+const showAlarmConfig = ref(false)
+const showTagTable = ref(false)
+
+const roleLabel = computed(() =>
+  authStore.role ? ROLE_LABELS[authStore.role] : '',
+)
+const roleTag = computed(() => {
+  switch (authStore.role) {
+    case 'admin': return 'danger'
+    case 'engineer': return 'warning'
+    case 'operator': return 'success'
+    default: return 'info'
+  }
+})
+
+function handleSystemCommand(cmd: string) {
+  if (cmd === 'notify') showNotifyConfig.value = true
+  else if (cmd === 'users') showUserManage.value = true
+}
+
+async function handleUserCommand(cmd: string) {
+  if (cmd === 'users') {
+    showUserManage.value = true
+  } else if (cmd === 'logout') {
+    await authStore.logout()
+    window.location.href = '/login'
+  }
+}
+
+/** 从首页配置指定项目：载入工程后打开对应对话框，不进入画布 */
+async function openProjectConfig(name: string, kind: string) {
+  if (!(await projectStore.loadProject(name))) {
+    ElMessage.error('项目加载失败')
+    return
+  }
+  if (kind === 'datasource') showDataSource.value = true
+  else if (kind === 'alarm') showAlarmConfig.value = true
+  else if (kind === 'tags') showTagTable.value = true
+}
 
 // 双击重命名：正在编辑的项目名与输入值
 const editingName = ref<string | null>(null)
@@ -232,6 +341,26 @@ async function deleteProject(name: string) {
   text-align: center;
   margin-bottom: 56px;
 
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    text-align: left;
+  }
+
+  .header-brand {
+    flex: 1;
+    text-align: center;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 8px;
+  }
+
   h1 {
     font-size: 40px;
     font-weight: 700;
@@ -322,6 +451,22 @@ async function deleteProject(name: string) {
     color: var(--text-muted);
     font-size: 13px;
     line-height: 1.6;
+  }
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
   }
 }
 
