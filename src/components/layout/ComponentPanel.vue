@@ -30,11 +30,9 @@
       </div>
     </div>
 
-    <!-- 自定义组件分组 -->
-    <div class="component-group custom-group">
-      <div class="group-title">自定义组件</div>
-
-      <div v-if="customDefs.length" class="component-items">
+    <!-- 自定义组件：有内容才展示，不显示分组标题/空态文案 -->
+    <div v-if="customDefs.length" class="component-group custom-group">
+      <div class="component-items">
         <div
           v-for="comp in customDefs"
           :key="comp.type"
@@ -50,7 +48,6 @@
           <span class="component-name">{{ comp.name }}</span>
         </div>
       </div>
-      <div v-else class="custom-empty">点击 + 创建自定义组件</div>
     </div>
 
     <CustomComponentDialog
