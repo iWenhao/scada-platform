@@ -13,14 +13,6 @@ export const ValveDefinition: ComponentDefinition = {
       <path d="M42.5 13 H57.5"/>
       <circle cx="50" cy="50" r="3.2" fill="currentColor" stroke="none" opacity="0.85"/>
     </g>
-  </svg>`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
-      <polygon points="15,25 50,50 15,75" />
-      <polygon points="85,25 50,50 85,75" />
-      <line x1="50" y1="50" x2="50" y2="15" />
-      <circle cx="50" cy="12" r="8" />
-      <line x1="42" y1="12" x2="58" y2="12" />
-    </g>
   </svg>`,
   defaultWidth: 60,
   defaultHeight: 90,
@@ -96,16 +88,6 @@ export const PumpDefinition: ComponentDefinition = {
       <path d="M47 27 L52 21 L57 27"/>
       <circle cx="52" cy="52" r="3" fill="currentColor" stroke="none"/>
     </g>
-  </svg>`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
-      <circle cx="50" cy="50" r="30" />
-      <path d="M 50,50 L 35,35 Q 50,30 65,35 L 50,50" />
-      <path d="M 50,50 L 35,65 Q 50,70 65,65 L 50,50" />
-      <line x1="20" y1="50" x2="50" y2="50" />
-      <polygon points="15,45 20,50 15,55" />
-      <line x1="50" y1="50" x2="50" y2="20" />
-      <polygon points="45,15 50,20 55,15" />
-    </g>
   </svg>`,
   defaultWidth: 80,
   defaultHeight: 80,
@@ -166,16 +148,6 @@ export const TankDefinition: ComponentDefinition = {
       <path d="M24 58 H76" stroke-dasharray="4 3" opacity="0.45"/>
       <path d="M50 81 V92"/>
       <rect x="44" y="92" width="12" height="5" rx="1.5" fill="currentColor" fill-opacity="0.2"/>
-    </g>
-  </svg>`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
-      <ellipse cx="50" cy="25" rx="30" ry="10" />
-      <line x1="20" y1="25" x2="20" y2="75" />
-      <line x1="80" y1="25" x2="80" y2="75" />
-      <ellipse cx="50" cy="75" rx="30" ry="10" />
-      <line x1="25" y1="60" x2="75" y2="60" stroke-dasharray="5,3" opacity="0.5" />
-      <line x1="50" y1="85" x2="50" y2="95" />
-      <rect x="45" y="95" width="10" height="5" />
     </g>
   </svg>`,
   defaultWidth: 80,
