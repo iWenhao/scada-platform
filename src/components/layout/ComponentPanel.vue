@@ -10,6 +10,8 @@
     </div>
 
     <div class="panel-tabs" role="tablist">
+      <!-- 滑动指示条：横向流动切换感 -->
+      <div class="tab-indicator" :style="indicatorStyle" />
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -149,6 +151,16 @@ const tabs: Array<{ key: TabKey; label: string }> = [
 ]
 
 const activeTab = ref<TabKey>('basic')
+
+/** 横向滑动指示条位置：三等分，用 translateX 左右流动 */
+const indicatorStyle = computed(() => {
+  const idx = tabs.findIndex(t => t.key === activeTab.value)
+  const n = tabs.length || 1
+  return {
+    width: `calc((100% - 12px) / ${n})`,
+    transform: `translateX(calc(100% * ${Math.max(0, idx)} + 6px))`,
+  }
+})
 
 /** 基础 Tab 覆盖的注册分组 */
 const BASIC_GROUPS: ComponentGroup[] = ['basic', 'pipeline', 'electrical', 'chart']
