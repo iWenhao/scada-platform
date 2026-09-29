@@ -76,6 +76,7 @@ import { coalComponents } from '@/industrial/coal'
 import { powerComponents } from '@/industrial/power'
 import { chemicalComponents } from '@/industrial/chemical'
 import { waterComponents } from '@/industrial/water'
+import { chartComponents } from '@/industrial/chart'
 import { loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
 import { registerComponents } from '@/industrial/registry'
 
@@ -88,6 +89,7 @@ registerComponents([
   ...powerComponents,
   ...chemicalComponents,
   ...waterComponents,
+  ...chartComponents,
 ])
 const customDefs = ref<ComponentDefinition[]>([])
 const showCustomDialog = ref(false)
@@ -113,6 +115,7 @@ const groupNames: Record<string, string> = {
   power: '电厂组件',
   chemical: '化工组件',
   water: '水处理组件',
+  chart: '图表组件',
   custom: '自定义组件',
 }
 

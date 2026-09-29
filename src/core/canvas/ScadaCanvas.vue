@@ -225,6 +225,19 @@
       </v-layer>
     </v-stage>
 
+      <!-- 图表 overlay：ECharts 需要 DOM 容器，按画布变换叠在 Konva 之上；
+           指针事件穿透，拖拽/选中/连线仍由 Konva 图层处理 -->
+      <div class="chart-overlay">
+        <div
+          v-for="element in chartElements"
+          :key="element.id"
+          class="chart-slot"
+          :style="chartSlotStyle(element)"
+        >
+          <ChartElement :element="element" />
+        </div>
+      </div>
+
           <MiniMap
             v-if="uiStore.showMinimap"
             :elements="canvasStore.elements"
@@ -259,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -278,6 +291,7 @@ import MiniMap from '@/components/layout/MiniMap.vue'
 import ContextMenu from '@/components/layout/ContextMenu.vue'
 import type { ContextMenuItem } from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
+import ChartElement from '@/industrial/chart/ChartElement.vue'
 import type { ComponentInstance } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
@@ -318,6 +332,24 @@ const {
   isLayerVisible,
   getElementPorts,
 } = visuals
+
+// ---- 图表 overlay：ECharts 实体渲染在 DOM 层，坐标跟随画布平移缩放 ----
+const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie']
+
+const chartElements = computed(() =>
+  canvasStore.elements.filter(el => CHART_TYPES.includes(el.type)),
+)
+
+function chartSlotStyle(element: ComponentInstance) {
+  const { zoom, offset } = canvasStore
+  return {
+    left: `${element.x * zoom + offset.x}px`,
+    top: `${element.y * zoom + offset.y}px`,
+    width: `${element.width * zoom}px`,
+    height: `${element.height * zoom}px`,
+    visibility: isLayerVisible(element.layerId) ? ('visible' as const) : ('hidden' as const),
+  }
+}
 const { selectionRect, beginRubber, moveRubber, endRubber } = selection
 const { setHovered, beginConnection, trackMove, finishOnMouseUp, drawingLineConfig } = connectionDraw
 const { alignGuides, gridSnapFunc, onDragStart, onDragMove, onDragEnd, onTransformEnd } = drag
@@ -554,6 +586,19 @@ watch(
   position: relative;
   min-width: 0;
   overflow: hidden;
+}
+
+/* 图表 overlay：铺满 stage 容器，指针事件穿透给 Konva */
+.chart-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.chart-slot {
+  position: absolute;
+  pointer-events: none;
 }
 
 .canvas-info {

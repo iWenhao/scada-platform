@@ -40,6 +40,7 @@
           />
         </v-layer>
 
+
         <v-layer>
           <template v-for="element in canvasStore.elements" :key="element.id">
             <v-group
@@ -113,6 +114,18 @@
           </template>
         </v-layer>
       </v-stage>
+
+      <!-- 图表 overlay：与编辑器一致的 ECharts 实体渲染 -->
+      <div class="chart-overlay">
+        <div
+          v-for="element in chartElements"
+          :key="element.id"
+          class="chart-slot"
+          :style="chartSlotStyle(element)"
+        >
+          <ChartElement :element="element" />
+        </div>
+      </div>
     </div>
 
     <!-- 运行期查看历史曲线 -->
@@ -138,6 +151,7 @@ import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
+import ChartElement from '@/industrial/chart/ChartElement.vue'
 import type { ComponentInstance } from '@/types/scada'
 
 const router = useRouter()
@@ -159,6 +173,24 @@ const {
   getIconImageConfig,
   isLayerVisible,
 } = useElementVisuals({ deviceStore, layerStore })
+
+// 图表 overlay：ECharts 实体渲染，坐标跟随画布变换（与编辑器逻辑一致）
+const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie']
+
+const chartElements = computed(() =>
+  canvasStore.elements.filter(el => CHART_TYPES.includes(el.type)),
+)
+
+function chartSlotStyle(element: ComponentInstance) {
+  const { zoom, offset } = canvasStore
+  return {
+    left: `${element.x * zoom + offset.x}px`,
+    top: `${element.y * zoom + offset.y}px`,
+    width: `${element.width * zoom}px`,
+    height: `${element.height * zoom}px`,
+    visibility: isLayerVisible(element.layerId) ? ('visible' as const) : ('hidden' as const),
+  }
+}
 
 // 趋势图弹窗：运行期点击元素即可查看该变量的近期曲线
 const showTrendDialog = ref(false)
@@ -338,8 +370,22 @@ onUnmounted(() => {
 
 .preview-canvas {
   flex: 1;
+  position: relative;
   overflow: hidden;
   background: var(--bg-canvas);
+
+  /* 图表 overlay：铺满画布区域，只读展示 */
+  .chart-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .chart-slot {
+    position: absolute;
+    pointer-events: none;
+  }
   
   // 网格背景
   &::before {

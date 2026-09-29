@@ -7,6 +7,7 @@ export type ComponentGroup =
   | 'power'
   | 'chemical'
   | 'water'
+  | 'chart'
   | 'custom'
 
 /** 组件定义（注册时使用） */
