@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AlarmConfigDialog: typeof import('./src/components/dialogs/AlarmConfigDialog.vue')['default']
     AlarmPanel: typeof import('./src/components/layout/AlarmPanel.vue')['default']
+    AuditLogDialog: typeof import('./src/components/dialogs/AuditLogDialog.vue')['default']
     CanvasConfigDialog: typeof import('./src/components/dialogs/CanvasConfigDialog.vue')['default']
     CanvasRuler: typeof import('./src/components/layout/CanvasRuler.vue')['default']
     ComponentPanel: typeof import('./src/components/layout/ComponentPanel.vue')['default']

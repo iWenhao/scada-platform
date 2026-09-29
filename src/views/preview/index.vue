@@ -10,6 +10,22 @@
       </div>
       
       <div class="header-right">
+        <el-tooltip :content="uiStore.writeLocked ? '写值已锁定，点击解锁' : '写值已解锁，点击锁定'" placement="bottom">
+          <el-button
+            size="small"
+            circle
+            :type="uiStore.writeLocked ? 'danger' : 'success'"
+            :title="uiStore.writeLocked ? '写值已锁定' : '写值已解锁'"
+            @click="toggleWriteLock"
+          >
+            <el-icon><Lock v-if="uiStore.writeLocked" /><Unlock v-else /></el-icon>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="写值审计日志" placement="bottom">
+          <el-button size="small" circle title="写值审计日志" @click="showAuditLog = true">
+            <el-icon><Document /></el-icon>
+          </el-button>
+        </el-tooltip>
         <el-badge :value="alarmStore.unackedCount" :hidden="!alarmStore.unackedCount" class="alarm-badge">
           <el-popover placement="bottom" :width="320" trigger="click">
             <template #reference>
@@ -134,6 +150,9 @@
       :device-id="trendDeviceId"
       :variable="trendVariable"
     />
+
+    <!-- 写值审计日志 -->
+    <AuditLogDialog v-model="showAuditLog" />
   </div>
 </template>
 
@@ -147,9 +166,12 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useAlarmStore } from '@/stores/alarmStore'
+import { useUiStore } from '@/stores/uiStore'
+import { useAuditStore } from '@/stores/auditStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
+import AuditLogDialog from '@/components/dialogs/AuditLogDialog.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import ChartElement from '@/industrial/chart/ChartElement.vue'
 import type { ComponentInstance } from '@/types/scada'
@@ -162,6 +184,18 @@ const deviceStore = useDeviceStore()
 const projectStore = useProjectStore()
 const layerStore = useLayerStore()
 const alarmStore = useAlarmStore()
+const uiStore = useUiStore()
+const auditStore = useAuditStore()
+
+const showAuditLog = ref(false)
+
+function toggleWriteLock() {
+  uiStore.toggleWriteLock()
+  ElMessage({
+    type: uiStore.writeLocked ? 'warning' : 'success',
+    message: uiStore.writeLocked ? '写值已锁定，所有下发请求将被拒绝' : '写值已解锁，可以下发设定值',
+  })
+}
 
 // 与编辑器共用同一套元素呈现逻辑，避免运行视图与编辑视图的渲染 gradually 漂移
 const {
@@ -226,6 +260,19 @@ async function promptWriteValue(element: ComponentInstance) {
     return
   }
 
+  // 写值锁定：拒绝一切下发并留痕（未发起请求），锁定是操作安全的一部分
+  if (uiStore.writeLocked) {
+    ElMessage.warning('写值已被锁定，无法下发；点击右上角锁形按钮解锁')
+    auditStore.record({
+      deviceId,
+      variable: binding.variable,
+      value: '(被拒绝)',
+      ok: false,
+      error: '写值锁定中',
+    })
+    return
+  }
+
   const current = deviceStore.getVariableValue(deviceId, binding.variable)
   let input: string
   try {
@@ -247,9 +294,12 @@ async function promptWriteValue(element: ComponentInstance) {
 
   try {
     await deviceStore.writeValue(deviceId, binding.variable, Number(input))
+    auditStore.record({ deviceId, variable: binding.variable, value: input, ok: true })
     ElMessage.success(`已向 ${deviceId}.${binding.variable} 下发 ${input}`)
   } catch (e) {
-    ElMessage.error(`写值失败: ${e instanceof Error ? e.message : e}`)
+    const reason = e instanceof Error ? e.message : String(e)
+    auditStore.record({ deviceId, variable: binding.variable, value: input, ok: false, error: reason })
+    ElMessage.error(`写值失败: ${reason}`)
   }
 }
 
