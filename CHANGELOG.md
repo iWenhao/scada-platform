@@ -78,6 +78,7 @@
 
 ### 清理
 
+- 拆分 PropertyPanel（约 640 行 → 外壳 170 行）：连线属性、元素几何/组件属性、导航与数据绑定拆到 `components/layout/property/` 子组件，行为不变
 - 预览页不再重复实现 `getElementColor` / `getElementValueText` / `getLabelHeight` / `getIconImageConfig` / `isLayerVisible`，改为与编辑器共用 `useElementVisuals`（顺带补齐运行视图图标此前缺失的 `listening: false`，减少命中检测开销）
 - CHANGELOG `[Unreleased]` 中重复堆砌的多个「### 修复」区块合并去重
 - `node_modules` 移出 git 跟踪；移除未使用的类型导入、死代码文件与冗余字段
