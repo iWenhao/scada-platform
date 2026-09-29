@@ -3,7 +3,9 @@
     <!-- 顶栏 -->
     <div class="top-nav">
       <div class="nav-brand">
-        <div class="brand-mark" />
+        <div class="brand-mark">
+          <img src="/logo.svg" alt="SCADA Platform" class="brand-logo" />
+        </div>
         <div>
           <div class="brand-title">SCADA Platform</div>
           <div class="brand-sub">工业组态可视化平台</div>
@@ -519,10 +521,20 @@ async function deleteProject(name: string) {
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 212, 170, 0.12);
+  border: 1px solid rgba(0, 212, 170, 0.35);
+}
+
+.brand-logo {
+  width: 28px;
+  height: 28px;
+  display: block;
 }
 
 .brand-title {

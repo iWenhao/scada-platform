@@ -13,14 +13,7 @@
       <!-- 品牌区 -->
       <div class="brand">
         <div class="brand-mark">
-          <svg viewBox="0 0 48 48" width="40" height="40">
-            <rect x="6" y="10" width="16" height="12" rx="3" fill="none" stroke="#00d4aa" stroke-width="2"/>
-            <rect x="26" y="18" width="16" height="12" rx="3" fill="none" stroke="#00d4aa" stroke-width="2"/>
-            <path d="M22 16 H26" stroke="#00d4aa" stroke-width="2" stroke-dasharray="3 2"/>
-            <circle cx="14" cy="36" r="4" fill="none" stroke="#00b894" stroke-width="2"/>
-            <path d="M18 36 H30" stroke="#00b894" stroke-width="2"/>
-            <rect x="30" y="30" width="12" height="12" rx="3" fill="none" stroke="#00b894" stroke-width="2"/>
-          </svg>
+          <img src="/logo.svg" alt="SCADA Platform" class="brand-logo" />
         </div>
         <div class="brand-text">
           <h1>SCADA Platform</h1>
@@ -274,6 +267,12 @@ async function handleLogin() {
   align-items: center;
   gap: 14px;
   margin-bottom: 28px;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  display: block;
 }
 
 .brand-mark {
