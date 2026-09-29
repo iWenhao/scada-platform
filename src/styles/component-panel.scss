@@ -157,11 +157,18 @@
       }
 
       .component-icon {
-        width: 28px;
-        height: 28px;
+        width: 30px;
+        height: 30px;
         margin-bottom: 6px;
         color: var(--accent-primary);
         flex-shrink: 0;
+        filter: drop-shadow(0 1px 2px rgba(0, 212, 170, 0.35));
+        transition: transform 0.15s ease, filter 0.15s ease;
+      }
+
+      &:hover .component-icon {
+        transform: scale(1.06);
+        filter: drop-shadow(0 2px 6px rgba(0, 212, 170, 0.55));
       }
 
       .card-actions {
