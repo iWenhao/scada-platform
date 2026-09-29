@@ -1,11 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { roleAtLeast, type LoginUser, type Role } from '@/types/auth'
-import { getStorage, } from '@/storage'
+import { getStorage, syncLocalNamespace } from '@/storage'
+import { LOCAL_SESSION_KEY as SESSION_KEY } from '@/storage/sessionKey'
 import { resolveApiBase } from '@/storage/config'
 import { setSessionToken, authHeaders } from '@/auth/session'
-
-const SESSION_KEY = 'scada_session'
 
 interface SessionPayload {
   user: LoginUser
@@ -47,12 +46,16 @@ export const useAuthStore = defineStore('auth', () => {
       if (!res.ok) {
         setSessionToken(null)
         await getStorage().remove(SESSION_KEY)
+        syncLocalNamespace(null)
         return
       }
       const body = await res.json()
       user.value = body.user
+      // 本地回落模式下切到该用户的键空间，保持"工程隔离"语义一致
+      syncLocalNamespace(user.value?.id)
     } catch {
       // 后端不可用时保留本地用户缓存，便于内网离线演示（写接口会 401）
+      syncLocalNamespace(undefined)
     }
   }
 
@@ -73,6 +76,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = body.user
       setSessionToken(body.token)
       await getStorage().set(SESSION_KEY, JSON.stringify({ user: body.user, token: body.token }))
+      syncLocalNamespace(user.value?.id)
       return true
     } catch (e) {
       loginError.value = e instanceof Error ? e.message : String(e)
@@ -94,6 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
     setSessionToken(null)
     user.value = null
     await getStorage().remove(SESSION_KEY)
+    syncLocalNamespace(null)
   }
 
   function operatorName(): string {

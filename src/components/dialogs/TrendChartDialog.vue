@@ -16,7 +16,9 @@
         </el-radio-group>
         <span v-if="range !== 'live' && loadingRemote" class="trend-range-hint">加载中…</span>
         <span v-else-if="range !== 'live' && loadError" class="trend-range-hint error">{{ loadError }}</span>
-        <span v-else-if="range !== 'live'" class="trend-range-hint">来自服务端历史存储</span>
+        <span v-else-if="range !== 'live'" class="trend-range-hint">
+          {{ historyBackend === 'remote' ? '来自服务端历史存储' : '后端离线，历史暂存本机（按用户隔离）' }}
+        </span>
       </div>
 
       <div class="trend-info" v-if="points.length">
@@ -109,7 +111,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
-import { queryHistory, type SamplePoint } from '@/history/historian'
+import { queryHistory, historianBackend, type SamplePoint } from '@/history/historian'
 
 const props = defineProps<{
   modelValue: boolean
@@ -152,6 +154,7 @@ const RANGE_MS: Record<Exclude<TrendRange, 'live'>, number> = {
 }
 
 const range = ref<TrendRange>('live')
+const historyBackend = ref<'remote' | 'local'>(historianBackend())
 const remotePoints = ref<SamplePoint[]>([])
 const loadingRemote = ref(false)
 const loadError = ref('')

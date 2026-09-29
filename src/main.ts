@@ -9,7 +9,7 @@ import 'element-plus/theme-chalk/dark/css-vars.css'
 import './styles/index.scss'
 import App from './App.vue'
 import router from './router'
-import { getStorage, initStorage } from '@/storage'
+import { getStorage, initStorage, resolveLocalNamespace } from '@/storage'
 
 // 挂载前探测存储后端并应用保存的主题, 保证所有页面(含首页)一致并避免闪屏
 const applyTheme = (t: 'light' | 'dark') => {
@@ -30,7 +30,8 @@ app.use(router)
 app.use(ElementPlus)
 app.use(VueKonva)
 
-initStorage()
+// 本地回落模式按用户命名空间隔离（远程模式由服务端 scope 决定）
+initStorage(undefined, resolveLocalNamespace())
   .then(async () => {
     const saved = await getStorage().get('scada_theme')
     if (saved === 'light' || saved === 'dark') applyTheme(saved)
