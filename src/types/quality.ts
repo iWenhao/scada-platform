@@ -31,6 +31,36 @@ export function isUsable(q: Quality): boolean {
   return q === 'good' || q === 'uncertain'
 }
 
+/** 质量位的中文文案与展示配色（el-tag type） */
+export const QUALITY_TEXT: Record<Quality, string> = {
+  good: '正常',
+  uncertain: '存疑',
+  stale: '陈旧',
+  bad: '无数据',
+}
+
+export const QUALITY_TAG_TYPE: Record<Quality, 'success' | 'warning' | 'info' | 'danger'> = {
+  good: 'success',
+  uncertain: 'warning',
+  stale: 'warning',
+  bad: 'info',
+}
+
+/**
+ * 上报时刻距今的相对时长（秒级精度）。
+ * 实时点位列表用：操作员一眼看出数据多久没来，而不是对照钟表心算。
+ */
+export function formatAge(t: number, now: number): string {
+  const seconds = Math.max(0, Math.floor((now - t) / 1000))
+  if (seconds < 1) return '刚刚'
+  if (seconds < 60) return `${seconds}s 前`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m 前`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h 前`
+  return `${Math.floor(hours / 24)}d 前`
+}
+
 /**
  * 由"最后上报时刻 + 当前时刻 + 连接状态"推导质量。
  * 连接已断开时即便数据没超时也按陈旧处理：链路断了，画面上的值是过去的快照。

@@ -80,6 +80,8 @@
         <div class="live-header">
           <el-tag :type="connTagType" size="small">{{ connText }}</el-tag>
           <span class="hint">共 {{ livePoints.length }} 个在线点位</span>
+          <span v-if="qualityCounts.stale" class="hint stale-hint">陈旧 {{ qualityCounts.stale }}</span>
+          <span v-if="qualityCounts.bad" class="hint stale-hint">无数据 {{ qualityCounts.bad }}</span>
           <div class="spacer" />
           <el-input
             v-model="liveKeyword"
@@ -90,20 +92,30 @@
           />
         </div>
         <el-table :data="filteredLive" size="small" max-height="420" empty-text="连接数据源后此处列出实时点位">
-          <el-table-column prop="deviceId" label="设备" width="130" show-overflow-tooltip />
-          <el-table-column prop="variable" label="变量" width="130" show-overflow-tooltip />
-          <el-table-column label="当前值" width="140">
+          <el-table-column prop="deviceId" label="设备" width="120" show-overflow-tooltip />
+          <el-table-column prop="variable" label="变量" width="120" show-overflow-tooltip />
+          <el-table-column label="当前值" width="120">
             <template #default="{ row }">
-              <span class="live-value">{{ formatVal(row.value) }}</span>
+              <span class="live-value" :class="{ 'value-stale': !row.usable }">{{ formatVal(row.value) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="点表" width="80">
+          <el-table-column label="质量" width="76">
+            <template #default="{ row }">
+              <el-tag :type="row.tagType" size="small">{{ row.qualityText }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="上报" width="80">
+            <template #default="{ row }">
+              <span class="age" :title="row.lastAtFull">{{ row.ageText }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="点表" width="76">
             <template #default="{ row }">
               <el-tag v-if="row.tag" size="small" type="success">已登记</el-tag>
               <el-tag v-else size="small" type="info">未登记</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="unit" label="单位" width="80">
+          <el-table-column prop="unit" label="单位" width="70">
             <template #default="{ row }">{{ row.tag?.unit || '-' }}</template>
           </el-table-column>
           <el-table-column label="可写" width="70">
@@ -116,7 +128,7 @@
               <span v-else>-</span>
             </template>
           </el-table-column>
-          <el-table-column prop="description" label="描述" min-width="120" show-overflow-tooltip>
+          <el-table-column prop="description" label="描述" min-width="110" show-overflow-tooltip>
             <template #default="{ row }">{{ row.tag?.description || '-' }}</template>
           </el-table-column>
         </el-table>
@@ -214,6 +226,7 @@ import {
   type TagDef,
   type WritePolicy,
 } from '@/types/tag'
+import { QUALITY_TEXT, QUALITY_TAG_TYPE, formatAge, isUsable } from '@/types/quality'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
@@ -263,8 +276,14 @@ const filtered = computed(() => {
   )
 })
 
-/** 实时点位：数据源已推送的所有设备.变量 + 点表元数据 */
+/**
+ * 实时点位：数据源已推送的所有设备.变量 + 点表元数据 + 质量信息。
+ * 依赖 dataTick（每秒跳动的质量时钟）：质量会随时间退化为陈旧，
+ * 上报时间的"Xs 前"也要每秒重算，没有它列表会停留在打开瞬间的状态。
+ */
 const livePoints = computed(() => {
+  void deviceStore.dataTick // pinia 已解包：直接读数值，依赖它每秒触发重算
+  const now = Date.now()
   const rows: Array<{
     deviceId: string
     variable: string
@@ -272,11 +291,18 @@ const livePoints = computed(() => {
     tag: TagDef | null
     unit: string
     description: string
+    qualityText: string
+    tagType: 'success' | 'warning' | 'info' | 'danger'
+    usable: boolean
+    ageText: string
+    lastAtFull: string
   }> = []
   const data = deviceStore.deviceData as Record<string, Record<string, unknown>>
   for (const [deviceId, vars] of Object.entries(data)) {
     for (const [variable, value] of Object.entries(vars || {})) {
       const tag = findTag(tags.value, deviceId, variable)
+      const quality = deviceStore.qualityOf(deviceId, variable)
+      const lastAt = deviceStore.variableMeta[`${deviceId}.${variable}`]?.t
       rows.push({
         deviceId,
         variable,
@@ -284,10 +310,25 @@ const livePoints = computed(() => {
         tag,
         unit: tag?.unit || '',
         description: tag?.description || '',
+        qualityText: QUALITY_TEXT[quality],
+        tagType: QUALITY_TAG_TYPE[quality],
+        usable: isUsable(quality),
+        ageText: lastAt ? formatAge(lastAt, now) : '-',
+        lastAtFull: lastAt ? new Date(lastAt).toLocaleString('zh-CN', { hour12: false }) : '',
       })
     }
   }
   return rows
+})
+
+/** 质量统计：陈旧/无数据数量非零时在表头提示，一眼看出数据是否可信 */
+const qualityCounts = computed(() => {
+  const counts = { stale: 0, bad: 0 }
+  for (const row of livePoints.value) {
+    if (row.qualityText === QUALITY_TEXT.stale) counts.stale++
+    if (row.qualityText === QUALITY_TEXT.bad) counts.bad++
+  }
+  return counts
 })
 
 const filteredLive = computed(() => {
@@ -559,5 +600,20 @@ function handleSave() {
 .live-value {
   font-family: monospace;
   color: var(--accent-primary);
+
+  // 数据不可信（陈旧/无数据）时数值置灰：不能让过期值看起来跟正常值一样可信
+  &.value-stale {
+    color: var(--text-muted);
+  }
+}
+
+.age {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.stale-hint {
+  color: var(--warning-color, #e6a23c);
+  font-weight: 600;
 }
 </style>

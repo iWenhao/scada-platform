@@ -4,6 +4,7 @@ import {
   isUsable,
   isValidNumber,
   sanitizeVariables,
+  formatAge,
   DEFAULT_STALE_MS,
 } from './quality'
 
@@ -47,6 +48,34 @@ describe('isValidNumber', () => {
     expect(isValidNumber(Number.NaN)).toBe(false)
     expect(isValidNumber(Number.POSITIVE_INFINITY)).toBe(false)
     expect(isValidNumber('1')).toBe(false)
+  })
+})
+
+describe('formatAge', () => {
+  const now = 100_000_000
+
+  it('1 秒内显示刚刚', () => {
+    expect(formatAge(now, now)).toBe('刚刚')
+    expect(formatAge(now - 999, now)).toBe('刚刚')
+  })
+
+  it('一分钟内按秒计', () => {
+    expect(formatAge(now - 5_000, now)).toBe('5s 前')
+    expect(formatAge(now - 59_000, now)).toBe('59s 前')
+  })
+
+  it('一小时内按分计', () => {
+    expect(formatAge(now - 60_000, now)).toBe('1m 前')
+    expect(formatAge(now - 3540_000, now)).toBe('59m 前')
+  })
+
+  it('一天内按小时计，更久按天计', () => {
+    expect(formatAge(now - 3600_000, now)).toBe('1h 前')
+    expect(formatAge(now - 25 * 3600_000, now)).toBe('1d 前')
+  })
+
+  it('时钟回拨时按 0 处理不出现负数', () => {
+    expect(formatAge(now + 10_000, now)).toBe('刚刚')
   })
 })
 

@@ -271,6 +271,7 @@ export const useDeviceStore = defineStore('device', () => {
     staleMs,
     commTimeoutMs,
     commLost,
+    dataTick,
     initDataSource,
     getDeviceData,
     getVariableValue,
