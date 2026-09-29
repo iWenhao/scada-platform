@@ -156,8 +156,10 @@ export function useWriteValue() {
       reject(deviceId, variable, rangeError)
       return
     }
-    // warn 策略：放行但明确告知未登记
-    if (projectStore.writePolicy === 'warn' && !tag) {
+    // warn 策略：放行但明确告知未登记（审计里也要能看出这笔是未登记点位）
+    const unregisteredNote =
+      projectStore.writePolicy === 'warn' && !tag ? '未登记点位（策略: 提示后允许）' : undefined
+    if (unregisteredNote) {
       ElMessage.warning(`「${deviceId}.${variable}」未在点表中登记，请确认后再下发`)
     }
 
@@ -195,6 +197,7 @@ export function useWriteValue() {
         variable,
         value: input,
         ok: true,
+        error: unregisteredNote,
       })
       ElMessage.success(`已向 ${deviceId}.${variable} 下发 ${input}`)
     } catch (e) {
