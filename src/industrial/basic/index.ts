@@ -259,6 +259,8 @@ export const DisplayDefinition: ComponentDefinition = {
   defaultConfig: {
     decimals: 1,
     unit: '',
+    factor: 1,
+    offset: 0,
   },
   // 只读数值显示：绑定目标由使用者按需指定，无预置绑定
   statusRules: [],
@@ -286,6 +288,22 @@ export const DisplayDefinition: ComponentDefinition = {
       min: 0,
       max: 3,
       group: '显示',
+    },
+    {
+      key: 'factor',
+      label: '倍率(×)',
+      type: 'number',
+      default: 1,
+      step: 0.001,
+      group: '换算',
+    },
+    {
+      key: 'offset',
+      label: '偏移(+)',
+      type: 'number',
+      default: 0,
+      step: 0.1,
+      group: '换算',
     },
   ],
 }

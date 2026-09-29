@@ -185,7 +185,7 @@
             size="small"
             :min="prop.min"
             :max="prop.max"
-            :step="1"
+            :step="prop.step ?? 1"
             @change="handlePropertyChange"
           />
           

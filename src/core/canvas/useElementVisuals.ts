@@ -53,8 +53,17 @@ export function useElementVisuals(options: {
     if (value === undefined) return '--'
 
     const num = Number(value)
+    if (Number.isNaN(num)) return String(value)
+
+    // 工程量换算：显示值 = 原始值 × 倍率 + 偏移。
+    // 典型场景：原始值 1100(mm) × 0.001 → 显示 1.1，单位跟"千米"；
+    // 倍率缺省按 1 处理（旧画面没有该字段时行为不变）
+    const factor = Number(element.properties?.factor)
+    const offset = Number(element.properties?.offset)
+    const scaled = num * (Number.isFinite(factor) ? factor : 1) + (Number.isFinite(offset) ? offset : 0)
+
     const decimals = Math.min(Math.max(Number(element.properties?.decimals ?? 1) || 0, 0), 3)
-    const text = Number.isNaN(num) ? String(value) : num.toFixed(decimals)
+    const text = scaled.toFixed(decimals)
     const unit = element.properties?.unit
     return unit ? `${text} ${unit}` : text
   }
