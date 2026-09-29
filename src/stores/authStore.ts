@@ -1,8 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { roleAtLeast, type LoginUser, type Role } from '@/types/auth'
-import { getStorage, syncLocalNamespace } from '@/storage'
-import { LOCAL_SESSION_KEY as SESSION_KEY } from '@/storage/sessionKey'
+import { syncLocalNamespace } from '@/storage'
+import {
+  readSessionCache,
+  writeSessionCache,
+  clearSessionCache,
+} from '@/storage/sessionKey'
 import { resolveApiBase } from '@/storage/config'
 import { setSessionToken, authHeaders } from '@/auth/session'
 
@@ -34,7 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function restoreSession(): Promise<void> {
     try {
-      const raw = await getStorage().get(SESSION_KEY)
+      // 会话固定读 localStorage（不走命名空间存储），刷新后才能在鉴权前恢复
+      const raw = readSessionCache()
       if (!raw) return
       const saved = JSON.parse(raw) as SessionPayload
       if (!saved?.token || !saved?.user?.id) return
@@ -45,13 +50,12 @@ export const useAuthStore = defineStore('auth', () => {
       })
       if (!res.ok) {
         setSessionToken(null)
-        await getStorage().remove(SESSION_KEY)
+        clearSessionCache()
         syncLocalNamespace(null)
         return
       }
       const body = await res.json()
       user.value = body.user
-      // 本地回落模式下切到该用户的键空间，保持"工程隔离"语义一致
       syncLocalNamespace(user.value?.id)
     } catch {
       // 后端不可用时保留本地用户缓存，便于内网离线演示（写接口会 401）
@@ -75,7 +79,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       user.value = body.user
       setSessionToken(body.token)
-      await getStorage().set(SESSION_KEY, JSON.stringify({ user: body.user, token: body.token }))
+      writeSessionCache(JSON.stringify({ user: body.user, token: body.token }))
       syncLocalNamespace(user.value?.id)
       return true
     } catch (e) {
@@ -97,7 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
     setSessionToken(null)
     user.value = null
-    await getStorage().remove(SESSION_KEY)
+    clearSessionCache()
     syncLocalNamespace(null)
   }
 
