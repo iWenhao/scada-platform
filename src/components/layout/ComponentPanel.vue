@@ -24,6 +24,8 @@
     </div>
 
     <div class="panel-body">
+      <transition name="tab-fade" mode="out-in">
+      <div :key="activeTab" class="tab-pane">
       <!-- 基础 / 行业：按原始分组展示 -->
       <template v-if="activeTab !== 'custom'">
         <div
@@ -92,6 +94,8 @@
           暂无自定义组件
         </div>
       </template>
+      </div>
+      </transition>
     </div>
 
     <CustomComponentDialog

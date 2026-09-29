@@ -146,8 +146,8 @@ async function handleCommand(cmd: string, page: ScadaPage) {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 8px;
+  height: 36px;
+  padding: 0 10px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-primary);
   flex-shrink: 0;
@@ -156,7 +156,7 @@ async function handleCommand(cmd: string, page: ScadaPage) {
 .tabs-scroll {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   overflow-x: auto;
   flex: 1;
   min-width: 0;
@@ -171,25 +171,33 @@ async function handleCommand(cmd: string, page: ScadaPage) {
   align-items: center;
   gap: 2px;
   padding: 0 8px 0 12px;
-  height: 24px;
-  border-radius: 4px;
+  height: 26px;
+  border-radius: 8px;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
   color: var(--text-secondary);
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   font-size: 12px;
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .15s ease;
 
   &:hover {
-    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-active);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.96);
   }
 
   &.active {
     color: var(--text-primary);
-    background: var(--bg-primary);
-    border-color: var(--border-primary);
-    font-weight: 500;
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+    font-weight: 600;
+    box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.25);
   }
 }
 
@@ -205,5 +213,6 @@ async function handleCommand(cmd: string, page: ScadaPage) {
 
 .add-btn {
   flex-shrink: 0;
+  border-radius: 8px;
 }
 </style>
