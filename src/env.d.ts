@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+declare module '*?raw' {
+  const content: string
+  export default content
+}
+
 interface ImportMetaEnv {
   /** 存储 API 根路径，默认 '/api' */
   readonly VITE_API_BASE?: string
