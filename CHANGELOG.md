@@ -10,6 +10,7 @@
 
 ### 新增
 
+- 示例工程：`examples/demo-project.json` 可直接导入——两张画面（工艺流程 + 趋势监控，含连线流动动画、数值显示、设定值、跳转按钮）与三种图表、4 条点表（含可写点位）、3 条带死区与延时的报警定义，数据源为内置 Mock 导入即可运行；配套 `examples/README.md` 说明导入方式与体验顺序，并由 `demoProject.test.ts` 在 CI 中校验工程结构不会与实现漂移
 - 容器部署：新增 `Dockerfile`（前端 node 构建 → nginx 托管，`/api` 反代）、`Dockerfile.server`（存储后端）、`docker-compose.yml`（两服务 + 数据卷）、`docker/nginx.conf`、`.dockerignore`；`docker compose up -d --build` 一条命令起全站，数据落在 `scada-data` 卷
 - 部署文档同步：DEPLOY 补齐账号体系（种子账号/角色门禁表/改口令）、用户命名空间与数据目录结构、完整接口一览（auth/history/notify/audit/storage）、历史保留期说明、容器部署章节与升级迁移注意事项；修正了"未内置多用户""无隔离"等过时表述
 - 通信中断报警：链路断开或数据停更超过阈值（默认 30 秒）时，持续 5 秒后报出 critical 级「数据源通信 / 链路中断」报警，恢复后自动转入历史；复用报警引擎的延时机制，网络抖动不会误报

@@ -1,0 +1,426 @@
+{
+  "version": "1.1",
+  "name": "示例工程-水泵房",
+  "description": "演示多画面、点表、报警定义、图表、设定值与画面跳转。数据源为内置 Mock，导入即可运行。",
+  "timestamp": 1750000000000,
+  "activePageId": "page_demo_main",
+  "pages": [
+    {
+      "id": "page_demo_main",
+      "name": "工艺流程",
+      "canvasConfig": {
+        "width": 1280,
+        "height": 720,
+        "backgroundColor": "#1e1e1e",
+        "showGrid": true,
+        "gridSize": 20,
+        "gridColor": "#2a2a2a",
+        "snapToGrid": true,
+        "enableZoom": true,
+        "minZoom": 0.1,
+        "maxZoom": 5,
+        "enablePan": true
+      },
+      "elements": [
+        {
+          "id": "el_demo_tank",
+          "type": "tank",
+          "deviceId": "tank_1",
+          "x": 120,
+          "y": 140,
+          "width": 100,
+          "height": 120,
+          "rotation": 0,
+          "name": "原水箱",
+          "layerId": "device",
+          "locked": false,
+          "properties": { "name": "原水箱", "level": 60, "temp": 25 },
+          "statusRules": [
+            {
+              "id": "high",
+              "name": "高液位",
+              "color": "#ffa502",
+              "severity": "warning",
+              "condition": { "type": "compare", "variable": "level", "operator": ">", "value": 80 },
+              "priority": 1
+            },
+            {
+              "id": "normal",
+              "name": "正常",
+              "color": "#00d4aa",
+              "condition": { "type": "range", "variable": "level", "min": 20, "max": 80 },
+              "priority": 2
+            },
+            {
+              "id": "low",
+              "name": "低液位",
+              "color": "#ff4757",
+              "severity": "critical",
+              "condition": { "type": "compare", "variable": "level", "operator": "<", "value": 20 },
+              "priority": 3
+            }
+          ],
+          "dataBindings": [{ "property": "level", "variable": "level" }]
+        },
+        {
+          "id": "el_demo_pump",
+          "type": "pump",
+          "deviceId": "pump_1",
+          "x": 340,
+          "y": 160,
+          "width": 90,
+          "height": 90,
+          "rotation": 0,
+          "name": "1号水泵",
+          "layerId": "device",
+          "locked": false,
+          "properties": { "name": "1号水泵", "speed": 0 },
+          "statusRules": [
+            {
+              "id": "running",
+              "name": "运行",
+              "color": "#00d4aa",
+              "condition": { "type": "compare", "variable": "speed", "operator": ">", "value": 0 },
+              "priority": 1
+            },
+            {
+              "id": "stopped",
+              "name": "停止",
+              "color": "#ff4757",
+              "severity": "normal",
+              "condition": { "type": "compare", "variable": "speed", "operator": "=", "value": 0 },
+              "priority": 2
+            }
+          ],
+          "dataBindings": [{ "property": "speed", "variable": "speed" }]
+        },
+        {
+          "id": "el_demo_valve",
+          "type": "valve",
+          "deviceId": "valve_1",
+          "x": 540,
+          "y": 170,
+          "width": 70,
+          "height": 100,
+          "rotation": 0,
+          "name": "出水阀",
+          "layerId": "device",
+          "locked": false,
+          "properties": { "name": "出水阀", "valveType": "gate", "openDegree": 0 },
+          "statusRules": [
+            {
+              "id": "open",
+              "name": "开启",
+              "color": "#00d4aa",
+              "condition": { "type": "compare", "variable": "openDegree", "operator": ">", "value": 0 },
+              "priority": 1
+            },
+            {
+              "id": "closed",
+              "name": "关闭",
+              "color": "#ff4757",
+              "severity": "normal",
+              "condition": { "type": "compare", "variable": "openDegree", "operator": "=", "value": 0 },
+              "priority": 2
+            }
+          ],
+          "dataBindings": [{ "property": "openDegree", "variable": "openDegree" }]
+        },
+        {
+          "id": "el_demo_display",
+          "type": "display",
+          "deviceId": "tank_1",
+          "x": 760,
+          "y": 150,
+          "width": 160,
+          "height": 70,
+          "rotation": 0,
+          "name": "液位实时值",
+          "layerId": "annotation",
+          "locked": false,
+          "properties": { "name": "液位实时值", "unit": "%", "decimals": 1, "factor": 1, "offset": 0 },
+          "statusRules": [],
+          "dataBindings": [{ "property": "level", "variable": "level" }]
+        },
+        {
+          "id": "el_demo_setpoint",
+          "type": "setpoint",
+          "deviceId": "valve_1",
+          "x": 760,
+          "y": 250,
+          "width": 160,
+          "height": 60,
+          "rotation": 0,
+          "name": "阀门开度设定",
+          "layerId": "annotation",
+          "locked": false,
+          "properties": { "name": "阀门开度设定", "unit": "%" },
+          "statusRules": [],
+          "dataBindings": [{ "property": "openDegree", "variable": "openDegree" }]
+        },
+        {
+          "id": "el_demo_nav",
+          "type": "display",
+          "deviceId": "pump_1",
+          "x": 760,
+          "y": 340,
+          "width": 160,
+          "height": 60,
+          "rotation": 0,
+          "name": "→ 趋势监控页",
+          "layerId": "annotation",
+          "locked": false,
+          "navigateTo": "page_demo_trend",
+          "properties": {
+            "name": "→ 趋势监控页",
+            "unit": "",
+            "decimals": 1,
+            "factor": 1,
+            "offset": 0
+          },
+          "statusRules": [],
+          "dataBindings": [{ "property": "speed", "variable": "speed" }]
+        }
+      ],
+      "connections": [
+        {
+          "id": "conn_demo_1",
+          "type": "polyline",
+          "sourceId": "el_demo_tank",
+          "sourcePort": "right",
+          "targetId": "el_demo_pump",
+          "targetPort": "left",
+          "points": [220, 200, 280, 200, 280, 205, 340, 205],
+          "style": {
+            "stroke": "#4a9eff",
+            "strokeWidth": 3,
+            "animated": true,
+            "flowSpeed": 2,
+            "flowDirection": "forward"
+          },
+          "label": "进水"
+        },
+        {
+          "id": "conn_demo_2",
+          "type": "polyline",
+          "sourceId": "el_demo_pump",
+          "sourcePort": "right",
+          "targetId": "el_demo_valve",
+          "targetPort": "left",
+          "points": [430, 205, 485, 205, 485, 220, 540, 220],
+          "style": {
+            "stroke": "#4a9eff",
+            "strokeWidth": 3,
+            "animated": true,
+            "flowSpeed": 2,
+            "flowDirection": "forward"
+          },
+          "label": "出水"
+        }
+      ],
+      "layers": [
+        { "id": "background", "name": "背景层", "type": "background", "visible": true, "locked": true, "order": 0 },
+        { "id": "pipeline", "name": "管道层", "type": "pipeline", "visible": true, "locked": false, "order": 1 },
+        { "id": "device", "name": "设备层", "type": "device", "visible": true, "locked": false, "order": 2 },
+        { "id": "annotation", "name": "标注层", "type": "annotation", "visible": true, "locked": false, "order": 3 }
+      ]
+    },
+    {
+      "id": "page_demo_trend",
+      "name": "趋势监控",
+      "canvasConfig": {
+        "width": 1280,
+        "height": 720,
+        "backgroundColor": "#1e1e1e",
+        "showGrid": true,
+        "gridSize": 20,
+        "gridColor": "#2a2a2a",
+        "snapToGrid": true,
+        "enableZoom": true,
+        "minZoom": 0.1,
+        "maxZoom": 5,
+        "enablePan": true
+      },
+      "elements": [
+        {
+          "id": "el_demo_trend",
+          "type": "chart-trend",
+          "deviceId": "tank_1",
+          "x": 90,
+          "y": 90,
+          "width": 520,
+          "height": 300,
+          "rotation": 0,
+          "name": "液位趋势",
+          "layerId": "device",
+          "locked": false,
+          "properties": { "name": "液位趋势", "historyPoints": 120 },
+          "statusRules": [],
+          "dataBindings": [
+            { "property": "series", "variable": "level" },
+            { "property": "series", "variable": "temp" }
+          ]
+        },
+        {
+          "id": "el_demo_bar",
+          "type": "chart-bar",
+          "deviceId": "pump_1",
+          "x": 680,
+          "y": 90,
+          "width": 420,
+          "height": 300,
+          "rotation": 0,
+          "name": "水泵运行参数",
+          "layerId": "device",
+          "locked": false,
+          "properties": { "name": "水泵运行参数" },
+          "statusRules": [],
+          "dataBindings": [
+            { "property": "series", "variable": "speed" },
+            { "property": "series", "variable": "flow" },
+            { "property": "series", "variable": "pressure" }
+          ]
+        },
+        {
+          "id": "el_demo_pie",
+          "type": "chart-pie",
+          "deviceId": "tank_1",
+          "x": 90,
+          "y": 430,
+          "width": 320,
+          "height": 240,
+          "rotation": 0,
+          "name": "温度占比",
+          "layerId": "device",
+          "locked": false,
+          "properties": { "name": "温度占比" },
+          "statusRules": [],
+          "dataBindings": [{ "property": "series", "variable": "temp" }]
+        },
+        {
+          "id": "el_demo_back",
+          "type": "display",
+          "deviceId": "tank_1",
+          "x": 480,
+          "y": 470,
+          "width": 160,
+          "height": 60,
+          "rotation": 0,
+          "name": "← 返回工艺流程",
+          "layerId": "annotation",
+          "locked": false,
+          "navigateTo": "page_demo_main",
+          "properties": {
+            "name": "← 返回工艺流程",
+            "unit": "",
+            "decimals": 1,
+            "factor": 1,
+            "offset": 0
+          },
+          "statusRules": [],
+          "dataBindings": [{ "property": "level", "variable": "level" }]
+        }
+      ],
+      "connections": [],
+      "layers": [
+        { "id": "background", "name": "背景层", "type": "background", "visible": true, "locked": true, "order": 0 },
+        { "id": "pipeline", "name": "管道层", "type": "pipeline", "visible": true, "locked": false, "order": 1 },
+        { "id": "device", "name": "设备层", "type": "device", "visible": true, "locked": false, "order": 2 },
+        { "id": "annotation", "name": "标注层", "type": "annotation", "visible": true, "locked": false, "order": 3 }
+      ]
+    }
+  ],
+  "canvas": null,
+  "connections": null,
+  "layers": null,
+  "dataSource": {
+    "type": "mock",
+    "name": "模拟数据",
+    "interval": 1000
+  },
+  "alarmDefs": [
+    {
+      "id": "alm_demo_level_high",
+      "name": "原水箱液位过高",
+      "deviceId": "tank_1",
+      "variable": "level",
+      "severity": "warning",
+      "condition": { "type": "compare", "variable": "level", "operator": ">", "value": 85 },
+      "deadband": 3,
+      "onDelayMs": 3000,
+      "enabled": true
+    },
+    {
+      "id": "alm_demo_level_low",
+      "name": "原水箱液位过低",
+      "deviceId": "tank_1",
+      "variable": "level",
+      "severity": "critical",
+      "condition": { "type": "compare", "variable": "level", "operator": "<", "value": 18 },
+      "deadband": 2,
+      "onDelayMs": 5000,
+      "enabled": true
+    },
+    {
+      "id": "alm_demo_pump_temp",
+      "name": "水泵温度异常",
+      "deviceId": "pump_1",
+      "variable": "pressure",
+      "severity": "warning",
+      "condition": { "type": "compare", "variable": "pressure", "operator": ">", "value": 8 },
+      "deadband": 0.5,
+      "onDelayMs": 2000,
+      "enabled": true
+    }
+  ],
+  "tagTable": [
+    {
+      "id": "tag_demo_1",
+      "deviceId": "tank_1",
+      "name": "level",
+      "description": "原水箱液位",
+      "unit": "%",
+      "dataType": "number",
+      "min": 0,
+      "max": 100,
+      "writable": false,
+      "note": "只读测点"
+    },
+    {
+      "id": "tag_demo_2",
+      "deviceId": "tank_1",
+      "name": "temp",
+      "description": "原水温度",
+      "unit": "℃",
+      "dataType": "number",
+      "min": 0,
+      "max": 60,
+      "writable": false,
+      "note": ""
+    },
+    {
+      "id": "tag_demo_3",
+      "deviceId": "pump_1",
+      "name": "speed",
+      "description": "水泵转速",
+      "unit": "rpm",
+      "dataType": "number",
+      "min": 0,
+      "max": 3000,
+      "writable": false,
+      "note": ""
+    },
+    {
+      "id": "tag_demo_4",
+      "deviceId": "valve_1",
+      "name": "openDegree",
+      "description": "出水阀开度设定",
+      "unit": "%",
+      "dataType": "number",
+      "min": 0,
+      "max": 100,
+      "writable": true,
+      "note": "可写：预览页点击「阀门开度设定」下发"
+    }
+  ]
+}
