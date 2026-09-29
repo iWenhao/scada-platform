@@ -22,7 +22,7 @@
             :type="uiStore.activeTool === 'select' ? 'primary' : 'default'"
             @click="uiStore.setActiveTool('select')"
           >
-            <el-icon><Pointer /></el-icon>
+            <ToolIcon name="select" />
           </el-button>
         </el-tooltip>
 
@@ -31,7 +31,7 @@
             :type="uiStore.activeTool === 'connect' ? 'primary' : 'default'"
             @click="uiStore.setActiveTool('connect')"
           >
-            <el-icon><Connection /></el-icon>
+            <ToolIcon name="connect" />
           </el-button>
         </el-tooltip>
 
@@ -40,7 +40,7 @@
             :type="uiStore.activeTool === 'hand' ? 'primary' : 'default'"
             @click="uiStore.setActiveTool('hand')"
           >
-            <el-icon><Rank /></el-icon>
+            <ToolIcon name="hand" />
           </el-button>
         </el-tooltip>
 
@@ -49,7 +49,7 @@
             :type="uiStore.showRuler ? 'primary' : 'default'"
             @click="uiStore.toggleRuler()"
           >
-            <el-icon><Grid /></el-icon>
+            <ToolIcon name="ruler" />
           </el-button>
         </el-tooltip>
 
@@ -58,7 +58,7 @@
             :type="uiStore.showMinimap ? 'primary' : 'default'"
             @click="uiStore.toggleMinimap()"
           >
-            <el-icon><MapLocation /></el-icon>
+            <ToolIcon name="minimap" />
           </el-button>
         </el-tooltip>
       </el-button-group>
@@ -68,13 +68,13 @@
       <el-button-group>
         <el-tooltip content="撤销 (Ctrl+Z)" placement="bottom">
           <el-button :disabled="!canUndo" @click="undo()">
-            <el-icon><Back /></el-icon>
+            <ToolIcon name="undo" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="重做 (Ctrl+Y)" placement="bottom">
           <el-button :disabled="!canRedo" @click="redo()">
-            <el-icon><Right /></el-icon>
+            <ToolIcon name="redo" />
           </el-button>
         </el-tooltip>
 
@@ -83,7 +83,7 @@
             :disabled="!canvasStore.selectedIds.length"
             @click="handleCopy"
           >
-            <el-icon><CopyDocument /></el-icon>
+            <ToolIcon name="copy" />
           </el-button>
         </el-tooltip>
 
@@ -92,7 +92,7 @@
             :disabled="!canvasStore.clipboard.length"
             @click="handlePaste"
           >
-            <el-icon><DocumentAdd /></el-icon>
+            <ToolIcon name="paste" />
           </el-button>
         </el-tooltip>
 
@@ -102,7 +102,7 @@
             :disabled="!canvasStore.selectedIds.length && !connectionStore.selectedConnectionId"
             @click="handleDelete"
           >
-            <el-icon><Delete /></el-icon>
+            <ToolIcon name="delete" />
           </el-button>
         </el-tooltip>
       </el-button-group>
@@ -112,19 +112,19 @@
       <el-button-group>
         <el-tooltip content="放大" placement="bottom">
           <el-button @click="handleZoomIn">
-            <el-icon><ZoomIn /></el-icon>
+            <ToolIcon name="zoom-in" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="缩小" placement="bottom">
           <el-button @click="handleZoomOut">
-            <el-icon><ZoomOut /></el-icon>
+            <ToolIcon name="zoom-out" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="适应画布" placement="bottom">
           <el-button @click="handleZoomFit">
-            <el-icon><FullScreen /></el-icon>
+            <ToolIcon name="fit" />
           </el-button>
         </el-tooltip>
       </el-button-group>
@@ -137,16 +137,13 @@
       <el-button-group>
         <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
           <el-button @click="uiStore.toggleTheme()">
-            <el-icon>
-              <Moon v-if="uiStore.theme === 'dark'" />
-              <Sunny v-else />
-            </el-icon>
+            <ToolIcon :name="uiStore.theme === 'dark' ? 'theme-dark' : 'theme-light'" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="画布配置" placement="bottom">
           <el-button @click="showCanvasConfig = true">
-            <el-icon><Crop /></el-icon>
+            <ToolIcon name="canvas" />
           </el-button>
         </el-tooltip>
       </el-button-group>
@@ -158,25 +155,25 @@
       <el-button-group>
         <el-tooltip content="保存 (Ctrl+S)" placement="bottom">
           <el-button @click="handleSave">
-            <el-icon><FolderChecked /></el-icon>
+            <ToolIcon name="save" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="导出JSON" placement="bottom">
           <el-button @click="handleExport">
-            <el-icon><Download /></el-icon>
+            <ToolIcon name="download" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="导出图片(PNG)" placement="bottom">
           <el-button @click="handleExportImage">
-            <el-icon><Picture /></el-icon>
+            <ToolIcon name="image" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="导入JSON" placement="bottom">
           <el-button @click="handleImport">
-            <el-icon><Upload /></el-icon>
+            <ToolIcon name="upload" />
           </el-button>
         </el-tooltip>
       </el-button-group>
@@ -185,21 +182,21 @@
 
       <el-tooltip content="发布：把当前工程快照为运行版" placement="bottom">
         <el-button @click="handlePublish">
-          <el-icon><Promotion /></el-icon>
+          <ToolIcon name="publish" />
           发布
         </el-button>
       </el-tooltip>
 
       <el-tooltip content="预览模式（默认显示发布版）" placement="bottom">
         <el-button type="success" @click="handlePreview">
-          <el-icon><VideoPlay /></el-icon>
+          <ToolIcon name="play" />
           预览
         </el-button>
       </el-tooltip>
 
       <el-dropdown @command="handleUserCommand">
         <span class="user-chip">
-          <el-icon><UserFilled /></el-icon>
+          <ToolIcon name="user" />
           {{ authStore.displayName }}
           <el-tag size="small" :type="roleTag">{{ roleLabel }}</el-tag>
         </span>
@@ -227,6 +224,7 @@ import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
+import ToolIcon from './ToolIcon.vue'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
 import { useEditClipboard } from './toolbar/useEditClipboard'
