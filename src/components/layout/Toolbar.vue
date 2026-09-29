@@ -195,13 +195,11 @@
       </el-tooltip>
 
       <el-dropdown @command="handleUserCommand">
-        <span class="user-chip">
-          <ToolIcon name="user" />
-          {{ authStore.displayName }}
-          <el-tag v-if="roleLabel && roleLabel !== authStore.displayName" size="small" :type="roleTag">
-            {{ roleLabel }}
-          </el-tag>
-        </span>
+        <UserChip
+          :display-name="authStore.displayName"
+          :username="authStore.user?.username"
+          :role="authStore.role"
+        />
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item v-if="authStore.canManageUsers" command="users">
@@ -220,20 +218,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import ToolIcon from './ToolIcon.vue'
+import UserChip from '@/components/common/UserChip.vue'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
 import { useEditClipboard } from './toolbar/useEditClipboard'
 import { useProjectActions } from './toolbar/useProjectActions'
 import { useToolbarShortcuts } from './toolbar/useToolbarShortcuts'
 import { useAuthStore } from '@/stores/authStore'
-import { ROLE_LABELS } from '@/types/auth'
 
 const canvasStore = useCanvasStore()
 const connectionStore = useConnectionStore()
@@ -246,17 +244,6 @@ const { canUndo, canRedo, undo, redo, saveState } = useHistory()
 const showCanvasConfig = ref(false)
 const showUserManage = ref(false)
 
-const roleLabel = computed(() =>
-  authStore.role ? ROLE_LABELS[authStore.role] : '',
-)
-const roleTag = computed(() => {
-  switch (authStore.role) {
-    case 'admin': return 'danger'
-    case 'engineer': return 'warning'
-    case 'operator': return 'success'
-    default: return 'info'
-  }
-})
 
 async function handleUserCommand(cmd: string) {
   if (cmd === 'users') {

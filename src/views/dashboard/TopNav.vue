@@ -24,13 +24,10 @@
         </template>
       </el-dropdown>
       <el-dropdown @command="(c: string) => emit('user', c)">
-        <span class="user-chip">
-          <el-icon><UserFilled /></el-icon>
-          {{ displayName }}
-          <el-tag v-if="roleLabel && roleLabel !== displayName" size="small" :type="roleTag">
-            {{ roleLabel }}
-          </el-tag>
-        </span>
+        <UserChip
+          :display-name="displayName"
+          :role="role"
+        />
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item v-if="canManageUsers" command="users">用户管理</el-dropdown-item>
@@ -43,10 +40,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { ROLE_LABELS, type Role } from '@/types/auth'
+import type { Role } from '@/types/auth'
+import UserChip from '@/components/common/UserChip.vue'
 
-const props = defineProps<{
+defineProps<{
   displayName: string
   role: Role | null
   canManageUsers: boolean
@@ -56,14 +53,4 @@ const emit = defineEmits<{
   system: [cmd: string]
   user: [cmd: string]
 }>()
-
-const roleLabel = computed(() => (props.role ? ROLE_LABELS[props.role] : ''))
-const roleTag = computed(() => {
-  switch (props.role) {
-    case 'admin': return 'danger'
-    case 'engineer': return 'warning'
-    case 'operator': return 'success'
-    default: return 'info'
-  }
-})
 </script>
