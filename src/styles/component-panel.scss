@@ -21,7 +21,54 @@
     border-bottom: 1px solid var(--border-primary);
     font-size: 14px;
   }
-  
+
+  .panel-tabs {
+    position: sticky;
+    top: 37px;
+    z-index: 1;
+    display: flex;
+    gap: 2px;
+    padding: 6px 8px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  .panel-tab {
+    flex: 1;
+    height: 28px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+
+    &:hover {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+    }
+
+    &.active {
+      color: var(--text-primary);
+      font-weight: 600;
+      background: var(--bg-tertiary);
+      border-color: var(--border-active);
+    }
+  }
+
+  .panel-body {
+    min-height: 0;
+  }
+
+  .custom-empty {
+    padding: 24px 12px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
   .component-group {
     padding: 12px;
     border-bottom: 1px solid var(--border-primary);

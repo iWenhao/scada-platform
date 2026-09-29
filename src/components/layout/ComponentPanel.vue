@@ -8,46 +8,67 @@
         </el-button>
       </el-tooltip>
     </div>
-    
-    <div
-      v-for="[group, components] in groupedComponents"
-      :key="group"
-      class="component-group"
-    >
-      <div class="group-title">{{ getGroupName(group) }}</div>
 
-      <div class="component-items">
-        <div
-          v-for="comp in components"
-          :key="comp.type"
-          class="component-item"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, comp)"
-        >
-          <div class="component-icon" v-html="comp.icon"></div>
-          <span class="component-name">{{ comp.name }}</span>
-        </div>
-      </div>
+    <div class="panel-tabs" role="tablist">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="panel-tab"
+        :class="{ active: activeTab === tab.key }"
+        role="tab"
+        :aria-selected="activeTab === tab.key"
+        @click="activeTab = tab.key"
+      >
+        {{ tab.label }}
+      </button>
     </div>
 
-    <!-- 自定义组件：有内容才展示，不显示分组标题/空态文案 -->
-    <div v-if="customDefs.length" class="component-group custom-group">
-      <div class="component-items">
+    <div class="panel-body">
+      <!-- 基础 / 行业：按原始分组展示 -->
+      <template v-if="activeTab !== 'custom'">
         <div
-          v-for="comp in customDefs"
-          :key="comp.type"
-          class="component-item custom-card"
-          draggable="true"
-          @dragstart="(e) => onDragStart(e, comp)"
+          v-for="[group, components] in tabGroups"
+          :key="group"
+          class="component-group"
         >
-          <div class="card-actions">
-            <el-icon title="编辑" @click.stop="startEditCustom(comp)"><Edit /></el-icon>
-            <el-icon title="删除" @click.stop="removeCustom(comp)"><Delete /></el-icon>
+          <div class="group-title">{{ getGroupName(group) }}</div>
+          <div class="component-items">
+            <div
+              v-for="comp in components"
+              :key="comp.type"
+              class="component-item"
+              draggable="true"
+              @dragstart="(e) => onDragStart(e, comp)"
+            >
+              <div class="component-icon" v-html="comp.icon"></div>
+              <span class="component-name">{{ comp.name }}</span>
+            </div>
           </div>
-          <div class="component-icon" v-html="comp.icon"></div>
-          <span class="component-name">{{ comp.name }}</span>
         </div>
-      </div>
+      </template>
+
+      <!-- 自定义组件 -->
+      <template v-else>
+        <div v-if="customDefs.length" class="component-group custom-group">
+          <div class="component-items">
+            <div
+              v-for="comp in customDefs"
+              :key="comp.type"
+              class="component-item custom-card"
+              draggable="true"
+              @dragstart="(e) => onDragStart(e, comp)"
+            >
+              <div class="card-actions">
+                <el-icon title="编辑" @click.stop="startEditCustom(comp)"><Edit /></el-icon>
+                <el-icon title="删除" @click.stop="removeCustom(comp)"><Delete /></el-icon>
+              </div>
+              <div class="component-icon" v-html="comp.icon"></div>
+              <span class="component-name">{{ comp.name }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="custom-empty">暂无自定义组件</div>
+      </template>
     </div>
 
     <CustomComponentDialog
@@ -63,7 +84,7 @@ import { ref, computed, onMounted } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
 import { updateCustomComponent, removeCustomComponent } from '@/industrial/customLibrary'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import type { ComponentDefinition } from '@/types/scada'
+import type { ComponentDefinition, ComponentGroup } from '@/types/scada'
 
 // 初始化组件注册
 import { basicComponents } from '@/industrial/basic'
@@ -77,7 +98,7 @@ import { chartComponents } from '@/industrial/chart'
 import { loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
 import { registerComponents } from '@/industrial/registry'
 
-// 注册内置 + 自定义(从存储恢复)组件
+// 注册内置组件（自定义从存储恢复后单独注册）
 registerComponents([
   ...basicComponents,
   ...pipelineComponents,
@@ -88,20 +109,41 @@ registerComponents([
   ...waterComponents,
   ...chartComponents,
 ])
+
+/** Tab：基础 / 行业 / 自定义 */
+type TabKey = 'basic' | 'industry' | 'custom'
+
+const tabs: Array<{ key: TabKey; label: string }> = [
+  { key: 'basic', label: '基础组件' },
+  { key: 'industry', label: '行业组件' },
+  { key: 'custom', label: '自定义组件' },
+]
+
+const activeTab = ref<TabKey>('basic')
+
+/** 基础 Tab 覆盖的注册分组 */
+const BASIC_GROUPS: ComponentGroup[] = ['basic', 'pipeline', 'electrical', 'chart']
+/** 行业 Tab 覆盖的注册分组 */
+const INDUSTRY_GROUPS: ComponentGroup[] = ['coal', 'power', 'chemical', 'water']
+
 const customDefs = ref<ComponentDefinition[]>([])
 const showCustomDialog = ref(false)
 const editingDef = ref<ComponentDefinition | null>(null)
 
 onMounted(async () => {
-  // 从存储恢复自定义组件并注册
   customDefs.value = await loadCustomComponents()
 })
 
-// 内置分组(自定义组件由独立区块展示, 此处排除避免重复)
-const groupedComponents = computed(() => {
+/** 当前 Tab 下的分组（保持原有组内顺序，空组不展示） */
+const tabGroups = computed(() => {
   const map = getComponentsByGroup()
-  map.delete('custom')
-  return map
+  const wanted = activeTab.value === 'basic' ? BASIC_GROUPS : INDUSTRY_GROUPS
+  const result: Array<[ComponentGroup, ComponentDefinition[]]> = []
+  for (const group of wanted) {
+    const list = map.get(group)
+    if (list?.length) result.push([group, list])
+  }
+  return result
 })
 
 const groupNames: Record<string, string> = {
@@ -125,6 +167,7 @@ async function onCustomSaved(def: ComponentDefinition) {
   } else {
     await addCustomComponent(def)
     customDefs.value = [...customDefs.value, def]
+    activeTab.value = 'custom'
   }
 }
 
