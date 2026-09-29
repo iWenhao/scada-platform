@@ -4,14 +4,50 @@ import { useUiStore } from '@/stores/uiStore'
 import { useAuditStore } from '@/stores/auditStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useProjectStore } from '@/stores/projectStore'
-import { findTag, checkWriteAllowed, type TagDef } from '@/types/tag'
+import {
+  findTag,
+  checkWriteAllowed,
+  checkUnregisteredPolicy,
+  type TagDef,
+} from '@/types/tag'
 import type { ComponentInstance } from '@/types/scada'
 
 /**
  * 预览运行态写值（加固版）：
- *   角色 → 写值锁 → 点表只读/量程 → 输入 → 二次确认 → 下发 → 审计。
+ *   角色 → 写值锁 → 未登记策略 → 点表只读/量程 → 按类型输入 → 二次确认 → 下发 → 审计。
  * 任一环节拒绝都会写审计（值记「被拒绝」），不发起网络请求。
+ *
+ * 输入界面为 WriteValueDialog（按点表 dataType 切换数值/开关/文本），
+ * 状态是模块级单例：全局同一时刻只有一个写值流程在进行。
  */
+
+export interface WriteDialogState {
+  visible: boolean
+  mode: 'number' | 'switch' | 'text'
+  deviceId: string
+  variable: string
+  elementName: string
+  unit: string
+  description: string
+  min?: number
+  max?: number
+  /** 展示用的当前值（字符串化） */
+  current?: string
+  onConfirm?: (value: number | string | boolean) => void
+  onCancel?: () => void
+}
+
+/** 模块级单例：写值对话框同一时刻只有一个 */
+export const writeDialogState: WriteDialogState = {
+  visible: false,
+  mode: 'number',
+  deviceId: '',
+  variable: '',
+  elementName: '',
+  unit: '',
+  description: '',
+}
+
 export function useWriteValue() {
   const deviceStore = useDeviceStore()
   const uiStore = useUiStore()
@@ -28,6 +64,36 @@ export function useWriteValue() {
       value: '(被拒绝)',
       ok: false,
       error: reason,
+    })
+  }
+
+  /**
+   * 打开类型化的输入对话框。
+   * @returns 用户确认的输入值；取消返回 null
+   */
+  function openInputDialog(info: {
+    mode: WriteDialogState['mode']
+    deviceId: string
+    variable: string
+    elementName: string
+    unit: string
+    description: string
+    min?: number
+    max?: number
+    current?: string
+  }): Promise<number | string | boolean | null> {
+    return new Promise(resolve => {
+      Object.assign(writeDialogState, info, {
+        visible: true,
+        onConfirm: (value: number | string | boolean) => {
+          writeDialogState.visible = false
+          resolve(value)
+        },
+        onCancel: () => {
+          writeDialogState.visible = false
+          resolve(null)
+        },
+      })
     })
   }
 
@@ -52,45 +118,47 @@ export function useWriteValue() {
       return
     }
 
-    // 3. 点表：只读 / 量程
+    // 3. 点表：未登记策略 / 只读
     const tag: TagDef | null = findTag(projectStore.tagTable, deviceId, variable)
+    const policyError = checkUnregisteredPolicy(projectStore.writePolicy, tag)
+    if (policyError) {
+      reject(deviceId, variable, policyError)
+      return
+    }
     if (tag?.writable === false) {
       reject(deviceId, variable, `「${deviceId}.${variable}」在点表中为只读，禁止写值`)
       return
     }
 
+    const dataType = tag?.dataType ?? 'number'
+    const mode: WriteDialogState['mode'] =
+      dataType === 'boolean' ? 'switch' : dataType === 'string' ? 'text' : 'number'
     const unit = tag?.unit || element.properties?.unit || ''
-    const current = deviceStore.getVariableValue(deviceId, variable)
+    const rawCurrent = deviceStore.getVariableValue(deviceId, variable)
 
-    // 4. 输入
-    let input: string
-    try {
-      const result = await ElMessageBox.prompt(
-        `向 ${deviceId}.${variable} 下发新值${unit ? `（${unit}）` : ''}` +
-          (tag?.min !== undefined || tag?.max !== undefined
-            ? `，量程 ${tag.min ?? '-'} ~ ${tag.max ?? '-'}`
-            : ''),
-        element.name,
-        {
-          inputValue: current !== undefined ? String(current) : '',
-          confirmButtonText: '下一步',
-          cancelButtonText: '取消',
-          inputPattern: /^-?\d+(\.\d+)?$/,
-          inputErrorMessage: '请输入数字',
-        },
-      )
-      input = result.value
-    } catch {
-      return
-    }
+    // 4. 按类型输入
+    const input = await openInputDialog({
+      mode,
+      deviceId,
+      variable,
+      elementName: element.name,
+      unit,
+      description: tag?.description ?? '',
+      min: tag?.min,
+      max: tag?.max,
+      current: rawCurrent === undefined ? undefined : String(rawCurrent),
+    })
+    if (input === null) return
 
-    const nextValue = Number(input)
-
-    // 5. 点表量程（输入后再校验一次）
-    const rangeError = checkWriteAllowed(tag, nextValue)
+    // 5. 类型一致与量程校验（输入后仍要过一遍，防绕过 UI）
+    const rangeError = checkWriteAllowed(tag, input)
     if (rangeError) {
       reject(deviceId, variable, rangeError)
       return
+    }
+    // warn 策略：放行但明确告知未登记
+    if (projectStore.writePolicy === 'warn' && !tag) {
+      ElMessage.warning(`「${deviceId}.${variable}」未在点表中登记，请确认后再下发`)
     }
 
     // 6. 二次确认：明确当前值 → 目标值
@@ -98,8 +166,8 @@ export function useWriteValue() {
       await ElMessageBox.confirm(
         [
           `设备/变量：${deviceId}.${variable}`,
-          `当前值：${current !== undefined ? current : '-'}${unit ? ` ${unit}` : ''}`,
-          `下发值：${nextValue}${unit ? ` ${unit}` : ''}`,
+          `当前值：${rawCurrent !== undefined ? rawCurrent : '-'}${unit ? ` ${unit}` : ''}`,
+          `下发值：${input}${unit ? ` ${unit}` : ''}`,
           tag?.description ? `点位说明：${tag.description}` : '',
           '',
           '确认后将立即下发到现场设备。',
@@ -120,7 +188,7 @@ export function useWriteValue() {
 
     // 7. 下发
     try {
-      await deviceStore.writeValue(deviceId, variable, nextValue)
+      await deviceStore.writeValue(deviceId, variable, input)
       auditStore.record({
         operator: authStore.operatorName(),
         deviceId,

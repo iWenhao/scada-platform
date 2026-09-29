@@ -7,6 +7,15 @@
   >
     <el-tabs v-model="activeTab">
       <el-tab-pane label="点表" name="tags">
+    <div class="policy-row">
+      <span class="policy-label">未登记点位写值策略</span>
+      <el-radio-group v-model="writePolicy" size="small" @change="onPolicyChange">
+        <el-radio-button value="allow">允许</el-radio-button>
+        <el-radio-button value="warn">提示后允许</el-radio-button>
+        <el-radio-button value="deny">禁止</el-radio-button>
+      </el-radio-group>
+      <span class="policy-hint">控制点表中没有登记的点位能否在预览页下发写值，随工程保存</span>
+    </div>
     <div class="tag-toolbar">
       <el-button type="primary" size="small" @click="addTag">
         <el-icon><Plus /></el-icon>
@@ -195,7 +204,9 @@ import {
   tagKey,
   createTagId,
   findTag,
+  WRITE_POLICY_TEXT,
   type TagDef,
+  type WritePolicy,
 } from '@/types/tag'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -210,6 +221,21 @@ const keyword = ref('')
 const liveKeyword = ref('')
 const activeTab = ref<'tags' | 'live'>('tags')
 const saving = ref(false)
+const writePolicy = ref<WritePolicy>('allow')
+
+/** 策略变化即提交（随工程保存） */
+function onPolicyChange(policy: WritePolicy) {
+  projectStore.setWritePolicy(policy)
+  ElMessage.success(`未登记点位写值策略已设为「${WRITE_POLICY_TEXT[policy]}」`)
+}
+
+// 打开对话框时从工程同步策略
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) writePolicy.value = projectStore.writePolicy
+  },
+)
 
 const editVisible = ref(false)
 const editing = ref<TagDef | null>(null)
@@ -426,6 +452,23 @@ function handleSave() {
 </script>
 
 <style scoped lang="scss">
+.policy-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  .policy-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .policy-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+}
+
 .tag-toolbar {
   display: flex;
   align-items: center;

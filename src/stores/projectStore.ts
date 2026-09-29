@@ -9,7 +9,7 @@ import type { DataSourceConfig } from '@/datasource/types'
 import type { AlarmDefinition } from '@/types/alarm'
 import { normalizeAlarmDef } from '@/types/alarm'
 import { createPageId, type ScadaPage } from '@/types/page'
-import { createTagId, type TagDef } from '@/types/tag'
+import { createTagId, type TagDef, type WritePolicy } from '@/types/tag'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -33,6 +33,9 @@ export const useProjectStore = defineStore('project', () => {
 
   // 点表：设备.变量 的元数据档案（单位/量程/可写），随工程持久化
   const tagTable = ref<TagDef[]>([])
+
+  // 未登记点位的写值策略：allow 放行（默认，兼容旧行为）/ warn 提示后允许 / deny 禁止
+  const writePolicy = ref<WritePolicy>('allow')
 
   /** 草稿存储键：独立于正式工程前缀 */
   const draftKey = (name: string) => `scada_draft_${name}`
@@ -65,6 +68,7 @@ export const useProjectStore = defineStore('project', () => {
       dataSource: dataSourceConfig.value,
       alarmDefs: alarmDefs.value,
       tagTable: tagTable.value,
+      writePolicy: writePolicy.value,
     }
   }
 
@@ -128,6 +132,12 @@ export const useProjectStore = defineStore('project', () => {
             note: t.note || undefined,
           }))
       : []
+
+    // 旧工程没有 writePolicy 字段，回落 allow 保持原行为
+    writePolicy.value =
+      projectData.writePolicy === 'warn' || projectData.writePolicy === 'deny'
+        ? projectData.writePolicy
+        : 'allow'
   }
 
   /**
@@ -341,6 +351,12 @@ export const useProjectStore = defineStore('project', () => {
     hasUnsavedChanges.value = true
   }
 
+  /** 设置未登记点位的写值策略（随工程保存） */
+  function setWritePolicy(policy: WritePolicy) {
+    writePolicy.value = policy
+    hasUnsavedChanges.value = true
+  }
+
   /**
    * 重置项目
    */
@@ -351,6 +367,7 @@ export const useProjectStore = defineStore('project', () => {
     hasUnsavedChanges.value = false
     dataSourceConfig.value = { type: 'mock', name: 'default' }
     alarmDefs.value = []
+    writePolicy.value = 'allow'
     tagTable.value = []
 
     // 新建项目必须连同画布内容一起清空：残留的旧元素/连线会让人以为还在编辑上一个工程，
@@ -367,6 +384,8 @@ export const useProjectStore = defineStore('project', () => {
     dataSourceConfig,
     alarmDefs,
     tagTable,
+    writePolicy,
+    setWritePolicy,
     setAlarmDefs,
     setTagTable,
     saveProject,

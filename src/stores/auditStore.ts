@@ -52,7 +52,7 @@ export const useAuditStore = defineStore('audit', () => {
   function record(
     entry: Omit<AuditEntry, 't' | 'operator' | 'value'> & {
       operator?: string
-      value: string | number
+      value: string | number | boolean
     },
   ) {
     const full: AuditEntry = {

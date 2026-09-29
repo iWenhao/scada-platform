@@ -39,21 +39,31 @@ describe('MockDataAdapter', () => {
     expect(tick1.motor_1?.speed).toBeLessThan(1170)
   })
 
-  it('非数字写值应该抛错且不推送', async () => {
+  it('NaN 写值应该抛错且不推送（合法字符串已被支持）', async () => {
     await adapter.connect({ type: 'mock', name: 'test', interval: 60000 })
     const updateCountBefore = updates.length
 
-    await expect(adapter.write({ deviceId: 'motor_1', variable: 'speed', value: 'abc' }))
-      .rejects.toThrow('设定值必须是数字')
+    await expect(adapter.write({ deviceId: 'motor_1', variable: 'speed', value: Number.NaN }))
+      .rejects.toThrow('设定值非法')
 
     expect(updates.length).toBe(updateCountBefore)
   })
 
-  it('数字字符串写值应该按数值处理', async () => {
+  it('数字字符串写值按原值推送（类型由点表校验负责）', async () => {
     await adapter.connect({ type: 'mock', name: 'test', interval: 60000 })
 
     await adapter.write({ deviceId: 'valve_1', variable: 'openDegree', value: '55' })
 
-    expect(updates[updates.length - 1]).toEqual({ valve_1: { openDegree: 55 } })
+    expect(updates[updates.length - 1]).toEqual({ valve_1: { openDegree: '55' } })
+  })
+
+  it('布尔与字符串写值原样推送', async () => {
+    await adapter.connect({ type: 'mock', name: 'test', interval: 60000 })
+
+    await adapter.write({ deviceId: 'motor_1', variable: 'status', value: '运行正常' })
+    await adapter.write({ deviceId: 'motor_1', variable: 'running', value: true })
+
+    expect(updates[updates.length - 2]).toEqual({ motor_1: { status: '运行正常' } })
+    expect(updates[updates.length - 1]).toEqual({ motor_1: { running: true } })
   })
 })

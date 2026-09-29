@@ -25,6 +25,9 @@
       :variable="trendVariable"
     />
     <AuditLogDialog v-model="showAuditLog" />
+
+    <!-- 写值输入：按点表类型切换数值/开关/文本 -->
+    <WriteValueDialog />
   </div>
 </template>
 
@@ -40,6 +43,7 @@ import { usePageStore } from '@/stores/pageStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
 import AuditLogDialog from '@/components/dialogs/AuditLogDialog.vue'
+import WriteValueDialog from './WriteValueDialog.vue'
 import PreviewHeader from './PreviewHeader.vue'
 import PreviewStage from './PreviewStage.vue'
 import { useWriteValue } from './useWriteValue'

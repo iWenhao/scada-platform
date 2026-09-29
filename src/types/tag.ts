@@ -50,7 +50,36 @@ export function findTag(
 }
 
 /**
- * 校验写值是否合法（只读 / 量程）。
+ * 未登记点位的写值策略（工程级配置）：
+ *   allow 未登记也允许写（默认，兼容旧行为）
+ *   warn  允许写但提示并留痕"未登记"
+ *   deny  未登记一律拒绝
+ */
+export type WritePolicy = 'allow' | 'warn' | 'deny'
+
+export const WRITE_POLICY_TEXT: Record<WritePolicy, string> = {
+  allow: '允许',
+  warn: '提示后允许',
+  deny: '禁止',
+}
+
+/**
+ * 未登记点位的策略判定。
+ * @returns null 表示放行；否则为拒绝原因（deny 时）
+ */
+export function checkUnregisteredPolicy(
+  policy: WritePolicy,
+  tag: TagDef | null,
+): string | null {
+  if (tag) return null
+  if (policy === 'deny') {
+    return '该点位未在点表中登记，当前策略禁止写值'
+  }
+  return null
+}
+
+/**
+ * 校验写值是否合法（只读 / 类型一致 / 量程）。
  * @returns null 表示允许；否则为拒绝原因
  */
 export function checkWriteAllowed(
@@ -61,12 +90,23 @@ export function checkWriteAllowed(
   if (tag.writable === false) {
     return '该点位在点表中为只读，禁止写值'
   }
-  if (typeof value === 'number' && tag.dataType === 'number') {
+  if (tag.dataType === 'number') {
+    if (typeof value !== 'number') {
+      return '该点位为数值类型，请输入数字'
+    }
     if (tag.min !== undefined && value < tag.min) {
       return `超出量程下限 ${tag.min}`
     }
     if (tag.max !== undefined && value > tag.max) {
       return `超出量程上限 ${tag.max}`
+    }
+  } else if (tag.dataType === 'string') {
+    if (typeof value !== 'string' || value.trim() === '') {
+      return '该点位为字符串类型，请输入非空文本'
+    }
+  } else if (tag.dataType === 'boolean') {
+    if (typeof value !== 'boolean') {
+      return '该点位为开关类型，请选择开或关'
     }
   }
   return null

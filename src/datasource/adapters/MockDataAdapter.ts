@@ -13,8 +13,14 @@ export class MockDataAdapter implements DataSourceAdapter {
   private updateCallback: ((update: DataUpdate) => void) | null = null
   private status: 'connected' | 'disconnected' | 'error' = 'disconnected'
 
-  /** 上一次输出的数值，按 `${设备}.${变量}` 缓存 */
-  private values = new Map<string, number>()
+  /** 上一次输出的值，按 `${设备}.${变量}` 缓存（写值可注入字符串/布尔） */
+  private values = new Map<string, number | string | boolean>()
+
+  /** 缓存值数值化：非数值（如写入的字符串/布尔）回落到 fallback，避免游走算出 NaN */
+  private asNumber(key: string, fallback: number): number {
+    const v = Number(this.values.get(key))
+    return Number.isFinite(v) ? v : fallback
+  }
 
   /**
    * 带惯性的连续量：在上次值基础上小步游走，并向量程中点轻微回复，
@@ -23,7 +29,7 @@ export class MockDataAdapter implements DataSourceAdapter {
   private walk(device: string, variable: string, min: number, max: number, rate = 0.06): number {
     const key = `${device}.${variable}`
     const span = max - min
-    const prev = this.values.get(key) ?? min + span * 0.5
+    const prev = this.asNumber(key, min + span * 0.5)
     const mean = min + span * 0.5
     const next = prev + (mean - prev) * 0.02 + (Math.random() - 0.5) * span * rate * 2
     const clamped = Math.min(max, Math.max(min, next))
@@ -40,7 +46,7 @@ export class MockDataAdapter implements DataSourceAdapter {
     flipChance = 0.05,
   ): number {
     const key = `${device}.${variable}`
-    const prev = this.values.get(key) ?? onValue
+    const prev = this.asNumber(key, onValue)
     const next = Math.random() < flipChance
       ? (prev === onValue ? offValue : onValue)
       : prev
@@ -51,7 +57,7 @@ export class MockDataAdapter implements DataSourceAdapter {
   /** 设备启停门控：用于「停机时该变量直接归零」的场景 */
   private gateOpen(device: string, flipChance = 0.03): boolean {
     const key = `${device}#gate`
-    const prev = this.values.get(key) ?? 1
+    const prev = this.asNumber(key, 1)
     const next = Math.random() < flipChance ? (prev === 1 ? 0 : 1) : prev
     this.values.set(key, next)
     return next === 1
@@ -173,16 +179,16 @@ export class MockDataAdapter implements DataSourceAdapter {
   }
 
   /**
-   * 写值：覆盖模拟值并立即推送一次更新，让画面即时反映设定结果；
-   * 下个 tick 的随机游走从写入值继续（不跳回旧值）。
+   * 写值：覆盖模拟值并立即推送一次更新，让画面即时反映设定结果。
+   * 支持数值/字符串/布尔（点表 dataType 对应）；数值写入后游走从新值继续。
    */
   async write(req: WriteRequest): Promise<void> {
-    const numeric = Number(req.value)
-    if (Number.isNaN(numeric)) {
-      throw new Error(`设定值必须是数字，收到 "${req.value}"`)
+    const value = req.value
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      throw new Error(`设定值非法: ${value}`)
     }
-    this.values.set(`${req.deviceId}.${req.variable}`, numeric)
-    this.updateCallback?.({ [req.deviceId]: { [req.variable]: numeric } })
+    this.values.set(`${req.deviceId}.${req.variable}`, value)
+    this.updateCallback?.({ [req.deviceId]: { [req.variable]: value } })
   }
 
   disconnect() {

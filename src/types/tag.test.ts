@@ -6,6 +6,7 @@ import {
   tagToCsvRow,
   findTag,
   checkWriteAllowed,
+  checkUnregisteredPolicy,
   type TagDef,
 } from './tag'
 
@@ -125,5 +126,44 @@ describe('findTag / checkWriteAllowed', () => {
     expect(checkWriteAllowed(tags[0], 1500)).toBeNull()
     expect(checkWriteAllowed(tags[0], -1)).toMatch(/下限/)
     expect(checkWriteAllowed(tags[0], 5000)).toMatch(/上限/)
+  })
+
+  it('数值点位写入字符串被类型校验拒绝', () => {
+    expect(checkWriteAllowed(tags[0], '1500')).toMatch(/数值类型/)
+  })
+
+  describe('string / boolean 类型点位', () => {
+    const strTag: TagDef = { id: 's', deviceId: 'dev', name: 'label', dataType: 'string', writable: true }
+    const boolTag: TagDef = { id: 'b', deviceId: 'dev', name: 'running', dataType: 'boolean', writable: true }
+
+    it('字符串点位接受非空文本，拒绝空串与非字符串', () => {
+      expect(checkWriteAllowed(strTag, '运行正常')).toBeNull()
+      expect(checkWriteAllowed(strTag, '')).toMatch(/非空文本/)
+      expect(checkWriteAllowed(strTag, '   ')).toMatch(/非空文本/)
+      expect(checkWriteAllowed(strTag, 1)).toMatch(/字符串类型/)
+    })
+
+    it('开关点位接受布尔值，拒绝数字与字符串', () => {
+      expect(checkWriteAllowed(boolTag, true)).toBeNull()
+      expect(checkWriteAllowed(boolTag, false)).toBeNull()
+      expect(checkWriteAllowed(boolTag, 1)).toMatch(/开关类型/)
+      expect(checkWriteAllowed(boolTag, 'true')).toMatch(/开关类型/)
+    })
+  })
+})
+
+describe('checkUnregisteredPolicy', () => {
+  it('allow / warn 放行（warn 的提示由调用方处理）', () => {
+    expect(checkUnregisteredPolicy('allow', null)).toBeNull()
+    expect(checkUnregisteredPolicy('warn', null)).toBeNull()
+  })
+
+  it('deny 拒绝未登记点位', () => {
+    expect(checkUnregisteredPolicy('deny', null)).toMatch(/未在点表中登记/)
+  })
+
+  it('已登记点位不受策略影响', () => {
+    const tag: TagDef = { id: 'x', deviceId: 'd', name: 'v', dataType: 'number' }
+    expect(checkUnregisteredPolicy('deny', tag)).toBeNull()
   })
 })
