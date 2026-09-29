@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAlarmStore } from './alarmStore'
@@ -172,7 +172,15 @@ describe('alarmStore - 独立报警定义', () => {
     alarm = useAlarmStore()
     device = useDeviceStore()
     project = useProjectStore()
+    // 报警判定要求数据可信：默认构造"已连接且刚上报"的状态
+    device.connectionStatus = 'connected'
   })
+
+  /** 写入点位值并标记为刚上报（否则会被判为陈旧而不参与判定） */
+  function setVar(deviceId: string, variable: string, value: number) {
+    device.deviceData[deviceId] = { [variable]: value }
+    device.variableMeta = { [`${deviceId}.${variable}`]: { t: Date.now(), q: 'good' } }
+  }
 
   function makeDef(partial: Partial<AlarmDefinition> = {}): AlarmDefinition {
     return {
@@ -191,7 +199,7 @@ describe('alarmStore - 独立报警定义', () => {
 
   it('定义报警不依赖画布元素即可触发与恢复', () => {
     project.setAlarmDefs([makeDef()])
-    device.deviceData['tank_1'] = { level: 95 }
+    setVar('tank_1', 'level', 95)
 
     alarm.recompute()
     expect(alarm.activeCount).toBe(1)
@@ -201,7 +209,7 @@ describe('alarmStore - 独立报警定义', () => {
     expect(record.ruleName).toBe('tank_1.level')
     expect(record.severity).toBe('warning')
 
-    device.deviceData['tank_1'] = { level: 50 }
+    setVar('tank_1', 'level', 50)
     alarm.recompute()
     expect(alarm.activeCount).toBe(0)
     expect(alarm.alarmHistory).toHaveLength(1)
@@ -212,7 +220,7 @@ describe('alarmStore - 独立报警定义', () => {
     vi.useFakeTimers()
     try {
       project.setAlarmDefs([makeDef({ onDelayMs: 5000 })])
-      device.deviceData['tank_1'] = { level: 95 }
+      setVar('tank_1', 'level', 95)
 
       alarm.recompute()
       expect(alarm.activeCount).toBe(0)
@@ -231,18 +239,18 @@ describe('alarmStore - 独立报警定义', () => {
     try {
       project.setAlarmDefs([makeDef({ onDelayMs: 5000 })])
 
-      device.deviceData['tank_1'] = { level: 95 }
+      setVar('tank_1', 'level', 95)
       alarm.recompute() // 进入延时等待
       expect(alarm.activeCount).toBe(0)
 
       vi.advanceTimersByTime(1000)
-      device.deviceData['tank_1'] = { level: 50 }
+      setVar('tank_1', 'level', 50)
       device.lastUpdateTime = Date.now()
       alarm.recompute() // 条件消失，计时取消
       expect(alarm.activeCount).toBe(0)
 
       vi.advanceTimersByTime(2000)
-      device.deviceData['tank_1'] = { level: 95 }
+      setVar('tank_1', 'level', 95)
       device.lastUpdateTime = Date.now()
       alarm.recompute() // 重新计时（此刻记为新的起点）
       expect(alarm.activeCount).toBe(0)
@@ -265,27 +273,122 @@ describe('alarmStore - 独立报警定义', () => {
     project.setAlarmDefs([makeDef({ deadband: 5 })])
 
     // 触发值 82；条件阈值 80，死区 5 → 条件不满足但仍在 [77, 87] 内时保持报警
-    device.deviceData['tank_1'] = { level: 82 }
+    setVar('tank_1', 'level', 82)
     alarm.recompute()
     expect(alarm.activeCount).toBe(1)
 
     // 条件已不满足（82 → 78），但偏离触发值仅 4 < 死区 5，保持报警
-    device.deviceData['tank_1'] = { level: 78 }
+    setVar('tank_1', 'level', 78)
     alarm.recompute()
     expect(alarm.activeCount).toBe(1)
 
     // 偏离达到 6 ≥ 死区 5，恢复
-    device.deviceData['tank_1'] = { level: 76 }
+    setVar('tank_1', 'level', 76)
     alarm.recompute()
     expect(alarm.activeCount).toBe(0)
   })
 
   it('禁用的定义不参与判定', () => {
     project.setAlarmDefs([makeDef({ enabled: false })])
-    device.deviceData['tank_1'] = { level: 95 }
+    setVar('tank_1', 'level', 95)
 
     alarm.recompute()
 
     expect(alarm.activeCount).toBe(0)
+  })
+
+  describe('数据质量联动', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    /** 让点位处于可信状态：写入元信息并标记为已连接 */
+    function markFresh(deviceId: string, variable: string) {
+      device.connectionStatus = 'connected'
+      device.variableMeta = { [`${deviceId}.${variable}`]: { t: Date.now(), q: 'good' } }
+    }
+
+    it('点位陈旧时既不触发也不恢复（维持现状）', () => {
+      project.setAlarmDefs([makeDef()])
+      markFresh('tank_1', 'level')
+      device.deviceData['tank_1'] = { level: 95 }
+      alarm.recompute()
+      expect(alarm.activeCount).toBe(1)
+
+      // 链路中断 → 点位陈旧：报警不应因"读不到新值"而假恢复
+      device.connectionStatus = 'disconnected'
+      alarm.recompute()
+      expect(alarm.activeCount).toBe(1)
+      expect(alarm.alarmHistory).toHaveLength(0)
+    })
+
+    it('点位陈旧时不会依据旧值误触发', () => {
+      project.setAlarmDefs([makeDef()])
+      device.connectionStatus = 'disconnected' // 数据不可信
+      device.deviceData['tank_1'] = { level: 95 } // 越过限的旧值
+
+      alarm.recompute()
+
+      expect(alarm.activeCount).toBe(0)
+    })
+  })
+
+  describe('通信中断看门狗', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('中断持续到达延时后报出 critical 报警', () => {
+      device.connectionStatus = 'connected'
+      alarm.recompute()
+      expect(alarm.activeCount).toBe(0)
+
+      device.connectionStatus = 'disconnected'
+      alarm.recompute()
+      // 5 秒延时未到，不误报
+      expect(alarm.activeCount).toBe(0)
+
+      vi.advanceTimersByTime(5001)
+      alarm.recompute()
+
+      expect(alarm.activeCount).toBe(1)
+      const record = alarm.activeAlarms[0]
+      expect(record.key).toBe('sys:comm')
+      expect(record.elementName).toBe('数据源通信')
+      expect(record.severity).toBe('critical')
+    })
+
+    it('通信恢复后报警转入历史', () => {
+      device.connectionStatus = 'disconnected'
+      alarm.recompute() // 先进入延时等待，之后才有时钟推进可比较
+      vi.advanceTimersByTime(5001)
+      alarm.recompute()
+      expect(alarm.activeCount).toBe(1)
+
+      device.connectionStatus = 'connected'
+      alarm.recompute()
+
+      expect(alarm.activeCount).toBe(0)
+      expect(alarm.alarmHistory[0].key).toBe('sys:comm')
+      expect(alarm.alarmHistory[0].clearedAt).toBeGreaterThan(0)
+    })
+
+    it('短暂中断（未达延时）不产生报警记录', () => {
+      device.connectionStatus = 'disconnected'
+      alarm.recompute()
+      device.connectionStatus = 'connected' // 瞬断即恢复
+      alarm.recompute()
+
+      expect(alarm.activeCount).toBe(0)
+      expect(alarm.alarmHistory).toHaveLength(0)
+    })
   })
 })

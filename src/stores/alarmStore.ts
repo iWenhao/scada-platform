@@ -8,7 +8,7 @@ import { statusEngine } from '@/status/StatusEngine'
 import { resolveSeverity } from '@/status/severity'
 import { evaluateAlarmDef, type AlarmRuntime } from '@/alarm/alarmEngine'
 import { notifyAlarm } from '@/notify/alarmNotify'
-import type { AlarmSeverity } from '@/types/scada'
+import type { AlarmSeverity, Condition } from '@/types/scada'
 
 /** 一条报警记录（活跃期间唯一，恢复后转入历史） */
 export interface AlarmRecord {
@@ -42,6 +42,18 @@ const SEVERITY_COLOR = { critical: '#ff4757', warning: '#ffa502' } as const
 
 /** 报警历史持久化键前缀（随工程存取，跨会话可追溯） */
 const historyKey = (project: string) => `scada_alarms_${project}`
+
+/**
+ * 通信看门狗：链路中断是最高优先级的系统级报警——
+ * 数据都不来了，其余点位报警的判定全部失去意义（画面上还是十分钟前的快照）。
+ * 这里把中断状态映射成伪变量再交给报警引擎，复用它现成的延时触发逻辑，
+ * 避免网络抖动造成的瞬间误报。
+ */
+const COMM_KEY = 'sys:comm'
+const COMM_VARIABLE = '__comm'
+const COMM_LOST_CONDITION: Condition = { type: 'compare', variable: COMM_VARIABLE, operator: '<', value: 1 }
+/** 中断持续该时长才真正报警（毫秒）：过滤重连过程中的短暂中断 */
+const COMM_LOSS_DELAY_MS = 5000
 
 function formatValue(raw: unknown): string {
   if (raw === undefined || raw === null) return '-'
@@ -162,7 +174,10 @@ export const useAlarmStore = defineStore('alarm', () => {
       if (!def.enabled) continue
 
       const key = `def:${def.id}`
-      const raw = deviceStore.getVariableValue(def.deviceId, def.variable)
+      // 陈旧/脏值按"数据缺失"处理：引擎会维持现状（既不误触发也不误恢复），
+      // 否则断连时旧值会被当成真值反复判定
+      const usable = deviceStore.isDataUsable(def.deviceId, def.variable)
+      const raw = usable ? deviceStore.getVariableValue(def.deviceId, def.variable) : undefined
       const numeric = typeof raw === 'number' ? raw : Number(raw)
       const wasActive = key in activeMap.value
 
@@ -171,7 +186,7 @@ export const useAlarmStore = defineStore('alarm', () => {
         variable: def.variable,
         deadband: def.deadband,
         onDelayMs: def.onDelayMs,
-        value: Number.isNaN(numeric) ? undefined : numeric,
+        value: raw === undefined || Number.isNaN(numeric) ? undefined : numeric,
         wasActive,
         runtime: runtimeMap.get(key) ?? {},
         now,
@@ -203,6 +218,50 @@ export const useAlarmStore = defineStore('alarm', () => {
       if (wasActive && result.action !== 'clear') {
         stillActive.add(key)
         activeMap.value[key].lastValue = String(raw)
+      }
+    }
+
+    // 通信看门狗（系统级，不依赖画面元素与报警定义）
+    {
+      const key = COMM_KEY
+      const wasActive = key in activeMap.value
+      const lost = deviceStore.commLost
+      const result = evaluateAlarmDef({
+        condition: COMM_LOST_CONDITION,
+        variable: COMM_VARIABLE,
+        deadband: 0,
+        onDelayMs: COMM_LOSS_DELAY_MS,
+        value: lost ? 0 : 1,
+        wasActive,
+        runtime: runtimeMap.get(key) ?? {},
+        now,
+      })
+      runtimeMap.set(key, result.runtime)
+
+      if (result.action === 'trigger') {
+        stillActive.add(key)
+        activeMap.value = {
+          ...activeMap.value,
+          [key]: {
+            key,
+            elementId: 'comm',
+            elementName: '数据源通信',
+            ruleId: 'comm-lost',
+            ruleName: '链路中断',
+            severity: 'critical',
+            color: SEVERITY_COLOR.critical,
+            value: '中断',
+            lastValue: '中断',
+            since: now,
+            acknowledged: false,
+          },
+        }
+        notifyAlarm(activeMap.value[key], 'active')
+      }
+
+      if (wasActive && result.action !== 'clear') {
+        stillActive.add(key)
+        activeMap.value[key].lastValue = lost ? '中断' : '正常'
       }
     }
 
@@ -253,7 +312,13 @@ export const useAlarmStore = defineStore('alarm', () => {
     runtimeMap.clear()
   }
 
-  watch([() => deviceStore.lastUpdateTime, inputsKey], recompute, { immediate: true })
+  // commLost 也是触发源：链路中断时数据不再推送，lastUpdateTime 会停在旧值，
+  // 若不监听它，通信中断报警与其余报警的延时计时都不会继续推进
+  watch(
+    [() => deviceStore.lastUpdateTime, () => deviceStore.commLost, inputsKey],
+    recompute,
+    { immediate: true },
+  )
 
   // ---- 历史持久化：随工程存取，跨会话可追溯（报警记录留在内存里刷新即失，追溯价值归零） ----
 
