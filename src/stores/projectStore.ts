@@ -39,6 +39,8 @@ export const useProjectStore = defineStore('project', () => {
 
   /** 草稿存储键：独立于正式工程前缀 */
   const draftKey = (name: string) => `scada_draft_${name}`
+  /** 发布快照：与草稿/工作副本分离，预览默认读发布版 */
+  const publishedKey = (name: string) => `scada_published_${name}`
 
   /**
    * 组装完整的工程数据（保存 / 导出共用，避免两处结构漂移）
@@ -157,8 +159,66 @@ export const useProjectStore = defineStore('project', () => {
 
     lastSaveTime.value = Date.now()
     hasUnsavedChanges.value = false
-    
+
     return true
+  }
+
+  /**
+   * 发布当前工程：把工作副本快照为发布版。
+   * 发布后编辑草稿不影响预览，直到再次发布。
+   */
+  async function publishProject(name?: string): Promise<boolean> {
+    if (name) projectName.value = name
+    const data = {
+      ...buildProjectData(),
+      publishedAt: Date.now(),
+    }
+    await getStorage().set(publishedKey(projectName.value), JSON.stringify(data))
+    return true
+  }
+
+  /** 取消发布（删除发布快照，预览回落到草稿） */
+  async function unpublishProject(name: string): Promise<void> {
+    await getStorage().remove(publishedKey(name))
+  }
+
+  /** 是否存在发布版 */
+  async function hasPublished(name: string): Promise<boolean> {
+    return (await getStorage().get(publishedKey(name))) !== null
+  }
+
+  /** 发布时间；无发布版返回 null */
+  async function getPublishedAt(name: string): Promise<number | null> {
+    const raw = await getStorage().get(publishedKey(name))
+    if (!raw) return null
+    try {
+      const data = JSON.parse(raw)
+      return data.publishedAt || data.timestamp || null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * 加载发布版供预览；无发布版时回落草稿（保证运行端始终有画面可看）。
+   */
+  async function loadPublishedProject(name: string): Promise<boolean> {
+    const raw = await getStorage().get(publishedKey(name))
+    if (!raw) {
+      return loadProject(name)
+    }
+    try {
+      const projectData = JSON.parse(raw)
+      projectName.value = projectData.name || name
+      projectDescription.value = projectData.description || ''
+      lastSaveTime.value = projectData.publishedAt || projectData.timestamp || null
+      applyProjectData(projectData)
+      hasUnsavedChanges.value = false
+      return true
+    } catch (e) {
+      console.error('Failed to load published project:', e)
+      return loadProject(name)
+    }
   }
 
   /**
@@ -236,6 +296,14 @@ export const useProjectStore = defineStore('project', () => {
       await storage.set(`scada_project_${trimmed}`, (await storage.get(oldKey))!)
       await storage.remove(oldKey)
     }
+    // 发布快照跟随重命名，避免预览找不到
+    const oldPub = publishedKey(projectName.value)
+    const newPub = publishedKey(trimmed)
+    const pub = await storage.get(oldPub)
+    if (pub !== null) {
+      await storage.set(newPub, pub)
+      await storage.remove(oldPub)
+    }
     projectName.value = trimmed
     hasUnsavedChanges.value = !wasSaved
     return true
@@ -256,6 +324,13 @@ export const useProjectStore = defineStore('project', () => {
 
     await storage.set(newKey, (await storage.get(oldKey))!)
     await storage.remove(oldKey)
+    const oldPub = publishedKey(oldName)
+    const newPub = publishedKey(trimmed)
+    const pub = await storage.get(oldPub)
+    if (pub !== null) {
+      await storage.set(newPub, pub)
+      await storage.remove(oldPub)
+    }
     if (projectName.value === oldName) {
       projectName.value = trimmed
     }
@@ -277,6 +352,8 @@ export const useProjectStore = defineStore('project', () => {
    */
   async function deleteProject(name: string) {
     await getStorage().remove(`scada_project_${name}`)
+    await getStorage().remove(publishedKey(name))
+    await getStorage().remove(draftKey(name))
   }
 
   /**
@@ -391,6 +468,11 @@ export const useProjectStore = defineStore('project', () => {
     setTagTable,
     saveProject,
     loadProject,
+    publishProject,
+    unpublishProject,
+    hasPublished,
+    getPublishedAt,
+    loadPublishedProject,
     exportProject,
     importProject,
     renameProject,

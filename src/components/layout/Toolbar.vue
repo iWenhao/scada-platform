@@ -183,7 +183,14 @@
 
       <el-divider direction="vertical" />
 
-      <el-tooltip content="预览模式" placement="bottom">
+      <el-tooltip content="发布：把当前工程快照为运行版" placement="bottom">
+        <el-button @click="handlePublish">
+          <el-icon><Promotion /></el-icon>
+          发布
+        </el-button>
+      </el-tooltip>
+
+      <el-tooltip content="预览模式（默认显示发布版）" placement="bottom">
         <el-button type="success" @click="handlePreview">
           <el-icon><VideoPlay /></el-icon>
           预览
@@ -269,6 +276,7 @@ const {
   handleExport,
   handleImport,
   handlePreview,
+  handlePublish,
 } = useProjectActions()
 
 useToolbarShortcuts(

@@ -145,8 +145,12 @@ let updateInterval: number | null = null
 
 onMounted(async () => {
   // 支持 /preview?project=xxx 直接打开指定工程
+  // 默认加载发布版（无发布版回落草稿）；?source=draft 可预览工作副本
   const target = (route.query.project as string) || projectStore.projectName
-  const ok = await projectStore.loadProject(target)
+  const useDraft = route.query.source === 'draft'
+  const ok = useDraft
+    ? await projectStore.loadProject(target)
+    : await projectStore.loadPublishedProject(target)
   if (!ok) {
     ElMessage.error(`未能加载工程「${target}」，请从编辑器重新进入预览`)
     return

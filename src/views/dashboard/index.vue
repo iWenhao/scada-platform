@@ -99,10 +99,27 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column prop="lastModified" label="最后修改" width="200" />
-          <el-table-column label="操作" width="280">
+          <el-table-column prop="lastModified" label="最后修改" width="180" />
+          <el-table-column label="发布态" width="160">
+            <template #default="{ row }">
+              <el-tag v-if="row.publishedAt" size="small" type="success">
+                已发布 {{ formatTime(row.publishedAt) }}
+              </el-tag>
+              <el-tag v-else size="small" type="info">未发布</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="340">
             <template #default="{ row }">
               <el-button size="small" @click="loadProject(row.name)">打开</el-button>
+              <el-button size="small" type="success" @click="publishProject(row.name)">发布</el-button>
+              <el-button
+                v-if="row.publishedAt"
+                size="small"
+                type="warning"
+                @click="unpublishProject(row.name)"
+              >
+                取消发布
+              </el-button>
               <el-dropdown @command="(cmd: string) => openProjectConfig(row.name, cmd)">
                 <el-button size="small">
                   配置
@@ -169,7 +186,7 @@ const router = useRouter()
 const projectStore = useProjectStore()
 const authStore = useAuthStore()
 
-const recentProjects = ref<Array<{ name: string; lastModified: string }>>([])
+const recentProjects = ref<Array<{ name: string; lastModified: string; publishedAt: number | null }>>([])
 const showOpenDialog = ref(false)
 
 const showNotifyConfig = ref(false)
@@ -258,15 +275,56 @@ async function loadRecentProjects() {
       try {
         const raw = await getStorage().get(`scada_project_${name}`)
         const data = raw ? JSON.parse(raw) : null
+        const publishedAt = await projectStore.getPublishedAt(name)
         return {
           name,
           lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
+          publishedAt,
         }
       } catch {
-        return { name, lastModified: '未知' }
+        return { name, lastModified: '未知', publishedAt: null }
       }
     }),
   )
+}
+
+function formatTime(t: number) {
+  return new Date(t).toLocaleString()
+}
+
+/** 从首页直接发布：载入工程并生成发布快照 */
+async function publishProject(name: string) {
+  try {
+    await ElMessageBox.confirm(
+      `将「${name}」当前内容发布为运行版？预览将显示发布版。`,
+      '发布工程',
+      { type: 'warning', confirmButtonText: '发布', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  if (!(await projectStore.loadProject(name))) {
+    ElMessage.error('项目加载失败')
+    return
+  }
+  await projectStore.publishProject()
+  ElMessage.success('已发布')
+  await loadRecentProjects()
+}
+
+async function unpublishProject(name: string) {
+  try {
+    await ElMessageBox.confirm(`取消发布「${name}」？预览将回落到草稿。`, '取消发布', {
+      type: 'warning',
+      confirmButtonText: '取消发布',
+      cancelButtonText: '返回',
+    })
+  } catch {
+    return
+  }
+  await projectStore.unpublishProject(name)
+  ElMessage.success('已取消发布')
+  await loadRecentProjects()
 }
 
 function goToEditor() {

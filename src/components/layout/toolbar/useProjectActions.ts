@@ -103,6 +103,25 @@ export function useProjectActions() {
     router.push({ path: '/preview', query: { project: projectStore.projectName } })
   }
 
+  /**
+   * 发布当前工程：先落盘工作副本，再生成发布快照。
+   * 预览默认看发布版，因此「保存」不会自动改运行画面。
+   */
+  async function handlePublish() {
+    try {
+      await ElMessageBox.confirm(
+        `将「${projectStore.projectName}」当前内容发布为运行版？\n之后编辑草稿不会影响预览，需再次发布才生效。`,
+        '发布工程',
+        { type: 'warning', confirmButtonText: '发布', cancelButtonText: '取消' },
+      )
+    } catch {
+      return
+    }
+    await projectStore.saveProject()
+    await projectStore.publishProject()
+    ElMessage.success('已发布，预览将显示该版本')
+  }
+
   return {
     handleRename,
     goHome,
@@ -111,5 +130,6 @@ export function useProjectActions() {
     handleExport,
     handleImport,
     handlePreview,
+    handlePublish,
   }
 }
