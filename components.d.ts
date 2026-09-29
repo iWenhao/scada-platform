@@ -66,6 +66,7 @@ declare module 'vue' {
     TagEditDialog: typeof import('./src/components/dialogs/TagEditDialog.vue')['default']
     TagTableDialog: typeof import('./src/components/dialogs/TagTableDialog.vue')['default']
     Toolbar: typeof import('./src/components/layout/Toolbar.vue')['default']
+    ToolIcon: typeof import('./src/components/layout/ToolIcon.vue')['default']
     TrendChartDialog: typeof import('./src/components/dialogs/TrendChartDialog.vue')['default']
     UserManageDialog: typeof import('./src/components/dialogs/UserManageDialog.vue')['default']
   }
