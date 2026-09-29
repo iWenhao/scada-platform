@@ -77,61 +77,12 @@
       </el-tab-pane>
 
       <el-tab-pane label="实时数据" name="live">
-        <div class="live-header">
-          <el-tag :type="connTagType" size="small">{{ connText }}</el-tag>
-          <span class="hint">共 {{ livePoints.length }} 个在线点位</span>
-          <span v-if="qualityCounts.stale" class="hint stale-hint">陈旧 {{ qualityCounts.stale }}</span>
-          <span v-if="qualityCounts.bad" class="hint stale-hint">无数据 {{ qualityCounts.bad }}</span>
-          <div class="spacer" />
-          <el-input
-            v-model="liveKeyword"
-            size="small"
-            placeholder="搜索设备 / 变量"
-            clearable
-            class="search"
-          />
-        </div>
-        <el-table :data="filteredLive" size="small" max-height="420" empty-text="连接数据源后此处列出实时点位">
-          <el-table-column prop="deviceId" label="设备" width="120" show-overflow-tooltip />
-          <el-table-column prop="variable" label="变量" width="120" show-overflow-tooltip />
-          <el-table-column label="当前值" width="120">
-            <template #default="{ row }">
-              <span class="live-value" :class="{ 'value-stale': !row.usable }">{{ formatVal(row.value) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="质量" width="76">
-            <template #default="{ row }">
-              <el-tag :type="row.tagType" size="small">{{ row.qualityText }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="上报" width="80">
-            <template #default="{ row }">
-              <span class="age" :title="row.lastAtFull">{{ row.ageText }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="点表" width="76">
-            <template #default="{ row }">
-              <el-tag v-if="row.tag" size="small" type="success">已登记</el-tag>
-              <el-tag v-else size="small" type="info">未登记</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="unit" label="单位" width="70">
-            <template #default="{ row }">{{ row.tag?.unit || '-' }}</template>
-          </el-table-column>
-          <el-table-column label="可写" width="70">
-            <template #default="{ row }">
-              <template v-if="row.tag">
-                <el-tag v-if="row.tag.writable" size="small" type="success">可写</el-tag>
-                <el-tag v-else-if="row.tag.writable === false" size="small" type="danger">只读</el-tag>
-                <span v-else>-</span>
-              </template>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="description" label="描述" min-width="110" show-overflow-tooltip>
-            <template #default="{ row }">{{ row.tag?.description || '-' }}</template>
-          </el-table-column>
-        </el-table>
+        <LivePointsTable
+          :points="filteredLive"
+          :keyword="liveKeyword"
+          :connection-status="deviceStore.connectionStatus"
+          @update:keyword="liveKeyword = $event"
+        />
       </el-tab-pane>
     </el-tabs>
 
@@ -214,6 +165,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/stores/projectStore'
 import { usePageStore } from '@/stores/pageStore'
 import { useDeviceStore } from '@/stores/deviceStore'
+import LivePointsTable from './LivePointsTable.vue'
 import {
   parseTagCsv,
   tagsToCsv,
@@ -322,14 +274,6 @@ const livePoints = computed(() => {
 })
 
 /** 质量统计：陈旧/无数据数量非零时在表头提示，一眼看出数据是否可信 */
-const qualityCounts = computed(() => {
-  const counts = { stale: 0, bad: 0 }
-  for (const row of livePoints.value) {
-    if (row.qualityText === QUALITY_TEXT.stale) counts.stale++
-    if (row.qualityText === QUALITY_TEXT.bad) counts.bad++
-  }
-  return counts
-})
 
 const filteredLive = computed(() => {
   const kw = liveKeyword.value.trim().toLowerCase()
@@ -342,27 +286,8 @@ const filteredLive = computed(() => {
   )
 })
 
-const connTagType = computed(() => {
-  switch (deviceStore.connectionStatus) {
-    case 'connected': return 'success'
-    case 'error': return 'danger'
-    default: return 'info'
-  }
-})
 
-const connText = computed(() => {
-  switch (deviceStore.connectionStatus) {
-    case 'connected': return '已连接'
-    case 'error': return '连接错误'
-    default: return '未连接'
-  }
-})
 
-function formatVal(v: unknown): string {
-  if (v === undefined || v === null) return '-'
-  if (typeof v === 'number') return String(Math.round(v * 100) / 100)
-  return String(v)
-}
 
 function typeLabel(t: string) {
   return t === 'boolean' ? '布尔' : t === 'string' ? '字符串' : '数值'
@@ -535,85 +460,4 @@ function handleSave() {
 }
 </script>
 
-<style scoped lang="scss">
-.policy-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-
-  .policy-label {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  .policy-hint {
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-}
-
-.tag-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-
-  .spacer {
-    flex: 1;
-  }
-
-  .search {
-    width: 220px;
-  }
-}
-
-.hidden-input {
-  display: none;
-}
-
-.half {
-  width: 45%;
-  margin-right: 4%;
-}
-
-.live-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-
-  .hint {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  .spacer {
-    flex: 1;
-  }
-
-  .search {
-    width: 220px;
-  }
-}
-
-.live-value {
-  font-family: monospace;
-  color: var(--accent-primary);
-
-  // 数据不可信（陈旧/无数据）时数值置灰：不能让过期值看起来跟正常值一样可信
-  &.value-stale {
-    color: var(--text-muted);
-  }
-}
-
-.age {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.stale-hint {
-  color: var(--warning-color, #e6a23c);
-  font-weight: 600;
-}
-</style>
+<style src="./tag-table.scss" scoped lang="scss"></style>
