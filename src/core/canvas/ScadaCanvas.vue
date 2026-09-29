@@ -1,6 +1,7 @@
 <template>
   <div
     class="scada-canvas"
+    :style="workspaceGridStyle"
     @dragover.prevent
     @drop="onDrop"
   >
@@ -292,7 +293,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -343,6 +344,15 @@ const drag = useElementDrag({
 
 const { stageSize, stageConfig, beginPan, movePan, endPan, onWheel, navigateTo } = viewport
 const { gridGroupConfig, canvasBackgroundConfig, canvasBorderConfig, smallGridLines, largeGridLines } = grid
+
+/** 工作区外圈网格与画布内网格同尺寸，避免格子对不齐 */
+const workspaceGridStyle = computed(() => {
+  const size = canvasStore.canvasConfig.gridSize || 20
+  return {
+    '--ws-grid': `${size}px`,
+    '--ws-grid-major': `${size * 5}px`,
+  }
+})
 const {
   getElementColor,
   getElementValueText,
