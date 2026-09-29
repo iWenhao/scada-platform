@@ -4,6 +4,8 @@ import {
   tagsToCsv,
   tagKey,
   tagToCsvRow,
+  findTag,
+  checkWriteAllowed,
   type TagDef,
 } from './tag'
 
@@ -82,5 +84,46 @@ describe('tagsToCsv / parseTagCsv', () => {
     expect(parsed[0].writable).toBe(true)
     expect(parsed[1].dataType).toBe('string')
     expect(parsed[1].writable).toBe(false)
+  })
+})
+
+describe('findTag / checkWriteAllowed', () => {
+  const tags: TagDef[] = [
+    {
+      id: 'a',
+      deviceId: 'motor_1',
+      name: 'speed',
+      dataType: 'number',
+      min: 0,
+      max: 3000,
+      writable: true,
+    },
+    {
+      id: 'b',
+      deviceId: 'motor_1',
+      name: 'temp',
+      dataType: 'number',
+      writable: false,
+    },
+  ]
+
+  it('findTag 支持短变量名与全键', () => {
+    expect(findTag(tags, 'motor_1', 'speed')?.id).toBe('a')
+    expect(findTag(tags, 'motor_1', 'motor_1.speed')?.id).toBe('a')
+    expect(findTag(tags, 'other', 'speed')).toBeNull()
+  })
+
+  it('未登记点位默认允许写', () => {
+    expect(checkWriteAllowed(null, 1)).toBeNull()
+  })
+
+  it('只读点位拒绝', () => {
+    expect(checkWriteAllowed(tags[1], 1)).toMatch(/只读/)
+  })
+
+  it('量程校验', () => {
+    expect(checkWriteAllowed(tags[0], 1500)).toBeNull()
+    expect(checkWriteAllowed(tags[0], -1)).toMatch(/下限/)
+    expect(checkWriteAllowed(tags[0], 5000)).toMatch(/上限/)
   })
 })

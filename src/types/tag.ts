@@ -33,6 +33,45 @@ export function tagKey(tag: Pick<TagDef, 'deviceId' | 'name'>): string {
   return `${tag.deviceId}.${tag.name}`
 }
 
+/**
+ * 在点表中查找点位。variable 可以是 `deviceId.name` 或纯变量名。
+ * @returns 命中的 TagDef；未登记返回 null（表示「未约束」，默认允许写）
+ */
+export function findTag(
+  tags: TagDef[],
+  deviceId: string,
+  variable: string,
+): TagDef | null {
+  const short = variable.includes('.') ? variable.split('.').pop()! : variable
+  return (
+    tags.find(t => t.deviceId === deviceId && (t.name === variable || t.name === short)) ||
+    null
+  )
+}
+
+/**
+ * 校验写值是否合法（只读 / 量程）。
+ * @returns null 表示允许；否则为拒绝原因
+ */
+export function checkWriteAllowed(
+  tag: TagDef | null,
+  value: number | string | boolean,
+): string | null {
+  if (!tag) return null
+  if (tag.writable === false) {
+    return '该点位在点表中为只读，禁止写值'
+  }
+  if (typeof value === 'number' && tag.dataType === 'number') {
+    if (tag.min !== undefined && value < tag.min) {
+      return `超出量程下限 ${tag.min}`
+    }
+    if (tag.max !== undefined && value > tag.max) {
+      return `超出量程上限 ${tag.max}`
+    }
+  }
+  return null
+}
+
 /** CSV 表头（导入/导出共用） */
 export const TAG_CSV_HEADERS = [
   'deviceId',
