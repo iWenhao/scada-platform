@@ -102,9 +102,7 @@
             @dragend="onDragEnd(element, $event)"
             @transformend="onTransformEnd(element.id)"
           >
-            <!-- 组件主体 -->
-            <v-rect
-              <!-- 2.5D 体积：投影 + 侧面 -->
+            <!-- 2.5D 体积：投影 + 侧面 -->
             <v-ellipse
               v-if="depthShadowConfig(element, uiStore.viewMode === '25d')"
               :config="depthShadowConfig(element, uiStore.viewMode === '25d')!"
