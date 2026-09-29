@@ -7,6 +7,20 @@
           返回编辑器
         </el-button>
         <span class="project-name">{{ projectStore.projectName }} - 预览模式</span>
+        <el-select
+          v-if="pageStore.pages.length > 1"
+          class="page-switcher"
+          size="small"
+          :model-value="pageStore.activePageId"
+          @change="(id: string) => switchPage(id)"
+        >
+          <el-option
+            v-for="page in pageStore.pages"
+            :key="page.id"
+            :label="page.name"
+            :value="page.id"
+          />
+        </el-select>
       </div>
       
       <div class="header-right">
@@ -168,6 +182,8 @@ import { useLayerStore } from '@/stores/layerStore'
 import { useAlarmStore } from '@/stores/alarmStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useAuditStore } from '@/stores/auditStore'
+import { usePageStore } from '@/stores/pageStore'
+import { useHistory } from '@/core/canvas/useHistory'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
@@ -186,6 +202,16 @@ const layerStore = useLayerStore()
 const alarmStore = useAlarmStore()
 const uiStore = useUiStore()
 const auditStore = useAuditStore()
+const pageStore = usePageStore()
+const { clearHistory } = useHistory()
+
+function switchPage(id: string) {
+  if (!pageStore.switchPage(id)) {
+    ElMessage.warning('画面不存在')
+    return
+  }
+  clearHistory()
+}
 
 const showAuditLog = ref(false)
 
@@ -232,6 +258,16 @@ const trendDeviceId = ref('')
 const trendVariable = ref('')
 
 function handleElementClick(element: ComponentInstance) {
+  // 多画面导航优先：配置了跳转目标则切页，不再走趋势/写值
+  if (element.navigateTo) {
+    if (pageStore.switchPage(element.navigateTo)) {
+      clearHistory()
+      return
+    }
+    ElMessage.warning(`跳转目标画面不存在（${element.navigateTo}）`)
+    return
+  }
+
   // 设定值控件走写值流程，其余元素查看趋势
   if (element.type === 'setpoint') {
     promptWriteValue(element)
@@ -353,6 +389,13 @@ onMounted(async () => {
     return
   }
 
+  // 可选 ?page=画面ID 指定起始画面
+  const startPage = route.query.page as string | undefined
+  if (startPage && startPage !== pageStore.activePageId) {
+    pageStore.switchPage(startPage)
+    clearHistory()
+  }
+
   // 用工程里保存的数据源配置连接，不再写死 mock
   deviceStore.initDataSource(projectStore.dataSourceConfig)
 
@@ -399,6 +442,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+
+  .page-switcher {
+    width: 160px;
+  }
   
   .project-name {
     font-size: 16px;

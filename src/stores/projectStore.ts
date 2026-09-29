@@ -3,11 +3,12 @@ import { ref } from 'vue'
 import { useCanvasStore } from './canvasStore'
 import { useConnectionStore } from './connectionStore'
 import { useLayerStore } from './layerStore'
+import { usePageStore } from './pageStore'
 import { getStorage } from '@/storage'
-import { defaultLayers } from '@/types/layer'
 import type { DataSourceConfig } from '@/datasource/types'
 import type { AlarmDefinition } from '@/types/alarm'
 import { normalizeAlarmDef } from '@/types/alarm'
+import { createPageId, type ScadaPage } from '@/types/page'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -34,36 +35,68 @@ export const useProjectStore = defineStore('project', () => {
 
   /**
    * 组装完整的工程数据（保存 / 导出共用，避免两处结构漂移）
+   * 多画面：pages[] 每项一张画面；同时写出顶层 canvas/connections/layers
+   * 作为「当前页」兼容快照，旧版本工具链仍可读取。
    */
   function buildProjectData() {
-    const canvasStore = useCanvasStore()
-    const connectionStore = useConnectionStore()
-    const layerStore = useLayerStore()
+    const pageStore = usePageStore()
+    pageStore.captureActivePage()
 
+    const active = pageStore.activePage
     return {
-      version: '1.0',
+      version: '1.1',
       name: projectName.value,
       description: projectDescription.value,
       timestamp: Date.now(),
-      canvas: canvasStore.toJSON(),
-      connections: connectionStore.toJSON(),
-      layers: layerStore.toJSON(),
+      pages: pageStore.pages,
+      activePageId: pageStore.activePageId,
+      // 兼容字段：当前编辑页（旧读者用）
+      canvas: active ? JSON.stringify({
+        version: '1.0',
+        canvasConfig: active.canvasConfig,
+        elements: active.elements,
+      }) : null,
+      connections: active ? JSON.stringify(active.connections) : null,
+      layers: active ? JSON.stringify({ layers: active.layers }) : null,
       dataSource: dataSourceConfig.value,
       alarmDefs: alarmDefs.value,
     }
   }
 
   /**
-   * 应用加载到的工程数据（加载 / 导入共用）
+   * 旧工程（单画面）包成一张「主页」
    */
-  function applyProjectData(projectData: Record<string, any>) {
+  function migrateLegacyToPages(projectData: Record<string, any>): ScadaPage[] {
     const canvasStore = useCanvasStore()
     const connectionStore = useConnectionStore()
     const layerStore = useLayerStore()
 
-    canvasStore.loadFromJSON(projectData.canvas)
-    connectionStore.loadFromJSON(projectData.connections)
-    layerStore.loadFromJSON(projectData.layers)
+    // 先装入旧数据再抓快照，复用各 store 的解析逻辑
+    if (projectData.canvas) canvasStore.loadFromJSON(projectData.canvas)
+    if (projectData.connections) connectionStore.loadFromJSON(projectData.connections)
+    if (projectData.layers) layerStore.loadFromJSON(projectData.layers)
+
+    const pageStore = usePageStore()
+    return [{
+      id: createPageId(),
+      name: '主页',
+      ...pageStore.captureWorkingSet(),
+    }]
+  }
+
+  /**
+   * 应用加载到的工程数据（加载 / 导入共用）
+   */
+  function applyProjectData(projectData: Record<string, any>) {
+    const pageStore = usePageStore()
+
+    if (Array.isArray(projectData.pages) && projectData.pages.length > 0) {
+      pageStore.setPages(projectData.pages as ScadaPage[], projectData.activePageId)
+    } else {
+      // 旧工程：单画布结构迁移到「主页」
+      const pages = migrateLegacyToPages(projectData)
+      pageStore.setPages(pages)
+    }
 
     // 旧工程没有 dataSource 字段，回落 mock 以保证向后兼容
     dataSourceConfig.value = projectData.dataSource || { type: 'mock', name: 'default' }
@@ -288,13 +321,9 @@ export const useProjectStore = defineStore('project', () => {
     alarmDefs.value = []
 
     // 新建项目必须连同画布内容一起清空：残留的旧元素/连线会让人以为还在编辑上一个工程，
-    // 一保存就把原工程覆盖掉了
-    const canvasStore = useCanvasStore()
-    const connectionStore = useConnectionStore()
-    const layerStore = useLayerStore()
-    canvasStore.clearCanvas()
-    connectionStore.connections = []
-    layerStore.layers = [...defaultLayers]
+    // 一保存就把原工程覆盖掉了。多画面下重置为单张「主页」。
+    const pageStore = usePageStore()
+    pageStore.reset()
   }
 
   return {

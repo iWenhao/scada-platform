@@ -13,7 +13,10 @@
       
       <!-- 中间画布区域 -->
       <div class="canvas-area">
-        <slot />
+        <PageTabs />
+        <div class="canvas-slot">
+          <slot />
+        </div>
       </div>
       
       <!-- 右侧属性面板 -->
@@ -35,6 +38,7 @@ import Toolbar from './Toolbar.vue'
 import ComponentPanel from './ComponentPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import LayerPanel from './LayerPanel.vue'
+import PageTabs from './PageTabs.vue'
 
 const uiStore = useUiStore()
 </script>
@@ -72,6 +76,14 @@ const uiStore = useUiStore()
 .canvas-area {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-slot {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .right-panel {

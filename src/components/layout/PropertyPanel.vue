@@ -231,6 +231,29 @@
         </div>
       </div>
       
+      <!-- 画面导航 -->
+      <div class="property-section">
+        <div class="section-title">画面导航</div>
+        <div class="property-item">
+          <div class="property-label">点击跳转</div>
+          <el-select
+            :model-value="selectedElement.navigateTo || ''"
+            size="small"
+            clearable
+            placeholder="不跳转"
+            @change="handleNavigateChange"
+          >
+            <el-option
+              v-for="page in pageOptions"
+              :key="page.id"
+              :label="page.id === pageStore.activePageId ? `${page.name}（当前）` : page.name"
+              :value="page.id"
+              :disabled="page.id === pageStore.activePageId"
+            />
+          </el-select>
+        </div>
+      </div>
+
       <!-- 数据绑定 -->
       <div class="property-section">
         <div class="section-title">数据绑定</div>
@@ -319,6 +342,7 @@ import { ref, computed, watch } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useConnectionStore } from '@/stores/connectionStore'
+import { usePageStore } from '@/stores/pageStore'
 import { getComponentDefinition } from '@/industrial/registry'
 import { useHistory } from '@/core/canvas/useHistory'
 import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
@@ -329,7 +353,21 @@ import type { ConnectionStyle, ConnectionType } from '@/types/connection'
 const canvasStore = useCanvasStore()
 const deviceStore = useDeviceStore()
 const connectionStore = useConnectionStore()
+const pageStore = usePageStore()
 const { saveState } = useHistory()
+
+/** 画面导航候选：排除当前页，避免“跳到自己” */
+const pageOptions = computed(() =>
+  pageStore.pages.filter(p => p.id !== pageStore.activePageId),
+)
+
+function handleNavigateChange(pageId: string | null) {
+  if (!selectedElement.value) return
+  canvasStore.updateElement(selectedElement.value.id, {
+    navigateTo: pageId || undefined,
+  })
+  saveState()
+}
 
 const selectedElement = computed(() => canvasStore.selectedElement)
 
