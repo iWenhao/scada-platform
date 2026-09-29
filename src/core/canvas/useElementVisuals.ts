@@ -39,8 +39,29 @@ export function useElementVisuals(options: {
     return `${binding.variable}: ${formatted}`
   }
 
-  // 底部标签条高度（有实时数值时更高）
+  // 数值显示图元：只读展示绑定变量的格式化值（居中大字，与普通元素的底部小字区分）
+  function isDisplayElement(element: ComponentInstance): boolean {
+    return element.type === 'display'
+  }
+
+  function getDisplayValueText(element: ComponentInstance): string {
+    const binding = element.dataBindings?.[0]
+    if (!binding) return '--'
+
+    const data = deviceStore.getDeviceData(element.deviceId || element.id)
+    const value = data[binding.variable]
+    if (value === undefined) return '--'
+
+    const num = Number(value)
+    const decimals = Math.min(Math.max(Number(element.properties?.decimals ?? 1) || 0, 0), 3)
+    const text = Number.isNaN(num) ? String(value) : num.toFixed(decimals)
+    const unit = element.properties?.unit
+    return unit ? `${text} ${unit}` : text
+  }
+
+  // 底部标签条高度（有实时数值时更高；数值显示图元的值在中央，标签条只放名称）
   function getLabelHeight(element: ComponentInstance): number {
+    if (isDisplayElement(element)) return 16
     return getElementValueText(element) ? 26 : 16
   }
 
@@ -99,6 +120,8 @@ export function useElementVisuals(options: {
   return {
     getElementColor,
     getElementValueText,
+    isDisplayElement,
+    getDisplayValueText,
     getLabelHeight,
     getIconImageConfig,
     isLayerLocked,

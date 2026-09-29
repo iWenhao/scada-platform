@@ -143,9 +143,24 @@
               }"
             />
 
+            <!-- 数值显示图元：绑定变量的格式化值居中大字展示 -->
+            <v-text
+              v-if="isDisplayElement(element)"
+              :config="{
+                text: getDisplayValueText(element),
+                fontSize: 18,
+                fontStyle: 'bold',
+                fill: '#8fe6d3',
+                width: element.width,
+                align: 'center',
+                y: (element.height - getLabelHeight(element)) / 2 - 9,
+                listening: false,
+              }"
+            />
+
             <!-- 实时数值 -->
             <v-text
-              v-if="getElementValueText(element)"
+              v-else-if="getElementValueText(element)"
               :config="{
                 text: getElementValueText(element),
                 fontSize: 9,
@@ -295,6 +310,8 @@ const { gridGroupConfig, canvasBorderConfig, smallGridLines, largeGridLines } = 
 const {
   getElementColor,
   getElementValueText,
+  isDisplayElement,
+  getDisplayValueText,
   getLabelHeight,
   getIconImageConfig,
   isLayerLocked,

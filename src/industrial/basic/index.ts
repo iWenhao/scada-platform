@@ -244,9 +244,56 @@ export const SetpointDefinition: ComponentDefinition = {
   ],
 }
 
+export const DisplayDefinition: ComponentDefinition = {
+  type: 'display',
+  name: '数值显示',
+  group: 'basic',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="3">
+      <rect x="10" y="30" width="80" height="40" rx="4" />
+      <text x="50" y="58" text-anchor="middle" font-size="24" font-family="monospace" fill="currentColor" stroke="none">8.8</text>
+    </g>
+  </svg>`,
+  defaultWidth: 120,
+  defaultHeight: 50,
+  defaultConfig: {
+    decimals: 1,
+    unit: '',
+  },
+  // 只读数值显示：绑定目标由使用者按需指定，无预置绑定
+  statusRules: [],
+  dataBindings: [],
+  properties: [
+    {
+      key: 'name',
+      label: '名称',
+      type: 'string',
+      default: '数值显示',
+      group: '基本',
+    },
+    {
+      key: 'unit',
+      label: '单位',
+      type: 'string',
+      default: '',
+      group: '显示',
+    },
+    {
+      key: 'decimals',
+      label: '小数位数',
+      type: 'number',
+      default: 1,
+      min: 0,
+      max: 3,
+      group: '显示',
+    },
+  ],
+}
+
 export const basicComponents: ComponentDefinition[] = [
   ValveDefinition,
   PumpDefinition,
   TankDefinition,
   SetpointDefinition,
+  DisplayDefinition,
 ]
