@@ -31,3 +31,6 @@ server/data/
 # 本地开发/调试日志
 .tmp-*
 *.log
+
+# 浏览器自动化本地缓存
+.playwright-cli/

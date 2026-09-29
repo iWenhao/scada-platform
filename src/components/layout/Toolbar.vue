@@ -438,26 +438,6 @@ onMounted(() => {
     border-color: var(--border-active);
   }
 
-  /* 删除：悬停/按下用危险红，避免误操作不明显 */
-  &.btn-delete {
-    &:hover:not(.is-disabled),
-    &:focus:not(.is-disabled) {
-      background: color-mix(in srgb, var(--accent-danger) 18%, var(--bg-primary));
-      border-color: var(--accent-danger);
-      color: var(--accent-danger);
-    }
-
-    &:active:not(.is-disabled) {
-      background: color-mix(in srgb, var(--accent-danger) 32%, var(--bg-primary));
-      border-color: var(--accent-danger);
-      color: var(--accent-danger);
-    }
-
-    .el-icon {
-      color: inherit;
-    }
-  }
-
   &.el-button--primary {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
@@ -467,6 +447,7 @@ onMounted(() => {
   &.el-button--success {
     background: var(--accent-secondary);
     border-color: var(--accent-secondary);
+    color: #fff;
   }
 
   /* 危险按钮保持红色，不被基础样式冲掉 */
@@ -481,6 +462,26 @@ onMounted(() => {
       color: #fff;
     }
   }
+}
+
+/* 删除按钮悬停/按下变红。
+   必须写成 :deep 一级选择器，且 background 也要 !important——
+   dark-theme.scss 里 html.dark .el-button:hover 的背景是 !important，不写会盖掉。 */
+:deep(.el-button.btn-delete:hover:not(.is-disabled)),
+:deep(.el-button.btn-delete:focus:not(.is-disabled)) {
+  background-color: color-mix(in srgb, var(--accent-danger) 22%, var(--bg-primary)) !important;
+  border-color: var(--accent-danger) !important;
+  color: var(--accent-danger) !important;
+
+  .el-icon {
+    color: inherit !important;
+  }
+}
+
+:deep(.el-button.btn-delete:active:not(.is-disabled)) {
+  background-color: color-mix(in srgb, var(--accent-danger) 40%, var(--bg-primary)) !important;
+  border-color: var(--accent-danger) !important;
+  color: var(--accent-danger) !important;
 }
 
 :deep(.el-divider--vertical) {
