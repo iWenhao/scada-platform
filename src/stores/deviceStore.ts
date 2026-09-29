@@ -1,7 +1,16 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { dataSourceManager } from '@/datasource/DataSourceManager'
 import { pushSample } from '@/history/historian'
+import {
+  DEFAULT_COMM_TIMEOUT_MS,
+  DEFAULT_STALE_MS,
+  qualityFromAge,
+  isUsable,
+  sanitizeVariables,
+  type Quality,
+  type VariableMeta,
+} from '@/types/quality'
 import type { DataUpdate } from '@/datasource/types'
 
 /** 单个历史数据点 */
@@ -31,33 +40,90 @@ export const useDeviceStore = defineStore('device', () => {
   // 历史数据: { "motor_1.speed": [{t, v}, ...] }
   const historyData = ref<Record<string, HistoryPoint[]>>({})
 
+  // ---- 数据质量 ----
+  /** 点位采集元信息: { "motor_1.speed": { t, q } } */
+  const variableMeta = ref<Record<string, VariableMeta>>({})
+  /** 陈旧判定阈值（毫秒），可由数据源配置覆盖 */
+  const staleMs = ref<number>(DEFAULT_STALE_MS)
+  /** 通信中断判定阈值（毫秒） */
+  const commTimeoutMs = ref<number>(DEFAULT_COMM_TIMEOUT_MS)
+  /**
+   * 质量时钟：质量会随时间退化（超时未刷新 → stale），
+   * 但没有新数据推送时不会有响应式变化，需要一个周期信号驱动 UI 重算。
+   * 懒启动——只有在收到过数据之后才跑，避免空转。
+   */
+  const dataTick = ref(0)
+  let clockTimer: number | null = null
+
+  function ensureClock() {
+    if (clockTimer !== null) return
+    clockTimer = window.setInterval(() => {
+      dataTick.value++
+    }, 1000)
+  }
+
+  /** 当前点位质量（随时间退化，依赖质量时钟刷新） */
+  function qualityOf(deviceId: string, variable: string): Quality {
+    void dataTick.value
+    const meta = variableMeta.value[`${deviceId}.${variable}`]
+    return qualityFromAge(
+      meta?.t,
+      Date.now(),
+      staleMs.value,
+      connectionStatus.value === 'connected',
+    )
+  }
+
+  /** 该点位的值是否可信（可用于报警判定与展示） */
+  function isDataUsable(deviceId: string, variable: string): boolean {
+    return isUsable(qualityOf(deviceId, variable))
+  }
+
+  /** 链路是否中断：适配器报断连，或整体数据停更超过通信超时阈值 */
+  const commLost = computed(() => {
+    void dataTick.value
+    if (connectionStatus.value !== 'connected') return true
+    if (!lastUpdateTime.value) return false // 从未收到过数据，不算中断（尚未开始）
+    return Date.now() - lastUpdateTime.value > commTimeoutMs.value
+  })
+
   // 注册数据更新回调（store 生命周期内仅注册一次，避免重复监听）
   dataSourceManager.onUpdate((update: DataUpdate) => {
     // 合并更新
+    const now = Date.now()
     for (const [deviceId, variables] of Object.entries(update)) {
       if (!deviceData.value[deviceId]) {
         deviceData.value[deviceId] = {}
       }
-      Object.assign(deviceData.value[deviceId], variables)
 
-      // 采集历史数据（仅数值类型）：内存缓冲供实时曲线，同时喂给
-      // historian 批量落盘（刷新后趋势仍可查历史区间）
-      const now = Date.now()
-      for (const [varName, val] of Object.entries(variables)) {
-        if (typeof val !== 'number') continue
-        const key = `${deviceId}.${varName}`
-        if (!historyData.value[key]) {
-          historyData.value[key] = []
+      // 脏值防护：NaN/Infinity 既不覆盖画面上的旧值，也不进历史，
+      // 否则一个坏采样会同时污染实时显示与趋势曲线
+      for (const item of sanitizeVariables(variables)) {
+        const key = `${deviceId}.${item.name}`
+        if (!item.usable) {
+          variableMeta.value[key] = { t: now, q: 'bad' }
+          continue
         }
-        const arr = historyData.value[key]
-        arr.push({ t: now, v: val })
-        if (arr.length > MAX_HISTORY_PER_VARIABLE) {
-          arr.shift()
+        deviceData.value[deviceId][item.name] = item.value
+        variableMeta.value[key] = { t: now, q: 'good' }
+
+        // 采集历史数据（仅数值类型）：内存缓冲供实时曲线，同时喂给
+        // historian 批量落盘（刷新后趋势仍可查历史区间）
+        if (item.numeric) {
+          if (!historyData.value[key]) {
+            historyData.value[key] = []
+          }
+          const arr = historyData.value[key]
+          arr.push({ t: now, v: item.value as number })
+          if (arr.length > MAX_HISTORY_PER_VARIABLE) {
+            arr.shift()
+          }
+          pushSample(key, now, item.value as number)
         }
-        pushSample(key, now, val)
       }
     }
-    lastUpdateTime.value = Date.now()
+    lastUpdateTime.value = now
+    ensureClock()
   })
 
   /**
@@ -146,6 +212,12 @@ export const useDeviceStore = defineStore('device', () => {
     connectionStatus.value = 'disconnected'
   }
 
+  /** 由数据源配置注入陈旧/通信超时阈值（毫秒），缺省用默认值 */
+  function setQualityThresholds(stale?: number, commTimeout?: number) {
+    if (typeof stale === 'number' && stale > 0) staleMs.value = stale
+    if (typeof commTimeout === 'number' && commTimeout > 0) commTimeoutMs.value = commTimeout
+  }
+
   /**
    * 重置状态
    */
@@ -155,6 +227,7 @@ export const useDeviceStore = defineStore('device', () => {
     availableDevices.value = []
     historyData.value = {}
     lastUpdateTime.value = 0
+    variableMeta.value = {}
   }
 
   return {
@@ -163,9 +236,16 @@ export const useDeviceStore = defineStore('device', () => {
     availableDevices,
     historyData,
     lastUpdateTime,
+    variableMeta,
+    staleMs,
+    commTimeoutMs,
+    commLost,
     initDataSource,
     getDeviceData,
     getVariableValue,
+    qualityOf,
+    isDataUsable,
+    setQualityThresholds,
     getHistory,
     clearHistory,
     suggestDeviceId,
