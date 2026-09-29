@@ -1,4 +1,5 @@
 import type { ComponentDefinition } from '@/types/scada'
+import { ImageDefinition } from './image'
 
 export const ValveDefinition: ComponentDefinition = {
   type: 'valve',
@@ -316,4 +317,5 @@ export const basicComponents: ComponentDefinition[] = [
   TankDefinition,
   SetpointDefinition,
   DisplayDefinition,
+  ImageDefinition,
 ]

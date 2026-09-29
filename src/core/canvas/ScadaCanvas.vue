@@ -118,6 +118,12 @@
               :config="getIconImageConfig(element)"
             />
 
+            <!-- 图片组件：用户配置的图片 -->
+            <v-image
+              v-if="getUserImageConfig(element)"
+              :config="getUserImageConfig(element)"
+            />
+
             <!-- 管道内液体流动 -->
             <v-line
               v-if="element.type === 'pipe'"
@@ -325,6 +331,7 @@ const {
   getDisplayValueText,
   getLabelHeight,
   getIconImageConfig,
+  getUserImageConfig,
   isLayerLocked,
   isLayerVisible,
   getElementPorts,

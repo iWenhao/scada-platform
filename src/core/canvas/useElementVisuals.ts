@@ -3,6 +3,7 @@ import type { useDeviceStore } from '@/stores/deviceStore'
 import type { useLayerStore } from '@/stores/layerStore'
 import { statusEngine } from '@/status/StatusEngine'
 import { getIconImage } from './iconImage'
+import { loadUserImage, fitRect } from './userImage'
 import { getComponentDefinition } from '@/industrial/registry'
 import type { ComponentInstance } from '@/types/scada'
 import type { PortPosition } from '@/types/connection'
@@ -95,6 +96,8 @@ export function useElementVisuals(options: {
 
   // 组件图形（SVG 图标按比例适配到元素内部）
   function getIconImageConfig(element: ComponentInstance) {
+    // 图片组件由用户图整块渲染，不再叠默认图标
+    if (element.type === 'image' && element.properties?.imageUrl) return null
     const def = getComponentDefinition(element.type)
     if (!def?.icon) return null
 
@@ -116,6 +119,30 @@ export function useElementVisuals(options: {
       y: 4 + (boxH - iconH) / 2,
       width: iconW,
       height: iconH,
+      listening: false,
+    }
+  }
+
+  /** 图片组件：用户配置的 URL/data:URL 整块渲染 */
+  function getUserImageConfig(element: ComponentInstance) {
+    if (element.type !== 'image') return null
+    const url = String(element.properties?.imageUrl || '')
+    if (!url) return null
+    const img = loadUserImage(url, () => {
+      iconVersion.value++
+    })
+    if (!img) return null
+    const labelH = getLabelHeight(element)
+    const box = {
+      width: Math.max(element.width, 1),
+      height: Math.max(element.height - labelH, 1),
+    }
+    const fit = (element.properties?.fit as 'contain' | 'cover' | 'fill') || 'contain'
+    const rect = fitRect(img, box, fit)
+    return {
+      image: img,
+      ...rect,
+      opacity: Number(element.properties?.opacity ?? 1),
       listening: false,
     }
   }
@@ -149,6 +176,7 @@ export function useElementVisuals(options: {
     getDisplayValueText,
     getLabelHeight,
     getIconImageConfig,
+    getUserImageConfig,
     isLayerLocked,
     isLayerVisible,
     getElementPorts,

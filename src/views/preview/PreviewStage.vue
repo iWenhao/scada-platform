@@ -36,6 +36,10 @@
               v-if="getIconImageConfig(element)"
               :config="getIconImageConfig(element)"
             />
+            <v-image
+              v-if="getUserImageConfig(element)"
+              :config="getUserImageConfig(element)"
+            />
             <v-line
               v-if="element.type === 'pipe'"
               :config="pipeFlowConfig(element)"
@@ -129,6 +133,7 @@ const {
   getDisplayValueText,
   getLabelHeight,
   getIconImageConfig,
+  getUserImageConfig,
   isLayerVisible,
 } = useElementVisuals({ deviceStore, layerStore })
 
