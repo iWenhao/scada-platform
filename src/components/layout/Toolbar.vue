@@ -98,6 +98,7 @@
 
         <el-tooltip content="删除选中 (Delete)" placement="bottom">
           <el-button
+            class="btn-delete"
             :disabled="!canvasStore.selectedIds.length && !connectionStore.selectedConnectionId"
             @click="handleDelete"
           >
@@ -437,6 +438,26 @@ onMounted(() => {
     border-color: var(--border-active);
   }
 
+  /* 删除：悬停/按下用危险红，避免误操作不明显 */
+  &.btn-delete {
+    &:hover:not(.is-disabled),
+    &:focus:not(.is-disabled) {
+      background: color-mix(in srgb, var(--accent-danger) 18%, var(--bg-primary));
+      border-color: var(--accent-danger);
+      color: var(--accent-danger);
+    }
+
+    &:active:not(.is-disabled) {
+      background: color-mix(in srgb, var(--accent-danger) 32%, var(--bg-primary));
+      border-color: var(--accent-danger);
+      color: var(--accent-danger);
+    }
+
+    .el-icon {
+      color: inherit;
+    }
+  }
+
   &.el-button--primary {
     background: var(--accent-primary);
     border-color: var(--accent-primary);
@@ -446,6 +467,19 @@ onMounted(() => {
   &.el-button--success {
     background: var(--accent-secondary);
     border-color: var(--accent-secondary);
+  }
+
+  /* 危险按钮保持红色，不被基础样式冲掉 */
+  &.el-button--danger {
+    background: var(--accent-danger);
+    border-color: var(--accent-danger);
+    color: #fff;
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent-danger) 85%, #000);
+      border-color: color-mix(in srgb, var(--accent-danger) 85%, #000);
+      color: #fff;
+    }
   }
 }
 
