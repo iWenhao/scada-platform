@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getStorage } from '@/storage'
+import { resolveApiBase } from '@/storage/config'
+import { authHeaders } from '@/auth/session'
 
 /**
  * 写值审计日志。
@@ -46,7 +48,7 @@ export const useAuditStore = defineStore('audit', () => {
     }
   }
 
-  /** 记录一次写值。同步入内存列表并异步落盘，失败不影响调用方 */
+  /** 记录一次写值。同步入内存并上报服务端审计（操作者由服务端会话注入） */
   function record(
     entry: Omit<AuditEntry, 't' | 'operator' | 'value'> & {
       operator?: string
@@ -66,6 +68,20 @@ export const useAuditStore = defineStore('audit', () => {
     void getStorage()
       .set(STORE_KEY, JSON.stringify(entries.value))
       .catch(e => console.warn('[auditStore] 审计日志落盘失败', e))
+    // 服务端审计：操作者以后端会话为准，前端不能伪造
+    void fetch(`${resolveApiBase()}/audit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({
+        deviceId: full.deviceId,
+        variable: full.variable,
+        value: full.value,
+        ok: full.ok,
+        error: full.error,
+      }),
+    }).catch(() => {
+      // 后端离线时仅保留本地审计
+    })
   }
 
   function clear() {

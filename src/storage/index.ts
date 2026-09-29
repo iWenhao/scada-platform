@@ -6,7 +6,7 @@
  * 接口为异步：本地与远程存储统一语义。
  */
 import { RemoteStorageAdapter } from './remote'
-import { resolveApiBase, resolveApiToken } from './config'
+import { resolveApiBase } from './config'
 
 // re-export 远程适配器与连接配置, 供 main.ts / 部署环境使用
 export { RemoteStorageAdapter } from './remote'
@@ -92,15 +92,12 @@ export function setStorage(adapter: StorageAdapter): void {
  * 由 main.ts 在挂载前调用。
  */
 export async function initStorage(baseUrl = resolveApiBase()): Promise<'remote' | 'local'> {
-  const token = resolveApiToken()
-  const headers: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {}
   try {
     const res = await fetch(baseUrl + '/health', {
       signal: AbortSignal.timeout(1500),
-      headers,
     })
     if (res.ok) {
-      setStorage(new RemoteStorageAdapter(baseUrl + '/storage', token))
+      setStorage(new RemoteStorageAdapter(baseUrl + '/storage'))
       return 'remote'
     }
   } catch {

@@ -1,52 +1,61 @@
 // SCADA Platform 存储后端
-// 零依赖的键值存储服务, 数据以 JSON 文件形式保存在 DATA_DIR 目录,
-// 为前端 StorageAdapter 抽象提供远程实现(项目/自定义组件/主题等持久化)。
-// 另提供轻量时序历史存储(按天分片 JSONL), 供趋势图/图表查询历史区间。
+// 键值存储 + 轻量时序历史 + 账号/会话鉴权 + 服务端审计。
+// 数据目录 DATA_DIR 下 JSON/JSONL 文件，无第三方依赖。
 //
 // 启动: node server/index.mjs   (或 pnpm server)
 // 环境变量(均可选, 见 .env.example):
-//   PORT             监听端口, 默认 5174
-//   DATA_DIR         数据目录, 默认 <server>/data (容器部署时挂卷)
-//   MAX_BODY_BYTES   请求体上限, 默认 20MB
-//   CORS_ORIGIN      允许的跨域来源, 逗号分隔; 默认 * (仅建议内网)
-//   AUTH_TOKEN       设置后启用 Bearer 鉴权, 生产环境务必设置
-//   HISTORY_RETENTION_DAYS 历史数据保留天数, 默认 30, 超期分片自动清理
+//   PORT, DATA_DIR, MAX_BODY_BYTES, CORS_ORIGIN,
+//   AUTH_TOKEN        可选「服务主密钥」，持有者拥有全部权限（探针/CI）
+//   HISTORY_RETENTION_DAYS
 //
-// 接口:
-//   GET    /api/health              -> { ok: true }
-//   GET    /api/keys                -> { keys: string[] }
-//   GET    /api/storage/get?key=X   -> { value: string | null }
-//   PUT    /api/storage/set?key=X   body=文本值
-//   DELETE /api/storage/remove?key=X
-//   POST   /api/history/write       body={ "key": [{t,v},...], ... }  批量追加采样
-//   GET    /api/history/query?key=X&from=ms&to=ms&maxPoints=N -> { points: [{t,v}] }
+// 接口(除 health/login 外需 Authorization: Bearer <会话token> 或 AUTH_TOKEN):
+//   GET    /api/health
+//   POST   /api/auth/login          {username,password} -> {token,user}
+//   POST   /api/auth/logout
+//   GET    /api/auth/me
+//   POST   /api/auth/password       {oldPassword,newPassword}
+//   GET    /api/auth/users          (admin)
+//   POST   /api/auth/users          (admin) {username,displayName,role,password}
+//   PATCH  /api/auth/users          (admin) {id,displayName?,role?,password?}
+//   DELETE /api/auth/users?id=      (admin)
+//   GET    /api/keys | /api/storage/keys
+//   GET    /api/storage/get?key=
+//   PUT    /api/storage/set?key=    (engineer+)
+//   DELETE /api/storage/remove?key= (engineer+)
+//   POST   /api/history/write       (operator+)
+//   GET    /api/history/query
+//   POST   /api/audit               {deviceId,variable,value,ok,error?} 操作者由会话注入
+//   GET    /api/audit?limit=        (engineer+)
 import { createServer } from 'node:http'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createAuthStore, roleAtLeast } from './auth.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : path.join(__dirname, 'data')
 const HISTORY_DIR = path.join(DATA_DIR, 'history')
+const AUDIT_FILE = path.join(DATA_DIR, '_audit.jsonl')
 const PORT = Number(process.env.PORT || 5174)
 const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES || 20 * 1024 * 1024)
 const CORS_ORIGIN = (process.env.CORS_ORIGIN || '*').trim()
 const AUTH_TOKEN = (process.env.AUTH_TOKEN || '').trim()
 const RETENTION_DAYS = Number(process.env.HISTORY_RETENTION_DAYS || 30)
+const AUDIT_MAX = 500
 
-const ALLOWED_METHODS = 'GET, POST, PUT, DELETE, OPTIONS'
+const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
 const ALLOWED_HEADERS = 'content-type, authorization'
+
+const auth = createAuthStore(DATA_DIR)
 
 // 键名 -> 安全文件名(URL 编码, 防路径穿越)
 function fileFor(key) {
   return path.join(DATA_DIR, encodeURIComponent(key) + '.json')
 }
 
-// ---- 时序历史存储: <HISTORY_DIR>/<encodeURIComponent(key)>.<YYYYMMDD>.jsonl ----
-// 每行一个采样 {t, v}; 按天分片让"最近几小时"这类高频查询只触碰少量小文件
-
+// ---- 时序历史（按天分片 JSONL）----
 function dayString(ms) {
   const d = new Date(ms)
   const mm = String(d.getMonth() + 1).padStart(2, '0')
@@ -62,7 +71,6 @@ function isHistoryShard(fileName, encodedKey) {
   return fileName.startsWith(encodedKey + '.') && fileName.endsWith('.jsonl')
 }
 
-/** 把采样按天分组追加写入; 返回写入的总点数 */
 async function appendSamples(key, samples) {
   const byDay = new Map()
   let count = 0
@@ -81,14 +89,13 @@ async function appendSamples(key, samples) {
   return count
 }
 
-/** 读取 [from, to] 区间内的采样, 超过 maxPoints 时均匀抽稀(保留首尾) */
 async function querySamples(key, from, to, maxPoints) {
   const encodedKey = encodeURIComponent(key)
   let files = []
   try {
     files = await fs.readdir(HISTORY_DIR)
   } catch {
-    return [] // 目录不存在 = 还没有任何历史数据
+    return []
   }
 
   const shards = files
@@ -97,7 +104,6 @@ async function querySamples(key, from, to, maxPoints) {
       const day = f.slice(encodedKey.length + 1, -'.jsonl'.length)
       return { file: path.join(HISTORY_DIR, f), day }
     })
-    // 只读与区间可能相交的分片, 避免大范围查询扫全目录
     .filter(({ day }) => {
       if (!/^\d{8}$/.test(day)) return false
       const dayStart = new Date(
@@ -124,7 +130,7 @@ async function querySamples(key, from, to, maxPoints) {
           points.push(p)
         }
       } catch {
-        // 半行/损坏行跳过: 追加写可能在进程中断时留下不完整行
+        // 损坏行跳过
       }
     }
   }
@@ -139,7 +145,6 @@ async function querySamples(key, from, to, maxPoints) {
   return points
 }
 
-/** 清理超过保留期的分片; 返回删除的文件数 */
 async function cleanupExpiredShards() {
   if (RETENTION_DAYS <= 0) return 0
   let files
@@ -158,6 +163,30 @@ async function cleanupExpiredShards() {
     }
   }
   return removed
+}
+
+// ---- 审计（服务端留痕，操作者从会话取）----
+async function appendAudit(entry) {
+  await fs.mkdir(DATA_DIR, { recursive: true })
+  await fs.appendFile(AUDIT_FILE, JSON.stringify(entry) + '\n', 'utf8')
+}
+
+async function readAudit(limit = 100) {
+  try {
+    const text = await fs.readFile(AUDIT_FILE, 'utf8')
+    const rows = []
+    for (const line of text.split('\n')) {
+      if (!line.trim()) continue
+      try {
+        rows.push(JSON.parse(line))
+      } catch {
+        // skip
+      }
+    }
+    return rows.slice(-limit).reverse()
+  } catch {
+    return []
+  }
 }
 
 function corsHeaders(req) {
@@ -188,10 +217,29 @@ function sendJson(res, req, status, body) {
   res.end(JSON.stringify(body))
 }
 
-function isAuthorized(req) {
-  if (!AUTH_TOKEN) return true
-  const header = req.headers.authorization || ''
-  return header === `Bearer ${AUTH_TOKEN}`
+function bearer(req) {
+  const h = req.headers.authorization || ''
+  return h.startsWith('Bearer ') ? h.slice(7).trim() : ''
+}
+
+/**
+ * 鉴权：服务主密钥 AUTH_TOKEN 或用户会话。
+ * 返回 { user, master } 或 null。
+ */
+function authenticate(req) {
+  const token = bearer(req)
+  if (!token) return null
+  if (AUTH_TOKEN && token === AUTH_TOKEN) {
+    return { user: null, master: true }
+  }
+  const user = auth.resolveToken(token)
+  return user ? { user, master: false } : null
+}
+
+function requireRole(authn, minRole) {
+  if (!authn) return false
+  if (authn.master) return true
+  return roleAtLeast(authn.user.role, minRole)
 }
 
 async function readBody(req, limit) {
@@ -210,7 +258,6 @@ async function readBody(req, limit) {
 }
 
 const server = createServer(async (req, res) => {
-  // CORS 预检(前端与后端不同端口/域名时), 不鉴权
   if (req.method === 'OPTIONS') {
     res.writeHead(204, corsHeaders(req))
     res.end()
@@ -220,21 +267,135 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`)
 
   try {
-    if (!isAuthorized(req)) {
-      sendJson(res, req, 401, { error: 'unauthorized' })
-      return
-    }
-
+    // 公开接口
     if (url.pathname === '/api/health') {
       sendJson(res, req, 200, { ok: true })
       return
     }
 
+    if (url.pathname === '/api/auth/login' && req.method === 'POST') {
+      const body = await readBody(req, 64 * 1024)
+      let payload
+      try {
+        payload = JSON.parse(body)
+      } catch {
+        return sendJson(res, req, 400, { error: 'invalid json' })
+      }
+      const result = await auth.login(payload?.username, payload?.password)
+      if (!result) {
+        return sendJson(res, req, 401, { error: '用户名或口令错误' })
+      }
+      sendJson(res, req, 200, result)
+      return
+    }
+
+    // 以下均需鉴权
+    const authn = authenticate(req)
+    if (!authn) {
+      sendJson(res, req, 401, { error: 'unauthorized' })
+      return
+    }
+
+    if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
+      await auth.logout(bearer(req))
+      sendJson(res, req, 200, { ok: true })
+      return
+    }
+
+    if (url.pathname === '/api/auth/me' && req.method === 'GET') {
+      if (authn.master) {
+        return sendJson(res, req, 200, {
+          user: { id: 'master', username: 'service', displayName: '服务密钥', role: 'admin' },
+        })
+      }
+      return sendJson(res, req, 200, { user: authn.user })
+    }
+
+    if (url.pathname === '/api/auth/password' && req.method === 'POST') {
+      if (authn.master) return sendJson(res, req, 400, { error: 'master token has no password' })
+      const body = await readBody(req, 64 * 1024)
+      let payload
+      try {
+        payload = JSON.parse(body)
+      } catch {
+        return sendJson(res, req, 400, { error: 'invalid json' })
+      }
+      const result = await auth.changeOwnPassword(
+        authn.user.id,
+        payload?.oldPassword,
+        payload?.newPassword,
+      )
+      return sendJson(res, req, result.ok ? 200 : 400, result)
+    }
+
+    // 用户管理：仅 admin（或主密钥）
+    if (url.pathname === '/api/auth/users') {
+      if (!requireRole(authn, 'admin')) {
+        return sendJson(res, req, 403, { error: 'forbidden' })
+      }
+      if (req.method === 'GET') {
+        return sendJson(res, req, 200, { users: auth.listUsers() })
+      }
+      if (req.method === 'POST') {
+        const body = await readBody(req, 64 * 1024)
+        const payload = JSON.parse(body)
+        const result = await auth.createUser(payload)
+        return sendJson(res, req, result.error ? 400 : 200, result)
+      }
+      if (req.method === 'PATCH') {
+        const body = await readBody(req, 64 * 1024)
+        const payload = JSON.parse(body)
+        if (!payload?.id) return sendJson(res, req, 400, { error: 'missing id' })
+        const result = await auth.updateUser(payload.id, payload)
+        return sendJson(res, req, result.error ? 400 : 200, result)
+      }
+      if (req.method === 'DELETE') {
+        const id = url.searchParams.get('id')
+        if (!id) return sendJson(res, req, 400, { error: 'missing id' })
+        const result = await auth.removeUser(id)
+        return sendJson(res, req, result.error ? 400 : 200, result)
+      }
+    }
+
+    // 审计
+    if (url.pathname === '/api/audit') {
+      if (req.method === 'POST') {
+        const body = await readBody(req, 256 * 1024)
+        let payload
+        try {
+          payload = JSON.parse(body)
+        } catch {
+          return sendJson(res, req, 400, { error: 'invalid json' })
+        }
+        const operator = authn.master
+          ? (payload.operator || 'service')
+          : `${authn.user.displayName}(${authn.user.username})`
+        await appendAudit({
+          t: Date.now(),
+          operator,
+          deviceId: String(payload?.deviceId ?? ''),
+          variable: String(payload?.variable ?? ''),
+          value: String(payload?.value ?? ''),
+          ok: !!payload?.ok,
+          error: payload?.error ? String(payload.error) : undefined,
+        })
+        return sendJson(res, req, 200, { ok: true })
+      }
+      if (req.method === 'GET') {
+        if (!requireRole(authn, 'engineer')) {
+          return sendJson(res, req, 403, { error: 'forbidden' })
+        }
+        const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 100, 1), AUDIT_MAX)
+        return sendJson(res, req, 200, { entries: await readAudit(limit) })
+      }
+    }
+
+    // 键值存储：读任意登录用户；写需 engineer+
     if ((url.pathname === '/api/keys' || url.pathname === '/api/storage/keys') && req.method === 'GET') {
       await fs.mkdir(DATA_DIR, { recursive: true })
       const files = await fs.readdir(DATA_DIR)
       const keys = files
-        .filter(f => f.endsWith('.json'))
+        .filter(f => f.endsWith('.json') && f !== '_users.json' && f !== '_sessions.json')
         .map(f => decodeURIComponent(f.slice(0, -5)))
       sendJson(res, req, 200, { keys })
       return
@@ -253,6 +414,9 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/storage/set' && req.method === 'PUT') {
+      if (!requireRole(authn, 'engineer')) {
+        return sendJson(res, req, 403, { error: 'forbidden' })
+      }
       const key = url.searchParams.get('key')
       if (!key) return sendJson(res, req, 400, { error: 'missing key' })
       const value = await readBody(req, MAX_BODY_BYTES)
@@ -263,6 +427,9 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/storage/remove' && req.method === 'DELETE') {
+      if (!requireRole(authn, 'engineer')) {
+        return sendJson(res, req, 403, { error: 'forbidden' })
+      }
       const key = url.searchParams.get('key')
       if (!key) return sendJson(res, req, 400, { error: 'missing key' })
       await fs.rm(fileFor(key), { force: true })
@@ -270,7 +437,11 @@ const server = createServer(async (req, res) => {
       return
     }
 
+    // 历史：上报需 operator+；查询任意登录用户
     if (url.pathname === '/api/history/write' && req.method === 'POST') {
+      if (!requireRole(authn, 'operator')) {
+        return sendJson(res, req, 403, { error: 'forbidden' })
+      }
       const body = await readBody(req, MAX_BODY_BYTES)
       let payload
       try {
@@ -304,17 +475,23 @@ const server = createServer(async (req, res) => {
 
     sendJson(res, req, 404, { error: 'not found' })
   } catch (e) {
+    if (e instanceof SyntaxError) {
+      return sendJson(res, req, 400, { error: 'invalid json' })
+    }
     sendJson(res, req, e?.status || 500, { error: e?.message || String(e) })
   }
 })
 
+await auth.init()
+
 server.listen(PORT, () => {
-  const auth = AUTH_TOKEN ? 'Bearer 鉴权已开启' : '未开启鉴权(内网/开发)'
+  const authMode = AUTH_TOKEN
+    ? '会话登录 + 服务主密钥'
+    : '会话登录（无主密钥）'
   const cors = CORS_ORIGIN === '*' ? '*' : CORS_ORIGIN
   console.log(
-    `[scada-server] 存储服务已启动: http://localhost:${PORT} (数据目录 ${DATA_DIR}, CORS ${cors}, ${auth}, 体积上限 ${MAX_BODY_BYTES}B, 历史保留 ${RETENTION_DAYS} 天)`
+    `[scada-server] 已启动: http://localhost:${PORT} (数据目录 ${DATA_DIR}, CORS ${cors}, ${authMode}, 体积上限 ${MAX_BODY_BYTES}B, 历史保留 ${RETENTION_DAYS} 天)`
   )
-  // 启动即清理超期历史分片; 之后每天一次即可(分片按天组织, 无需更频繁)
   cleanupExpiredShards().catch(e => console.warn('[scada-server] 历史清理失败', e))
   setInterval(() => {
     cleanupExpiredShards().catch(e => console.warn('[scada-server] 历史清理失败', e))

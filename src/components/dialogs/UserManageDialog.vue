@@ -1,5 +1,10 @@
 <template>
-  <el-dialog :model-value="modelValue" title="用户管理" width="640px" @update:model-value="emit('update:modelValue', $event)">
+  <el-dialog
+    :model-value="modelValue"
+    title="用户管理"
+    width="640px"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
     <div class="user-toolbar">
       <el-button type="primary" size="small" @click="openCreate">
         <el-icon><Plus /></el-icon>
@@ -32,7 +37,6 @@
       </el-table-column>
     </el-table>
 
-    <!-- 创建 / 编辑 -->
     <el-dialog
       v-model="editVisible"
       :title="editingId ? '编辑用户' : '新建用户'"
@@ -61,7 +65,6 @@
       </template>
     </el-dialog>
 
-    <!-- 改口令 -->
     <el-dialog v-model="pwdVisible" title="修改口令" width="420px" append-to-body>
       <el-form label-width="80px">
         <el-form-item label="新口令">
@@ -79,21 +82,23 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  loadUsers,
-  addUser,
-  updateUserProfile,
-  changePassword,
-  removeUser,
-} from '@/auth/userLibrary'
 import { useAuthStore } from '@/stores/authStore'
-import { ROLE_LABELS, type AuthUser, type Role } from '@/types/auth'
+import { resolveApiBase } from '@/storage/config'
+import { authHeaders } from '@/auth/session'
+import { ROLE_LABELS, type Role } from '@/types/auth'
+
+interface AdminUser {
+  id: string
+  username: string
+  displayName: string
+  role: Role
+}
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 const authStore = useAuthStore()
-const users = ref<AuthUser[]>([])
+const users = ref<AdminUser[]>([])
 const roles: Role[] = ['viewer', 'operator', 'engineer', 'admin']
 
 const editVisible = ref(false)
@@ -115,8 +120,27 @@ function roleTag(r: Role) {
   return 'info'
 }
 
+async function api(path: string, init?: RequestInit) {
+  const res = await fetch(`${resolveApiBase()}${path}`, {
+    ...init,
+    headers: {
+      ...authHeaders(),
+      ...(init?.body ? { 'content-type': 'application/json' } : {}),
+      ...(init?.headers || {}),
+    },
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`)
+  return body
+}
+
 async function refresh() {
-  users.value = await loadUsers()
+  try {
+    const body = await api('/auth/users')
+    users.value = body.users || []
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '加载用户失败')
+  }
 }
 
 watch(
@@ -136,7 +160,7 @@ function openCreate() {
   editVisible.value = true
 }
 
-function openEdit(row: AuthUser) {
+function openEdit(row: AdminUser) {
   editingId.value = row.id
   form.value = {
     username: row.username,
@@ -148,34 +172,40 @@ function openEdit(row: AuthUser) {
 }
 
 async function handleSave() {
-  if (editingId.value) {
-    const ok = await updateUserProfile(editingId.value, {
-      displayName: form.value.displayName,
-      role: form.value.role,
-    })
-    ElMessage[ok ? 'success' : 'error'](ok ? '已保存' : '保存失败')
-  } else {
-    if (!form.value.username.trim() || form.value.password.length < 4) {
-      ElMessage.warning('用户名必填，口令至少 4 位')
-      return
+  try {
+    if (editingId.value) {
+      await api('/auth/users', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          id: editingId.value,
+          displayName: form.value.displayName,
+          role: form.value.role,
+        }),
+      })
+    } else {
+      if (!form.value.username.trim() || form.value.password.length < 4) {
+        ElMessage.warning('用户名必填，口令至少 4 位')
+        return
+      }
+      await api('/auth/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: form.value.username.trim(),
+          displayName: form.value.displayName.trim() || form.value.username.trim(),
+          role: form.value.role,
+          password: form.value.password,
+        }),
+      })
     }
-    const created = await addUser(
-      form.value.username.trim(),
-      form.value.displayName.trim() || form.value.username.trim(),
-      form.value.role,
-      form.value.password,
-    )
-    if (!created) {
-      ElMessage.error('用户名已存在')
-      return
-    }
-    ElMessage.success('已创建')
+    editVisible.value = false
+    await refresh()
+    ElMessage.success('已保存')
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '保存失败')
   }
-  editVisible.value = false
-  await refresh()
 }
 
-function openPassword(row: AuthUser) {
+function openPassword(row: AdminUser) {
   pwdUserId.value = row.id
   newPassword.value = ''
   pwdVisible.value = true
@@ -186,12 +216,19 @@ async function handlePassword() {
     ElMessage.warning('口令至少 4 位')
     return
   }
-  const ok = await changePassword(pwdUserId.value, newPassword.value)
-  ElMessage[ok ? 'success' : 'error'](ok ? '口令已更新' : '更新失败')
-  pwdVisible.value = false
+  try {
+    await api('/auth/users', {
+      method: 'PATCH',
+      body: JSON.stringify({ id: pwdUserId.value, password: newPassword.value }),
+    })
+    pwdVisible.value = false
+    ElMessage.success('口令已更新')
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '更新失败')
+  }
 }
 
-async function handleRemove(row: AuthUser) {
+async function handleRemove(row: AdminUser) {
   try {
     await ElMessageBox.confirm(`删除用户「${row.username}」？`, '删除用户', {
       type: 'warning',
@@ -201,12 +238,12 @@ async function handleRemove(row: AuthUser) {
   } catch {
     return
   }
-  const ok = await removeUser(row.id)
-  if (!ok) {
-    ElMessage.error('删除失败：至少保留一名管理员')
-    return
+  try {
+    await api(`/auth/users?id=${encodeURIComponent(row.id)}`, { method: 'DELETE' })
+    await refresh()
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '删除失败')
   }
-  await refresh()
 }
 </script>
 

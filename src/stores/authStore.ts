@@ -1,15 +1,20 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { authenticate } from '@/auth/userLibrary'
 import { roleAtLeast, type LoginUser, type Role } from '@/types/auth'
-import { getStorage } from '@/storage'
+import { getStorage, } from '@/storage'
+import { resolveApiBase } from '@/storage/config'
+import { setSessionToken, authHeaders } from '@/auth/session'
 
 const SESSION_KEY = 'scada_session'
 
+interface SessionPayload {
+  user: LoginUser
+  token: string
+}
+
 /**
- * 会话与角色鉴权。
- * 界面级 RBAC：登录后按角色限制编辑/写值/用户管理。
- * 存储 API 仍使用独立的共享 AUTH_TOKEN（见 .env.example）。
+ * 会话与角色鉴权：登录走后端 /api/auth/login，角色以服务端会话为准。
+ * 存储/历史/审计请求通过 session.ts 注入 Bearer。
  */
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<LoginUser | null>(null)
@@ -24,23 +29,30 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value ? roleAtLeast(user.value.role, min) : false
   }
 
-  /** 可进编辑器 */
   const canEdit = computed(() => can('engineer'))
-  /** 可写值 / 确认报警 */
   const canWrite = computed(() => can('operator'))
-  /** 可管用户 */
   const canManageUsers = computed(() => can('admin'))
 
   async function restoreSession(): Promise<void> {
     try {
       const raw = await getStorage().get(SESSION_KEY)
       if (!raw) return
-      const saved = JSON.parse(raw) as LoginUser
-      if (saved && saved.id && saved.username && saved.role) {
-        user.value = saved
+      const saved = JSON.parse(raw) as SessionPayload
+      if (!saved?.token || !saved?.user?.id) return
+      setSessionToken(saved.token)
+      const res = await fetch(`${resolveApiBase()}/auth/me`, {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(3000),
+      })
+      if (!res.ok) {
+        setSessionToken(null)
+        await getStorage().remove(SESSION_KEY)
+        return
       }
+      const body = await res.json()
+      user.value = body.user
     } catch {
-      // 忽略坏会话
+      // 后端不可用时保留本地用户缓存，便于内网离线演示（写接口会 401）
     }
   }
 
@@ -48,18 +60,19 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     loginError.value = ''
     try {
-      const found = await authenticate(username, password)
-      if (!found) {
-        loginError.value = '用户名或口令错误'
+      const res = await fetch(`${resolveApiBase()}/auth/login`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok || !body.token) {
+        loginError.value = body.error || '登录失败'
         return false
       }
-      user.value = {
-        id: found.id,
-        username: found.username,
-        displayName: found.displayName,
-        role: found.role,
-      }
-      await getStorage().set(SESSION_KEY, JSON.stringify(user.value))
+      user.value = body.user
+      setSessionToken(body.token)
+      await getStorage().set(SESSION_KEY, JSON.stringify({ user: body.user, token: body.token }))
       return true
     } catch (e) {
       loginError.value = e instanceof Error ? e.message : String(e)
@@ -70,11 +83,19 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout(): Promise<void> {
+    try {
+      await fetch(`${resolveApiBase()}/auth/logout`, {
+        method: 'POST',
+        headers: authHeaders(),
+      })
+    } catch {
+      // ignore
+    }
+    setSessionToken(null)
     user.value = null
     await getStorage().remove(SESSION_KEY)
   }
 
-  /** 审计用操作者名 */
   function operatorName(): string {
     return user.value ? `${user.value.displayName}(${user.value.username})` : '匿名'
   }

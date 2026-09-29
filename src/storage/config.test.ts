@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { resolveApiBase, resolveApiToken } from './config'
 import { RemoteStorageAdapter } from './remote'
+import { setSessionToken } from '@/auth/session'
 
 describe('resolveApiBase / resolveApiToken', () => {
   afterEach(() => {
@@ -28,6 +29,7 @@ describe('resolveApiBase / resolveApiToken', () => {
 describe('RemoteStorageAdapter', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    setSessionToken(null)
   })
 
   it('配置 Token 时应带上 Authorization 头', async () => {
@@ -36,8 +38,9 @@ describe('RemoteStorageAdapter', () => {
       json: async () => ({ ok: true, keys: [] }),
     })
     vi.stubGlobal('fetch', fetchMock)
+    setSessionToken('tok-1')
 
-    const adapter = new RemoteStorageAdapter('https://api.example.com/api/storage', 'tok-1')
+    const adapter = new RemoteStorageAdapter('https://api.example.com/api/storage')
     await adapter.keys()
 
     expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/api/storage/keys', {
@@ -51,8 +54,9 @@ describe('RemoteStorageAdapter', () => {
       json: async () => ({ ok: true, value: null }),
     })
     vi.stubGlobal('fetch', fetchMock)
+    setSessionToken(null)
 
-    const adapter = new RemoteStorageAdapter('/api/storage', null)
+    const adapter = new RemoteStorageAdapter('/api/storage')
     await adapter.get('k')
 
     expect(fetchMock).toHaveBeenCalledWith('/api/storage/get?key=k', { headers: {} })

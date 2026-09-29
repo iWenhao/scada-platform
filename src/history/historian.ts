@@ -6,7 +6,8 @@
  * 失败策略：连续多次失败后本次会话内停用（画面照常运行，只是不再累积
  * 历史），避免存储后端离线时反复打无效请求；恢复能力随下次刷新回来。
  */
-import { resolveApiBase, resolveApiToken } from '@/storage/config'
+import { resolveApiBase } from '@/storage/config'
+import { authHeaders } from '@/auth/session'
 
 export interface SamplePoint {
   t: number
@@ -30,11 +31,6 @@ function ensureTimer() {
   flushTimer = window.setInterval(() => {
     void flush()
   }, FLUSH_INTERVAL)
-}
-
-function authHeaders(): Record<string, string> {
-  const token = resolveApiToken()
-  return token ? { authorization: `Bearer ${token}` } : {}
 }
 
 /** 累积一个采样点（仅数值），入队即返回，网络在后台批量处理 */

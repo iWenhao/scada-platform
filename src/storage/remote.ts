@@ -1,19 +1,16 @@
 import type { StorageAdapter } from './index'
-import { resolveApiToken } from './config'
+import { authHeaders } from '@/auth/session'
 
 /**
  * 远程存储适配器：对接 server/index.mjs 提供的 KV 存储服务。
  * 使项目/自定义组件持久化到服务端文件，而非浏览器 localStorage。
  */
 export class RemoteStorageAdapter implements StorageAdapter {
-  private headers: Record<string, string>
-
-  constructor(
-    private base = '/api/storage',
-    token: string | null = resolveApiToken(),
-  ) {
-    this.headers = token ? { authorization: `Bearer ${token}` } : {}
+  private get headers(): Record<string, string> {
+    return authHeaders()
   }
+
+  constructor(private base = '/api/storage') {}
 
   async keys(): Promise<string[]> {
     const res = await fetch(this.base + '/keys', { headers: this.headers })
