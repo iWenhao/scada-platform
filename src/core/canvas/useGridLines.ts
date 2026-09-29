@@ -14,7 +14,17 @@ export function useGridLines(canvasStore: CanvasStore) {
     listening: false,
   }))
 
-  // 画布边界与底色（跟随画布配置的背景色）
+  // 画布底色（先画，避免盖住网格）
+  const canvasBackgroundConfig = computed(() => ({
+    x: 0,
+    y: 0,
+    width: canvasStore.canvasConfig.width,
+    height: canvasStore.canvasConfig.height,
+    fill: canvasStore.canvasConfig.backgroundColor || '#1e1e1e',
+    listening: false,
+  }))
+
+  // 画布边界（只描边，不填充）
   const canvasBorderConfig = computed(() => ({
     x: 0,
     y: 0,
@@ -22,7 +32,7 @@ export function useGridLines(canvasStore: CanvasStore) {
     height: canvasStore.canvasConfig.height,
     stroke: '#444',
     strokeWidth: 2,
-    fill: canvasStore.canvasConfig.backgroundColor || '#1e1e1e',
+    fill: 'transparent',
     listening: false,
   }))
 
@@ -99,6 +109,7 @@ export function useGridLines(canvasStore: CanvasStore) {
 
   return {
     gridGroupConfig,
+    canvasBackgroundConfig,
     canvasBorderConfig,
     smallGridLines,
     largeGridLines,

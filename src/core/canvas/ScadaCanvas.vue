@@ -38,6 +38,8 @@
       <!-- 网格图层 -->
       <v-layer>
         <v-group :config="gridGroupConfig">
+          <!-- 底色（必须在网格之下） -->
+          <v-rect :config="canvasBackgroundConfig" />
           <!-- 小网格 -->
           <template v-if="canvasStore.canvasConfig.showGrid">
             <v-line
@@ -342,7 +344,7 @@ const drag = useElementDrag({
 })
 
 const { stageSize, stageConfig, beginPan, movePan, endPan, onWheel, navigateTo } = viewport
-const { gridGroupConfig, canvasBorderConfig, smallGridLines, largeGridLines } = grid
+const { gridGroupConfig, canvasBackgroundConfig, canvasBorderConfig, smallGridLines, largeGridLines } = grid
 const {
   getElementColor,
   getElementValueText,
