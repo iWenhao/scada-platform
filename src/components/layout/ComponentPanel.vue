@@ -154,11 +154,12 @@ const activeTab = ref<TabKey>('basic')
 
 /** 横向滑动指示条位置：三等分，用 translateX 左右流动 */
 const indicatorStyle = computed(() => {
-  const idx = tabs.findIndex(t => t.key === activeTab.value)
+  const idx = Math.max(0, tabs.findIndex(t => t.key === activeTab.value))
   const n = tabs.length || 1
+  // 与 flex:1 的按钮同宽；left:6px 对齐内边距，再按档位平移
   return {
     width: `calc((100% - 12px) / ${n})`,
-    transform: `translateX(calc(100% * ${Math.max(0, idx)} + 6px))`,
+    transform: `translateX(calc(100% * ${idx}))`,
   }
 })
 
