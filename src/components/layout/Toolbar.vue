@@ -144,6 +144,12 @@
         </el-popover>
       </el-badge>
 
+      <el-tooltip content="报警配置" placement="bottom">
+        <el-button size="small" circle @click="showAlarmConfig = true" title="报警配置">
+          <el-icon><AlarmClock /></el-icon>
+        </el-button>
+      </el-tooltip>
+
       <el-button-group>
         <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
           <el-button @click="uiStore.toggleTheme()">
@@ -208,6 +214,7 @@
     <!-- 对话框 -->
     <CanvasConfigDialog v-model="showCanvasConfig" />
     <DataSourceDialog v-model="showDataSource" />
+    <AlarmConfigDialog v-model="showAlarmConfig" />
   </div>
 </template>
 
@@ -223,6 +230,7 @@ import { useAlarmStore } from '@/stores/alarmStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
+import AlarmConfigDialog from '@/components/dialogs/AlarmConfigDialog.vue'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 
 const router = useRouter()
@@ -237,6 +245,7 @@ const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
 // 对话框显示状态
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
+const showAlarmConfig = ref(false)
 
 // 报警计数从 store 读取：报警面板随 popover 关闭而销毁，计数不能依赖组件存活
 const activeCount = computed(() => alarmStore.activeCount)

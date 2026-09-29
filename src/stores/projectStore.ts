@@ -6,6 +6,8 @@ import { useLayerStore } from './layerStore'
 import { getStorage } from '@/storage'
 import { defaultLayers } from '@/types/layer'
 import type { DataSourceConfig } from '@/datasource/types'
+import type { AlarmDefinition } from '@/types/alarm'
+import { normalizeAlarmDef } from '@/types/alarm'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -23,6 +25,9 @@ export const useProjectStore = defineStore('project', () => {
   // 数据源配置：属于工程的一部分，必须随工程一起持久化，
   // 否则保存后重开就没有数据源可用，预览只能退回 mock。
   const dataSourceConfig = ref<DataSourceConfig>({ type: 'mock', name: 'default' })
+
+  // 独立报警定义：与元素状态规则解耦的工程级报警表，随工程持久化
+  const alarmDefs = ref<AlarmDefinition[]>([])
 
   /** 草稿存储键：独立于正式工程前缀 */
   const draftKey = (name: string) => `scada_draft_${name}`
@@ -44,6 +49,7 @@ export const useProjectStore = defineStore('project', () => {
       connections: connectionStore.toJSON(),
       layers: layerStore.toJSON(),
       dataSource: dataSourceConfig.value,
+      alarmDefs: alarmDefs.value,
     }
   }
 
@@ -61,6 +67,11 @@ export const useProjectStore = defineStore('project', () => {
 
     // 旧工程没有 dataSource 字段，回落 mock 以保证向后兼容
     dataSourceConfig.value = projectData.dataSource || { type: 'mock', name: 'default' }
+
+    // 旧工程没有 alarmDefs 字段；逐条 normalize，坏数据（如手改 JSON）不进运行时
+    alarmDefs.value = Array.isArray(projectData.alarmDefs)
+      ? projectData.alarmDefs.map(normalizeAlarmDef).filter((d): d is AlarmDefinition => d !== null)
+      : []
   }
 
   /**
@@ -257,6 +268,15 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
+   * 保存报警定义（整体替换，配置对话框一次性提交）。
+   * 属于工程内容变更，标记脏状态。
+   */
+  function setAlarmDefs(defs: AlarmDefinition[]) {
+    alarmDefs.value = defs
+    hasUnsavedChanges.value = true
+  }
+
+  /**
    * 重置项目
    */
   function resetProject() {
@@ -265,6 +285,7 @@ export const useProjectStore = defineStore('project', () => {
     lastSaveTime.value = null
     hasUnsavedChanges.value = false
     dataSourceConfig.value = { type: 'mock', name: 'default' }
+    alarmDefs.value = []
 
     // 新建项目必须连同画布内容一起清空：残留的旧元素/连线会让人以为还在编辑上一个工程，
     // 一保存就把原工程覆盖掉了
@@ -282,6 +303,8 @@ export const useProjectStore = defineStore('project', () => {
     lastSaveTime,
     hasUnsavedChanges,
     dataSourceConfig,
+    alarmDefs,
+    setAlarmDefs,
     saveProject,
     loadProject,
     exportProject,

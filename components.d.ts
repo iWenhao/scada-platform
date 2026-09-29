@@ -7,6 +7,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AlarmConfigDialog: typeof import('./src/components/dialogs/AlarmConfigDialog.vue')['default']
     AlarmPanel: typeof import('./src/components/layout/AlarmPanel.vue')['default']
     CanvasConfigDialog: typeof import('./src/components/dialogs/CanvasConfigDialog.vue')['default']
     CanvasRuler: typeof import('./src/components/layout/CanvasRuler.vue')['default']

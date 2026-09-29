@@ -2,8 +2,11 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useCanvasStore } from './canvasStore'
 import { useDeviceStore } from './deviceStore'
+import { useProjectStore } from './projectStore'
+import { getStorage } from '@/storage'
 import { statusEngine } from '@/status/StatusEngine'
 import { resolveSeverity } from '@/status/severity'
+import { evaluateAlarmDef, type AlarmRuntime } from '@/alarm/alarmEngine'
 import type { AlarmSeverity } from '@/types/scada'
 
 /** 一条报警记录（活跃期间唯一，恢复后转入历史） */
@@ -33,6 +36,12 @@ const MAX_HISTORY = 100
 
 const SEVERITY_ORDER = { critical: 0, warning: 1 } as const
 
+/** 定义报警的级别配色（与 AlarmPanel 的样式约定一致） */
+const SEVERITY_COLOR = { critical: '#ff4757', warning: '#ffa502' } as const
+
+/** 报警历史持久化键前缀（随工程存取，跨会话可追溯） */
+const historyKey = (project: string) => `scada_alarms_${project}`
+
 function formatValue(raw: unknown): string {
   if (raw === undefined || raw === null) return '-'
   return typeof raw === 'number' ? String(Math.round(raw * 10) / 10) : String(raw)
@@ -49,11 +58,19 @@ function formatValue(raw: unknown): string {
 export const useAlarmStore = defineStore('alarm', () => {
   const canvasStore = useCanvasStore()
   const deviceStore = useDeviceStore()
+  const projectStore = useProjectStore()
 
   /** 当前仍成立的报警，按 key 索引 */
   const activeMap = ref<Record<string, AlarmRecord>>({})
   /** 已恢复的报警记录（倒序，最新的在前） */
   const history = ref<AlarmRecord[]>([])
+
+  /**
+   * 定义报警的运行态（延时计时/死区基准）。
+   * 刻意不做成响应式：它每次推送都在变，但只有触发/恢复事件才影响 UI，
+   * 响应式包装只会白白放大更新开销。
+   */
+  const runtimeMap = new Map<string, AlarmRuntime>()
 
   /**
    * 报警输入指纹。刻意不 deep watch 整个 elements：
@@ -136,6 +153,56 @@ export const useAlarmStore = defineStore('alarm', () => {
       }
     }
 
+    // 独立报警定义：与画面元素无关，直接对数据源变量做带死区/延时的判定。
+    // 清除不在这里处理——统一交给下方"不在 stillActive 即转历史"的收口逻辑，
+    // 避免两条路径对同一条记录重复入历史。
+    for (const def of projectStore.alarmDefs) {
+      if (!def.enabled) continue
+
+      const key = `def:${def.id}`
+      const raw = deviceStore.getVariableValue(def.deviceId, def.variable)
+      const numeric = typeof raw === 'number' ? raw : Number(raw)
+      const wasActive = key in activeMap.value
+
+      const result = evaluateAlarmDef({
+        condition: def.condition,
+        variable: def.variable,
+        deadband: def.deadband,
+        onDelayMs: def.onDelayMs,
+        value: Number.isNaN(numeric) ? undefined : numeric,
+        wasActive,
+        runtime: runtimeMap.get(key) ?? {},
+        now,
+      })
+      runtimeMap.set(key, result.runtime)
+
+      if (result.action === 'trigger') {
+        stillActive.add(key)
+        const text = String(raw)
+        activeMap.value = {
+          ...activeMap.value,
+          [key]: {
+            key,
+            elementId: def.id,
+            elementName: def.name,
+            ruleId: def.id,
+            ruleName: `${def.deviceId}.${def.variable}`,
+            severity: def.severity,
+            color: SEVERITY_COLOR[def.severity],
+            value: text,
+            lastValue: text,
+            since: now,
+            acknowledged: false,
+          },
+        }
+      }
+
+      if (wasActive && result.action !== 'clear') {
+        stillActive.add(key)
+        activeMap.value[key].lastValue = String(raw)
+      }
+    }
+
     // 条件不再成立的报警转入历史，而不是直接消失
     const survivors: Record<string, AlarmRecord> = {}
     let moved = false
@@ -178,9 +245,54 @@ export const useAlarmStore = defineStore('alarm', () => {
   function reset() {
     activeMap.value = {}
     history.value = []
+    runtimeMap.clear()
   }
 
   watch([() => deviceStore.lastUpdateTime, inputsKey], recompute, { immediate: true })
+
+  // ---- 历史持久化：随工程存取，跨会话可追溯（报警记录留在内存里刷新即失，追溯价值归零） ----
+
+  let persistTimer: number | null = null
+
+  /** 历史变化后延迟落盘：恢复报警可能一次进来一批，合并成一次写入 */
+  function schedulePersist() {
+    if (persistTimer !== null) clearTimeout(persistTimer)
+    persistTimer = window.setTimeout(() => {
+      persistTimer = null
+      getStorage()
+        .set(historyKey(projectStore.projectName), JSON.stringify(history.value))
+        .catch(e => console.warn('[alarmStore] 报警历史落盘失败', e))
+    }, 500)
+  }
+
+  watch(history, schedulePersist, { deep: true })
+
+  /** 从存储恢复报警历史（工程加载完成后由调用方触发） */
+  async function loadHistory(projectName: string) {
+    runtimeMap.clear()
+    activeMap.value = {}
+    const json = await getStorage().get(historyKey(projectName))
+    try {
+      const restored = json ? JSON.parse(json) : []
+      history.value = Array.isArray(restored) ? restored.slice(0, MAX_HISTORY) : []
+    } catch {
+      console.warn('[alarmStore] 报警历史数据损坏，已忽略')
+      history.value = []
+    }
+  }
+
+  watch(
+    () => projectStore.projectName,
+    (name) => {
+      // 工程切换时未落盘的变更先放下，加载目标工程的历史
+      if (persistTimer !== null) {
+        clearTimeout(persistTimer)
+        persistTimer = null
+      }
+      loadHistory(name)
+    },
+    { immediate: true },
+  )
 
   return {
     activeAlarms,
@@ -191,6 +303,7 @@ export const useAlarmStore = defineStore('alarm', () => {
     acknowledge,
     acknowledgeAll,
     clearHistory,
+    loadHistory,
     reset,
   }
 })
