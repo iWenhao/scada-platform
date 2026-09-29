@@ -6,6 +6,19 @@
     :close-on-click-modal="false"
   >
     <div class="trend-body">
+      <div class="trend-range">
+        <span class="trend-range-label">时间范围</span>
+        <el-radio-group v-model="range" size="small">
+          <el-radio-button value="live">实时</el-radio-button>
+          <el-radio-button value="1h">1 小时</el-radio-button>
+          <el-radio-button value="24h">24 小时</el-radio-button>
+          <el-radio-button value="7d">7 天</el-radio-button>
+        </el-radio-group>
+        <span v-if="range !== 'live' && loadingRemote" class="trend-range-hint">加载中…</span>
+        <span v-else-if="range !== 'live' && loadError" class="trend-range-hint error">{{ loadError }}</span>
+        <span v-else-if="range !== 'live'" class="trend-range-hint">来自服务端历史存储</span>
+      </div>
+
       <div class="trend-info" v-if="points.length">
         <span class="trend-label">数据点数</span>
         <span class="trend-value">{{ points.length }}</span>
@@ -18,7 +31,12 @@
       </div>
 
       <div v-if="!points.length" class="trend-empty">
-        暂无历史数据，等待数据源推送后自动采集
+        <template v-if="range === 'live'">
+          暂无历史数据，等待数据源推送后自动采集
+        </template>
+        <template v-else-if="!loadingRemote">
+          该时间范围内没有历史数据；确认存储后端在线且已积累采样后再试
+        </template>
       </div>
 
       <template v-else>
@@ -91,6 +109,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { queryHistory, type SamplePoint } from '@/history/historian'
 
 const props = defineProps<{
   modelValue: boolean
@@ -124,9 +143,61 @@ const svgRef = ref<SVGSVGElement>()
 const tick = ref(0)
 let timer: number | null = null
 
+// ---- 时间范围：live 用内存缓冲实时刷新，其余从服务端历史存储查询 ----
+type TrendRange = 'live' | '1h' | '24h' | '7d'
+const RANGE_MS: Record<Exclude<TrendRange, 'live'>, number> = {
+  '1h': 3600_000,
+  '24h': 24 * 3600_000,
+  '7d': 7 * 24 * 3600_000,
+}
+
+const range = ref<TrendRange>('live')
+const remotePoints = ref<SamplePoint[]>([])
+const loadingRemote = ref(false)
+const loadError = ref('')
+let remoteTimer: number | null = null
+
 const points = computed(() => {
   void tick.value // 依赖 tick 以触发周期性刷新
-  return deviceStore.getHistory(props.deviceId, props.variable)
+  if (range.value === 'live') {
+    return deviceStore.getHistory(props.deviceId, props.variable)
+  }
+  return remotePoints.value
+})
+
+async function loadRemote() {
+  const ms = RANGE_MS[range.value as Exclude<TrendRange, 'live'>]
+  if (!ms) return
+  loadingRemote.value = true
+  loadError.value = ''
+  try {
+    const now = Date.now()
+    remotePoints.value = await queryHistory(
+      `${props.deviceId}.${props.variable}`,
+      now - ms,
+      now,
+      600,
+    )
+  } catch (e) {
+    loadError.value = e instanceof Error ? e.message : '查询失败'
+  } finally {
+    loadingRemote.value = false
+  }
+}
+
+function stopRemoteTimer() {
+  if (remoteTimer !== null) {
+    clearInterval(remoteTimer)
+    remoteTimer = null
+  }
+}
+
+watch([visible, range, () => props.deviceId, () => props.variable], ([open, r]) => {
+  stopRemoteTimer()
+  if (!open || r === 'live') return
+  void loadRemote()
+  // 历史区间每 30 秒重拉一次，追加最新数据
+  remoteTimer = window.setInterval(() => void loadRemote(), 30_000)
 })
 
 const stats = computed(() => {
@@ -226,7 +297,10 @@ watch(() => props.modelValue, (val) => {
   else stopTimer()
 })
 
-onUnmounted(stopTimer)
+onUnmounted(() => {
+  stopTimer()
+  stopRemoteTimer()
+})
 </script>
 
 <style scoped lang="scss">
@@ -235,6 +309,27 @@ onUnmounted(stopTimer)
   border: 1px solid var(--border-primary);
   border-radius: 6px;
   padding: 12px;
+}
+
+.trend-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  .trend-range-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .trend-range-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+
+    &.error {
+      color: #ff4757;
+    }
+  }
 }
 
 .trend-info {

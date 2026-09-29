@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { dataSourceManager } from '@/datasource/DataSourceManager'
+import { pushSample } from '@/history/historian'
 import type { DataUpdate } from '@/datasource/types'
 
 /** 单个历史数据点 */
@@ -39,7 +40,8 @@ export const useDeviceStore = defineStore('device', () => {
       }
       Object.assign(deviceData.value[deviceId], variables)
 
-      // 采集历史数据（仅数值类型）
+      // 采集历史数据（仅数值类型）：内存缓冲供实时曲线，同时喂给
+      // historian 批量落盘（刷新后趋势仍可查历史区间）
       const now = Date.now()
       for (const [varName, val] of Object.entries(variables)) {
         if (typeof val !== 'number') continue
@@ -52,6 +54,7 @@ export const useDeviceStore = defineStore('device', () => {
         if (arr.length > MAX_HISTORY_PER_VARIABLE) {
           arr.shift()
         }
+        pushSample(key, now, val)
       }
     }
     lastUpdateTime.value = Date.now()
