@@ -1,0 +1,11 @@
+.git
+node_modules
+dist
+coverage
+server/data
+.vscode
+*.log
+**/*.log
+test-out.txt
+lint-out.txt
+tsc-out.txt

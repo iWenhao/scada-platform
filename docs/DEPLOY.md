@@ -366,14 +366,47 @@ DATA_DIR/
 
 ---
 
-## 7. 容器部署要点
+## 7. 容器部署（Docker Compose）
 
-存储后端零依赖，易于容器化。仓库已附带 `Dockerfile` 与 `docker-compose.yml`（见下节），要点如下：
+仓库已附带编排文件，一条命令起全站：
 
-1. 镜像内保留 `server/`，启动命令 `node server/index.mjs`
-2. `DATA_DIR` 指到卷挂载点，例如 `/data`，宿主机备份该目录
-3. 端口映射 `5174`，或由容器网络内 Nginx/Ingress 转发
-4. 环境变量通过编排文件注入（`AUTH_TOKEN` 不要写进镜像）
+```bash
+docker compose up -d --build
+# 浏览器打开 http://localhost:8080
+# 首次启动会创建种子账号（见 §5.4，务必改口令）
+```
+
+### 7.1 服务构成
+
+| 服务 | 镜像来源 | 职责 | 端口 |
+|------|----------|------|------|
+| `web` | `Dockerfile`（node 构建 → nginx 托管） | 静态资源 + `/api` 反代 | 宿主 `8080` → 容器 80 |
+| `server` | `Dockerfile.server`（node:20-alpine） | 存储后端：KV / 时序历史 / 账号会话 / 通知 / 审计 | 仅容器网络内 5174 |
+
+数据在命名卷 `scada-data`（挂载到 `server` 的 `/data`），**重建或升级容器不丢数据**。
+
+### 7.2 常用操作
+
+```bash
+docker compose logs -f server      # 看后端日志（种子账号提示、清理记录）
+docker compose ps                  # 健康检查状态
+docker compose down                # 停止（保留卷）
+docker compose down -v             # 停止并删除卷（会清空账号与工程！）
+
+# 备份：直接打包卷内容
+docker run --rm -v scada-data:/data -v "$PWD":/backup alpine \
+  tar czf /backup/scada-data-$(date +%F).tar.gz -C /data .
+```
+
+### 7.3 生产化调整
+
+1. **改端口/域名**：编辑 `docker-compose.yml` 的 `ports` 与 `CORS_ORIGIN`
+2. **HTTPS**：在 `web` 前加一层反代（Traefik / Caddy / 宿主 Nginx），不要在容器内配证书
+3. **前后端分域**：`web` 的 build-arg 改 `VITE_API_BASE: https://api.example.com/api`，`server` 的 `CORS_ORIGIN` 写前端站点，并暴露 `server` 端口
+4. **密钥**：`AUTH_TOKEN`、通知通道密钥通过环境变量注入，**不要**写进镜像或提交到仓库
+5. **资源**：点位多、采样密时给 `server` 加内存限制并评估 `HISTORY_RETENTION_DAYS`（见 §6 清单）
+
+> 说明：这套编排文件**尚未在实际 Docker 环境跑过**（编写时所在机器未安装 Docker），首次使用请留意构建日志。若构建失败，优先检查两处：`pnpm-workspace.yaml` 是否被正确 COPY（它声明了依赖构建脚本白名单，缺失会导致 `pnpm install` 失败）；`corepack prepare pnpm@11` 是否可用（可改成你本地的 pnpm 大版本）。
 
 ---
 

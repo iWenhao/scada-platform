@@ -405,6 +405,14 @@ pnpm install
 pnpm dev
 ```
 
+### 容器一键起全站
+
+```bash
+docker compose up -d --build   # 前端 http://localhost:8080
+```
+
+部署细节（鉴权、账号、用户隔离、历史与备份）见 [docs/DEPLOY.md](docs/DEPLOY.md)。
+
 ### 构建
 
 ```bash
