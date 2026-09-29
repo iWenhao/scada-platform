@@ -158,8 +158,9 @@ async function handleCommand(cmd: string, page: ScadaPage) {
   align-items: center;
   gap: 6px;
   overflow-x: auto;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: calc(100% - 40px);
 
   &::-webkit-scrollbar {
     height: 4px;
