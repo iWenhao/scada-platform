@@ -13,17 +13,22 @@
 | 组件 | 是什么 | 怎么跑 |
 |------|--------|--------|
 | 前端 | Vue 3 + Vite 构建出的静态文件 | 任意静态托管（Nginx / CDN / 对象存储） |
-| 存储后端 | 零依赖 Node KV 服务，项目/自定义组件/主题落盘为 JSON | `node server/index.mjs` |
-| 实时数据 | 浏览器直连 WebSocket / HTTP / OPC UA 网关 | 不经过存储后端，与本文无关 |
+| 存储后端 | 零依赖 Node 服务：KV 存储（项目/自定义组件/设备模板/草稿）+ 时序历史 + 账号会话 + 通知外发 + 审计 | `node server/index.mjs` |
+| 实时数据 | 浏览器直连 WebSocket / HTTP / OPC UA 网关 / MQTT Broker | 不经过存储后端，与本文无关 |
 
-前端通过相对路径 `/api/**`（可配置）访问存储后端。后端不在线时，前端会自动回落到浏览器 localStorage，组态编辑仍可用，但数据不落服务端。
+前端通过相对路径 `/api/**`（可配置）访问存储后端。后端不在线时，前端会回落到浏览器 localStorage：
+组态编辑仍可用，历史采样转为本机暂存，但项目不落服务端、也不跨设备同步。
 
 ```
 浏览器 ──► 静态托管 (dist/)
   │
-  ├─► GET /api/**  ──► 存储后端 (node server/index.mjs)
+  ├─► GET/POST /api/**  ──► 存储后端 (node server/index.mjs)
+  │                          ├─ KV 存储   u/<userId>/*.json
+  │                          ├─ 时序历史   u/<userId>/history/
+  │                          └─ 全局       _users.json / _sessions.json
+  │                                       _notify.json / _notify_log.jsonl / _audit.jsonl
   │
-  └─► ws://... / http://...  ──► 你的实时数据源 / OPC UA 网关
+  └─► ws://... / http://... / mqtt  ──► 你的实时数据源 / OPC UA 网关 / MQTT Broker
 ```
 
 ---
@@ -57,14 +62,17 @@ PORT=5174 \
 DATA_DIR=/var/lib/scada/data \
 AUTH_TOKEN=change-me \
 CORS_ORIGIN=https://scada.example.com \
+HISTORY_RETENTION_DAYS=30 \
 node server/index.mjs
 ```
 
 说明：
 
 - `DATA_DIR` 指到系统盘以外或独立数据目录，方便备份/挂卷
-- `AUTH_TOKEN` **生产必填**；不设则任何人可读写存储接口
+- `AUTH_TOKEN` 是**服务主密钥**（可选）：设置后该 Token 拥有全部权限，用于探针/CI/无浏览器场景。日常访问用登录会话（见 §5.4），不要把主密钥分发给操作员
 - 同域反代时 `CORS_ORIGIN` 可随意（不会用到预检），但建议仍写上前端站点
+- `HISTORY_RETENTION_DAYS` 控制时序历史保留天数，超期分片每日自动清理
+- **首次启动会自动创建种子账号**并在日志里提示：`admin/engineer/operator/viewer`（口令见 §5.4，上线后必须改）
 
 验证：
 
@@ -75,6 +83,12 @@ curl -sS http://127.0.0.1:5174/api/health
 
 curl -sS -H "Authorization: Bearer change-me" http://127.0.0.1:5174/api/health
 # {"ok":true}
+
+# 登录取会话 Token（种子账号，仅首次验证用）
+curl -sS -X POST http://127.0.0.1:5174/api/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"username":"admin","password":"admin123"}'
+# {"token":"...","user":{...}}
 ```
 
 ### 3.2 前端构建
@@ -243,22 +257,85 @@ curl -sS -D - -o /dev/null -X OPTIONS \
 | 变量 | 默认 | 说明 |
 |------|------|------|
 | `PORT` | `5174` | 监听端口 |
-| `DATA_DIR` | `<项目>/server/data` | 数据目录，每个 key 一个 `*.json` |
+| `DATA_DIR` | `<项目>/server/data` | 数据目录：用户空间 `u/<userId>/` + 全局 `_*.json` |
 | `MAX_BODY_BYTES` | `20971520`（20MB） | 单次写入上限，超出返回 413 |
 | `CORS_ORIGIN` | `*` | 允许的跨域来源，逗号分隔；生产不要用 `*` |
-| `AUTH_TOKEN` | 空 | 设置后启用 Bearer 鉴权；生产务必设置 |
+| `AUTH_TOKEN` | 空 | 可选**服务主密钥**（Bearer），设置后拥有全部权限；登录会话仍可用 |
+| `HISTORY_RETENTION_DAYS` | `30` | 时序历史保留天数，超期分片每日自动清理；`0` 表示不清理 |
 
-### 接口一览
+### 5.3 接口一览
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/health` | 健康检查 → `{ ok: true }` |
-| GET | `/api/keys` | 列出全部 key |
-| GET | `/api/storage/get?key=` | 读取 |
-| PUT | `/api/storage/set?key=` | 写入（body 为文本） |
-| DELETE | `/api/storage/remove?key=` | 删除 |
+| 方法 | 路径 | 说明 | 所需角色 |
+|------|------|------|----------|
+| GET | `/api/health` | 健康检查 → `{ ok: true }` | 无 |
+| POST | `/api/auth/login` | 登录，发行会话 Token | 无 |
+| POST | `/api/auth/logout` | 注销当前会话 | 登录 |
+| GET | `/api/auth/me` | 当前登录用户与角色 | 登录 |
+| POST | `/api/auth/password` | 修改自己的口令 | 登录 |
+| GET/POST/PUT/DELETE | `/api/auth/users` | 用户管理（列/建/改/删） | admin |
+| GET/PUT | `/api/notify/channels` | 通知通道配置（Webhook/企微/钉钉/邮件/短信） | engineer+ |
+| POST | `/api/notify/test` | 对某通道做连通性测试 | engineer+ |
+| GET/DELETE | `/api/notify/log` | 通知发送记录（最近 500 条） | engineer+ |
+| POST | `/api/notify/send` | 服务端主动外发（报警扇出） | 内部 |
+| POST/GET | `/api/audit` | 写值审计（写入/查询），操作者由会话注入、不可伪造 | 登录 |
+| GET | `/api/keys` | 列出**当前用户空间**的全部 key | 登录 |
+| GET | `/api/storage/get?key=` | 读取 | 登录 |
+| PUT | `/api/storage/set?key=` | 写入（body 为文本） | engineer+ |
+| DELETE | `/api/storage/remove?key=` | 删除 | engineer+ |
+| POST | `/api/history/write` | 批量追加时序采样 | operator+ |
+| GET | `/api/history/query?key=&from=&to=&maxPoints=` | 区间查询（服务端抽稀） | 登录 |
 
-开启 `AUTH_TOKEN` 后，以上接口（含 health）都要求 `Authorization: Bearer <token>`；`OPTIONS` 预检不鉴权。
+说明：
+
+- 未登录访问受保护接口返回 401；角色不足返回 403
+- 持有 `AUTH_TOKEN`（服务主密钥）时跳过角色检查，按全权限处理
+- `OPTIONS` 预检永不鉴权
+
+### 5.4 账号与角色
+
+首次启动写入种子账号（**上线后必须改口令**）：
+
+| 用户名 | 角色 | 初始口令 |
+|--------|------|----------|
+| `admin` | 管理员 | `admin123` |
+| `engineer` | 工程师 | `engineer123` |
+| `operator` | 操作员 | `operator123` |
+| `viewer` | 观察员 | `viewer123` |
+
+角色能力（等级 `viewer < operator < engineer < admin`）：
+
+| 能力 | viewer | operator | engineer | admin |
+|------|:------:|:--------:|:--------:|:-----:|
+| 查看画面/报警/趋势 | ✅ | ✅ | ✅ | ✅ |
+| 进入编辑器 | — | — | ✅ | ✅ |
+| 下发写值 | — | ✅ | ✅ | ✅ |
+| 上报历史数据 | — | ✅ | ✅ | ✅ |
+| 保存工程/改数据源 | — | — | ✅ | ✅ |
+| 通知通道配置 | — | — | ✅ | ✅ |
+| 用户管理 | — | — | — | ✅ |
+
+约束：口令以 scrypt 哈希存 `DATA_DIR/_users.json`，永不回传前端；最后一名 admin 不能被降级或删除；删除用户会同时踢掉其全部会话。
+
+### 5.5 数据目录结构
+
+```
+DATA_DIR/
+├── u/<userId>/                 用户命名空间（登录用户各自的工程与历史）
+│   ├── scada_project_*.json    工程（含 pages[] 多画面、点表、报警定义、数据源配置）
+│   ├── scada_components.json   自定义组件
+│   ├── scada_template_*.json   设备模板
+│   ├── scada_draft_*           未保存草稿
+│   └── history/                时序历史 <key>.<YYYYMMDD>.jsonl
+├── u/anonymous/                未登录/匿名访问的空间
+├── u/service/                  持有 AUTH_TOKEN 主密钥时写入的空间
+├── _users.json                 账号表（全局，scrypt 哈希）
+├── _sessions.json              会话表（全局，带 TTL）
+├── _notify.json                通知通道配置（全局）
+├── _notify_log.jsonl           通知发送记录（全局，最近 500 条）
+└── _audit.jsonl                写值审计（全局，最近 500 条）
+```
+
+备份时整目录打包即可。注意 `_*.json` / `_*.jsonl` 为**全局**数据，不随用户空间隔离。
 
 ---
 
@@ -266,29 +343,32 @@ curl -sS -D - -o /dev/null -X OPTIONS \
 
 上线前逐项确认：
 
-- [ ] **鉴权**：设置了强随机 `AUTH_TOKEN`，前端构建注入同一 `VITE_API_TOKEN`
+- [ ] **改掉种子口令**：`admin/engineer/operator/viewer` 的初始口令必须全部改掉（用户管理界面或 `/api/auth/password`）
+- [ ] **账号收敛**：删除不再使用的账号；确认至少保留一名 admin
+- [ ] **服务主密钥**：如设置 `AUTH_TOKEN`，用强随机值并妥善保管，**不要**注入前端构建（日常用登录会话）
 - [ ] **CORS**：`CORS_ORIGIN` 只列真实前端站点，不再使用 `*`
-- [ ] **HTTPS**：Nginx 配好证书；只开 80 会把 Token 明文暴露在网络上
-- [ ] **数据持久化**：`DATA_DIR` 在独立目录/挂卷；纳入备份
+- [ ] **HTTPS**：Nginx 配好证书；只开 80 会把会话 Token 与口令明文暴露在网络上
+- [ ] **数据持久化**：`DATA_DIR` 在独立目录/挂卷；纳入备份（含 `u/<userId>/` 与全局 `_*.json`）
 - [ ] **请求体上限**：`MAX_BODY_BYTES` 与 Nginx `client_max_body_size` 匹配（建议 Nginx 略大）
+- [ ] **历史保留期**：按磁盘容量设定 `HISTORY_RETENTION_DAYS`（点位多、采样密时需评估：1 个点位 1 秒采样约 86400 行/天）
+- [ ] **通知密钥**：Webhook/企微/钉钉/邮件 SMTP/短信网关的密钥存服务端 `_notify.json`，不要写进前端或镜像
 - [ ] **进程守护**：systemd / 容器重启策略（`Restart=on-failure`）
-- [ ] **健康检查**：对 `/api/health` 带 Token 做监控；后端挂了前端会回落 localStorage，用户可能“能打开但保存不生效”
+- [ ] **健康检查**：对 `/api/health` 做监控；后端挂了前端会回落 localStorage，用户可能"能打开但保存不生效、历史只在本机"
 - [ ] **防火墙**：5174 只对本机或内网开放；对外只暴露 80/443
 
-### 关于前端 Token 的限制
+### 关于 `VITE_API_TOKEN` 的定位
 
-`VITE_API_TOKEN` 构建后会打进前端 JS，能被浏览器用户读到。它适合：
+它是**服务主密钥**，构建后会打进前端 JS，任何浏览器用户都能读到。因此只适合：
 
-- 内网组态、可信操作员访问
-- 作为“共享口令”挡掉扫描器和无关来源
+- 内网可信环境、无人值守探针、CI 校验
 
-它**不是**多用户权限体系。若需要按用户隔离项目，请再加登录/会话接口（当前版本未内置）。
+日常使用请走**登录会话**：操作员用自己的账号登录，服务端按角色授权，审计记录里的操作者由会话注入、无法伪造。需要按用户隔离项目时，登录会话本身就是隔离依据（见 §5.5）。
 
 ---
 
 ## 7. 容器部署要点
 
-当前存储后端零依赖，没有附带 Dockerfile。若自行容器化，记住：
+存储后端零依赖，易于容器化。仓库已附带 `Dockerfile` 与 `docker-compose.yml`（见下节），要点如下：
 
 1. 镜像内保留 `server/`，启动命令 `node server/index.mjs`
 2. `DATA_DIR` 指到卷挂载点，例如 `/data`，宿主机备份该目录
@@ -311,8 +391,11 @@ curl -sS -D - -o /dev/null -X OPTIONS \
 **Q4：保存报 413 / payload too large？**  
 项目 JSON 超过 `MAX_BODY_BYTES`，同时调大后端变量和 Nginx `client_max_body_size`。
 
-**Q5：`keys` 列表和别人混在一起了？**  
-存储服务是**全局单命名空间**的 KV，没有多租户隔离。需要按用户/项目隔离时，应在 key 前缀上做约定，或等多用户版本。
+**Q5：换账号登录后看不到之前的工程？**  
+这是预期行为：工程、自定义组件、设备模板、草稿与时序历史都按**用户命名空间**（`u/<userId>/`）隔离，不同账号互不可见。确认登录的是同一个账号；若数据是升级前的旧文件，它可能还留在 `DATA_DIR` 根目录，需要人工迁入对应用户目录。
+
+**Q6：后端离线时历史曲线还在吗？**  
+在，但只存本机：前端会把采样降级写入 localStorage（同样按用户隔离），趋势图会提示"后端离线，历史暂存本机"。重新连上服务端后，新采样走服务端，本机暂存不会自动回传。
 
 ---
 
@@ -320,4 +403,7 @@ curl -sS -D - -o /dev/null -X OPTIONS \
 
 1. 构建产物：`pnpm build` → 替换静态目录里的 `dist/`（可先拷到 `dist.prev` 备份）
 2. 后端：停服务 → 更新代码 → 起服务。数据在 `DATA_DIR`，不随代码删除
-3. 回滚：静态目录换回旧 `dist/`；后端换回旧代码即可，数据格式当前为纯 JSON 文本，兼容保留
+3. 回滚：静态目录换回旧 `dist/`；后端换回旧代码即可。数据格式兼容保留：
+   - 工程文件为 `version 1.1`（`pages[]` 多画面结构）；旧版单画布工程在加载时**自动迁移**为「主页」
+   - 时序历史为按天分片 JSONL，向后兼容
+   - 从"无用户隔离"的旧版本升级时，`DATA_DIR` 根目录的旧 KV 数据**不会**自动迁入用户空间，需人工移入 `u/<userId>/` 或重新保存一次
