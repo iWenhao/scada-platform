@@ -87,6 +87,11 @@ pnpm lint               # ESLint
 - Vue SFC 中 Element Plus 组件与图标（`@element-plus/icons-vue` 全局注册于 main.ts）无需手动导入。
 - 注释用中文，说明"为什么"而非"做了什么"。
 - **凡是涉及服务端代码（`server/**`）的改动都必须加上注释**：新增/修改的函数、配置项、路由、数据文件格式要有中文说明（模块职责、接口约定、安全/兼容注意点），风格对齐现有 `server/auth.mjs`、`server/notify.mjs`、`server/index.mjs`。
+- **文件过长/过大时自动拆分**（不要等积重难返）：
+  - 参考阈值：Vue SFC **> 400 行**、TS/JS 逻辑文件 **> 400 行**、`server/**/*.mjs` **> 400 行**、单文件 SCSS **> 500 行**；
+  - 拆法：对话框/面板按区块拆子组件；样式外置 `*.scss`；逻辑抽 `use*.ts` composable；服务端按域拆 `lib/` 或 `notify/` 类模块；
+  - 拆完必须 `vue-tsc --noEmit` + `vitest run` 通过，行为保持不变；
+  - 数据/图标定义类长文件（如 `industrial/**` 组件目录）可例外，不必硬拆。
 
 ## 测试
 
