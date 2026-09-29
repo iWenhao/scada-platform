@@ -36,6 +36,9 @@ import {
   saveNotifyConfig,
   dispatchNotification,
   sendToChannel,
+  readNotifyLog,
+  clearNotifyLog,
+  appendNotifyLog,
 } from './notify.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -400,7 +403,33 @@ const server = createServer(async (req, res) => {
         time: Date.now(),
         timeText: new Date().toLocaleString('zh-CN'),
       })
+      await appendNotifyLog(DATA_DIR, {
+        kind: 'active',
+        level: 'warning',
+        title: '【测试】SCADA 通知通道',
+        channelId: channel.id,
+        channelName: channel.name,
+        channelType: channel.type,
+        ok: result.ok,
+        error: result.error,
+        note: '连通性测试',
+      })
       return sendJson(res, req, result.ok ? 200 : 502, { ...result, id: channel.id, name: channel.name })
+    }
+
+    // 通知发送记录
+    if (url.pathname === '/api/notify/log') {
+      if (!requireRole(authn, 'engineer')) {
+        return sendJson(res, req, 403, { error: 'forbidden' })
+      }
+      if (req.method === 'GET') {
+        const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 100, 1), 500)
+        return sendJson(res, req, 200, { entries: await readNotifyLog(DATA_DIR, limit) })
+      }
+      if (req.method === 'DELETE') {
+        await clearNotifyLog(DATA_DIR)
+        return sendJson(res, req, 200, { ok: true })
+      }
     }
 
     // 报警事件扇出（前端 alarmStore 触发/恢复时调用）

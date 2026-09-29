@@ -7,9 +7,67 @@ import tls from 'node:tls'
 import { createHmac } from 'node:crypto'
 
 const NOTIFY_FILE_NAME = '_notify.json'
+const NOTIFY_LOG_FILE_NAME = '_notify_log.jsonl'
+const NOTIFY_LOG_MAX = 500
 
 export function notifyFilePath(dataDir) {
   return path.join(dataDir, NOTIFY_FILE_NAME)
+}
+
+export function notifyLogPath(dataDir) {
+  return path.join(dataDir, NOTIFY_LOG_FILE_NAME)
+}
+
+/** 追加一条发送记录（成功/失败/节流） */
+export async function appendNotifyLog(dataDir, entry) {
+  const row = {
+    t: Date.now(),
+    kind: entry.kind || 'active',
+    level: entry.level || 'warning',
+    title: entry.title || '',
+    channelId: entry.channelId || '',
+    channelName: entry.channelName || '',
+    channelType: entry.channelType || '',
+    ok: !!entry.ok,
+    error: entry.error || undefined,
+    note: entry.note || undefined,
+  }
+  await fs.mkdir(dataDir, { recursive: true })
+  await fs.appendFile(notifyLogPath(dataDir), JSON.stringify(row) + '\n', 'utf8')
+  // 简单截断：读全文保留尾部，避免日志无限涨
+  try {
+    const text = await fs.readFile(notifyLogPath(dataDir), 'utf8')
+    const lines = text.split('\n').filter(Boolean)
+    if (lines.length > NOTIFY_LOG_MAX) {
+      await fs.writeFile(notifyLogPath(dataDir), lines.slice(-NOTIFY_LOG_MAX).join('\n') + '\n', 'utf8')
+    }
+  } catch {
+    // ignore
+  }
+}
+
+/** 读最近 limit 条发送记录（新→旧） */
+export async function readNotifyLog(dataDir, limit = 100) {
+  try {
+    const text = await fs.readFile(notifyLogPath(dataDir), 'utf8')
+    const rows = []
+    for (const line of text.split('\n')) {
+      if (!line.trim()) continue
+      try {
+        rows.push(JSON.parse(line))
+      } catch {
+        // skip
+      }
+    }
+    return rows.slice(-Math.max(1, limit)).reverse()
+  } catch {
+    return []
+  }
+}
+
+export async function clearNotifyLog(dataDir) {
+  await fs.mkdir(dataDir, { recursive: true })
+  await fs.writeFile(notifyLogPath(dataDir), '', 'utf8')
 }
 
 /** 简单模板：{{title}} {{message}} {{level}} {{time}} */
@@ -396,7 +454,7 @@ function shouldNotify(channel, event) {
 }
 
 /**
- * 按配置扇出通知。返回每通道结果。
+ * 按配置扇出通知。返回每通道结果，并写入发送记录。
  * lastSentAt: Map<channelId, ts> 用于节流。
  */
 export async function dispatchNotification(dataDir, event, lastSentAt = new Map()) {
@@ -407,13 +465,40 @@ export async function dispatchNotification(dataDir, event, lastSentAt = new Map(
     if (!shouldNotify(channel, event)) continue
     const last = lastSentAt.get(channel.id) || 0
     if (now - last < config.minIntervalMs) {
-      results.push({ id: channel.id, name: channel.name, ok: false, error: '节流中' })
+      const skipped = {
+        id: channel.id,
+        name: channel.name,
+        type: channel.type,
+        ok: false,
+        error: '节流中',
+      }
+      results.push(skipped)
+      await appendNotifyLog(dataDir, {
+        kind: event.kind,
+        level: event.level,
+        title: event.title,
+        channelId: channel.id,
+        channelName: channel.name,
+        channelType: channel.type,
+        ok: false,
+        note: '节流中',
+      })
       continue
     }
     const result = await sendToChannel(channel, event)
     // 不论成败都记入节流，避免故障时把告警风暴打进下游
     lastSentAt.set(channel.id, now)
     results.push({ id: channel.id, name: channel.name, type: channel.type, ...result })
+    await appendNotifyLog(dataDir, {
+      kind: event.kind,
+      level: event.level,
+      title: event.title,
+      channelId: channel.id,
+      channelName: channel.name,
+      channelType: channel.type,
+      ok: result.ok,
+      error: result.error,
+    })
   }
   return results
 }

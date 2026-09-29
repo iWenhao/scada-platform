@@ -34,6 +34,28 @@ export function testNotifyChannel(id: string): Promise<{ ok: boolean; error?: st
   })
 }
 
+export interface NotifyLogEntry {
+  t: number
+  kind: string
+  level: string
+  title: string
+  channelId: string
+  channelName: string
+  channelType: string
+  ok: boolean
+  error?: string
+  note?: string
+}
+
+export async function loadNotifyLog(limit = 100): Promise<NotifyLogEntry[]> {
+  const body = await api<{ entries: NotifyLogEntry[] }>(`/notify/log?limit=${limit}`)
+  return body.entries || []
+}
+
+export function clearNotifyLog(): Promise<{ ok: boolean }> {
+  return api('/notify/log', { method: 'DELETE' })
+}
+
 /** 报警事件扇出（触发/恢复）；失败不抛出，避免打断画面 */
 export async function pushNotifyEvent(event: {
   kind: NotifyKind

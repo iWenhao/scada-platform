@@ -1,10 +1,12 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    title="报警通知通道"
-    width="860px"
+    title="报警通知"
+    width="900px"
     @update:model-value="emit('update:modelValue', $event)"
   >
+    <el-tabs v-model="activeTab">
+      <el-tab-pane label="通道配置" name="channels">
     <div class="notify-toolbar">
       <el-select v-model="newType" class="type-select" size="small">
         <el-option
@@ -173,14 +175,55 @@
         <el-button @click="editVisible = false">取消</el-button>
         <el-button type="primary" @click="commitEdit">确定</el-button>
       </template>
-    </el-dialog>
+      </el-dialog>
+      </el-tab-pane>
+
+      <el-tab-pane label="发送记录" name="log">
+        <div class="notify-toolbar">
+          <el-button size="small" @click="refreshLog">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+          <el-button size="small" type="danger" plain @click="handleClearLog">清空记录</el-button>
+          <div class="spacer" />
+          <span class="hint">仅保留最近 500 条</span>
+        </div>
+        <el-table :data="logs" size="small" max-height="360" empty-text="暂无发送记录">
+          <el-table-column label="时间" width="160">
+            <template #default="{ row }">{{ formatTime(row.t) }}</template>
+          </el-table-column>
+          <el-table-column label="类型" width="80">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.kind === 'recover' ? 'info' : 'warning'">
+                {{ row.kind === 'recover' ? '恢复' : row.note || '触发' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="channelName" label="通道" width="110" />
+          <el-table-column label="级别" width="80">
+            <template #default="{ row }">
+              {{ row.level === 'critical' ? '报警' : '预警' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="title" label="标题" min-width="140" show-overflow-tooltip />
+          <el-table-column label="结果" width="90">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.ok ? 'success' : 'danger'">
+                {{ row.ok ? '成功' : '失败' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="error" label="说明" min-width="120" show-overflow-tooltip />
+        </el-table>
+      </el-tab-pane>
+    </el-tabs>
 
     <template #footer>
-      <el-button @click="emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
+      <el-button @click="emit('update:modelValue', false)">关闭</el-button>
+      <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
     </template>
-  </el-dialog>
-</template>
+    </el-dialog>
+  </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
@@ -190,6 +233,9 @@ import {
   saveNotifyConfig,
   testNotifyChannel,
   emptyChannel,
+  loadNotifyLog,
+  clearNotifyLog,
+  type NotifyLogEntry,
 } from '@/notify/notifyClient'
 import {
   NOTIFY_TYPE_LABELS,
@@ -206,11 +252,35 @@ const channels = ref<NotifyChannel[]>([])
 const minIntervalSec = ref(60)
 const newType = ref<NotifyChannelType>('webhook')
 const saving = ref(false)
+const activeTab = ref<'channels' | 'log'>('channels')
+const logs = ref<NotifyLogEntry[]>([])
 
 const editVisible = ref(false)
 const editing = ref<NotifyChannel | null>(null)
 const levelDraft = ref<NotifyLevel[]>([])
 const kindDraft = ref<NotifyKind[]>([])
+
+function formatTime(t: number) {
+  return new Date(t).toLocaleString('zh-CN')
+}
+
+async function refreshLog() {
+  try {
+    logs.value = await loadNotifyLog(200)
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '加载发送记录失败')
+  }
+}
+
+async function handleClearLog() {
+  try {
+    await clearNotifyLog()
+    logs.value = []
+    ElMessage.success('已清空')
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '清空失败')
+  }
+}
 
 async function refresh() {
   try {
@@ -222,10 +292,17 @@ async function refresh() {
   }
 }
 
+watch(activeTab, (t) => {
+  if (t === 'log') void refreshLog()
+})
+
 watch(
   () => props.modelValue,
   (v) => {
-    if (v) void refresh()
+    if (v) {
+      void refresh()
+      if (activeTab.value === 'log') void refreshLog()
+    }
   },
 )
 
