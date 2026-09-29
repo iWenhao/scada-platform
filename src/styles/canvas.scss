@@ -2,37 +2,6 @@
   background: var(--bg-canvas);
   position: relative;
   overflow: hidden;
-
-  // 工作区网格：尺寸跟随画布配置（--ws-grid / --ws-grid-major），与画布内网格一致
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-      linear-gradient(var(--grid-color) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-    background-size: var(--ws-grid, 20px) var(--ws-grid, 20px);
-    opacity: 0.35;
-    pointer-events: none;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-      linear-gradient(var(--grid-color-major) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-color-major) 1px, transparent 1px);
-    background-size: var(--ws-grid-major, 100px) var(--ws-grid-major, 100px);
-    opacity: 0.25;
-    pointer-events: none;
-  }
 }
 
 .canvas-container {
