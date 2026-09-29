@@ -2,6 +2,8 @@
   height: 100%;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-primary);
   width: 248px;
@@ -82,10 +84,25 @@
 
   .panel-body {
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .tab-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   .custom-empty {
-    padding: 32px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 200px;
+    padding: 24px 12px;
     text-align: center;
     color: var(--text-muted);
     font-size: 12px;
