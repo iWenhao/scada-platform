@@ -17,6 +17,7 @@ declare module 'vue' {
     ContextMenu: typeof import('./src/components/layout/ContextMenu.vue')['default']
     CustomComponentDialog: typeof import('./src/components/dialogs/CustomComponentDialog.vue')['default']
     DataSourceDialog: typeof import('./src/components/dialogs/DataSourceDialog.vue')['default']
+    ElAlert: typeof import('element-plus/es')['ElAlert']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElButtonGroup: typeof import('element-plus/es')['ElButtonGroup']
@@ -58,5 +59,6 @@ declare module 'vue' {
     StatusRuleDialog: typeof import('./src/components/dialogs/StatusRuleDialog.vue')['default']
     Toolbar: typeof import('./src/components/layout/Toolbar.vue')['default']
     TrendChartDialog: typeof import('./src/components/dialogs/TrendChartDialog.vue')['default']
+    UserManageDialog: typeof import('./src/components/dialogs/UserManageDialog.vue')['default']
   }
 }

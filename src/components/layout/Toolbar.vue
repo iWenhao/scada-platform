@@ -150,6 +150,25 @@
         </el-button>
       </el-tooltip>
 
+      <el-tooltip v-if="authStore.canManageUsers" content="用户管理" placement="bottom">
+        <el-button size="small" circle title="用户管理" @click="showUserManage = true">
+          <el-icon><User /></el-icon>
+        </el-button>
+      </el-tooltip>
+
+      <el-dropdown @command="handleUserCommand">
+        <span class="user-chip">
+          <el-icon><UserFilled /></el-icon>
+          {{ authStore.displayName }}
+          <el-tag size="small" :type="roleTag">{{ roleLabel }}</el-tag>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+
       <el-button-group>
         <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
           <el-button @click="uiStore.toggleTheme()">
@@ -215,6 +234,7 @@
     <CanvasConfigDialog v-model="showCanvasConfig" />
     <DataSourceDialog v-model="showDataSource" />
     <AlarmConfigDialog v-model="showAlarmConfig" />
+    <UserManageDialog v-model="showUserManage" />
   </div>
 </template>
 
@@ -229,22 +249,46 @@ import { useHistory } from '@/core/canvas/useHistory'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
 import AlarmConfigDialog from '@/components/dialogs/AlarmConfigDialog.vue'
+import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import { useEditClipboard } from './toolbar/useEditClipboard'
 import { useProjectActions } from './toolbar/useProjectActions'
 import { useToolbarShortcuts } from './toolbar/useToolbarShortcuts'
+import { useAuthStore } from '@/stores/authStore'
+import { ROLE_LABELS } from '@/types/auth'
 
 const canvasStore = useCanvasStore()
 const connectionStore = useConnectionStore()
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
 const alarmStore = useAlarmStore()
+const authStore = useAuthStore()
 
 const { canUndo, canRedo, undo, redo, saveState } = useHistory()
 
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
 const showAlarmConfig = ref(false)
+const showUserManage = ref(false)
+
+const roleLabel = computed(() =>
+  authStore.role ? ROLE_LABELS[authStore.role] : '',
+)
+const roleTag = computed(() => {
+  switch (authStore.role) {
+    case 'admin': return 'danger'
+    case 'engineer': return 'warning'
+    case 'operator': return 'success'
+    default: return 'info'
+  }
+})
+
+async function handleUserCommand(cmd: string) {
+  if (cmd === 'logout') {
+    await authStore.logout()
+    window.location.href = '/login'
+  }
+}
 
 // 报警计数从 store 读取：报警面板随 popover 关闭而销毁，计数不能依赖组件存活
 const activeCount = computed(() => alarmStore.activeCount)
@@ -356,6 +400,22 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
 }
 
 :deep(.el-button) {
