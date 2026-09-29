@@ -1,209 +1,63 @@
 <template>
   <div class="preview-container">
-    <div class="preview-header">
-      <div class="header-left">
-        <el-button @click="backToEditor">
-          <el-icon><Back /></el-icon>
-          返回编辑器
-        </el-button>
-        <span class="project-name">{{ projectStore.projectName }} - 预览模式</span>
-        <el-select
-          v-if="pageStore.pages.length > 1"
-          class="page-switcher"
-          size="small"
-          :model-value="pageStore.activePageId"
-          @change="(id: string) => switchPage(id)"
-        >
-          <el-option
-            v-for="page in pageStore.pages"
-            :key="page.id"
-            :label="page.name"
-            :value="page.id"
-          />
-        </el-select>
-      </div>
-      
-      <div class="header-right">
-        <el-tooltip :content="uiStore.writeLocked ? '写值已锁定，点击解锁' : '写值已解锁，点击锁定'" placement="bottom">
-          <el-button
-            size="small"
-            circle
-            :type="uiStore.writeLocked ? 'danger' : 'success'"
-            :title="uiStore.writeLocked ? '写值已锁定' : '写值已解锁'"
-            @click="toggleWriteLock"
-          >
-            <el-icon><Lock v-if="uiStore.writeLocked" /><Unlock v-else /></el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip content="写值审计日志" placement="bottom">
-          <el-button size="small" circle title="写值审计日志" @click="showAuditLog = true">
-            <el-icon><Document /></el-icon>
-          </el-button>
-        </el-tooltip>
-        <el-badge :value="alarmStore.unackedCount" :hidden="!alarmStore.unackedCount" class="alarm-badge">
-          <el-popover placement="bottom" :width="320" trigger="click">
-            <template #reference>
-              <el-button size="small" circle :type="alarmStore.activeCount ? 'danger' : 'default'" title="报警列表">
-                <el-icon><Bell /></el-icon>
-              </el-button>
-            </template>
-            <AlarmPanel />
-          </el-popover>
-        </el-badge>
-        <el-tag :type="connectionStatusType">
-          {{ connectionStatusText }}
-        </el-tag>
-        <span class="last-update">
-          最后更新: {{ lastUpdateTime }}
-        </span>
-      </div>
-    </div>
-    
-    <div class="preview-canvas">
-      <v-stage :config="stageConfig">
-        <!-- 连线图层 -->
-        <v-layer>
-          <ConnectionLine
-            v-for="conn in connectionStore.connections"
-            :key="conn.id"
-            :connection="conn"
-          />
-        </v-layer>
+    <PreviewHeader
+      :project-name="projectStore.projectName"
+      :pages="pageStore.pages"
+      :active-page-id="pageStore.activePageId"
+      :write-locked="uiStore.writeLocked"
+      :unacked-count="alarmStore.unackedCount"
+      :active-alarm-count="alarmStore.activeCount"
+      :connection-status="deviceStore.connectionStatus"
+      :last-update-time="lastUpdateTime"
+      @back="backToEditor"
+      @switch-page="switchPage"
+      @toggle-write-lock="toggleWriteLock"
+      @open-audit="showAuditLog = true"
+    />
 
+    <PreviewStage @element-click="handleElementClick" />
 
-        <v-layer>
-          <template v-for="element in canvasStore.elements" :key="element.id">
-            <v-group
-              :config="{
-                x: element.x,
-                y: element.y,
-                width: element.width,
-                height: element.height,
-                rotation: element.rotation,
-                visible: isLayerVisible(element.layerId),
-              }"
-              @click="handleElementClick(element)"
-            >
-              <v-rect
-                :config="{
-                  width: element.width,
-                  height: element.height,
-                  fill: getElementColor(element),
-                  stroke: '#444',
-                  strokeWidth: 1,
-                  cornerRadius: 4,
-                }"
-              />
-              <v-image
-                v-if="getIconImageConfig(element)"
-                :config="getIconImageConfig(element)"
-              />
-              <v-rect
-                :config="{
-                  y: element.height - getLabelHeight(element),
-                  width: element.width,
-                  height: getLabelHeight(element),
-                  fill: 'rgba(10,14,26,0.55)',
-                  cornerRadius: [0, 0, 4, 4],
-                }"
-              />
-              <v-text
-                :config="{
-                  text: element.name,
-                  fontSize: 11,
-                  fill: '#e0e0e0',
-                  width: element.width,
-                  align: 'center',
-                  y: element.height - getLabelHeight(element) + 2,
-                }"
-              />
-              <v-text
-                v-if="isDisplayElement(element)"
-                :config="{
-                  text: getDisplayValueText(element),
-                  fontSize: 18,
-                  fontStyle: 'bold',
-                  fill: '#8fe6d3',
-                  width: element.width,
-                  align: 'center',
-                  y: (element.height - getLabelHeight(element)) / 2 - 9,
-                }"
-              />
-              <v-text
-                v-else-if="getElementValueText(element)"
-                :config="{
-                  text: getElementValueText(element),
-                  fontSize: 9,
-                  fill: '#8fe6d3',
-                  width: element.width,
-                  align: 'center',
-                  y: element.height - 11,
-                }"
-              />
-            </v-group>
-          </template>
-        </v-layer>
-      </v-stage>
-
-      <!-- 图表 overlay：与编辑器一致的 ECharts 实体渲染 -->
-      <div class="chart-overlay">
-        <div
-          v-for="element in chartElements"
-          :key="element.id"
-          class="chart-slot"
-          :style="chartSlotStyle(element)"
-        >
-          <ChartElement :element="element" />
-        </div>
-      </div>
-    </div>
-
-    <!-- 运行期查看历史曲线 -->
     <TrendChartDialog
       v-model="showTrendDialog"
       :device-id="trendDeviceId"
       :variable="trendVariable"
     />
-
-    <!-- 写值审计日志 -->
     <AuditLogDialog v-model="showAuditLog" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useCanvasStore } from '@/stores/canvasStore'
-import { useConnectionStore } from '@/stores/connectionStore'
+import { ElMessage } from 'element-plus'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
-import { useLayerStore } from '@/stores/layerStore'
 import { useAlarmStore } from '@/stores/alarmStore'
 import { useUiStore } from '@/stores/uiStore'
-import { useAuditStore } from '@/stores/auditStore'
 import { usePageStore } from '@/stores/pageStore'
 import { useHistory } from '@/core/canvas/useHistory'
-import { useElementVisuals } from '@/core/canvas/useElementVisuals'
-import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
 import AuditLogDialog from '@/components/dialogs/AuditLogDialog.vue'
-import ConnectionLine from '@/core/connection/ConnectionLine.vue'
-import ChartElement from '@/industrial/chart/ChartElement.vue'
+import PreviewHeader from './PreviewHeader.vue'
+import PreviewStage from './PreviewStage.vue'
+import { useWriteValue } from './useWriteValue'
 import type { ComponentInstance } from '@/types/scada'
 
 const router = useRouter()
 const route = useRoute()
-const canvasStore = useCanvasStore()
-const connectionStore = useConnectionStore()
 const deviceStore = useDeviceStore()
 const projectStore = useProjectStore()
-const layerStore = useLayerStore()
 const alarmStore = useAlarmStore()
 const uiStore = useUiStore()
-const auditStore = useAuditStore()
 const pageStore = usePageStore()
 const { clearHistory } = useHistory()
+const { promptWriteValue } = useWriteValue()
+
+const showAuditLog = ref(false)
+const showTrendDialog = ref(false)
+const trendDeviceId = ref('')
+const trendVariable = ref('')
+const lastUpdateTime = ref('')
 
 function switchPage(id: string) {
   if (!pageStore.switchPage(id)) {
@@ -213,8 +67,6 @@ function switchPage(id: string) {
   clearHistory()
 }
 
-const showAuditLog = ref(false)
-
 function toggleWriteLock() {
   uiStore.toggleWriteLock()
   ElMessage({
@@ -223,42 +75,8 @@ function toggleWriteLock() {
   })
 }
 
-// 与编辑器共用同一套元素呈现逻辑，避免运行视图与编辑视图的渲染 gradually 漂移
-const {
-  getElementColor,
-  getElementValueText,
-  isDisplayElement,
-  getDisplayValueText,
-  getLabelHeight,
-  getIconImageConfig,
-  isLayerVisible,
-} = useElementVisuals({ deviceStore, layerStore })
-
-// 图表 overlay：ECharts 实体渲染，坐标跟随画布变换（与编辑器逻辑一致）
-const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie']
-
-const chartElements = computed(() =>
-  canvasStore.elements.filter(el => CHART_TYPES.includes(el.type)),
-)
-
-function chartSlotStyle(element: ComponentInstance) {
-  const { zoom, offset } = canvasStore
-  return {
-    left: `${element.x * zoom + offset.x}px`,
-    top: `${element.y * zoom + offset.y}px`,
-    width: `${element.width * zoom}px`,
-    height: `${element.height * zoom}px`,
-    visibility: isLayerVisible(element.layerId) ? ('visible' as const) : ('hidden' as const),
-  }
-}
-
-// 趋势图弹窗：运行期点击元素即可查看该变量的近期曲线
-const showTrendDialog = ref(false)
-const trendDeviceId = ref('')
-const trendVariable = ref('')
-
 function handleElementClick(element: ComponentInstance) {
-  // 多画面导航优先：配置了跳转目标则切页，不再走趋势/写值
+  // 多画面导航优先
   if (element.navigateTo) {
     if (pageStore.switchPage(element.navigateTo)) {
       clearHistory()
@@ -268,7 +86,6 @@ function handleElementClick(element: ComponentInstance) {
     return
   }
 
-  // 设定值控件走写值流程，其余元素查看趋势
   if (element.type === 'setpoint') {
     promptWriteValue(element)
     return
@@ -284,126 +101,37 @@ function handleElementClick(element: ComponentInstance) {
   showTrendDialog.value = true
 }
 
-/**
- * 写值交互：输入新值 → 确认后经数据源下发。
- * prompt 确认框本身就是操作确认；不支持写值的数据源在下发时明确报错。
- */
-async function promptWriteValue(element: ComponentInstance) {
-  const binding = element.dataBindings?.[0]
-  const deviceId = element.deviceId
-  if (!binding || !deviceId) {
-    ElMessage.info('该设定值未绑定目标变量，请在编辑器的属性面板中绑定设备与变量')
-    return
-  }
-
-  // 写值锁定：拒绝一切下发并留痕（未发起请求），锁定是操作安全的一部分
-  if (uiStore.writeLocked) {
-    ElMessage.warning('写值已被锁定，无法下发；点击右上角锁形按钮解锁')
-    auditStore.record({
-      deviceId,
-      variable: binding.variable,
-      value: '(被拒绝)',
-      ok: false,
-      error: '写值锁定中',
-    })
-    return
-  }
-
-  const current = deviceStore.getVariableValue(deviceId, binding.variable)
-  let input: string
-  try {
-    const result = await ElMessageBox.prompt(
-      `向 ${deviceId}.${binding.variable} 下发新值${element.properties?.unit ? `（${element.properties.unit}）` : ''}`,
-      element.name,
-      {
-        inputValue: current !== undefined ? String(current) : '',
-        confirmButtonText: '下发',
-        cancelButtonText: '取消',
-        inputPattern: /^-?\d+(\.\d+)?$/,
-        inputErrorMessage: '请输入数字',
-      },
-    )
-    input = result.value
-  } catch {
-    return // 用户取消
-  }
-
-  try {
-    await deviceStore.writeValue(deviceId, binding.variable, Number(input))
-    auditStore.record({ deviceId, variable: binding.variable, value: input, ok: true })
-    ElMessage.success(`已向 ${deviceId}.${binding.variable} 下发 ${input}`)
-  } catch (e) {
-    const reason = e instanceof Error ? e.message : String(e)
-    auditStore.record({ deviceId, variable: binding.variable, value: input, ok: false, error: reason })
-    ElMessage.error(`写值失败: ${reason}`)
-  }
-}
-
-const stageConfig = computed(() => ({
-  width: window.innerWidth,
-  height: window.innerHeight - 60,
-  scaleX: canvasStore.zoom,
-  scaleY: canvasStore.zoom,
-  x: canvasStore.offset.x,
-  y: canvasStore.offset.y,
-}))
-
-const connectionStatusType = computed(() => {
-  switch (deviceStore.connectionStatus) {
-    case 'connected': return 'success'
-    case 'error': return 'danger'
-    default: return 'info'
-  }
-})
-
-const connectionStatusText = computed(() => {
-  switch (deviceStore.connectionStatus) {
-    case 'connected': return '已连接'
-    case 'error': return '连接错误'
-    default: return '未连接'
-  }
-})
-
-const lastUpdateTime = ref('')
-
 function backToEditor() {
   router.push('/editor')
 }
 
 function updateLastUpdateTime() {
   if (deviceStore.lastUpdateTime) {
-    const date = new Date(deviceStore.lastUpdateTime)
-    lastUpdateTime.value = date.toLocaleTimeString()
+    lastUpdateTime.value = new Date(deviceStore.lastUpdateTime).toLocaleTimeString()
   }
 }
 
 let updateInterval: number | null = null
 
 onMounted(async () => {
-  // 支持 /preview?project=xxx 直接打开指定工程，刷新或长期挂在大屏上时也能回到同一画面
+  // 支持 /preview?project=xxx 直接打开指定工程
   const target = (route.query.project as string) || projectStore.projectName
   const ok = await projectStore.loadProject(target)
   if (!ok) {
-    // 长期挂在大屏上的页面最怕静默白屏，这里必须看得见失败原因
     ElMessage.error(`未能加载工程「${target}」，请从编辑器重新进入预览`)
     return
   }
 
-  // 可选 ?page=画面ID 指定起始画面
   const startPage = route.query.page as string | undefined
   if (startPage && startPage !== pageStore.activePageId) {
     pageStore.switchPage(startPage)
     clearHistory()
   }
 
-  // 用工程里保存的数据源配置连接，不再写死 mock
   deviceStore.initDataSource(projectStore.dataSourceConfig)
-
-  // 定时更新显示
   updateInterval = window.setInterval(updateLastUpdateTime, 1000)
 })
 
-// 工程切换后（如导入/打开别的工程）跟随切换数据源
 watch(
   () => projectStore.dataSourceConfig,
   (config) => {
@@ -426,89 +154,5 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-}
-
-.preview-header {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-
-  .page-switcher {
-    width: 160px;
-  }
-  
-  .project-name {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  
-  .last-update {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-}
-
-.preview-canvas {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background: var(--bg-canvas);
-
-  /* 图表 overlay：铺满画布区域，只读展示 */
-  .chart-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 5;
-  }
-
-  .chart-slot {
-    position: absolute;
-    pointer-events: none;
-  }
-  
-  // 网格背景
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-      linear-gradient(var(--grid-color) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-    background-size: 20px 20px;
-    opacity: 0.5;
-    pointer-events: none;
-  }
-}
-
-:deep(.el-button) {
-  background: var(--bg-primary);
-  border-color: var(--border-primary);
-  color: var(--text-primary);
-  
-  &:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--border-active);
-  }
 }
 </style>

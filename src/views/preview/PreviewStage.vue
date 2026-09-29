@@ -1,0 +1,191 @@
+<template>
+  <div class="preview-canvas">
+    <v-stage :config="stageConfig">
+      <v-layer>
+        <ConnectionLine
+          v-for="conn in connectionStore.connections"
+          :key="conn.id"
+          :connection="conn"
+        />
+      </v-layer>
+
+      <v-layer>
+        <template v-for="element in canvasStore.elements" :key="element.id">
+          <v-group
+            :config="{
+              x: element.x,
+              y: element.y,
+              width: element.width,
+              height: element.height,
+              rotation: element.rotation,
+              visible: isLayerVisible(element.layerId),
+            }"
+            @click="emit('element-click', element)"
+          >
+            <v-rect
+              :config="{
+                width: element.width,
+                height: element.height,
+                fill: getElementColor(element),
+                stroke: '#444',
+                strokeWidth: 1,
+                cornerRadius: 4,
+              }"
+            />
+            <v-image
+              v-if="getIconImageConfig(element)"
+              :config="getIconImageConfig(element)"
+            />
+            <v-rect
+              :config="{
+                y: element.height - getLabelHeight(element),
+                width: element.width,
+                height: getLabelHeight(element),
+                fill: 'rgba(10,14,26,0.55)',
+                cornerRadius: [0, 0, 4, 4],
+              }"
+            />
+            <v-text
+              :config="{
+                text: element.name,
+                fontSize: 11,
+                fill: '#e0e0e0',
+                width: element.width,
+                align: 'center',
+                y: element.height - getLabelHeight(element) + 2,
+              }"
+            />
+            <v-text
+              v-if="isDisplayElement(element)"
+              :config="{
+                text: getDisplayValueText(element),
+                fontSize: 18,
+                fontStyle: 'bold',
+                fill: '#8fe6d3',
+                width: element.width,
+                align: 'center',
+                y: (element.height - getLabelHeight(element)) / 2 - 9,
+              }"
+            />
+            <v-text
+              v-else-if="getElementValueText(element)"
+              :config="{
+                text: getElementValueText(element),
+                fontSize: 9,
+                fill: '#8fe6d3',
+                width: element.width,
+                align: 'center',
+                y: element.height - 11,
+              }"
+            />
+          </v-group>
+        </template>
+      </v-layer>
+    </v-stage>
+
+    <!-- 图表 overlay：与编辑器一致的 ECharts 实体渲染 -->
+    <div class="chart-overlay">
+      <div
+        v-for="element in chartElements"
+        :key="element.id"
+        class="chart-slot"
+        :style="chartSlotStyle(element)"
+      >
+        <ChartElement :element="element" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useCanvasStore } from '@/stores/canvasStore'
+import { useConnectionStore } from '@/stores/connectionStore'
+import { useDeviceStore } from '@/stores/deviceStore'
+import { useLayerStore } from '@/stores/layerStore'
+import { useElementVisuals } from '@/core/canvas/useElementVisuals'
+import ConnectionLine from '@/core/connection/ConnectionLine.vue'
+import ChartElement from '@/industrial/chart/ChartElement.vue'
+import type { ComponentInstance } from '@/types/scada'
+
+const emit = defineEmits<{
+  'element-click': [element: ComponentInstance]
+}>()
+
+const canvasStore = useCanvasStore()
+const connectionStore = useConnectionStore()
+const deviceStore = useDeviceStore()
+const layerStore = useLayerStore()
+
+const {
+  getElementColor,
+  getElementValueText,
+  isDisplayElement,
+  getDisplayValueText,
+  getLabelHeight,
+  getIconImageConfig,
+  isLayerVisible,
+} = useElementVisuals({ deviceStore, layerStore })
+
+const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie']
+
+const chartElements = computed(() =>
+  canvasStore.elements.filter(el => CHART_TYPES.includes(el.type)),
+)
+
+function chartSlotStyle(element: ComponentInstance) {
+  const { zoom, offset } = canvasStore
+  return {
+    left: `${element.x * zoom + offset.x}px`,
+    top: `${element.y * zoom + offset.y}px`,
+    width: `${element.width * zoom}px`,
+    height: `${element.height * zoom}px`,
+    visibility: isLayerVisible(element.layerId) ? ('visible' as const) : ('hidden' as const),
+  }
+}
+
+const stageConfig = computed(() => ({
+  width: window.innerWidth,
+  height: window.innerHeight - 60,
+  scaleX: canvasStore.zoom,
+  scaleY: canvasStore.zoom,
+  x: canvasStore.offset.x,
+  y: canvasStore.offset.y,
+}))
+</script>
+
+<style scoped lang="scss">
+.preview-canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-canvas);
+
+  .chart-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .chart-slot {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+</style>

@@ -78,6 +78,7 @@
 
 ### 清理
 
+- 拆分预览页与工具栏：`preview/` 下出 `PreviewHeader` / `PreviewStage` / `useWriteValue`，`toolbar/` 下出 `useEditClipboard` / `useProjectActions` / `useToolbarShortcuts`，长视图与长工具栏降到 160～380 行，行为不变
 - 拆分 PropertyPanel（约 640 行 → 外壳 170 行）：连线属性、元素几何/组件属性、导航与数据绑定拆到 `components/layout/property/` 子组件，行为不变
 - 预览页不再重复实现 `getElementColor` / `getElementValueText` / `getLabelHeight` / `getIconImageConfig` / `isLayerVisible`，改为与编辑器共用 `useElementVisuals`（顺带补齐运行视图图标此前缺失的 `listening: false`，减少命中检测开销）
 - CHANGELOG `[Unreleased]` 中重复堆砌的多个「### 修复」区块合并去重
