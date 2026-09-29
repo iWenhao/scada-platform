@@ -102,6 +102,18 @@
           >
             <!-- 组件主体 -->
             <v-rect
+              <!-- 2.5D 体积：投影 + 侧面 -->
+            <v-ellipse
+              v-if="depthShadowConfig(element, uiStore.viewMode === '25d')"
+              :config="depthShadowConfig(element, uiStore.viewMode === '25d')!"
+            />
+            <v-rect
+              v-if="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')"
+              :config="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')!"
+            />
+
+            <!-- 组件主体 -->
+            <v-rect
               :config="{
                 width: element.width,
                 height: element.height,
@@ -110,6 +122,12 @@
                 strokeWidth: canvasStore.selectedIds.includes(element.id) ? 2 : 1,
                 cornerRadius: 4,
               }"
+            />
+
+            <!-- 2.5D 顶面高光 -->
+            <v-rect
+              v-if="depthHighlightConfig(element, uiStore.viewMode === '25d')"
+              :config="depthHighlightConfig(element, uiStore.viewMode === '25d')!"
             />
 
             <!-- 组件图形 -->
@@ -289,6 +307,7 @@ import { useElementSelection } from '@/core/canvas/useElementSelection'
 import { useConnectionDraw } from '@/core/canvas/useConnectionDraw'
 import { useElementDrag } from '@/core/canvas/useElementDrag'
 import { usePipeFlow } from '@/core/canvas/pipeFlow'
+import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import CanvasRuler from '@/components/layout/CanvasRuler.vue'
 import MiniMap from '@/components/layout/MiniMap.vue'
 import ContextMenu from '@/components/layout/ContextMenu.vue'

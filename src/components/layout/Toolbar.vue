@@ -53,6 +53,15 @@
           </el-button>
         </el-tooltip>
 
+        <el-tooltip :content="uiStore.viewMode === '25d' ? '切换平面 2D' : '切换立体 2.5D'" placement="bottom">
+          <el-button
+            :type="uiStore.viewMode === '25d' ? 'primary' : 'default'"
+            @click="uiStore.toggleViewMode()"
+          >
+            <el-icon><Box /></el-icon>
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="小地图" placement="bottom">
           <el-button
             :type="uiStore.showMinimap ? 'primary' : 'default'"

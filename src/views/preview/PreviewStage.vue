@@ -22,6 +22,14 @@
             }"
             @click="emit('element-click', element)"
           >
+            <v-ellipse
+              v-if="depthShadowConfig(element, uiStore.viewMode === '25d')"
+              :config="depthShadowConfig(element, uiStore.viewMode === '25d')!"
+            />
+            <v-rect
+              v-if="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')"
+              :config="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')!"
+            />
             <v-rect
               :config="{
                 width: element.width,
@@ -31,6 +39,10 @@
                 strokeWidth: 1,
                 cornerRadius: 4,
               }"
+            />
+            <v-rect
+              v-if="depthHighlightConfig(element, uiStore.viewMode === '25d')"
+              :config="depthHighlightConfig(element, uiStore.viewMode === '25d')!"
             />
             <v-image
               v-if="getIconImageConfig(element)"
@@ -113,6 +125,8 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import { usePipeFlow } from '@/core/canvas/pipeFlow'
+import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
+import { useUiStore } from '@/stores/uiStore'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import ChartElement from '@/industrial/chart/ChartElement.vue'
 import type { ComponentInstance } from '@/types/scada'
@@ -122,6 +136,7 @@ const emit = defineEmits<{
 }>()
 
 const canvasStore = useCanvasStore()
+const uiStore = useUiStore()
 const connectionStore = useConnectionStore()
 const deviceStore = useDeviceStore()
 const layerStore = useLayerStore()

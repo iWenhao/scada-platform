@@ -57,6 +57,20 @@ export const useUiStore = defineStore('ui', () => {
   const showMinimap = ref<boolean>(false)
 
   /**
+   * 组件渲染风格：2d 平面 / 25d 立体感（投影+侧面+高光）。
+   * 会话级偏好，不随工程保存，避免老工程打开画风突变。
+   */
+  const viewMode = ref<'2d' | '25d'>('2d')
+
+  function setViewMode(mode: '2d' | '25d') {
+    viewMode.value = mode
+  }
+
+  function toggleViewMode() {
+    viewMode.value = viewMode.value === '2d' ? '25d' : '2d'
+  }
+
+  /**
    * 运行态写值锁定（会话级，不持久化）：锁定后预览页拒绝一切写值下发。
    * 现场大屏长期挂机时防误触，比"每次写值弹确认"更强的兜底。
    */
@@ -147,6 +161,9 @@ export const useUiStore = defineStore('ui', () => {
     showPorts,
     showRuler,
     showMinimap,
+    viewMode,
+    setViewMode,
+    toggleViewMode,
     writeLocked,
     toggleWriteLock,
     toggleLeftPanel,
