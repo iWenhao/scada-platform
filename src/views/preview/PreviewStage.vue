@@ -36,6 +36,10 @@
               v-if="getIconImageConfig(element)"
               :config="getIconImageConfig(element)"
             />
+            <v-line
+              v-if="element.type === 'pipe'"
+              :config="pipeFlowConfig(element)"
+            />
             <v-rect
               :config="{
                 y: element.height - getLabelHeight(element),
@@ -104,6 +108,7 @@ import { useConnectionStore } from '@/stores/connectionStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
+import { usePipeFlow } from '@/core/canvas/pipeFlow'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import ChartElement from '@/industrial/chart/ChartElement.vue'
 import type { ComponentInstance } from '@/types/scada'
@@ -126,6 +131,8 @@ const {
   getIconImageConfig,
   isLayerVisible,
 } = useElementVisuals({ deviceStore, layerStore })
+
+const { pipeFlowConfig } = usePipeFlow()
 
 const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie']
 

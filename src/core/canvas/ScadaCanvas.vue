@@ -118,6 +118,12 @@
               :config="getIconImageConfig(element)"
             />
 
+            <!-- 管道内液体流动 -->
+            <v-line
+              v-if="element.type === 'pipe'"
+              :config="pipeFlowConfig(element)"
+            />
+
             <!-- 底部标签条 -->
             <v-rect
               :config="{
@@ -276,6 +282,7 @@ import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import { useElementSelection } from '@/core/canvas/useElementSelection'
 import { useConnectionDraw } from '@/core/canvas/useConnectionDraw'
 import { useElementDrag } from '@/core/canvas/useElementDrag'
+import { usePipeFlow } from '@/core/canvas/pipeFlow'
 import CanvasRuler from '@/components/layout/CanvasRuler.vue'
 import MiniMap from '@/components/layout/MiniMap.vue'
 import ContextMenu from '@/components/layout/ContextMenu.vue'
@@ -322,6 +329,8 @@ const {
   isLayerVisible,
   getElementPorts,
 } = visuals
+
+const { pipeFlowConfig } = usePipeFlow()
 
 // ---- 图表 overlay：ECharts 实体渲染在 DOM 层，坐标跟随画布平移缩放 ----
 const { selectionRect, beginRubber, moveRubber, endRubber } = selection

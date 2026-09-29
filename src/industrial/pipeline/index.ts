@@ -20,6 +20,9 @@ export const PipeDefinition: ComponentDefinition = {
   defaultConfig: {
     diameter: 50,
     flowRate: 0,
+    showFlow: true,
+    flowDirection: 'forward',
+    flowSpeed: 1,
   },
   statusRules: [
     {
@@ -56,6 +59,34 @@ export const PipeDefinition: ComponentDefinition = {
       min: 10,
       max: 500,
       group: '参数',
+    },
+    {
+      key: 'showFlow',
+      label: '显示流动',
+      type: 'boolean',
+      default: true,
+      group: '流向',
+    },
+    {
+      key: 'flowDirection',
+      label: '流向',
+      type: 'select',
+      default: 'forward',
+      options: [
+        { label: '正向 →', value: 'forward' },
+        { label: '反向 ←', value: 'reverse' },
+      ],
+      group: '流向',
+    },
+    {
+      key: 'flowSpeed',
+      label: '流速',
+      type: 'range',
+      default: 1,
+      min: 0.2,
+      max: 5,
+      step: 0.2,
+      group: '流向',
     },
   ],
 }
