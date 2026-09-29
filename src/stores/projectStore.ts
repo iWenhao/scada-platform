@@ -9,6 +9,7 @@ import type { DataSourceConfig } from '@/datasource/types'
 import type { AlarmDefinition } from '@/types/alarm'
 import { normalizeAlarmDef } from '@/types/alarm'
 import { createPageId, type ScadaPage } from '@/types/page'
+import { createTagId, type TagDef } from '@/types/tag'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -29,6 +30,9 @@ export const useProjectStore = defineStore('project', () => {
 
   // 独立报警定义：与元素状态规则解耦的工程级报警表，随工程持久化
   const alarmDefs = ref<AlarmDefinition[]>([])
+
+  // 点表：设备.变量 的元数据档案（单位/量程/可写），随工程持久化
+  const tagTable = ref<TagDef[]>([])
 
   /** 草稿存储键：独立于正式工程前缀 */
   const draftKey = (name: string) => `scada_draft_${name}`
@@ -60,6 +64,7 @@ export const useProjectStore = defineStore('project', () => {
       layers: active ? JSON.stringify({ layers: active.layers }) : null,
       dataSource: dataSourceConfig.value,
       alarmDefs: alarmDefs.value,
+      tagTable: tagTable.value,
     }
   }
 
@@ -104,6 +109,24 @@ export const useProjectStore = defineStore('project', () => {
     // 旧工程没有 alarmDefs 字段；逐条 normalize，坏数据（如手改 JSON）不进运行时
     alarmDefs.value = Array.isArray(projectData.alarmDefs)
       ? projectData.alarmDefs.map(normalizeAlarmDef).filter((d): d is AlarmDefinition => d !== null)
+      : []
+
+    // 点表：过滤缺 deviceId/name 的坏行
+    tagTable.value = Array.isArray(projectData.tagTable)
+      ? projectData.tagTable
+          .filter((t: any) => t && t.deviceId && t.name)
+          .map((t: any) => ({
+            id: t.id || createTagId(),
+            deviceId: String(t.deviceId),
+            name: String(t.name),
+            description: t.description || undefined,
+            unit: t.unit || undefined,
+            dataType: t.dataType === 'string' || t.dataType === 'boolean' ? t.dataType : 'number',
+            min: typeof t.min === 'number' ? t.min : undefined,
+            max: typeof t.max === 'number' ? t.max : undefined,
+            writable: t.writable === undefined ? undefined : !!t.writable,
+            note: t.note || undefined,
+          }))
       : []
   }
 
@@ -310,6 +333,15 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
+   * 整体替换点表（对话框一次性提交）。
+   * 属于工程内容变更，标记脏状态。
+   */
+  function setTagTable(tags: TagDef[]) {
+    tagTable.value = tags
+    hasUnsavedChanges.value = true
+  }
+
+  /**
    * 重置项目
    */
   function resetProject() {
@@ -319,6 +351,7 @@ export const useProjectStore = defineStore('project', () => {
     hasUnsavedChanges.value = false
     dataSourceConfig.value = { type: 'mock', name: 'default' }
     alarmDefs.value = []
+    tagTable.value = []
 
     // 新建项目必须连同画布内容一起清空：残留的旧元素/连线会让人以为还在编辑上一个工程，
     // 一保存就把原工程覆盖掉了。多画面下重置为单张「主页」。
@@ -333,7 +366,9 @@ export const useProjectStore = defineStore('project', () => {
     hasUnsavedChanges,
     dataSourceConfig,
     alarmDefs,
+    tagTable,
     setAlarmDefs,
+    setTagTable,
     saveProject,
     loadProject,
     exportProject,

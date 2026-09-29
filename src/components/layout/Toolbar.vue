@@ -151,6 +151,12 @@
         </el-button>
       </el-tooltip>
 
+      <el-tooltip content="点表管理" placement="bottom">
+        <el-button size="small" circle title="点表管理" @click="showTagTable = true">
+          <el-icon><Memo /></el-icon>
+        </el-button>
+      </el-tooltip>
+
       <el-tooltip content="通知通道" placement="bottom">
         <el-button size="small" circle title="通知通道" @click="showNotifyConfig = true">
           <el-icon><Promotion /></el-icon>
@@ -241,6 +247,7 @@
     <CanvasConfigDialog v-model="showCanvasConfig" />
     <DataSourceDialog v-model="showDataSource" />
     <AlarmConfigDialog v-model="showAlarmConfig" />
+    <TagTableDialog v-model="showTagTable" />
     <NotifyConfigDialog v-model="showNotifyConfig" />
     <UserManageDialog v-model="showUserManage" />
   </div>
@@ -257,6 +264,7 @@ import { useHistory } from '@/core/canvas/useHistory'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
 import AlarmConfigDialog from '@/components/dialogs/AlarmConfigDialog.vue'
+import TagTableDialog from '@/components/dialogs/TagTableDialog.vue'
 import NotifyConfigDialog from '@/components/dialogs/NotifyConfigDialog.vue'
 import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
@@ -278,6 +286,7 @@ const { canUndo, canRedo, undo, redo, saveState } = useHistory()
 const showCanvasConfig = ref(false)
 const showDataSource = ref(false)
 const showAlarmConfig = ref(false)
+const showTagTable = ref(false)
 const showNotifyConfig = ref(false)
 const showUserManage = ref(false)
 

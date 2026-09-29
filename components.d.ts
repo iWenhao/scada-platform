@@ -62,6 +62,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatusRuleDialog: typeof import('./src/components/dialogs/StatusRuleDialog.vue')['default']
+    TagTableDialog: typeof import('./src/components/dialogs/TagTableDialog.vue')['default']
     Toolbar: typeof import('./src/components/layout/Toolbar.vue')['default']
     TrendChartDialog: typeof import('./src/components/dialogs/TrendChartDialog.vue')['default']
     UserManageDialog: typeof import('./src/components/dialogs/UserManageDialog.vue')['default']
