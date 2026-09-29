@@ -7,6 +7,7 @@ import { getStorage } from '@/storage'
 import { statusEngine } from '@/status/StatusEngine'
 import { resolveSeverity } from '@/status/severity'
 import { evaluateAlarmDef, type AlarmRuntime } from '@/alarm/alarmEngine'
+import { notifyAlarm } from '@/notify/alarmNotify'
 import type { AlarmSeverity } from '@/types/scada'
 
 /** 一条报警记录（活跃期间唯一，恢复后转入历史） */
@@ -151,6 +152,7 @@ export const useAlarmStore = defineStore('alarm', () => {
           acknowledged: false,
         },
       }
+      notifyAlarm(activeMap.value[key], 'active')
     }
 
     // 独立报警定义：与画面元素无关，直接对数据源变量做带死区/延时的判定。
@@ -195,6 +197,7 @@ export const useAlarmStore = defineStore('alarm', () => {
             acknowledged: false,
           },
         }
+        notifyAlarm(activeMap.value[key], 'active')
       }
 
       if (wasActive && result.action !== 'clear') {
@@ -210,7 +213,9 @@ export const useAlarmStore = defineStore('alarm', () => {
       if (stillActive.has(key)) {
         survivors[key] = record
       } else {
-        history.value = [{ ...record, clearedAt: now }, ...history.value]
+        const cleared = { ...record, clearedAt: now }
+        history.value = [cleared, ...history.value]
+        notifyAlarm(cleared, 'recover')
         moved = true
       }
     }

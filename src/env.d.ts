@@ -22,3 +22,24 @@ declare module 'vue-konva' {
   const VueKonva: Plugin
   export default VueKonva
 }
+
+declare module '../../server/notify.mjs' {
+  export function renderTemplate(tpl: string, vars: Record<string, unknown>): string
+  export function loadNotifyConfig(dataDir: string): Promise<{
+    channels: Array<Record<string, unknown>>
+    minIntervalMs: number
+  }>
+  export function saveNotifyConfig(
+    dataDir: string,
+    config: { channels: unknown[]; minIntervalMs?: number },
+  ): Promise<{ channels: unknown[]; minIntervalMs: number }>
+  export function sendToChannel(
+    channel: Record<string, unknown>,
+    event: Record<string, unknown>,
+  ): Promise<{ ok: boolean; error?: string }>
+  export function dispatchNotification(
+    dataDir: string,
+    event: Record<string, unknown>,
+    lastSentAt?: Map<string, number>,
+  ): Promise<Array<{ ok: boolean; error?: string; id?: string; name?: string }>>
+}

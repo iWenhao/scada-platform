@@ -31,6 +31,12 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAuthStore, roleAtLeast } from './auth.mjs'
+import {
+  loadNotifyConfig,
+  saveNotifyConfig,
+  dispatchNotification,
+  sendToChannel,
+} from './notify.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DATA_DIR = process.env.DATA_DIR
@@ -49,6 +55,8 @@ const ALLOWED_METHODS = 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
 const ALLOWED_HEADERS = 'content-type, authorization'
 
 const auth = createAuthStore(DATA_DIR)
+/** 通知节流：channelId -> last sent at */
+const notifyLastSent = new Map()
 
 // 键名 -> 安全文件名(URL 编码, 防路径穿越)
 function fileFor(key) {
@@ -355,6 +363,60 @@ const server = createServer(async (req, res) => {
         const result = await auth.removeUser(id)
         return sendJson(res, req, result.error ? 400 : 200, result)
       }
+    }
+
+    // 通知通道配置（密钥只存服务端）：读改需 engineer+；测试发送也需 engineer+
+    if (url.pathname === '/api/notify/channels') {
+      if (!requireRole(authn, 'engineer')) {
+        return sendJson(res, req, 403, { error: 'forbidden' })
+      }
+      if (req.method === 'GET') {
+        return sendJson(res, req, 200, await loadNotifyConfig(DATA_DIR))
+      }
+      if (req.method === 'PUT') {
+        const body = await readBody(req, 512 * 1024)
+        const payload = JSON.parse(body)
+        const saved = await saveNotifyConfig(DATA_DIR, payload)
+        return sendJson(res, req, 200, saved)
+      }
+    }
+
+    if (url.pathname === '/api/notify/test' && req.method === 'POST') {
+      if (!requireRole(authn, 'engineer')) {
+        return sendJson(res, req, 403, { error: 'forbidden' })
+      }
+      const body = await readBody(req, 64 * 1024)
+      const payload = JSON.parse(body)
+      const config = await loadNotifyConfig(DATA_DIR)
+      const channel = payload?.id
+        ? config.channels.find(c => c.id === payload.id)
+        : payload?.channel
+      if (!channel) return sendJson(res, req, 400, { error: 'channel not found' })
+      const result = await sendToChannel(channel, {
+        kind: 'active',
+        level: 'warning',
+        title: '【测试】SCADA 通知通道',
+        message: `通道「${channel.name}」连通性测试成功。`,
+        time: Date.now(),
+        timeText: new Date().toLocaleString('zh-CN'),
+      })
+      return sendJson(res, req, result.ok ? 200 : 502, { ...result, id: channel.id, name: channel.name })
+    }
+
+    // 报警事件扇出（前端 alarmStore 触发/恢复时调用）
+    if (url.pathname === '/api/notify/send' && req.method === 'POST') {
+      const body = await readBody(req, 256 * 1024)
+      const payload = JSON.parse(body)
+      const event = {
+        kind: payload?.kind === 'recover' ? 'recover' : 'active',
+        level: payload?.level === 'critical' ? 'critical' : 'warning',
+        title: String(payload?.title || 'SCADA 报警'),
+        message: String(payload?.message || ''),
+        time: Number(payload?.time) || Date.now(),
+        timeText: String(payload?.timeText || new Date().toLocaleString('zh-CN')),
+      }
+      const results = await dispatchNotification(DATA_DIR, event, notifyLastSent)
+      return sendJson(res, req, 200, { ok: true, results })
     }
 
     // 审计

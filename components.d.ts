@@ -52,6 +52,7 @@ declare module 'vue' {
     LayerPanel: typeof import('./src/components/layout/LayerPanel.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     MiniMap: typeof import('./src/components/layout/MiniMap.vue')['default']
+    NotifyConfigDialog: typeof import('./src/components/dialogs/NotifyConfigDialog.vue')['default']
     PageTabs: typeof import('./src/components/layout/PageTabs.vue')['default']
     PropertyPanel: typeof import('./src/components/layout/PropertyPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
