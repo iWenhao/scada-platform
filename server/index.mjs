@@ -2,6 +2,10 @@
 // 键值存储 + 轻量时序历史 + 账号/会话鉴权 + 服务端审计。
 // 数据目录 DATA_DIR 下 JSON/JSONL 文件，无第三方依赖。
 //
+// 隔离约定：KV 与历史按登录用户分命名空间 `u/<userId>/`，
+// 同一 key 在不同账号下互不可见（工程/模板/草稿隔离）。
+// 用户表/会话/通知配置/审计为全局文件（`_users.json` 等）。
+//
 // 启动: node server/index.mjs   (或 pnpm server)
 // 环境变量(均可选, 见 .env.example):
 //   PORT, DATA_DIR, MAX_BODY_BYTES, CORS_ORIGIN,
@@ -75,14 +79,35 @@ const auth = createAuthStore(DATA_DIR)
 /** 通知节流：channelId -> 上次发送时间戳 */
 const notifyLastSent = new Map()
 
-// ---- 键值存储辅助 ----
+// ---- 键值存储辅助（按用户隔离）----
 
 /**
- * 键名 → 安全文件名。
+ * 当前请求的存储命名空间。
+ * 普通会话：`u/<userId>/`；服务主密钥：`u/service/`。
+ * 同一 key 在不同用户下互不可见，实现工程/模板隔离。
+ */
+function scopeOf(authn) {
+  if (!authn) return 'u/anonymous/'
+  if (authn.master) return 'u/service/'
+  return `u/${encodeURIComponent(authn.user.id)}/`
+}
+
+/**
+ * 键名 → 安全文件路径（含用户命名空间）。
  * encodeURIComponent 防止 key 里的 `../` 造成路径穿越。
  */
-function fileFor(key) {
-  return path.join(DATA_DIR, encodeURIComponent(key) + '.json')
+function fileFor(key, scope) {
+  return path.join(DATA_DIR, scope, encodeURIComponent(key) + '.json')
+}
+
+/** 某用户的 KV 数据子目录 */
+function scopeDir(scope) {
+  return path.join(DATA_DIR, scope)
+}
+
+/** 历史分片目录（按用户隔离） */
+function historyDirFor(scope) {
+  return path.join(HISTORY_DIR, scope.replace(/\/+$/, ''))
 }
 
 // ---- 时序历史（按天分片 JSONL）----
@@ -97,9 +122,9 @@ function dayString(ms) {
   return `${d.getFullYear()}${mm}${dd}`
 }
 
-/** 某 key 某天的分片文件路径 */
-function shardFile(key, day) {
-  return path.join(HISTORY_DIR, `${encodeURIComponent(key)}.${day}.jsonl`)
+/** 某 key 某天的分片文件路径（dir 为该用户的历史目录） */
+function shardFile(dir, key, day) {
+  return path.join(dir, `${encodeURIComponent(key)}.${day}.jsonl`)
 }
 
 /** 判断目录项是否属于指定 key 的历史分片 */
@@ -111,7 +136,11 @@ function isHistoryShard(fileName, encodedKey) {
  * 按天分组追加采样。非法点（t/v 非有限数）跳过。
  * @returns {Promise<number>} 实际写入的点数
  */
-async function appendSamples(key, samples) {
+/**
+ * 按天分组追加采样到指定用户的历史目录。
+ * @returns {Promise<number>} 实际写入的点数
+ */
+async function appendSamples(historyDir, key, samples) {
   const byDay = new Map()
   let count = 0
   for (const s of samples) {
@@ -122,23 +151,22 @@ async function appendSamples(key, samples) {
     count++
   }
   if (count === 0) return 0
-  await fs.mkdir(HISTORY_DIR, { recursive: true })
+  await fs.mkdir(historyDir, { recursive: true })
   for (const [day, lines] of byDay) {
-    await fs.appendFile(shardFile(key, day), lines.join(''), 'utf8')
+    await fs.appendFile(shardFile(historyDir, key, day), lines.join(''), 'utf8')
   }
   return count
 }
 
 /**
- * 查询 [from, to] 区间采样。超过 maxPoints 时均匀抽稀（保留首尾）。
- * 只读可能相交的分片，避免大范围查询扫全目录。
+ * 查询 [from, to] 区间采样（仅该用户命名空间）。
  * @returns {Promise<Array<{t: number, v: number}>>}
  */
-async function querySamples(key, from, to, maxPoints) {
+async function querySamples(historyDir, key, from, to, maxPoints) {
   const encodedKey = encodeURIComponent(key)
   let files = []
   try {
-    files = await fs.readdir(HISTORY_DIR)
+    files = await fs.readdir(historyDir)
   } catch {
     return []
   }
@@ -147,7 +175,7 @@ async function querySamples(key, from, to, maxPoints) {
     .filter(f => isHistoryShard(f, encodedKey))
     .map(f => {
       const day = f.slice(encodedKey.length + 1, -'.jsonl'.length)
-      return { file: path.join(HISTORY_DIR, f), day }
+      return { file: path.join(historyDir, f), day }
     })
     .filter(({ day }) => {
       if (!/^\d{8}$/.test(day)) return false
@@ -191,24 +219,34 @@ async function querySamples(key, from, to, maxPoints) {
 }
 
 /**
- * 清理超过 RETENTION_DAYS 的历史分片（文件名里的日期 < 过期日）。
+ * 清理所有用户目录下超过保留期的分片。
  * @returns {Promise<number>} 删除的文件数
  */
 async function cleanupExpiredShards() {
   if (RETENTION_DAYS <= 0) return 0
-  let files
+  let userDirs = []
   try {
-    files = await fs.readdir(HISTORY_DIR)
+    userDirs = await fs.readdir(HISTORY_DIR, { withFileTypes: true })
   } catch {
     return 0
   }
   const expireDay = dayString(Date.now() - RETENTION_DAYS * 24 * 3600 * 1000)
   let removed = 0
-  for (const f of files) {
-    const m = f.match(/\.(\d{8})\.jsonl$/)
-    if (m && m[1] < expireDay) {
-      await fs.rm(path.join(HISTORY_DIR, f), { force: true })
-      removed++
+  for (const d of userDirs) {
+    if (!d.isDirectory()) continue
+    const dir = path.join(HISTORY_DIR, d.name)
+    let files
+    try {
+      files = await fs.readdir(dir)
+    } catch {
+      continue
+    }
+    for (const f of files) {
+      const m = f.match(/\.(\d{8})\.jsonl$/)
+      if (m && m[1] < expireDay) {
+        await fs.rm(path.join(dir, f), { force: true })
+        removed++
+      }
     }
   }
   return removed
@@ -549,12 +587,20 @@ const server = createServer(async (req, res) => {
       }
     }
 
-    // ---------- 键值存储（读任意登录用户，写 engineer+）----------
+    // ---------- 键值存储（读任意登录用户，写 engineer+；按用户命名空间隔离）----------
+    const scope = scopeOf(authn)
+
     if ((url.pathname === '/api/keys' || url.pathname === '/api/storage/keys') && req.method === 'GET') {
-      await fs.mkdir(DATA_DIR, { recursive: true })
-      const files = await fs.readdir(DATA_DIR)
+      const dir = scopeDir(scope)
+      await fs.mkdir(dir, { recursive: true })
+      let files = []
+      try {
+        files = await fs.readdir(dir)
+      } catch {
+        files = []
+      }
       const keys = files
-        .filter(f => f.endsWith('.json') && f !== '_users.json' && f !== '_sessions.json')
+        .filter(f => f.endsWith('.json'))
         .map(f => decodeURIComponent(f.slice(0, -5)))
       sendJson(res, req, 200, { keys })
       return
@@ -564,7 +610,7 @@ const server = createServer(async (req, res) => {
       const key = url.searchParams.get('key')
       if (!key) return sendJson(res, req, 400, { error: 'missing key' })
       try {
-        const value = await fs.readFile(fileFor(key), 'utf8')
+        const value = await fs.readFile(fileFor(key, scope), 'utf8')
         sendJson(res, req, 200, { value })
       } catch {
         sendJson(res, req, 200, { value: null })
@@ -579,8 +625,8 @@ const server = createServer(async (req, res) => {
       const key = url.searchParams.get('key')
       if (!key) return sendJson(res, req, 400, { error: 'missing key' })
       const value = await readBody(req, MAX_BODY_BYTES)
-      await fs.mkdir(DATA_DIR, { recursive: true })
-      await fs.writeFile(fileFor(key), value, 'utf8')
+      await fs.mkdir(scopeDir(scope), { recursive: true })
+      await fs.writeFile(fileFor(key, scope), value, 'utf8')
       sendJson(res, req, 200, { ok: true })
       return
     }
@@ -591,12 +637,14 @@ const server = createServer(async (req, res) => {
       }
       const key = url.searchParams.get('key')
       if (!key) return sendJson(res, req, 400, { error: 'missing key' })
-      await fs.rm(fileFor(key), { force: true })
+      await fs.rm(fileFor(key, scope), { force: true })
       sendJson(res, req, 200, { ok: true })
       return
     }
 
-    // ---------- 时序历史（写 operator+，读任意登录）----------
+    // ---------- 时序历史（写 operator+，读任意登录；按用户隔离）----------
+    const historyDir = historyDirFor(scope)
+
     if (url.pathname === '/api/history/write' && req.method === 'POST') {
       if (!requireRole(authn, 'operator')) {
         return sendJson(res, req, 403, { error: 'forbidden' })
@@ -614,7 +662,7 @@ const server = createServer(async (req, res) => {
       let written = 0
       for (const [key, samples] of Object.entries(payload)) {
         if (!Array.isArray(samples)) continue
-        written += await appendSamples(String(key), samples)
+        written += await appendSamples(historyDir, String(key), samples)
       }
       sendJson(res, req, 200, { ok: true, written })
       return
@@ -627,7 +675,7 @@ const server = createServer(async (req, res) => {
       const from = Number(url.searchParams.get('from')) || now - 24 * 3600 * 1000
       const to = Number(url.searchParams.get('to')) || now
       const maxPoints = Math.min(Math.max(Number(url.searchParams.get('maxPoints')) || 600, 1), 5000)
-      const points = await querySamples(key, from, to, maxPoints)
+      const points = await querySamples(historyDir, key, from, to, maxPoints)
       sendJson(res, req, 200, { points })
       return
     }
