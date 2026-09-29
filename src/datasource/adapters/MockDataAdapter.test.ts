@@ -32,11 +32,11 @@ describe('MockDataAdapter', () => {
     await adapter.connect({ type: 'mock', name: 'test', interval: 1000 })
     await adapter.write({ deviceId: 'motor_1', variable: 'speed', value: 1000 })
 
-    // 游走有小步惯性，不会立刻跳回别的量级；用宽区间断言新值在写入值附近
+    // 游走单步最大偏移 ±(span*rate)=±150，加均值回复 +10；断言新值仍在写入值附近量级
     vi.advanceTimersByTime(1000)
     const tick1 = updates[updates.length - 1]
-    expect(tick1.motor_1?.speed).toBeGreaterThan(900)
-    expect(tick1.motor_1?.speed).toBeLessThan(1100)
+    expect(tick1.motor_1?.speed).toBeGreaterThan(840)
+    expect(tick1.motor_1?.speed).toBeLessThan(1170)
   })
 
   it('非数字写值应该抛错且不推送', async () => {
