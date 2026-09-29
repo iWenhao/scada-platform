@@ -47,6 +47,7 @@
 - WebSocket 实时推送（支持断线自动重连）✅
 - HTTP 定时轮询（失败自愈，自动重试）✅
 - OPC UA（经 WebSocket 网关接入，NodeId 映射）✅
+- MQTT（over WebSocket 浏览器直连 Broker，无需网关；主题即设备，payload 支持扁平变量表或统一格式；写值发布到 `<设备>/set`）✅
 - 模拟数据（开发调试，22 台内置设备）✅
 
 ### 图层管理

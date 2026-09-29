@@ -1,5 +1,5 @@
 /** 数据源类型 */
-export type DataSourceType = 'mock' | 'websocket' | 'http' | 'opcua'
+export type DataSourceType = 'mock' | 'websocket' | 'http' | 'opcua' | 'mqtt'
 
 /** 数据源配置 */
 export interface DataSourceConfig {

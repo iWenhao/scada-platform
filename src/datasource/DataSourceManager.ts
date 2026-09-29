@@ -4,6 +4,7 @@ import { MockDataAdapter } from './adapters/MockDataAdapter'
 import { WebSocketAdapter } from './adapters/WebSocketAdapter'
 import { HttpPollingAdapter } from './adapters/HttpPollingAdapter'
 import { OpcUaGatewayAdapter } from './adapters/OpcUaGatewayAdapter'
+import { MqttAdapter } from './adapters/MqttAdapter'
 
 export class DataSourceManager {
   /** 当前活跃的数据源 */
@@ -34,6 +35,8 @@ export class DataSourceManager {
         return new HttpPollingAdapter()
       case 'opcua':
         return new OpcUaGatewayAdapter()
+      case 'mqtt':
+        return new MqttAdapter()
       default:
         throw new Error(`Unknown adapter type: ${type}`)
     }

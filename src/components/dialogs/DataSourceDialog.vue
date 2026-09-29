@@ -12,6 +12,7 @@
           <el-radio value="websocket">WebSocket</el-radio>
           <el-radio value="http">HTTP轮询</el-radio>
           <el-radio value="opcua">OPC UA</el-radio>
+          <el-radio value="mqtt">MQTT</el-radio>
         </el-radio-group>
       </el-form-item>
       
@@ -97,6 +98,38 @@
         </el-form-item>
       </template>
       
+      <!-- MQTT 配置 -->
+      <template v-if="form.type === 'mqtt'">
+        <el-form-item label="Broker 地址">
+          <el-input
+            v-model="form.url"
+            placeholder="ws://localhost:9001"
+          />
+          <span class="hint">浏览器经 WebSocket 直连，无需网关</span>
+        </el-form-item>
+
+        <el-form-item label="订阅过滤器">
+          <el-input v-model="topicFilter" placeholder="#" />
+          <span class="hint">MQTT 通配符，如 scada/#；设备 ID = 主题去掉前缀</span>
+        </el-form-item>
+
+        <el-form-item label="主题前缀">
+          <el-input v-model="topicPrefix" placeholder="如 scada/" />
+        </el-form-item>
+
+        <el-form-item label="用户名">
+          <el-input v-model="mqttUsername" placeholder="可选" />
+        </el-form-item>
+
+        <el-form-item label="密码">
+          <el-input v-model="mqttPassword" type="password" show-password placeholder="可选" />
+        </el-form-item>
+
+        <el-form-item label="自动重连">
+          <el-switch v-model="autoReconnect" />
+        </el-form-item>
+      </template>
+
       <!-- 模拟数据配置 -->
       <template v-if="form.type === 'mock'">
         <el-form-item label="更新间隔">
@@ -173,6 +206,10 @@ const form = reactive({
 const autoReconnect = ref(true)
 const reconnectInterval = ref(5000)
 const mockInterval = ref(1000)
+const topicFilter = ref('#')
+const topicPrefix = ref('')
+const mqttUsername = ref('')
+const mqttPassword = ref('')
 
 // 实时数据快照（随 Pinia 状态自动刷新）
 const liveDevices = computed(() => {
@@ -216,6 +253,10 @@ watch(() => props.modelValue, (val) => {
   mockInterval.value = cfg.type === 'mock' ? (cfg.interval || 1000) : 1000
   const nodes = (cfg.options?.nodes as string[] | undefined) || []
   nodeList.value = nodes.join('\n')
+  topicFilter.value = (cfg.options?.topicFilter as string) || '#'
+  topicPrefix.value = (cfg.options?.topicPrefix as string) || ''
+  mqttUsername.value = (cfg.options?.username as string) || ''
+  mqttPassword.value = (cfg.options?.password as string) || ''
 })
 
 // 组装当前表单对应的数据源配置
@@ -230,9 +271,21 @@ function buildConfig(): DataSourceConfig {
       : form.type === 'opcua' ? form.interval
       : undefined,
     reconnect:
-      form.type === 'websocket' || form.type === 'opcua' ? autoReconnect.value : false,
+      form.type === 'websocket' || form.type === 'opcua' || form.type === 'mqtt'
+        ? autoReconnect.value
+        : false,
     reconnectInterval: reconnectInterval.value,
-    options: form.type === 'opcua' ? { nodes: parseNodeList() } : undefined,
+    options:
+      form.type === 'opcua'
+        ? { nodes: parseNodeList() }
+        : form.type === 'mqtt'
+          ? {
+              topicFilter: topicFilter.value.trim() || '#',
+              topicPrefix: topicPrefix.value,
+              ...(mqttUsername.value ? { username: mqttUsername.value } : {}),
+              ...(mqttPassword.value ? { password: mqttPassword.value } : {}),
+            }
+          : undefined,
   }
 }
 
