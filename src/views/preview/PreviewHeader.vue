@@ -5,6 +5,12 @@
         <el-icon><Back /></el-icon>
         返回编辑器
       </el-button>
+      <el-tooltip content="返回上一画面" placement="bottom">
+        <el-button :disabled="!canGoBack" @click="emit('nav-back')">
+          <el-icon><Back /></el-icon>
+          上一画面
+        </el-button>
+      </el-tooltip>
       <span class="project-name">{{ projectName }} - 预览模式</span>
       <el-select
         v-if="pages.length > 1"
@@ -66,10 +72,12 @@ const props = defineProps<{
   activeAlarmCount: number
   connectionStatus: 'connected' | 'error' | 'connecting' | string
   lastUpdateTime: string
+  canGoBack: boolean
 }>()
 
 const emit = defineEmits<{
   back: []
+  'nav-back': []
   'switch-page': [id: string]
   'toggle-write-lock': []
   'open-audit': []

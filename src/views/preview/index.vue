@@ -9,7 +9,9 @@
       :active-alarm-count="alarmStore.activeCount"
       :connection-status="deviceStore.connectionStatus"
       :last-update-time="lastUpdateTime"
+      :can-go-back="navStack.canBack"
       @back="backToEditor"
+      @nav-back="goBackPage"
       @switch-page="switchPage"
       @toggle-write-lock="toggleWriteLock"
       @open-audit="showAuditLog = true"
@@ -41,6 +43,7 @@ import AuditLogDialog from '@/components/dialogs/AuditLogDialog.vue'
 import PreviewHeader from './PreviewHeader.vue'
 import PreviewStage from './PreviewStage.vue'
 import { useWriteValue } from './useWriteValue'
+import { NAV_BACK, PageNavStack } from '@/core/canvas/pageNav'
 import type { ComponentInstance } from '@/types/scada'
 
 const router = useRouter()
@@ -53,17 +56,32 @@ const pageStore = usePageStore()
 const { clearHistory } = useHistory()
 const { promptWriteValue } = useWriteValue()
 
+/** 画面导航栈：元素跳转 / 上一画面按钮共用 */
+const navStack = new PageNavStack()
+
 const showAuditLog = ref(false)
 const showTrendDialog = ref(false)
 const trendDeviceId = ref('')
 const trendVariable = ref('')
 const lastUpdateTime = ref('')
 
-function switchPage(id: string) {
+/** 切到目标页；isBack=true 表示返回（不压栈） */
+function switchPage(id: string, isBack = false) {
+  if (id === pageStore.activePageId) return
+  const from = pageStore.activePageId
   if (!pageStore.switchPage(id)) {
     ElMessage.warning('画面不存在')
     return
   }
+  if (!isBack) navStack.push(from)
+  clearHistory()
+}
+
+function goBackPage() {
+  const prev = navStack.pop()
+  if (!prev) return
+  if (prev === pageStore.activePageId) return
+  pageStore.switchPage(prev)
   clearHistory()
 }
 
@@ -76,13 +94,21 @@ function toggleWriteLock() {
 }
 
 function handleElementClick(element: ComponentInstance) {
-  // 多画面导航优先
+  // 导航：返回上一画面 / 跳转指定画面
   if (element.navigateTo) {
-    if (pageStore.switchPage(element.navigateTo)) {
-      clearHistory()
+    if (element.navigateTo === NAV_BACK) {
+      if (!navStack.canBack) {
+        ElMessage.info('没有可返回的上一画面')
+        return
+      }
+      goBackPage()
       return
     }
-    ElMessage.warning(`跳转目标画面不存在（${element.navigateTo}）`)
+    if (!pageStore.pages.some(p => p.id === element.navigateTo)) {
+      ElMessage.warning(`跳转目标画面不存在（${element.navigateTo}）`)
+      return
+    }
+    switchPage(element.navigateTo!)
     return
   }
 
@@ -124,8 +150,7 @@ onMounted(async () => {
 
   const startPage = route.query.page as string | undefined
   if (startPage && startPage !== pageStore.activePageId) {
-    pageStore.switchPage(startPage)
-    clearHistory()
+    switchPage(startPage)
   }
 
   deviceStore.initDataSource(projectStore.dataSourceConfig)

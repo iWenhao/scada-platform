@@ -12,6 +12,7 @@
           placeholder="不跳转"
           @change="handleNavigateChange"
         >
+          <el-option label="返回上一画面" :value="NAV_BACK" />
           <el-option
             v-for="page in pageOptions"
             :key="page.id"
@@ -78,6 +79,7 @@ import { ref, computed, watch } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { usePageStore } from '@/stores/pageStore'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
+import { NAV_BACK } from '@/core/canvas/pageNav'
 import type { ComponentInstance } from '@/types/scada'
 
 const props = defineProps<{
