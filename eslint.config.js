@@ -17,6 +17,8 @@ import globals from 'globals'
 const sharedRules = {
   // 画布事件处理大量使用 Konva 的任意事件对象，逐个声明类型收益不大
   '@typescript-eslint/no-explicit-any': 'off',
+  // TS 已由 vue-tsc 检查未定义标识符；ESLint 的 no-undef 不认识类型（如 RequestInit）会误报
+  'no-undef': 'off',
   // 单测中有意构造非法输入来覆盖异常分支
   '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
   'vue/multi-word-component-names': 'off',
