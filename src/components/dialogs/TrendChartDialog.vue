@@ -19,6 +19,18 @@
         <span v-else-if="range !== 'live'" class="trend-range-hint">
           {{ historyBackend === 'remote' ? '来自服务端历史存储' : '后端离线，历史暂存本机（按用户隔离）' }}
         </span>
+
+        <div class="spacer" />
+        <el-select v-if="range !== 'live'" v-model="aggChoice" size="small" class="agg-select" title="长跨度查询按窗口聚合，点数更平滑">
+          <el-option label="聚合: 自动" value="auto" />
+          <el-option label="聚合: 原始" value="none" />
+          <el-option label="聚合: 按分钟" value="minute" />
+          <el-option label="聚合: 按小时" value="hour" />
+        </el-select>
+        <el-button size="small" :disabled="!points.length" @click="exportCsv">
+          <el-icon><Download /></el-icon>
+          导出 CSV
+        </el-button>
       </div>
 
       <div class="trend-info" v-if="points.length">
@@ -111,7 +123,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
-import { queryHistory, historianBackend, type SamplePoint } from '@/history/historian'
+import { queryHistory, historianBackend, type SamplePoint, type HistoryAgg } from '@/history/historian'
+import { historyToCsv, downloadCsv } from '@/export/csv'
 
 const props = defineProps<{
   modelValue: boolean
@@ -160,6 +173,23 @@ const loadingRemote = ref(false)
 const loadError = ref('')
 let remoteTimer: number | null = null
 
+/**
+ * 聚合方式：'auto' 按范围自动（1h 原始 / 24h 按分钟 / 7d 按小时），
+ * 也可手动固定。聚合后曲线更平滑、点数可控，长跨度查询不卡。
+ */
+type AggChoice = 'auto' | 'none' | 'minute' | 'hour'
+const aggChoice = ref<AggChoice>('auto')
+
+function resolveAgg(ms: number): { agg?: HistoryAgg; windowMs?: number } {
+  if (aggChoice.value === 'none') return {}
+  if (aggChoice.value === 'minute') return { agg: 'avg', windowMs: 60_000 }
+  if (aggChoice.value === 'hour') return { agg: 'avg', windowMs: 3_600_000 }
+  // auto
+  if (ms <= 3_600_000) return {}
+  if (ms <= 24 * 3_600_000) return { agg: 'avg', windowMs: 60_000 }
+  return { agg: 'avg', windowMs: 3_600_000 }
+}
+
 const points = computed(() => {
   void tick.value // 依赖 tick 以触发周期性刷新
   if (range.value === 'live') {
@@ -179,13 +209,24 @@ async function loadRemote() {
       `${props.deviceId}.${props.variable}`,
       now - ms,
       now,
-      600,
+      { maxPoints: 600, ...resolveAgg(ms) },
     )
   } catch (e) {
     loadError.value = e instanceof Error ? e.message : '查询失败'
   } finally {
     loadingRemote.value = false
   }
+}
+
+/** 导出当前显示的数据为 CSV */
+function exportCsv() {
+  const points = range.value === 'live'
+    ? deviceStore.getHistory(props.deviceId, props.variable)
+    : remotePoints.value
+  downloadCsv(
+    `${props.deviceId}-${props.variable}-历史.csv`,
+    historyToCsv(points),
+  )
 }
 
 function stopRemoteTimer() {
@@ -319,6 +360,15 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
+
+  .spacer {
+    flex: 1;
+  }
+
+  .agg-select {
+    width: 120px;
+  }
 
   .trend-range-label {
     font-size: 12px;

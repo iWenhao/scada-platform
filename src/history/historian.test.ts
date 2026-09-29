@@ -57,7 +57,7 @@ describe('historian', () => {
       const part = await queryHistory('k', 1500, 2500)
       expect(part).toEqual([{ t: 2000, v: 2 }])
 
-      const sparse = await queryHistory('k', 0, 10_000, 2)
+      const sparse = await queryHistory('k', 0, 10_000, { maxPoints: 2 })
       expect(sparse).toEqual([{ t: 1000, v: 1 }, { t: 3000, v: 3 }])
     })
 

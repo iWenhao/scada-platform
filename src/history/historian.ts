@@ -149,25 +149,38 @@ async function flushToLocal(payload: Record<string, SamplePoint[]>): Promise<voi
   }
 }
 
-/** 查询某变量在 [from, to] 区间内的历史 */
+/** 聚合方式：按窗口取 min/avg/max；不传则返回原始采样 */
+export type HistoryAgg = 'min' | 'avg' | 'max'
+
+export interface QueryOptions {
+  maxPoints?: number
+  /** 窗口聚合：长时间跨度查询时按窗口降采样，agg 指定窗口内的取值方式 */
+  agg?: HistoryAgg
+  /** 聚合窗口宽度（毫秒），需与 agg 同时提供 */
+  windowMs?: number
+}
+
+/** 查询某变量在 [from, to] 区间内的历史；远程模式支持服务端窗口聚合 */
 export async function queryHistory(
   key: string,
   from: number,
   to: number,
-  maxPoints = 600,
+  options: QueryOptions = {},
 ): Promise<SamplePoint[]> {
+  const maxPoints = options.maxPoints ?? 600
   const points = storageMode() === 'remote'
-    ? await queryRemote(key, from, to, maxPoints)
+    ? await queryRemote(key, from, to, maxPoints, options)
     : await queryLocal(key, from, to)
   return downsample(points, maxPoints)
 }
 
-/** 服务端负责抽稀到 maxPoints，此处仍做一次保险裁剪 */
+/** 服务端负责窗口聚合与抽稀到 maxPoints，此处仍做一次保险裁剪 */
 async function queryRemote(
   key: string,
   from: number,
   to: number,
   maxPoints: number,
+  options: QueryOptions,
 ): Promise<SamplePoint[]> {
   const params = new URLSearchParams({
     key,
@@ -175,6 +188,10 @@ async function queryRemote(
     to: String(Math.round(to)),
     maxPoints: String(maxPoints),
   })
+  if (options.agg && options.windowMs && options.windowMs > 0) {
+    params.set('agg', options.agg)
+    params.set('window', String(Math.round(options.windowMs)))
+  }
   const res = await fetch(`${resolveApiBase()}/history/query?${params}`, {
     headers: authHeaders(),
   })

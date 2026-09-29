@@ -52,7 +52,10 @@
       <template v-if="alarmHistory.length">
         <div class="alarm-divider">
           <span>最近恢复</span>
-          <el-button size="small" text @click="alarmStore.clearHistory()">清空</el-button>
+          <div class="alarm-divider-actions">
+            <el-button size="small" text @click="exportAlarms">导出 CSV</el-button>
+            <el-button size="small" text @click="alarmStore.clearHistory()">清空</el-button>
+          </div>
         </div>
         <div class="alarm-list">
           <div
@@ -81,8 +84,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAlarmStore } from '@/stores/alarmStore'
+import { useProjectStore } from '@/stores/projectStore'
+import { alarmsToCsv, downloadCsv } from '@/export/csv'
 
 const alarmStore = useAlarmStore()
+const projectStore = useProjectStore()
+
+function exportAlarms() {
+  downloadCsv(`${projectStore.projectName}-报警记录.csv`, alarmsToCsv(alarmStore.alarmHistory))
+}
 
 const activeAlarms = computed(() => alarmStore.activeAlarms)
 const activeCount = computed(() => alarmStore.activeCount)
@@ -231,6 +241,11 @@ function formatTime(ts: number | undefined): string {
   border-top: 1px solid var(--border-primary);
   font-size: 12px;
   color: var(--text-muted);
+
+  .alarm-divider-actions {
+    display: flex;
+    align-items: center;
+  }
 }
 
 .alarm-empty {

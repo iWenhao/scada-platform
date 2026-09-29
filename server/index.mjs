@@ -209,6 +209,43 @@ async function querySamples(historyDir, key, from, to, maxPoints) {
   }
 
   points.sort((a, b) => a.t - b.t)
+  return points
+}
+
+/**
+ * 按时间窗口聚合采样（min/avg/max），用于长时间跨度的趋势查询：
+ * 7 天的 1 秒采样有 60 万点，不聚合的话传输与绘制都不现实。
+ * 每个窗口输出一个点，时间戳取窗口起点。
+ * @param {Array<{t:number,v:number}>} points 已按时间升序的点集
+ * @param {string} agg 'min' | 'avg' | 'max'；空值跳过聚合
+ * @param {number} window 窗口宽度（毫秒）
+ */
+function aggregatePoints(points, agg, window) {
+  if (!agg || !window || window <= 0) return points
+  if (!['min', 'avg', 'max'].includes(agg)) return points
+
+  const buckets = new Map()
+  for (const p of points) {
+    const start = Math.floor(p.t / window) * window
+    if (!buckets.has(start)) buckets.set(start, [])
+    buckets.get(start).push(p.v)
+  }
+
+  const round4 = v => Math.round(v * 10000) / 10000
+  const result = []
+  for (const [start, values] of [...buckets.entries()].sort((a, b) => a[0] - b[0])) {
+    const v = agg === 'min'
+      ? Math.min(...values)
+      : agg === 'max'
+        ? Math.max(...values)
+        : values.reduce((s, x) => s + x, 0) / values.length
+    result.push({ t: start, v: round4(v) })
+  }
+  return result
+}
+
+/** 抽稀到 maxPoints（保留首尾），超过时按间隔取样 */
+function downsamplePoints(points, maxPoints) {
   if (maxPoints > 0 && points.length > maxPoints) {
     const step = (points.length - 1) / (maxPoints - 1)
     const sampled = []
@@ -675,7 +712,11 @@ const server = createServer(async (req, res) => {
       const from = Number(url.searchParams.get('from')) || now - 24 * 3600 * 1000
       const to = Number(url.searchParams.get('to')) || now
       const maxPoints = Math.min(Math.max(Number(url.searchParams.get('maxPoints')) || 600, 1), 5000)
-      const points = await querySamples(historyDir, key, from, to, maxPoints)
+      const agg = url.searchParams.get('agg') || ''
+      const window = Number(url.searchParams.get('window')) || 0
+      // 先聚合（大幅降点数）再抽稀兜底，保证返回量可控
+      const raw = await querySamples(historyDir, key, from, to, 0)
+      const points = downsamplePoints(aggregatePoints(raw, agg, window), maxPoints)
       sendJson(res, req, 200, { points })
       return
     }
