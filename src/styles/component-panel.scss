@@ -127,8 +127,8 @@
 
     .component-items {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
     }
 
     .component-item {
@@ -137,8 +137,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 12px 4px 10px;
-      border-radius: 10px;
+      padding: 10px 2px 8px;
+      border-radius: 8px;
       cursor: grab;
       transition: all 0.18s;
       background: var(--bg-primary);
@@ -157,9 +157,9 @@
       }
 
       .component-icon {
-        width: 32px;
-        height: 32px;
-        margin-bottom: 8px;
+        width: 28px;
+        height: 28px;
+        margin-bottom: 6px;
         color: var(--accent-primary);
         flex-shrink: 0;
       }
@@ -183,7 +183,7 @@
 
       .component-name {
         color: var(--text-primary);
-        font-size: 11px;
+        font-size: 10px;
         max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
