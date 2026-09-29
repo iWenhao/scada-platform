@@ -1,0 +1,148 @@
+.toolbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 16px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .logo {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  .project-name-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .project-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .rename-icon {
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .project-name-group:hover {
+    .project-name {
+      color: var(--accent-primary);
+    }
+
+    .rename-icon {
+      opacity: 1;
+    }
+  }
+}
+
+.toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .zoom-level {
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 40px;
+    text-align: center;
+  }
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+
+  &:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+}
+
+:deep(.el-button) {
+  background: var(--bg-primary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+
+  &:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--border-active);
+  }
+
+  &.el-button--primary {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+  }
+
+  &.el-button--success {
+    background: var(--accent-secondary);
+    border-color: var(--accent-secondary);
+    color: #fff;
+  }
+
+  /* 危险按钮保持红色，不被基础样式冲掉 */
+  &.el-button--danger {
+    background: var(--accent-danger);
+    border-color: var(--accent-danger);
+    color: #fff;
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent-danger) 85%, #000);
+      border-color: color-mix(in srgb, var(--accent-danger) 85%, #000);
+      color: #fff;
+    }
+  }
+}
+
+/* 删除按钮悬停/按下变红。
+   必须写成 :deep 一级选择器，且 background 也要 !important——
+   dark-theme.scss 里 html.dark .el-button:hover 的背景是 !important，不写会盖掉。 */
+:deep(.el-button.btn-delete:hover:not(.is-disabled)),
+:deep(.el-button.btn-delete:focus:not(.is-disabled)) {
+  background-color: color-mix(in srgb, var(--accent-danger) 22%, var(--bg-primary)) !important;
+  border-color: var(--accent-danger) !important;
+  color: var(--accent-danger) !important;
+
+  .el-icon {
+    color: inherit !important;
+  }
+}
+
+:deep(.el-button.btn-delete:active:not(.is-disabled)) {
+  background-color: color-mix(in srgb, var(--accent-danger) 40%, var(--bg-primary)) !important;
+  border-color: var(--accent-danger) !important;
+  color: var(--accent-danger) !important;
+}
+
+:deep(.el-divider--vertical) {
+  border-left-color: var(--border-primary);
+}

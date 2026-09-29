@@ -1,0 +1,74 @@
+.trend-body {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.trend-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+
+  .spacer {
+    flex: 1;
+  }
+
+  .agg-select {
+    width: 120px;
+  }
+
+  .trend-range-label {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .trend-range-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+
+    &.error {
+      color: #ff4757;
+    }
+  }
+}
+
+.trend-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12px;
+
+  .trend-label {
+    color: var(--text-muted);
+  }
+
+  .trend-value {
+    color: var(--text-primary);
+    font-family: monospace;
+    font-weight: 600;
+    margin-right: 8px;
+  }
+
+  .trend-value.current {
+    color: var(--accent-primary);
+    font-size: 14px;
+  }
+}
+
+.trend-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* 配合 viewBox 等比缩放：只设 width 而不设 height 会让画布被横向拉伸 */
+.trend-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}

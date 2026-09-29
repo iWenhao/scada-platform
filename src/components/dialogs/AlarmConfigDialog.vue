@@ -278,41 +278,4 @@ function commit() {
 }
 </script>
 
-<style scoped lang="scss">
-.add-btn {
-  width: 100%;
-  margin-top: 10px;
-  border-style: dashed;
-}
-
-.cond-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.cond-op {
-  width: 120px;
-}
-
-.cond-val {
-  width: 110px;
-}
-
-.cond-sep {
-  color: var(--text-secondary);
-}
-
-.form-hint {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.edit-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
-</style>
+<style src="./alarm-config.scss" scoped lang="scss"></style>
