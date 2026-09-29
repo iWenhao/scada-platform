@@ -25,16 +25,13 @@
 
   .panel-tabs {
     position: sticky;
-    top: 41px;
-    z-index: 1;
-    position: relative;
+    top: 42px;
+    z-index: 2;
     display: flex;
     gap: 0;
     padding: 6px;
-    margin: 6px 8px 0;
-    background: var(--bg-primary);
-    border: 1px solid var(--border-primary);
-    border-radius: 10px;
+    margin: 0;
+    background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-primary);
   }
 
@@ -42,8 +39,8 @@
   .tab-indicator {
     position: absolute;
     top: 6px;
-    bottom: 6px;
-    left: 0;
+    height: 32px;
+    left: 6px;
     border-radius: 8px;
     background: var(--accent-primary);
     box-shadow: 0 2px 10px rgba(0, 212, 170, 0.35);
