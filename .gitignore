@@ -23,3 +23,14 @@ build/
 
 # AI 工具本地配置
 .zcodeignore
+.workbuddy/
+
+# 本地开发/调试
+.tmp-*
+*.log
+
+# 浏览器自动化缓存
+.playwright-cli/
+
+# 存储后端运行时数据（含口令哈希/会话/工程，禁止入库）
+server/data/
