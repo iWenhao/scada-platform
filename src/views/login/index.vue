@@ -1,11 +1,13 @@
 <template>
-  <div class="login-page">
+  <div class="login-page" @pointermove="onPointerMove">
     <!-- 动态背景：网格 + 光晕 + 扫描线 -->
     <div class="bg-grid" />
     <div class="bg-orb orb-a" />
     <div class="bg-orb orb-b" />
     <div class="bg-orb orb-c" />
     <div class="bg-scan" />
+    <!-- 鼠标跟随光晕 -->
+    <div class="cursor-glow" :style="glowStyle" />
 
     <div class="login-shell">
       <!-- 品牌区 -->
@@ -107,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { SEED_USERS } from '@/auth/userLibrary'
@@ -119,6 +121,19 @@ const authStore = useAuthStore()
 const username = ref('admin')
 const password = ref('')
 const showPwd = ref(false)
+const glowX = ref(-999)
+const glowY = ref(-999)
+
+const glowStyle = computed(() => ({
+  transform: `translate3d(${glowX.value - 180}px, ${glowY.value - 180}px, 0)`,
+}))
+
+function onPointerMove(e: PointerEvent) {
+  const el = e.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  glowX.value = e.clientX - rect.left
+  glowY.value = e.clientY - rect.top
+}
 
 const seeds = SEED_USERS
 
@@ -211,6 +226,26 @@ async function handleLogin() {
   to {
     transform: translate3d(24px, -18px, 0) scale(1.08);
   }
+}
+
+.cursor-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(0, 212, 170, 0.22) 0%,
+    rgba(0, 212, 170, 0.08) 35%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+  transition: opacity 0.35s ease;
+  filter: blur(8px);
 }
 
 .bg-scan {
