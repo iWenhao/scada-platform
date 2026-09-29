@@ -86,63 +86,14 @@
       </el-tab-pane>
     </el-tabs>
 
-    <el-dialog
+    <TagEditDialog
       v-model="editVisible"
-      :title="editingIndex >= 0 ? '编辑点位' : '新增点位'"
-      width="480px"
-      append-to-body
-    >
-      <el-form v-if="editing" label-width="90px">
-        <el-form-item label="设备 ID" required>
-          <el-select
-            v-model="editing.deviceId"
-            filterable
-            allow-create
-            default-first-option
-            placeholder="如 motor_1"
-          >
-            <el-option v-for="d in deviceStore.availableDevices" :key="d" :label="d" :value="d" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="变量名" required>
-          <el-input v-model="editing.name" placeholder="如 speed" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="editing.description" />
-        </el-form-item>
-        <el-form-item label="单位">
-          <el-input v-model="editing.unit" placeholder="如 rpm" />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="editing.dataType">
-            <el-option label="数值" value="number" />
-            <el-option label="字符串" value="string" />
-            <el-option label="布尔" value="boolean" />
-          </el-select>
-        </el-form-item>
-        <el-form-item v-if="editing.dataType === 'number'" label="量程">
-          <el-input-number v-model="editing.min" class="half" />
-          <el-input-number v-model="editing.max" class="half" />
-        </el-form-item>
-        <el-form-item v-if="editing.dataType === 'number'" label="入库死区">
-          <el-input-number v-model="editing.deadband" :min="0" :step="0.1" class="half" />
-          <span class="hint">变化小于该值的采样不写历史；0 = 全部记录</span>
-        </el-form-item>
-        <el-form-item label="可写">
-          <el-select v-model="editing.writable" clearable placeholder="未指定">
-            <el-option label="允许写值" :value="true" />
-            <el-option label="只读" :value="false" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="editing.note" type="textarea" :rows="2" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="editVisible = false">取消</el-button>
-        <el-button type="primary" @click="commitEdit">确定</el-button>
-      </template>
-    </el-dialog>
+      :form="editing"
+      :editing-index="editingIndex"
+      :devices="deviceStore.availableDevices"
+      @confirm="commitEdit"
+    />
+
 
     <el-dialog v-model="bindVisible" title="画布绑定" width="520px" append-to-body>
       <el-table :data="bindings" size="small" empty-text="该点位未被任何画布元素绑定">
@@ -166,9 +117,10 @@ import { useProjectStore } from '@/stores/projectStore'
 import { usePageStore } from '@/stores/pageStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import LivePointsTable from './LivePointsTable.vue'
+import TagEditDialog from './TagEditDialog.vue'
+import { exportTagsCsv } from './useTagCsv'
 import {
   parseTagCsv,
-  tagsToCsv,
   tagKey,
   createTagId,
   findTag,
@@ -438,14 +390,7 @@ function onFileChange(e: Event) {
 }
 
 function handleExport() {
-  const csv = tagsToCsv(tags.value)
-  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${projectStore.projectName}-点表.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+  exportTagsCsv(tags.value, projectStore.projectName)
 }
 
 function handleSave() {

@@ -10,6 +10,7 @@ import type { AlarmDefinition } from '@/types/alarm'
 import { normalizeAlarmDef } from '@/types/alarm'
 import { createPageId, type ScadaPage } from '@/types/page'
 import { createTagId, type TagDef, type WritePolicy } from '@/types/tag'
+import { publishedKey as pubKey, parsePublishedAt } from './projectPublish'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -40,7 +41,7 @@ export const useProjectStore = defineStore('project', () => {
   /** 草稿存储键：独立于正式工程前缀 */
   const draftKey = (name: string) => `scada_draft_${name}`
   /** 发布快照：与草稿/工作副本分离，预览默认读发布版 */
-  const publishedKey = (name: string) => `scada_published_${name}`
+  const publishedKey = pubKey
 
   /**
    * 组装完整的工程数据（保存 / 导出共用，避免两处结构漂移）
@@ -189,14 +190,7 @@ export const useProjectStore = defineStore('project', () => {
 
   /** 发布时间；无发布版返回 null */
   async function getPublishedAt(name: string): Promise<number | null> {
-    const raw = await getStorage().get(publishedKey(name))
-    if (!raw) return null
-    try {
-      const data = JSON.parse(raw)
-      return data.publishedAt || data.timestamp || null
-    } catch {
-      return null
-    }
+    return parsePublishedAt(await getStorage().get(publishedKey(name)))
   }
 
   /**
