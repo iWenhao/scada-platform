@@ -91,6 +91,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { defaultCanvasConfig, type CanvasConfig } from '@/types/canvas'
 import { useCanvasStore } from '@/stores/canvasStore'
+import { useProjectStore } from '@/stores/projectStore'
 
 const props = defineProps<{
   modelValue: boolean
@@ -134,6 +135,8 @@ function handleReset() {
 
 function handleConfirm() {
   canvasStore.updateCanvasConfig({ ...form })
+  // 画布尺寸/网格等属于工程内容，标脏以便保存
+  useProjectStore().markDirty()
   visible.value = false
 }
 </script>

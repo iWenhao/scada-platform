@@ -14,7 +14,7 @@ export function useGridLines(canvasStore: CanvasStore) {
     listening: false,
   }))
 
-  // 画布边界配置
+  // 画布边界与底色（跟随画布配置的背景色）
   const canvasBorderConfig = computed(() => ({
     x: 0,
     y: 0,
@@ -22,7 +22,7 @@ export function useGridLines(canvasStore: CanvasStore) {
     height: canvasStore.canvasConfig.height,
     stroke: '#444',
     strokeWidth: 2,
-    fill: 'transparent',
+    fill: canvasStore.canvasConfig.backgroundColor || '#1e1e1e',
     listening: false,
   }))
 
