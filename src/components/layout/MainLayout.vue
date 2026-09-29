@@ -13,7 +13,10 @@
       
       <!-- 中间画布区域 -->
       <div class="canvas-area">
-        <slot />
+        <PageTabs />
+        <div class="canvas-slot">
+          <slot />
+        </div>
       </div>
       
       <!-- 右侧属性面板 -->
@@ -35,6 +38,7 @@ import Toolbar from './Toolbar.vue'
 import ComponentPanel from './ComponentPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import LayerPanel from './LayerPanel.vue'
+import PageTabs from './PageTabs.vue'
 
 const uiStore = useUiStore()
 </script>
@@ -48,10 +52,11 @@ const uiStore = useUiStore()
 }
 
 .toolbar {
-  height: 48px;
-  background: var(--bg-secondary);
+  height: 52px;
+  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
   border-bottom: 1px solid var(--border-primary);
   flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(0, 212, 170, 0.08);
 }
 
 .content-area {
@@ -61,31 +66,43 @@ const uiStore = useUiStore()
 }
 
 .left-panel {
-  width: 240px;
+  width: 248px;
   flex-shrink: 0;
   border-right: 1px solid var(--border-primary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--bg-secondary);
 }
 
 .canvas-area {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-canvas);
+}
+
+.canvas-slot {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .right-panel {
-  width: 280px;
+  width: 288px;
   flex-shrink: 0;
   border-left: 1px solid var(--border-primary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--bg-secondary);
 }
 
 .bottom-panel {
-  height: 200px;
+  height: 180px;
   flex-shrink: 0;
   border-top: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
 }
 </style>

@@ -7,7 +7,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.{test,spec}.{js,ts}'],
+    // examples/ 下的测试用于校验示例工程文件的结构没和实现漂移
+    include: ['src/**/*.{test,spec}.{js,ts}', 'examples/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

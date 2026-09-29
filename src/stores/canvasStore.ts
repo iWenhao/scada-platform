@@ -13,6 +13,9 @@ export const useCanvasStore = defineStore('canvas', () => {
   // 选中的元素ID列表（支持多选，第一个为主选中元素）
   const selectedIds = ref<string[]>([])
 
+  // 复制粘贴剪贴板（跨组件共享）
+  const clipboard = ref<ComponentInstance[]>([])
+
   // 缩放比例
   const zoom = ref(1)
 
@@ -141,6 +144,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     canvasConfig,
     elements,
     selectedIds,
+    clipboard,
     selectedId: computed(() => selectedIds.value[0] ?? null),
     zoom,
     offset,

@@ -31,6 +31,7 @@ export const ValveDefinition: ComponentDefinition = {
       id: 'closed',
       name: '关闭',
       color: '#ff4757',
+      severity: 'normal',
       condition: { type: 'compare', variable: 'openDegree', operator: '=', value: 0 },
       priority: 2,
     },
@@ -104,6 +105,7 @@ export const PumpDefinition: ComponentDefinition = {
       id: 'stopped',
       name: '停止',
       color: '#ff4757',
+      severity: 'normal',
       condition: { type: 'compare', variable: 'speed', operator: '=', value: 0 },
       priority: 2,
     },
@@ -157,6 +159,7 @@ export const TankDefinition: ComponentDefinition = {
       id: 'high',
       name: '高液位',
       color: '#ffa502',
+      severity: 'warning',
       condition: { type: 'compare', variable: 'level', operator: '>', value: 80 },
       priority: 1,
     },
@@ -171,6 +174,7 @@ export const TankDefinition: ComponentDefinition = {
       id: 'low',
       name: '低液位',
       color: '#ff4757',
+      severity: 'critical',
       condition: { type: 'compare', variable: 'level', operator: '<', value: 20 },
       priority: 3,
     },
@@ -199,8 +203,115 @@ export const TankDefinition: ComponentDefinition = {
   ],
 }
 
+export const SetpointDefinition: ComponentDefinition = {
+  type: 'setpoint',
+  name: '设定值',
+  group: 'basic',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="3">
+      <rect x="12" y="30" width="76" height="40" rx="4" />
+      <line x1="22" y1="50" x2="46" y2="50" />
+      <line x1="34" y1="38" x2="34" y2="62" />
+      <line x1="54" y1="50" x2="78" y2="50" stroke-dasharray="4,3" />
+      <polygon points="72,44 80,50 72,56" />
+      <path d="M 30,20 L 40,20" />
+      <line x1="35" y1="12" x2="35" y2="24" />
+    </g>
+  </svg>`,
+  defaultWidth: 90,
+  defaultHeight: 50,
+  defaultConfig: {
+    unit: '',
+  },
+  // 写值目标控件：没有预置绑定（每个工程的目标设备/变量都不同），由使用者在属性面板手动绑定
+  statusRules: [],
+  dataBindings: [],
+  properties: [
+    {
+      key: 'name',
+      label: '名称',
+      type: 'string',
+      default: '设定值',
+      group: '基本',
+    },
+    {
+      key: 'unit',
+      label: '单位',
+      type: 'string',
+      default: '',
+      group: '基本',
+    },
+  ],
+}
+
+export const DisplayDefinition: ComponentDefinition = {
+  type: 'display',
+  name: '数值显示',
+  group: 'basic',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="3">
+      <rect x="10" y="30" width="80" height="40" rx="4" />
+      <text x="50" y="58" text-anchor="middle" font-size="24" font-family="monospace" fill="currentColor" stroke="none">8.8</text>
+    </g>
+  </svg>`,
+  defaultWidth: 120,
+  defaultHeight: 50,
+  defaultConfig: {
+    decimals: 1,
+    unit: '',
+    factor: 1,
+    offset: 0,
+  },
+  // 只读数值显示：绑定目标由使用者按需指定，无预置绑定
+  statusRules: [],
+  dataBindings: [],
+  properties: [
+    {
+      key: 'name',
+      label: '名称',
+      type: 'string',
+      default: '数值显示',
+      group: '基本',
+    },
+    {
+      key: 'unit',
+      label: '单位',
+      type: 'string',
+      default: '',
+      group: '显示',
+    },
+    {
+      key: 'decimals',
+      label: '小数位数',
+      type: 'number',
+      default: 1,
+      min: 0,
+      max: 3,
+      group: '显示',
+    },
+    {
+      key: 'factor',
+      label: '倍率(×)',
+      type: 'number',
+      default: 1,
+      step: 0.001,
+      group: '换算',
+    },
+    {
+      key: 'offset',
+      label: '偏移(+)',
+      type: 'number',
+      default: 0,
+      step: 0.1,
+      group: '换算',
+    },
+  ],
+}
+
 export const basicComponents: ComponentDefinition[] = [
   ValveDefinition,
   PumpDefinition,
   TankDefinition,
+  SetpointDefinition,
+  DisplayDefinition,
 ]

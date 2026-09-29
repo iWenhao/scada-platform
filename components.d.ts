@@ -7,9 +7,13 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AlarmConfigDialog: typeof import('./src/components/dialogs/AlarmConfigDialog.vue')['default']
+    AlarmPanel: typeof import('./src/components/layout/AlarmPanel.vue')['default']
+    AuditLogDialog: typeof import('./src/components/dialogs/AuditLogDialog.vue')['default']
     CanvasConfigDialog: typeof import('./src/components/dialogs/CanvasConfigDialog.vue')['default']
     CanvasRuler: typeof import('./src/components/layout/CanvasRuler.vue')['default']
     ComponentPanel: typeof import('./src/components/layout/ComponentPanel.vue')['default']
+    ContextMenu: typeof import('./src/components/layout/ContextMenu.vue')['default']
     CustomComponentDialog: typeof import('./src/components/dialogs/CustomComponentDialog.vue')['default']
     DataSourceDialog: typeof import('./src/components/dialogs/DataSourceDialog.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
@@ -45,12 +49,20 @@ declare module 'vue' {
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     LayerPanel: typeof import('./src/components/layout/LayerPanel.vue')['default']
+    LivePointsTable: typeof import('./src/components/dialogs/LivePointsTable.vue')['default']
     MainLayout: typeof import('./src/components/layout/MainLayout.vue')['default']
     MiniMap: typeof import('./src/components/layout/MiniMap.vue')['default']
+    NotifyConfigDialog: typeof import('./src/components/dialogs/NotifyConfigDialog.vue')['default']
+    PageTabs: typeof import('./src/components/layout/PageTabs.vue')['default']
     PropertyPanel: typeof import('./src/components/layout/PropertyPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StatusRuleDialog: typeof import('./src/components/dialogs/StatusRuleDialog.vue')['default']
+    TagEditDialog: typeof import('./src/components/dialogs/TagEditDialog.vue')['default']
+    TagTableDialog: typeof import('./src/components/dialogs/TagTableDialog.vue')['default']
     Toolbar: typeof import('./src/components/layout/Toolbar.vue')['default']
+    ToolIcon: typeof import('./src/components/layout/ToolIcon.vue')['default']
+    TrendChartDialog: typeof import('./src/components/dialogs/TrendChartDialog.vue')['default']
+    UserManageDialog: typeof import('./src/components/dialogs/UserManageDialog.vue')['default']
   }
 }

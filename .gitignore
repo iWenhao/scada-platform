@@ -25,12 +25,12 @@ build/
 .zcodeignore
 .workbuddy/
 
-# 本地开发/调试
+# 存储后端运行时数据
+server/data/
+
+# 本地开发/调试日志
 .tmp-*
 *.log
 
-# 浏览器自动化缓存
+# 浏览器自动化本地缓存
 .playwright-cli/
-
-# 存储后端运行时数据（含口令哈希/会话/工程，禁止入库）
-server/data/

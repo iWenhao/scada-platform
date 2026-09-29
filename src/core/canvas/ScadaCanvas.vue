@@ -87,11 +87,12 @@
               height: element.height,
               rotation: element.rotation,
               visible: isLayerVisible(element.layerId),
-              // 连线模式下禁用组件拖拽，避免端口拖拽被组件拖动劫持
-              draggable: !isLayerLocked(element.layerId) && uiStore.activeTool !== 'connect',
+              // 连线模式下禁用组件拖拽，避免端口拖拽被组件拖动劫持；元素级锁定同理
+              draggable: !isLayerLocked(element.layerId) && !element.locked && uiStore.activeTool !== 'connect',
               dragBoundFunc: canvasStore.canvasConfig.snapToGrid ? gridSnapFunc : undefined,
             }"
             @click="onElementClick(element, $event)"
+            @contextmenu="onElementContextMenu(element, $event)"
             @mouseenter="setHovered(element.id)"
             @mouseleave="setHovered(null)"
             @dragstart="onDragStart(element, $event)"
@@ -142,9 +143,24 @@
               }"
             />
 
+            <!-- 数值显示图元：绑定变量的格式化值居中大字展示 -->
+            <v-text
+              v-if="isDisplayElement(element)"
+              :config="{
+                text: getDisplayValueText(element),
+                fontSize: 18,
+                fontStyle: 'bold',
+                fill: '#8fe6d3',
+                width: element.width,
+                align: 'center',
+                y: (element.height - getLabelHeight(element)) / 2 - 9,
+                listening: false,
+              }"
+            />
+
             <!-- 实时数值 -->
             <v-text
-              v-if="getElementValueText(element)"
+              v-else-if="getElementValueText(element)"
               :config="{
                 text: getElementValueText(element),
                 fontSize: 9,
@@ -209,6 +225,9 @@
       </v-layer>
     </v-stage>
 
+      <ChartOverlay />
+
+
           <MiniMap
             v-if="uiStore.showMinimap"
             :elements="canvasStore.elements"
@@ -227,6 +246,15 @@
             <span>{{ canvasStore.canvasConfig.width }} x {{ canvasStore.canvasConfig.height }}</span>
             <span>{{ Math.round(canvasStore.zoom * 100) }}%</span>
           </div>
+
+          <!-- 右键菜单 -->
+          <ContextMenu
+            :visible="ctxMenuVisible"
+            :x="ctxMenuX"
+            :y="ctxMenuY"
+            :items="ctxMenuItems"
+            @close="ctxMenuVisible = false"
+          />
         </div>
       </div>
     </div>
@@ -234,9 +262,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { useProjectStore } from '@/stores/projectStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useUiStore } from '@/stores/uiStore'
@@ -249,11 +278,15 @@ import { useConnectionDraw } from '@/core/canvas/useConnectionDraw'
 import { useElementDrag } from '@/core/canvas/useElementDrag'
 import CanvasRuler from '@/components/layout/CanvasRuler.vue'
 import MiniMap from '@/components/layout/MiniMap.vue'
+import ContextMenu from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
+import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
+import { useCanvasContextMenu } from '@/core/canvas/useCanvasContextMenu'
 import type { ComponentInstance } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
 const deviceStore = useDeviceStore()
+const projectStore = useProjectStore()
 const connectionStore = useConnectionStore()
 const layerStore = useLayerStore()
 const uiStore = useUiStore()
@@ -281,15 +314,23 @@ const { gridGroupConfig, canvasBorderConfig, smallGridLines, largeGridLines } = 
 const {
   getElementColor,
   getElementValueText,
+  isDisplayElement,
+  getDisplayValueText,
   getLabelHeight,
   getIconImageConfig,
   isLayerLocked,
   isLayerVisible,
   getElementPorts,
 } = visuals
+
+// ---- 图表 overlay：ECharts 实体渲染在 DOM 层，坐标跟随画布平移缩放 ----
 const { selectionRect, beginRubber, moveRubber, endRubber } = selection
 const { setHovered, beginConnection, trackMove, finishOnMouseUp, drawingLineConfig } = connectionDraw
 const { alignGuides, gridSnapFunc, onDragStart, onDragMove, onDragEnd, onTransformEnd } = drag
+
+// 右键菜单（复制/模板/删除/锁定）
+const { ctxMenuVisible, ctxMenuX, ctxMenuY, ctxMenuItems, onElementContextMenu } =
+  useCanvasContextMenu()
 
 // 变换器配置
 const transformerConfig = {
@@ -354,6 +395,9 @@ function onMouseMove(_e: any) {
 function onMouseUp(_e: any) {
   endPan()
 
+  // 隐藏右键菜单
+  ctxMenuVisible.value = false
+
   const ids = endRubber()
   if (ids !== null) {
     if (ids.length) {
@@ -369,8 +413,9 @@ function onMouseUp(_e: any) {
   finishOnMouseUp()
 }
 
-// 点击元素：Shift+点击切换选中（多选），普通点击单选
+// 点击元素：Shift+点击切换选中（多选），普通点击单选；连线选中清除
 function onElementClick(element: ComponentInstance, e: any) {
+  connectionStore.selectConnection(null)
   if (e.evt?.shiftKey) {
     canvasStore.toggleElement(element.id)
   } else {
@@ -378,8 +423,9 @@ function onElementClick(element: ComponentInstance, e: any) {
   }
 }
 
-// 选择连线
+// 选择连线：清除元素选中
 function selectConnection(id: string) {
+  canvasStore.clearSelection()
   connectionStore.selectConnection(id)
 }
 
@@ -403,6 +449,31 @@ function onDrop(e: DragEvent) {
     return
   }
 
+  // 设备模板：带出属性/绑定/规则；普通组件走注册表默认值
+  if (data.kind === 'template' && data.template) {
+    const tpl = data.template
+    const fromTemplate: ComponentInstance = {
+      id: `el_${Date.now()}`,
+      type: tpl.baseType,
+      templateId: tpl.id,
+      deviceId: deviceStore.suggestDeviceId(tpl.baseType),
+      x: pointerPosition.x - tpl.width / 2,
+      y: pointerPosition.y - tpl.height / 2,
+      width: tpl.width,
+      height: tpl.height,
+      rotation: 0,
+      name: tpl.name,
+      layerId: layerStore.activeLayerId,
+      properties: JSON.parse(JSON.stringify(tpl.properties || {})),
+      statusRules: JSON.parse(JSON.stringify(tpl.statusRules || [])),
+      dataBindings: JSON.parse(JSON.stringify(tpl.dataBindings || [])),
+      locked: tpl.locked,
+    }
+    canvasStore.addElement(fromTemplate)
+    saveState()
+    return
+  }
+
   const newElement: ComponentInstance = {
     id: `el_${Date.now()}`,
     type: data.type,
@@ -423,74 +494,14 @@ function onDrop(e: DragEvent) {
   saveState()
 }
 
-// 初始化
-onMounted(() => {
-  deviceStore.initDataSource({ type: 'mock' })
-})
+// 按工程保存的数据源配置连接；切换或加载工程时自动切到对应数据源
+watch(
+  () => projectStore.dataSourceConfig,
+  (config) => {
+    deviceStore.initDataSource(config)
+  },
+  { immediate: true },
+)
 </script>
 
-<style scoped lang="scss">
-.scada-canvas {
-  width: 100%;
-  height: 100%;
-  background: var(--bg-canvas);
-  position: relative;
-  overflow: hidden;
-}
-
-.canvas-frame {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.ruler-row {
-  height: 20px;
-  display: flex;
-  flex: 0 0 auto;
-
-  .ruler-corner {
-    width: 20px;
-    background: #151a28;
-    border-bottom: 1px solid #2a3244;
-    border-right: 1px solid #2a3244;
-  }
-
-  > .canvas-ruler.horizontal {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-.canvas-row {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-
-  > .canvas-ruler.vertical {
-    flex: 0 0 20px;
-  }
-}
-
-.stage-container {
-  flex: 1;
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.canvas-info {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  display: flex;
-  gap: 12px;
-  padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: 4px;
-  font-size: 11px;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-</style>
+<style src="./scada-canvas.scss" scoped lang="scss"></style>

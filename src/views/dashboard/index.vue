@@ -1,78 +1,111 @@
 <template>
   <div class="dashboard-container">
-    <div class="dashboard-header">
-      <h1>SCADA Platform</h1>
-      <p>工业组态可视化编辑平台</p>
-    </div>
-    
+    <TopNav
+      :display-name="authStore.displayName"
+      :role="authStore.role"
+      :can-manage-users="authStore.canManageUsers"
+      @system="handleSystemCommand"
+      @user="handleUserCommand"
+    />
+
     <div class="dashboard-content">
-      <el-row :gutter="20">
-        <el-col :span="8">
-          <el-card class="dashboard-card" @click="goToEditor">
-            <template #header>
-              <div class="card-header">
-                <el-icon :size="32"><Edit /></el-icon>
-                <span>新建项目</span>
-              </div>
-            </template>
-            <p>创建一个新的组态项目</p>
-          </el-card>
-        </el-col>
-        
-        <el-col :span="8">
-          <el-card class="dashboard-card" @click="openProject">
-            <template #header>
-              <div class="card-header">
-                <el-icon :size="32"><FolderOpened /></el-icon>
-                <span>打开项目</span>
-              </div>
-            </template>
-            <p>从本地加载已有项目</p>
-          </el-card>
-        </el-col>
-        
-        <el-col :span="8">
-          <el-card class="dashboard-card" @click="importProject">
-            <template #header>
-              <div class="card-header">
-                <el-icon :size="32"><Upload /></el-icon>
-                <span>导入项目</span>
-              </div>
-            </template>
-            <p>从JSON文件导入项目</p>
-          </el-card>
-        </el-col>
-      </el-row>
-      
-      <div class="recent-projects" v-if="recentProjects.length > 0">
+      <div class="hero">
+        <div>
+          <h1>欢迎回来，{{ authStore.displayName || '用户' }}</h1>
+          <p class="hero-sub">{{ heroSummary }}</p>
+        </div>
+        <div class="hero-actions">
+          <el-button type="primary" @click="goToEditor">
+            <el-icon><Plus /></el-icon>
+            新建工程
+          </el-button>
+          <el-button @click="importProject">导入</el-button>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">工程项目</div>
+          <div class="stat-value">{{ recentProjects.length }}<span class="stat-unit">个</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">已发布</div>
+          <div class="stat-value accent">
+            {{ publishedCount }}<span class="stat-unit">运行版生效中</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">数据源</div>
+          <div class="stat-value sm">
+            <span class="status-dot" />
+            {{ dataSourceLabel }}
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">未确认报警</div>
+          <div class="stat-value" :class="alarmStore.unackedCount ? 'danger' : ''">
+            {{ alarmStore.unackedCount }}
+            <span v-if="alarmStore.activeCount" class="stat-badge">{{ alarmStore.activeCount }} 条活跃</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head">
         <h2>最近项目</h2>
-        <el-table :data="recentProjects" style="width: 100%">
-          <el-table-column prop="name" label="项目名称（双击可重命名）">
-            <template #default="{ row }">
-              <input
-                v-if="editingName === row.name"
-                v-model="editingValue"
-                v-focus
-                class="rename-input"
-                @keyup.enter="confirmRename(row.name)"
-                @keyup.escape="cancelRename"
-                @blur="confirmRename(row.name)"
-              />
-              <span v-else class="project-name-text" @dblclick="startRename(row.name)">
-                {{ row.name }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="lastModified" label="最后修改" width="200" />
-          <el-table-column label="操作" width="200">
-            <template #default="{ row }">
-              <el-button size="small" @click="loadProject(row.name)">打开</el-button>
-              <el-button size="small" type="danger" @click="deleteProject(row.name)">删除</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
+        <span class="section-sub">按修改时间排序</span>
+      </div>
+
+      <div v-if="recentProjects.length" class="project-grid">
+        <ProjectCard
+          v-for="row in recentProjects"
+          :key="row.name"
+          :project="row"
+          :editing="editingName === row.name"
+          :model-value="editingValue"
+          @update:model-value="editingValue = $event"
+          @open="loadProject(row.name)"
+          @preview="previewProject(row.name)"
+          @publish="publishProject(row.name)"
+          @unpublish="unpublishProject(row.name)"
+          @config="(k) => openProjectConfig(row.name, k)"
+          @more="(c) => handleCardCommand(c, row.name)"
+          @start-rename="startRename(row.name)"
+          @confirm-rename="confirmRename(row.name)"
+          @cancel-rename="cancelRename"
+        />
+        <div class="project-card ghost" @click="goToEditor">
+          <div class="ghost-center">
+            <div class="ghost-plus">＋</div>
+            <div class="ghost-title">新建工程</div>
+            <div class="ghost-sub">从空白开始组态</div>
+            <el-button size="small" type="primary" plain class="demo-btn" @click.stop="importDemo">
+              导入示例 Demo
+            </el-button>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="empty-state">
+        <div class="ghost-plus lg">＋</div>
+        <h3>还没有组态工程</h3>
+        <p>新建空白工程，或导入示例快速体验工艺流程、报警与趋势。</p>
+        <div class="empty-actions">
+          <el-button type="primary" @click="goToEditor">新建工程</el-button>
+          <el-button @click="importDemo">导入示例 Demo</el-button>
+          <el-button @click="importProject">导入 JSON</el-button>
+        </div>
+      </div>
+
+      <div class="footer-hint">
+        <p>提示：发布后的工程才会出现在预览 / 运行端；草稿改动不影响值班画面。</p>
       </div>
     </div>
+
+    <NotifyConfigDialog v-model="showNotifyConfig" />
+    <UserManageDialog v-model="showUserManage" />
+    <DataSourceDialog v-model="showDataSource" />
+    <AlarmConfigDialog v-model="showAlarmConfig" />
+    <TagTableDialog v-model="showTagTable" />
 
     <el-dialog v-model="showOpenDialog" title="打开项目" width="420px">
       <div class="open-project-list">
@@ -94,25 +127,76 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
+import { useAuthStore } from '@/stores/authStore'
+import { useAlarmStore } from '@/stores/alarmStore'
+import { useDeviceStore } from '@/stores/deviceStore'
 import { getStorage } from '@/storage'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import NotifyConfigDialog from '@/components/dialogs/NotifyConfigDialog.vue'
+import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
+import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
+import AlarmConfigDialog from '@/components/dialogs/AlarmConfigDialog.vue'
+import TagTableDialog from '@/components/dialogs/TagTableDialog.vue'
+import TopNav from './TopNav.vue'
+import ProjectCard from './ProjectCard.vue'
+import type { ProjectRow } from './types'
+import demoProjectJson from '../../../examples/demo-project.json?raw'
+import './dashboard.scss'
 
 const router = useRouter()
 const projectStore = useProjectStore()
+const authStore = useAuthStore()
+const alarmStore = useAlarmStore()
+const deviceStore = useDeviceStore()
 
-const recentProjects = ref<Array<{ name: string; lastModified: string }>>([])
+const recentProjects = ref<ProjectRow[]>([])
 const showOpenDialog = ref(false)
+const showNotifyConfig = ref(false)
+const showUserManage = ref(false)
+const showDataSource = ref(false)
+const showAlarmConfig = ref(false)
+const showTagTable = ref(false)
 
-// 双击重命名：正在编辑的项目名与输入值
 const editingName = ref<string | null>(null)
 const editingValue = ref('')
 
-// v-focus 局部指令：输入框出现时自动聚焦
-const vFocus = {
-  mounted: (el: HTMLInputElement) => el.focus(),
+const publishedCount = computed(() => recentProjects.value.filter(p => p.publishedAt).length)
+
+const dataSourceLabel = computed(() => {
+  const s = deviceStore.connectionStatus
+  if (s === 'connected') return '已连接'
+  if (s === 'error') return '连接错误'
+  return '未连接'
+})
+
+const heroSummary = computed(() => {
+  const alarms = alarmStore.unackedCount
+  const pub = publishedCount.value
+  const parts: string[] = []
+  parts.push(alarms ? `今天有 ${alarms} 条未确认报警` : '暂无未确认报警')
+  if (pub) parts.push(`${pub} 个工程已发布`)
+  return parts.join(' · ')
+})
+
+function handleSystemCommand(cmd: string) {
+  if (cmd === 'notify') showNotifyConfig.value = true
+  else if (cmd === 'users') showUserManage.value = true
+}
+
+async function handleUserCommand(cmd: string) {
+  if (cmd === 'users') showUserManage.value = true
+  else if (cmd === 'logout') {
+    await authStore.logout()
+    window.location.href = '/login'
+  }
+}
+
+function handleCardCommand(cmd: string, name: string) {
+  if (cmd === 'rename') startRename(name)
+  else if (cmd === 'delete') void deleteProject(name)
 }
 
 function startRename(name: string) {
@@ -125,7 +209,6 @@ async function confirmRename(oldName: string) {
   const newName = editingValue.value.trim()
   editingName.value = null
   if (!newName || newName === oldName) return
-
   if (await projectStore.renameSavedProject(oldName, newName)) {
     ElMessage.success('已重命名')
   } else {
@@ -138,26 +221,77 @@ function cancelRename() {
   editingName.value = null
 }
 
+async function openProjectConfig(name: string, kind: string) {
+  if (!(await projectStore.loadProject(name))) {
+    ElMessage.error('项目加载失败')
+    return
+  }
+  if (kind === 'datasource') showDataSource.value = true
+  else if (kind === 'alarm') showAlarmConfig.value = true
+  else if (kind === 'tags') showTagTable.value = true
+}
+
 onMounted(() => {
   void loadRecentProjects()
 })
 
 async function loadRecentProjects() {
   const names = await projectStore.getSavedProjects()
-  recentProjects.value = await Promise.all(
+  const rows = await Promise.all(
     names.map(async name => {
       try {
         const raw = await getStorage().get(`scada_project_${name}`)
         const data = raw ? JSON.parse(raw) : null
+        const publishedAt = await projectStore.getPublishedAt(name)
+        const pageCount = Array.isArray(data?.pages) ? data.pages.length : 1
         return {
           name,
           lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
+          publishedAt,
+          pageCount,
+          timestamp: data?.timestamp || 0,
         }
       } catch {
-        return { name, lastModified: '未知' }
+        return { name, lastModified: '未知', publishedAt: null, pageCount: 1, timestamp: 0 }
       }
     }),
   )
+  rows.sort((a, b) => b.timestamp - a.timestamp)
+  recentProjects.value = rows
+}
+
+async function publishProject(name: string) {
+  try {
+    await ElMessageBox.confirm(
+      `将「${name}」当前内容发布为运行版？预览将显示发布版。`,
+      '发布工程',
+      { type: 'warning', confirmButtonText: '发布', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  if (!(await projectStore.loadProject(name))) {
+    ElMessage.error('项目加载失败')
+    return
+  }
+  await projectStore.publishProject()
+  ElMessage.success('已发布')
+  await loadRecentProjects()
+}
+
+async function unpublishProject(name: string) {
+  try {
+    await ElMessageBox.confirm(`取消发布「${name}」？预览将回落到草稿。`, '取消发布', {
+      type: 'warning',
+      confirmButtonText: '取消发布',
+      cancelButtonText: '返回',
+    })
+  } catch {
+    return
+  }
+  await projectStore.unpublishProject(name)
+  ElMessage.success('已取消发布')
+  await loadRecentProjects()
 }
 
 function goToEditor() {
@@ -165,13 +299,8 @@ function goToEditor() {
   router.push('/editor')
 }
 
-async function openProject() {
-  await loadRecentProjects()
-  if (recentProjects.value.length === 0) {
-    ElMessage.info('暂无已保存的项目，请先新建或导入')
-    return
-  }
-  showOpenDialog.value = true
+function previewProject(name: string) {
+  router.push({ path: '/preview', query: { project: name } })
 }
 
 function importProject() {
@@ -180,21 +309,33 @@ function importProject() {
   input.accept = '.json'
   input.onchange = (e) => {
     const file = (e.target as HTMLInputElement).files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const json = e.target?.result as string
-        if (projectStore.importProject(json)) {
-          ElMessage.success('项目导入成功')
-          router.push('/editor')
-        } else {
-          ElMessage.error('项目导入失败')
-        }
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const json = ev.target?.result as string
+      if (projectStore.importProject(json)) {
+        ElMessage.success('项目导入成功')
+        router.push('/editor')
+      } else {
+        ElMessage.error('项目导入失败')
       }
-      reader.readAsText(file)
     }
+    reader.readAsText(file)
   }
   input.click()
+}
+
+function importDemo() {
+  try {
+    if (projectStore.importProject(demoProjectJson)) {
+      ElMessage.success('示例工程已导入')
+      router.push('/editor')
+    } else {
+      ElMessage.error('示例导入失败')
+    }
+  } catch {
+    ElMessage.error('示例导入失败')
+  }
 }
 
 async function loadProject(name: string) {
@@ -207,155 +348,14 @@ async function loadProject(name: string) {
 
 async function deleteProject(name: string) {
   try {
-    await ElMessageBox.confirm(`确定要删除项目"${name}"吗？`, '确认', {
+    await ElMessageBox.confirm(`确定要删除项目「${name}」吗？发布快照也会一并删除。`, '确认', {
       type: 'warning',
     })
-    await projectStore.deleteProject(name)
-    loadRecentProjects()
-    ElMessage.success('项目已删除')
   } catch {
-    // 取消操作
+    return
   }
+  await projectStore.deleteProject(name)
+  await loadRecentProjects()
+  ElMessage.success('项目已删除')
 }
 </script>
-
-<style scoped lang="scss">
-.dashboard-container {
-  min-height: 100vh;
-  background: var(--bg-primary);
-  padding: 40px;
-}
-
-.dashboard-header {
-  text-align: center;
-  margin-bottom: 60px;
-  
-  h1 {
-    font-size: 36px;
-    color: var(--accent-primary);
-    margin-bottom: 8px;
-  }
-  
-  p {
-    font-size: 16px;
-    color: var(--text-secondary);
-  }
-}
-
-.dashboard-content {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.dashboard-card {
-  cursor: pointer;
-  transition: all 0.3s;
-  background: var(--bg-secondary);
-  border-color: var(--border-primary);
-  
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--accent-primary);
-  }
-  
-  .card-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--text-primary);
-    
-    span {
-      font-size: 18px;
-      font-weight: 500;
-    }
-  }
-  
-  p {
-    color: var(--text-secondary);
-    font-size: 14px;
-  }
-}
-
-.recent-projects {
-  margin-top: 60px;
-  
-  h2 {
-    font-size: 20px;
-    color: var(--text-primary);
-    margin-bottom: 20px;
-  }
-}
-
-.open-project-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.rename-input {
-  width: 100%;
-  padding: 4px 8px;
-  font-size: 14px;
-  color: var(--text-primary);
-  background: var(--bg-primary);
-  border: 1px solid var(--accent-primary);
-  border-radius: 4px;
-  outline: none;
-}
-
-.project-name-text {
-  cursor: text;
-}
-
-.open-project-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--border-primary);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: var(--accent-primary);
-    background: var(--bg-tertiary);
-  }
-
-  .open-project-info {
-    .open-project-name {
-      font-size: 14px;
-      color: var(--text-primary);
-    }
-
-    .open-project-time {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-  }
-}
-
-:deep(.el-card__header) {
-  background: var(--bg-tertiary);
-  border-bottom-color: var(--border-primary);
-}
-
-:deep(.el-table) {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  
-  th.el-table__cell {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-bottom-color: var(--border-primary);
-  }
-  
-  td.el-table__cell {
-    border-bottom-color: var(--border-primary);
-  }
-}
-</style>

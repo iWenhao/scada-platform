@@ -1,4 +1,5 @@
 import type { StatusRule, Condition } from '@/types/scada'
+import { evaluateExpression } from './expression'
 
 export class StatusEngine {
   /**
@@ -62,8 +63,9 @@ export class StatusEngine {
         return condition.conditions.some(c => this.evaluateCondition(c, data))
       
       case 'expression':
-        return this.evaluateExpression(condition.expr, data)
-      
+        // 求值器内部已处理错误（告警并返回 false），规则配置错误不会影响画面运行
+        return evaluateExpression(condition.expr, data)
+
       default:
         return false
     }
@@ -81,25 +83,6 @@ export class StatusEngine {
       case '<=': return a <= b
       case '!=': return a !== b
       default:   return false
-    }
-  }
-
-  /**
-   * 表达式求值（支持 AND/OR/比较）
-   */
-  private evaluateExpression(expr: string, data: Record<string, any>): boolean {
-    try {
-      let processed = expr
-      // 替换变量名为值
-      for (const [key, value] of Object.entries(data)) {
-        processed = processed.replace(new RegExp(`\\b${key}\\b`, 'g'), String(Number(value) || 0))
-      }
-      // 替换逻辑运算符
-      processed = processed.replace(/\bAND\b/g, '&&').replace(/\bOR\b/g, '||')
-      // 安全求值
-      return Function(`"use strict"; return (${processed})`)()
-    } catch {
-      return false
     }
   }
 }

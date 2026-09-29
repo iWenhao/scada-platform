@@ -1,203 +1,134 @@
 <template>
   <div class="preview-container">
-    <div class="preview-header">
-      <div class="header-left">
-        <el-button @click="backToEditor">
-          <el-icon><Back /></el-icon>
-          返回编辑器
-        </el-button>
-        <span class="project-name">{{ projectStore.projectName }} - 预览模式</span>
-      </div>
-      
-      <div class="header-right">
-        <el-tag :type="connectionStatusType">
-          {{ connectionStatusText }}
-        </el-tag>
-        <span class="last-update">
-          最后更新: {{ lastUpdateTime }}
-        </span>
-      </div>
-    </div>
-    
-    <div class="preview-canvas">
-      <v-stage :config="stageConfig">
-        <!-- 连线图层 -->
-        <v-layer>
-          <ConnectionLine
-            v-for="conn in connectionStore.connections"
-            :key="conn.id"
-            :connection="conn"
-          />
-        </v-layer>
+    <PreviewHeader
+      :project-name="projectStore.projectName"
+      :pages="pageStore.pages"
+      :active-page-id="pageStore.activePageId"
+      :write-locked="uiStore.writeLocked"
+      :unacked-count="alarmStore.unackedCount"
+      :active-alarm-count="alarmStore.activeCount"
+      :connection-status="deviceStore.connectionStatus"
+      :last-update-time="lastUpdateTime"
+      :can-go-back="navStack.canBack"
+      @back="backToEditor"
+      @nav-back="goBackPage"
+      @switch-page="switchPage"
+      @toggle-write-lock="toggleWriteLock"
+      @open-audit="showAuditLog = true"
+    />
 
-        <v-layer>
-          <template v-for="element in canvasStore.elements" :key="element.id">
-            <v-group
-              :config="{
-                x: element.x,
-                y: element.y,
-                width: element.width,
-                height: element.height,
-                rotation: element.rotation,
-                visible: isLayerVisible(element.layerId),
-              }"
-            >
-              <v-rect
-                :config="{
-                  width: element.width,
-                  height: element.height,
-                  fill: getElementColor(element),
-                  stroke: '#444',
-                  strokeWidth: 1,
-                  cornerRadius: 4,
-                }"
-              />
-              <v-image
-                v-if="getIconImageConfig(element)"
-                :config="getIconImageConfig(element)"
-              />
-              <v-rect
-                :config="{
-                  y: element.height - getLabelHeight(element),
-                  width: element.width,
-                  height: getLabelHeight(element),
-                  fill: 'rgba(10,14,26,0.55)',
-                  cornerRadius: [0, 0, 4, 4],
-                }"
-              />
-              <v-text
-                :config="{
-                  text: element.name,
-                  fontSize: 11,
-                  fill: '#e0e0e0',
-                  width: element.width,
-                  align: 'center',
-                  y: element.height - getLabelHeight(element) + 2,
-                }"
-              />
-              <v-text
-                v-if="getElementValueText(element)"
-                :config="{
-                  text: getElementValueText(element),
-                  fontSize: 9,
-                  fill: '#8fe6d3',
-                  width: element.width,
-                  align: 'center',
-                  y: element.height - 11,
-                }"
-              />
-            </v-group>
-          </template>
-        </v-layer>
-      </v-stage>
-    </div>
+    <PreviewStage @element-click="handleElementClick" />
+
+    <TrendChartDialog
+      v-model="showTrendDialog"
+      :device-id="trendDeviceId"
+      :variable="trendVariable"
+    />
+    <AuditLogDialog v-model="showAuditLog" />
+
+    <!-- 写值输入：按点表类型切换数值/开关/文本 -->
+    <WriteValueDialog />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useCanvasStore } from '@/stores/canvasStore'
-import { useConnectionStore } from '@/stores/connectionStore'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
-import { useLayerStore } from '@/stores/layerStore'
-import { statusEngine } from '@/status/StatusEngine'
-import { getIconImage } from '@/core/canvas/iconImage'
-import { getComponentDefinition } from '@/industrial/registry'
-import ConnectionLine from '@/core/connection/ConnectionLine.vue'
+import { useAlarmStore } from '@/stores/alarmStore'
+import { useUiStore } from '@/stores/uiStore'
+import { usePageStore } from '@/stores/pageStore'
+import { useHistory } from '@/core/canvas/useHistory'
+import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
+import AuditLogDialog from '@/components/dialogs/AuditLogDialog.vue'
+import WriteValueDialog from './WriteValueDialog.vue'
+import PreviewHeader from './PreviewHeader.vue'
+import PreviewStage from './PreviewStage.vue'
+import { useWriteValue } from './useWriteValue'
+import { NAV_BACK, PageNavStack } from '@/core/canvas/pageNav'
 import type { ComponentInstance } from '@/types/scada'
 
 const router = useRouter()
-const canvasStore = useCanvasStore()
-const connectionStore = useConnectionStore()
+const route = useRoute()
 const deviceStore = useDeviceStore()
 const projectStore = useProjectStore()
-const layerStore = useLayerStore()
+const alarmStore = useAlarmStore()
+const uiStore = useUiStore()
+const pageStore = usePageStore()
+const { clearHistory } = useHistory()
+const { promptWriteValue } = useWriteValue()
 
-const stageConfig = computed(() => ({
-  width: window.innerWidth,
-  height: window.innerHeight - 60,
-  scaleX: canvasStore.zoom,
-  scaleY: canvasStore.zoom,
-  x: canvasStore.offset.x,
-  y: canvasStore.offset.y,
-}))
+/** 画面导航栈：元素跳转 / 上一画面按钮共用 */
+const navStack = new PageNavStack()
 
-const connectionStatusType = computed(() => {
-  switch (deviceStore.connectionStatus) {
-    case 'connected': return 'success'
-    case 'error': return 'danger'
-    default: return 'info'
-  }
-})
-
-const connectionStatusText = computed(() => {
-  switch (deviceStore.connectionStatus) {
-    case 'connected': return '已连接'
-    case 'error': return '连接错误'
-    default: return '未连接'
-  }
-})
-
+const showAuditLog = ref(false)
+const showTrendDialog = ref(false)
+const trendDeviceId = ref('')
+const trendVariable = ref('')
 const lastUpdateTime = ref('')
 
-function getElementColor(element: ComponentInstance): string {
-  const data = deviceStore.getDeviceData(element.deviceId || element.id)
-  const status = statusEngine.evaluate(element.statusRules, data)
-  return status?.color || '#2a2a2a'
-}
-
-// 元素上展示的实时数值（取第一个数据绑定变量）
-function getElementValueText(element: ComponentInstance): string {
-  const binding = element.dataBindings?.[0]
-  if (!binding) return ''
-
-  const data = deviceStore.getDeviceData(element.deviceId || element.id)
-  const value = data[binding.variable]
-  if (value === undefined) return ''
-
-  const formatted = typeof value === 'number' ? Math.round(value * 10) / 10 : value
-  return `${binding.variable}: ${formatted}`
-}
-
-// 底部标签条高度（有实时数值时更高）
-function getLabelHeight(element: ComponentInstance): number {
-  return getElementValueText(element) ? 26 : 16
-}
-
-// 图标加载完成后递增以触发画布重绘
-const iconVersion = ref(0)
-
-// 组件图形（SVG 图标按比例适配到元素内部）
-function getIconImageConfig(element: ComponentInstance) {
-  const def = getComponentDefinition(element.type)
-  if (!def?.icon) return null
-
-  const img = getIconImage(element.type, def.icon, '#e8f0ef', () => {
-    iconVersion.value++
-  })
-  if (!img) return null
-
-  const labelH = getLabelHeight(element)
-  const boxW = Math.max(element.width - 12, 4)
-  const boxH = Math.max(element.height - labelH - 10, 4)
-  const scale = Math.min(boxW / 100, boxH / 100)
-  const iconW = 100 * scale
-  const iconH = 100 * scale
-
-  return {
-    image: img,
-    x: (element.width - iconW) / 2,
-    y: 4 + (boxH - iconH) / 2,
-    width: iconW,
-    height: iconH,
+/** 切到目标页；isBack=true 表示返回（不压栈） */
+function switchPage(id: string, isBack = false) {
+  if (id === pageStore.activePageId) return
+  const from = pageStore.activePageId
+  if (!pageStore.switchPage(id)) {
+    ElMessage.warning('画面不存在')
+    return
   }
+  if (!isBack) navStack.push(from)
+  clearHistory()
 }
 
-// 检查图层是否可见
-function isLayerVisible(layerId: string): boolean {
-  return layerStore.getLayer(layerId)?.visible ?? true
+function goBackPage() {
+  const prev = navStack.pop()
+  if (!prev) return
+  if (prev === pageStore.activePageId) return
+  pageStore.switchPage(prev)
+  clearHistory()
+}
+
+function toggleWriteLock() {
+  uiStore.toggleWriteLock()
+  ElMessage({
+    type: uiStore.writeLocked ? 'warning' : 'success',
+    message: uiStore.writeLocked ? '写值已锁定，所有下发请求将被拒绝' : '写值已解锁，可以下发设定值',
+  })
+}
+
+function handleElementClick(element: ComponentInstance) {
+  // 导航：返回上一画面 / 跳转指定画面
+  if (element.navigateTo) {
+    if (element.navigateTo === NAV_BACK) {
+      if (!navStack.canBack) {
+        ElMessage.info('没有可返回的上一画面')
+        return
+      }
+      goBackPage()
+      return
+    }
+    if (!pageStore.pages.some(p => p.id === element.navigateTo)) {
+      ElMessage.warning(`跳转目标画面不存在（${element.navigateTo}）`)
+      return
+    }
+    switchPage(element.navigateTo!)
+    return
+  }
+
+  if (element.type === 'setpoint') {
+    promptWriteValue(element)
+    return
+  }
+
+  const variable = element.dataBindings?.[0]?.variable
+  if (!variable) {
+    ElMessage.info('该元素没有绑定数据变量，无法查看趋势')
+    return
+  }
+  trendDeviceId.value = element.deviceId || element.id
+  trendVariable.value = variable
+  showTrendDialog.value = true
 }
 
 function backToEditor() {
@@ -206,23 +137,40 @@ function backToEditor() {
 
 function updateLastUpdateTime() {
   if (deviceStore.lastUpdateTime) {
-    const date = new Date(deviceStore.lastUpdateTime)
-    lastUpdateTime.value = date.toLocaleTimeString()
+    lastUpdateTime.value = new Date(deviceStore.lastUpdateTime).toLocaleTimeString()
   }
 }
 
 let updateInterval: number | null = null
 
 onMounted(async () => {
-  // 加载项目数据
-  await projectStore.loadProject(projectStore.projectName)
+  // 支持 /preview?project=xxx 直接打开指定工程
+  // 默认加载发布版（无发布版回落草稿）；?source=draft 可预览工作副本
+  const target = (route.query.project as string) || projectStore.projectName
+  const useDraft = route.query.source === 'draft'
+  const ok = useDraft
+    ? await projectStore.loadProject(target)
+    : await projectStore.loadPublishedProject(target)
+  if (!ok) {
+    ElMessage.error(`未能加载工程「${target}」，请从编辑器重新进入预览`)
+    return
+  }
 
-  // 初始化数据源
-  deviceStore.initDataSource({ type: 'mock' })
+  const startPage = route.query.page as string | undefined
+  if (startPage && startPage !== pageStore.activePageId) {
+    switchPage(startPage)
+  }
 
-  // 定时更新显示
+  deviceStore.initDataSource(projectStore.dataSourceConfig)
   updateInterval = window.setInterval(updateLastUpdateTime, 1000)
 })
+
+watch(
+  () => projectStore.dataSourceConfig,
+  (config) => {
+    deviceStore.initDataSource(config)
+  },
+)
 
 onUnmounted(() => {
   deviceStore.disconnect()
@@ -239,71 +187,5 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-}
-
-.preview-header {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  
-  .project-name {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  
-  .last-update {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-}
-
-.preview-canvas {
-  flex: 1;
-  overflow: hidden;
-  background: var(--bg-canvas);
-  
-  // 网格背景
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-      linear-gradient(var(--grid-color) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-    background-size: 20px 20px;
-    opacity: 0.5;
-    pointer-events: none;
-  }
-}
-
-:deep(.el-button) {
-  background: var(--bg-primary);
-  border-color: var(--border-primary);
-  color: var(--text-primary);
-  
-  &:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--border-active);
-  }
 }
 </style>

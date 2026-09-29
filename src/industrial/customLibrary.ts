@@ -1,5 +1,5 @@
 import { getStorage } from '@/storage'
-import { registerComponent, getAllComponents } from './registry'
+import { registerComponent, unregisterComponent, getAllComponents } from './registry'
 import type { ComponentDefinition } from '@/types/scada'
 
 const STORAGE_KEY = 'scada_custom_components'
@@ -38,4 +38,19 @@ export async function addCustomComponent(def: ComponentDefinition): Promise<void
 /** 当前全部自定义组件（来自注册表） */
 export function getCustomComponents(): ComponentDefinition[] {
   return getAllComponents().filter(c => c.group === 'custom')
+}
+
+/** 更新一个自定义组件（同 type 覆盖） */
+export async function updateCustomComponent(def: ComponentDefinition): Promise<void> {
+  registerComponent(def)
+  const list = (await getCustomComponents()).filter(c => c.type !== def.type)
+  list.push(def)
+  await getStorage().set(STORAGE_KEY, JSON.stringify(list))
+}
+
+/** 删除一个自定义组件（画布上已放置的实例会退化为默认样式） */
+export async function removeCustomComponent(type: string): Promise<void> {
+  unregisterComponent(type)
+  const list = (await getCustomComponents()).filter(c => c.type !== type)
+  await getStorage().set(STORAGE_KEY, JSON.stringify(list))
 }

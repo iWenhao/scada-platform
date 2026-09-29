@@ -49,6 +49,19 @@
           <el-form-item label="状态颜色">
             <el-color-picker v-model="selectedRule.color" />
           </el-form-item>
+
+          <el-form-item label="报警级别">
+            <el-select
+              v-model="selectedRule.severity"
+              clearable
+              placeholder="按颜色自动判定"
+            >
+              <el-option label="正常" value="normal" />
+              <el-option label="预警" value="warning" />
+              <el-option label="报警" value="critical" />
+            </el-select>
+            <span class="hint">只有预警与报警会计入报警面板</span>
+          </el-form-item>
           
           <el-form-item label="优先级">
             <el-input-number
@@ -169,6 +182,8 @@ function addRule() {
     id: `rule_${Date.now()}`,
     name: '新状态',
     color: '#00d4aa',
+    // 新建规则默认不算报警，避免用户随手加规则就刷满报警面板
+    severity: 'normal',
     condition: {
       type: 'compare',
       variable: 'speed',

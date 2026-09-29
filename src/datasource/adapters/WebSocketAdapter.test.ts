@@ -4,8 +4,14 @@ import { WebSocketAdapter } from './WebSocketAdapter'
 /** 测试用 WebSocket 桩，记录实例并允许手动触发事件 */
 class MockWebSocket {
   static instances: MockWebSocket[] = []
+  static OPEN = 1
+  static CONNECTING = 0
+  static CLOSING = 2
+  static CLOSED = 3
 
   url: string
+  readyState = MockWebSocket.CONNECTING
+  sent: string[] = []
   onopen: (() => void) | null = null
   onmessage: ((event: { data: string }) => void) | null = null
   onerror: (() => void) | null = null
@@ -16,7 +22,18 @@ class MockWebSocket {
     MockWebSocket.instances.push(this)
   }
 
+  /** 模拟连接建立 */
+  simulateOpen() {
+    this.readyState = MockWebSocket.OPEN
+    this.onopen?.()
+  }
+
+  send(data: string) {
+    this.sent.push(data)
+  }
+
   close() {
+    this.readyState = MockWebSocket.CLOSED
     // 与真实 WebSocket 一致：close() 会触发 onclose 回调
     this.onclose?.()
   }
@@ -139,5 +156,23 @@ describe('WebSocketAdapter', () => {
     expect(adapter.getStatus()).toBe('error')
     expect(errorCallback).toHaveBeenCalled()
     expect(MockWebSocket.instances).toHaveLength(0)
+  })
+
+  it('连接就绪时写值应该发送 write 命令帧', async () => {
+    await adapter.connect({ type: 'websocket', name: 'test', url: 'ws://x' })
+    lastSocket().simulateOpen()
+
+    await adapter.write({ deviceId: 'motor_1', variable: 'speed', value: 1200 })
+
+    expect(lastSocket().sent).toEqual([
+      JSON.stringify({ type: 'write', deviceId: 'motor_1', variable: 'speed', value: 1200 }),
+    ])
+  })
+
+  it('未连接时写值应该抛错', async () => {
+    await adapter.connect({ type: 'websocket', name: 'test', url: 'ws://x' })
+
+    await expect(adapter.write({ deviceId: 'motor_1', variable: 'speed', value: 1 }))
+      .rejects.toThrow('WebSocket 未连接')
   })
 })

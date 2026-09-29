@@ -26,10 +26,23 @@ export function useElementVisuals(options: {
     return status?.color || '#2a2a2a'
   }
 
+  /**
+   * 绑定点位的数据是否可信。
+   * 陈旧（超时未刷新/链路中断）与脏值都按不可信处理：画面宁可显示 `--`，
+   * 也不能把过期数值摆上去让操作员照着下判断。
+   */
+  function isBoundDataUsable(element: ComponentInstance): boolean {
+    const binding = element.dataBindings?.[0]
+    if (!binding) return false
+    return deviceStore.isDataUsable(element.deviceId || element.id, binding.variable)
+  }
+
   // 元素上展示的实时数值（取第一个数据绑定变量）
   function getElementValueText(element: ComponentInstance): string {
     const binding = element.dataBindings?.[0]
     if (!binding) return ''
+
+    if (!isBoundDataUsable(element)) return `${binding.variable}: --`
 
     const data = deviceStore.getDeviceData(element.deviceId || element.id)
     const value = data[binding.variable]
@@ -39,8 +52,41 @@ export function useElementVisuals(options: {
     return `${binding.variable}: ${formatted}`
   }
 
-  // 底部标签条高度（有实时数值时更高）
+  // 数值显示图元：只读展示绑定变量的格式化值（居中大字，与普通元素的底部小字区分）
+  function isDisplayElement(element: ComponentInstance): boolean {
+    return element.type === 'display'
+  }
+
+  function getDisplayValueText(element: ComponentInstance): string {
+    const binding = element.dataBindings?.[0]
+    if (!binding) return '--'
+
+    // 数据陈旧时同样显示 --：过期的"当前值"比没有值更危险
+    if (!isBoundDataUsable(element)) return '--'
+
+    const data = deviceStore.getDeviceData(element.deviceId || element.id)
+    const value = data[binding.variable]
+    if (value === undefined) return '--'
+
+    const num = Number(value)
+    if (Number.isNaN(num)) return String(value)
+
+    // 工程量换算：显示值 = 原始值 × 倍率 + 偏移。
+    // 典型场景：原始值 1100(mm) × 0.001 → 显示 1.1，单位跟"千米"；
+    // 倍率缺省按 1 处理（旧画面没有该字段时行为不变）
+    const factor = Number(element.properties?.factor)
+    const offset = Number(element.properties?.offset)
+    const scaled = num * (Number.isFinite(factor) ? factor : 1) + (Number.isFinite(offset) ? offset : 0)
+
+    const decimals = Math.min(Math.max(Number(element.properties?.decimals ?? 1) || 0, 0), 3)
+    const text = scaled.toFixed(decimals)
+    const unit = element.properties?.unit
+    return unit ? `${text} ${unit}` : text
+  }
+
+  // 底部标签条高度（有实时数值时更高；数值显示图元的值在中央，标签条只放名称）
   function getLabelHeight(element: ComponentInstance): number {
+    if (isDisplayElement(element)) return 16
     return getElementValueText(element) ? 26 : 16
   }
 
@@ -99,6 +145,8 @@ export function useElementVisuals(options: {
   return {
     getElementColor,
     getElementValueText,
+    isDisplayElement,
+    getDisplayValueText,
     getLabelHeight,
     getIconImageConfig,
     isLayerLocked,

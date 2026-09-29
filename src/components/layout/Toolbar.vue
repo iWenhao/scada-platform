@@ -13,7 +13,7 @@
         未保存
       </el-tag>
     </div>
-    
+
     <!-- 中间工具栏 -->
     <div class="toolbar-center">
       <el-button-group>
@@ -22,16 +22,16 @@
             :type="uiStore.activeTool === 'select' ? 'primary' : 'default'"
             @click="uiStore.setActiveTool('select')"
           >
-            <el-icon><Pointer /></el-icon>
+            <ToolIcon name="select" />
           </el-button>
         </el-tooltip>
-        
+
         <el-tooltip content="连线 (L)" placement="bottom">
           <el-button
             :type="uiStore.activeTool === 'connect' ? 'primary' : 'default'"
             @click="uiStore.setActiveTool('connect')"
           >
-            <el-icon><Connection /></el-icon>
+            <ToolIcon name="connect" />
           </el-button>
         </el-tooltip>
 
@@ -40,7 +40,7 @@
             :type="uiStore.activeTool === 'hand' ? 'primary' : 'default'"
             @click="uiStore.setActiveTool('hand')"
           >
-            <el-icon><Rank /></el-icon>
+            <ToolIcon name="hand" />
           </el-button>
         </el-tooltip>
 
@@ -49,7 +49,7 @@
             :type="uiStore.showRuler ? 'primary' : 'default'"
             @click="uiStore.toggleRuler()"
           >
-            <el-icon><Grid /></el-icon>
+            <ToolIcon name="ruler" />
           </el-button>
         </el-tooltip>
 
@@ -58,23 +58,23 @@
             :type="uiStore.showMinimap ? 'primary' : 'default'"
             @click="uiStore.toggleMinimap()"
           >
-            <el-icon><MapLocation /></el-icon>
+            <ToolIcon name="minimap" />
           </el-button>
         </el-tooltip>
       </el-button-group>
-      
+
       <el-divider direction="vertical" />
-      
+
       <el-button-group>
         <el-tooltip content="撤销 (Ctrl+Z)" placement="bottom">
-          <el-button @click="handleUndo" :disabled="!canUndo">
-            <el-icon><Back /></el-icon>
+          <el-button :disabled="!canUndo" @click="undo()">
+            <ToolIcon name="undo" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="重做 (Ctrl+Y)" placement="bottom">
-          <el-button @click="handleRedo" :disabled="!canRedo">
-            <el-icon><Right /></el-icon>
+          <el-button :disabled="!canRedo" @click="redo()">
+            <ToolIcon name="redo" />
           </el-button>
         </el-tooltip>
 
@@ -83,231 +83,204 @@
             :disabled="!canvasStore.selectedIds.length"
             @click="handleCopy"
           >
-            <el-icon><CopyDocument /></el-icon>
+            <ToolIcon name="copy" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="粘贴 (Ctrl+V)" placement="bottom">
           <el-button
-            :disabled="!clipboard.length"
+            :disabled="!canvasStore.clipboard.length"
             @click="handlePaste"
           >
-            <el-icon><DocumentAdd /></el-icon>
+            <ToolIcon name="paste" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="删除选中 (Delete)" placement="bottom">
           <el-button
+            class="btn-delete"
             :disabled="!canvasStore.selectedIds.length && !connectionStore.selectedConnectionId"
             @click="handleDelete"
           >
-            <el-icon><Delete /></el-icon>
+            <ToolIcon name="delete" />
           </el-button>
         </el-tooltip>
       </el-button-group>
-      
+
       <el-divider direction="vertical" />
-      
+
       <el-button-group>
         <el-tooltip content="放大" placement="bottom">
           <el-button @click="handleZoomIn">
-            <el-icon><ZoomIn /></el-icon>
+            <ToolIcon name="zoom-in" />
           </el-button>
         </el-tooltip>
-        
+
         <el-tooltip content="缩小" placement="bottom">
           <el-button @click="handleZoomOut">
-            <el-icon><ZoomOut /></el-icon>
+            <ToolIcon name="zoom-out" />
           </el-button>
         </el-tooltip>
-        
+
         <el-tooltip content="适应画布" placement="bottom">
           <el-button @click="handleZoomFit">
-            <el-icon><FullScreen /></el-icon>
+            <ToolIcon name="fit" />
           </el-button>
         </el-tooltip>
       </el-button-group>
-      
+
       <span class="zoom-level">{{ Math.round(canvasStore.zoom * 100) }}%</span>
     </div>
-    
-    <!-- 右侧操作 -->
+
+    <!-- 右侧：画布/文件/预览 + 账号（系统与项目配置在首页） -->
     <div class="toolbar-right">
       <el-button-group>
         <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
           <el-button @click="uiStore.toggleTheme()">
-            <el-icon>
-              <Moon v-if="uiStore.theme === 'dark'" />
-              <Sunny v-else />
-            </el-icon>
+            <ToolIcon :name="uiStore.theme === 'dark' ? 'theme-dark' : 'theme-light'" />
           </el-button>
         </el-tooltip>
 
         <el-tooltip content="画布配置" placement="bottom">
           <el-button @click="showCanvasConfig = true">
-            <el-icon><Setting /></el-icon>
-          </el-button>
-        </el-tooltip>
-        
-        <el-tooltip content="数据源配置" placement="bottom">
-          <el-button @click="showDataSource = true">
-            <el-icon><DataLine /></el-icon>
+            <ToolIcon name="canvas" />
           </el-button>
         </el-tooltip>
       </el-button-group>
-      
+
       <el-divider direction="vertical" />
-      
+
+      <el-divider direction="vertical" />
+
       <el-button-group>
         <el-tooltip content="保存 (Ctrl+S)" placement="bottom">
           <el-button @click="handleSave">
-            <el-icon><FolderChecked /></el-icon>
+            <ToolIcon name="save" />
           </el-button>
         </el-tooltip>
-        
+
         <el-tooltip content="导出JSON" placement="bottom">
           <el-button @click="handleExport">
-            <el-icon><Download /></el-icon>
+            <ToolIcon name="download" />
           </el-button>
         </el-tooltip>
-        
+
+        <el-tooltip content="导出图片(PNG)" placement="bottom">
+          <el-button @click="handleExportImage">
+            <ToolIcon name="image" />
+          </el-button>
+        </el-tooltip>
+
         <el-tooltip content="导入JSON" placement="bottom">
           <el-button @click="handleImport">
-            <el-icon><Upload /></el-icon>
+            <ToolIcon name="upload" />
           </el-button>
         </el-tooltip>
       </el-button-group>
-      
+
       <el-divider direction="vertical" />
-      
-      <el-tooltip content="预览模式" placement="bottom">
+
+      <el-tooltip content="发布：把当前工程快照为运行版" placement="bottom">
+        <el-button @click="handlePublish">
+          <ToolIcon name="publish" />
+          发布
+        </el-button>
+      </el-tooltip>
+
+      <el-tooltip content="预览模式（默认显示发布版）" placement="bottom">
         <el-button type="success" @click="handlePreview">
-          <el-icon><VideoPlay /></el-icon>
+          <ToolIcon name="play" />
           预览
         </el-button>
       </el-tooltip>
+
+      <el-dropdown @command="handleUserCommand">
+        <span class="user-chip">
+          <ToolIcon name="user" />
+          {{ authStore.displayName }}
+          <el-tag size="small" :type="roleTag">{{ roleLabel }}</el-tag>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item v-if="authStore.canManageUsers" command="users">
+              用户管理
+            </el-dropdown-item>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </div>
-    
+
     <!-- 对话框 -->
     <CanvasConfigDialog v-model="showCanvasConfig" />
-    <DataSourceDialog v-model="showDataSource" />
+    <UserManageDialog v-model="showUserManage" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
+import ToolIcon from './ToolIcon.vue'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
-import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
-import type { ComponentInstance } from '@/types/scada'
+import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
+import { useEditClipboard } from './toolbar/useEditClipboard'
+import { useProjectActions } from './toolbar/useProjectActions'
+import { useToolbarShortcuts } from './toolbar/useToolbarShortcuts'
+import { useAuthStore } from '@/stores/authStore'
+import { ROLE_LABELS } from '@/types/auth'
 
-const router = useRouter()
 const canvasStore = useCanvasStore()
 const connectionStore = useConnectionStore()
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
+const authStore = useAuthStore()
 
-const { canUndo, canRedo, undo, redo, saveState, clearHistory } = useHistory()
+const { canUndo, canRedo, undo, redo, saveState } = useHistory()
 
-// 对话框显示状态
 const showCanvasConfig = ref(false)
-const showDataSource = ref(false)
+const showUserManage = ref(false)
 
-// 复制粘贴剪贴板（支持多选批量复制，响应式以驱动按钮禁用态）
-const clipboard = ref<ComponentInstance[]>([])
+const roleLabel = computed(() =>
+  authStore.role ? ROLE_LABELS[authStore.role] : '',
+)
+const roleTag = computed(() => {
+  switch (authStore.role) {
+    case 'admin': return 'danger'
+    case 'engineer': return 'warning'
+    case 'operator': return 'success'
+    default: return 'info'
+  }
+})
 
-function handleCopy() {
-  const selected = canvasStore.selectedElements
-  if (selected.length) {
-    clipboard.value = JSON.parse(JSON.stringify(selected))
+async function handleUserCommand(cmd: string) {
+  if (cmd === 'users') {
+    showUserManage.value = true
+  } else if (cmd === 'logout') {
+    await authStore.logout()
+    window.location.href = '/login'
   }
 }
 
-function handlePaste() {
-  if (!clipboard.value.length) return
+const { handleCopy, handlePaste, handleDelete } = useEditClipboard()
+const {
+  handleRename,
+  goHome,
+  handleSave,
+  handleExportImage,
+  handleExport,
+  handleImport,
+  handlePreview,
+  handlePublish,
+} = useProjectActions()
 
-  const stamp = Date.now()
-  const pasted = clipboard.value.map((el, i) => ({
-    ...JSON.parse(JSON.stringify(el)),
-    id: `el_${stamp}_${i}`,
-    x: el.x + 20,
-    y: el.y + 20,
-    name: `${el.name} 副本`,
-  }))
-  pasted.forEach(p => canvasStore.addElement(p))
-  canvasStore.selectMany(pasted.map(p => p.id))
-  saveState()
-}
-
-function handleDelete() {
-  const ids = [...canvasStore.selectedIds]
-
-  if (ids.length) {
-    canvasStore.removeElements(ids)
-    ids.forEach(id => connectionStore.deleteConnectionsByElement(id))
-    saveState()
-  } else if (connectionStore.selectedConnectionId) {
-    connectionStore.deleteConnection(connectionStore.selectedConnectionId)
-    saveState()
-  }
-}
-
-// 重命名项目
-function handleRename() {
-  ElMessageBox.prompt('请输入新的项目名称', '重命名项目', {
-    inputValue: projectStore.projectName,
-    inputPattern: /\S+/,
-    inputErrorMessage: '名称不能为空',
-    confirmButtonText: '重命名',
-    cancelButtonText: '取消',
-  })
-    .then(async ({ value }) => {
-      if (await projectStore.renameProject(value)) {
-        ElMessage.success('已重命名')
-      } else {
-        ElMessage.error('重命名失败：名称为空或与已有项目重名')
-      }
-    })
-    .catch(() => {})
-}
-
-function handleUndo() {
-  undo()
-}
-
-// 返回主页（有未保存更改时先确认）
-function goHome() {
-  if (projectStore.hasUnsavedChanges) {
-    ElMessageBox.confirm('当前项目有未保存的更改，返回主页前要先保存吗？', '未保存的更改', {
-      type: 'warning',
-      confirmButtonText: '保存并返回',
-      cancelButtonText: '不保存，直接返回',
-      distinguishCancelAndClose: true,
-    })
-      .then(async () => {
-        await projectStore.saveProject()
-        router.push('/')
-      })
-      .catch((action) => {
-        if (action === 'cancel') {
-          router.push('/')
-        }
-        // close(右上角X)则留在编辑器
-      })
-  } else {
-    router.push('/')
-  }
-}
-
-function handleRedo() {
-  redo()
-}
+useToolbarShortcuts(
+  { handleCopy, handlePaste, handleDelete },
+  { handleSave },
+)
 
 function handleZoomIn() {
   canvasStore.setZoom(canvasStore.zoom * 1.2)
@@ -322,202 +295,9 @@ function handleZoomFit() {
   canvasStore.setOffset(0, 0)
 }
 
-async function handleSave() {
-  saveState()
-  await projectStore.saveProject()
-}
-
-function handleExport() {
-  const json = projectStore.exportProject()
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${projectStore.projectName}.json`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function handleImport() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.json'
-  input.onchange = (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const json = e.target?.result as string
-        projectStore.importProject(json)
-        clearHistory()
-        saveState()
-      }
-      reader.readAsText(file)
-    }
-  }
-  input.click()
-}
-
-async function handlePreview() {
-  await projectStore.saveProject()
-  router.push('/preview')
-}
-
-// 键盘快捷键
-function handleKeydown(e: KeyboardEvent) {
-  // 输入框聚焦时不响应快捷键，避免打字误触
-  const target = e.target as HTMLElement | null
-  if (target && (
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA' ||
-    target.tagName === 'SELECT' ||
-    target.isContentEditable
-  )) {
-    return
-  }
-
-  if (e.ctrlKey || e.metaKey) {
-    if (e.key === 'z') {
-      e.preventDefault()
-      handleUndo()
-    } else if (e.key === 'y') {
-      e.preventDefault()
-      handleRedo()
-    } else if (e.key === 's') {
-      e.preventDefault()
-      handleSave()
-    } else if (e.key === 'c' || e.key === 'C') {
-      e.preventDefault()
-      handleCopy()
-    } else if (e.key === 'v' || e.key === 'V') {
-      e.preventDefault()
-      handlePaste()
-    }
-    return
-  }
-
-  if (e.key === 'Delete' || e.key === 'Backspace') {
-    e.preventDefault()
-    handleDelete()
-  } else if (e.key === 'Escape') {
-    canvasStore.clearSelection()
-    connectionStore.selectConnection(null)
-  } else if (e.key === 'v' || e.key === 'V') {
-    uiStore.setActiveTool('select')
-  } else if (e.key === 'l' || e.key === 'L') {
-    uiStore.setActiveTool('connect')
-  } else if (e.key === 'h' || e.key === 'H') {
-    uiStore.setActiveTool('hand')
-  }
-}
-
 onMounted(() => {
-  window.addEventListener('keydown', handleKeydown)
   saveState() // 保存初始状态
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
-<style scoped lang="scss">
-.toolbar-container {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 100%;
-  padding: 0 16px;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  
-  .logo {
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    transition: transform 0.2s;
-
-    &:hover {
-      transform: scale(1.1);
-    }
-  }
-  
-  .project-name-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-  }
-
-  .project-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .rename-icon {
-    color: var(--text-muted);
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .project-name-group:hover {
-    .project-name {
-      color: var(--accent-primary);
-    }
-
-    .rename-icon {
-      opacity: 1;
-    }
-  }
-}
-
-.toolbar-center {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  
-  .zoom-level {
-    font-size: 12px;
-    color: var(--text-secondary);
-    min-width: 40px;
-    text-align: center;
-  }
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-:deep(.el-button) {
-  background: var(--bg-primary);
-  border-color: var(--border-primary);
-  color: var(--text-primary);
-  
-  &:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--border-active);
-  }
-  
-  &.el-button--primary {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-    color: #fff;
-  }
-  
-  &.el-button--success {
-    background: var(--accent-secondary);
-    border-color: var(--accent-secondary);
-  }
-}
-
-:deep(.el-divider--vertical) {
-  border-left-color: var(--border-primary);
-}
-</style>
+<style src="./toolbar.scss" scoped lang="scss"></style>

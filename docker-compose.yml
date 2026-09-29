@@ -1,0 +1,37 @@
+# 一条命令起全站：前端（Nginx 托管 dist）+ 存储后端（Node）
+#
+#   docker compose up -d --build
+#   # 浏览器打开 http://localhost:8080
+#
+# 数据都在 scada-data 卷里（账号、工程、时序历史），重建容器不丢。
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    environment:
+      PORT: 5174
+      DATA_DIR: /data
+      HISTORY_RETENTION_DAYS: 30
+      # 同域反代（默认用法）不需要跨域；若前端在别的域名，改成该站点
+      CORS_ORIGIN: http://localhost:8080
+      # 可选服务主密钥（探针/CI 用）。日常访问走登录会话，不建议设置
+      # AUTH_TOKEN: change-me
+    volumes:
+      - scada-data:/data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: /api
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  scada-data:

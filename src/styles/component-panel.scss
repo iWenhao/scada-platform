@@ -2,11 +2,13 @@
   height: 100%;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-primary);
-  width: 240px;
+  width: 248px;
   overflow-y: auto;
-  
+
   .panel-header {
     position: sticky;
     top: 0;
@@ -16,22 +18,111 @@
     justify-content: space-between;
     background: var(--bg-tertiary);
     color: var(--text-primary);
-    padding: 8px 12px 8px 16px;
+    padding: 10px 12px 10px 16px;
     font-weight: 600;
     border-bottom: 1px solid var(--border-primary);
-    font-size: 14px;
+    font-size: 13px;
+    letter-spacing: 0.3px;
   }
-  
-  .component-group {
-    padding: 12px;
+
+  .panel-tabs {
+    position: sticky;
+    top: 42px;
+    z-index: 2;
+    display: flex;
+    gap: 0;
+    padding: 6px;
+    margin: 0;
+    background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-primary);
+  }
+
+  /* 左右流动的选中指示条 */
+  .tab-indicator {
+    position: absolute;
+    top: 6px;
+    height: 32px;
+    left: 6px;
+    border-radius: 8px;
+    background: var(--accent-primary);
+    box-shadow: 0 2px 10px rgba(0, 212, 170, 0.35);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.2s ease;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .panel-tab {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s ease, transform 0.15s ease;
+
+    &:hover {
+      color: var(--text-primary);
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
+
+    &.active {
+      color: #0b1f1a;
+      font-weight: 600;
+    }
+  }
+
+  .panel-body {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .tab-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .custom-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 200px;
+    padding: 24px 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .component-group {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border-primary);
+
+    &:last-child {
+      border-bottom: none;
+    }
 
     .group-title {
       color: var(--text-secondary);
-      font-size: 12px;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      font-weight: 600;
     }
 
     .component-items {
@@ -41,43 +132,67 @@
     }
 
     .component-item {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 10px 4px 8px;
-      border-radius: 4px;
+      padding: 12px 4px 10px;
+      border-radius: 10px;
       cursor: grab;
-      transition: all 0.2s;
+      transition: all 0.18s;
       background: var(--bg-primary);
       border: 1px solid var(--border-primary);
 
       &:hover {
         background: var(--bg-tertiary);
-        border-color: var(--border-active);
+        border-color: var(--accent-primary);
+        box-shadow: 0 4px 12px rgba(0, 212, 170, 0.12);
+        transform: translateY(-1px);
       }
 
       &:active {
         cursor: grabbing;
-        transform: scale(0.98);
+        transform: scale(0.97);
       }
 
       .component-icon {
-        width: 30px;
-        height: 30px;
-        margin-bottom: 6px;
+        width: 32px;
+        height: 32px;
+        margin-bottom: 8px;
         color: var(--accent-primary);
         flex-shrink: 0;
       }
 
+      .card-actions {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        display: none;
+        gap: 2px;
+
+        .el-icon {
+          cursor: pointer;
+          color: var(--text-secondary);
+
+          &:hover {
+            color: var(--accent-danger);
+          }
+        }
+      }
+
       .component-name {
         color: var(--text-primary);
-        font-size: 12px;
+        font-size: 11px;
         max-width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+    }
+
+    .component-item:hover .card-actions {
+      display: flex;
     }
   }
 }
@@ -87,9 +202,9 @@
   min-height: 0;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-primary);
-  width: 280px;
+  width: 288px;
   overflow-y: auto;
-  
+
   .panel-header {
     position: sticky;
     top: 0;
@@ -99,36 +214,70 @@
     justify-content: space-between;
     background: var(--bg-tertiary);
     color: var(--text-primary);
-    padding: 8px 12px 8px 16px;
+    padding: 10px 12px 10px 16px;
     font-weight: 600;
     border-bottom: 1px solid var(--border-primary);
-    font-size: 14px;
+    font-size: 13px;
+    letter-spacing: 0.3px;
   }
-  
+
   .property-section {
-    padding: 12px;
+    padding: 14px 14px 12px;
     border-bottom: 1px solid var(--border-primary);
-    
+
+    &:last-child {
+      border-bottom: none;
+    }
+
     .section-title {
       color: var(--text-secondary);
-      font-size: 12px;
-      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 1px;
       margin-bottom: 12px;
-      font-weight: 500;
+      font-weight: 600;
     }
-    
+
     .property-item {
       margin-bottom: 12px;
-      
+
       .property-label {
         color: var(--text-secondary);
         font-size: 12px;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
       }
-      
+
       .property-value {
         width: 100%;
       }
     }
+  }
+}
+
+
+/* 分类 Tab 切换：淡入淡出 + 轻微上移 */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.tab-fade-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.tab-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.tab-pane {
+  min-height: 0;
+}
+
+.panel-tab {
+  transition: background-color .18s ease, border-color .18s ease, color .18s ease, transform .15s ease;
+
+  &:active {
+    transform: scale(0.96);
   }
 }

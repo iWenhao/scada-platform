@@ -35,6 +35,7 @@ export const MotorDefinition: ComponentDefinition = {
       id: 'stopped',
       name: '停止',
       color: '#ff4757',
+      severity: 'normal',
       condition: { type: 'compare', variable: 'speed', operator: '=', value: 0 },
       priority: 2,
     },
@@ -42,6 +43,7 @@ export const MotorDefinition: ComponentDefinition = {
       id: 'high-temp',
       name: '高温',
       color: '#ffa502',
+      severity: 'critical',
       condition: {
         type: 'and',
         conditions: [
@@ -112,6 +114,7 @@ export const SensorDefinition: ComponentDefinition = {
       id: 'high',
       name: '高报警',
       color: '#ff4757',
+      severity: 'critical',
       condition: { type: 'compare', variable: 'value', operator: '>', value: 100 },
       priority: 1,
     },
@@ -126,6 +129,7 @@ export const SensorDefinition: ComponentDefinition = {
       id: 'low',
       name: '低报警',
       color: '#ffa502',
+      severity: 'critical',
       condition: { type: 'compare', variable: 'value', operator: '<', value: 0 },
       priority: 3,
     },

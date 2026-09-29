@@ -1,9 +1,67 @@
-import type { DataSourceAdapter, DataSourceConfig, DataUpdate } from '../types'
+import type { DataSourceAdapter, DataSourceConfig, DataUpdate, WriteRequest } from '../types'
 
+/**
+ * 模拟数据源。
+ *
+ * 数值采用均值回复的随机游走（离散 OU 过程）而非逐次独立抽样：
+ * 独立抽样会让每个 tick 的数字毫无关联，趋势图画成一片白噪声，
+ * 报警条件也每秒随机进出，报警列表疯狂闪烁。加入游走惯性后，
+ * 数据呈现斜坡与平台，逼近工业现场的真实观感。
+ */
 export class MockDataAdapter implements DataSourceAdapter {
   private interval: number | null = null
   private updateCallback: ((update: DataUpdate) => void) | null = null
   private status: 'connected' | 'disconnected' | 'error' = 'disconnected'
+
+  /** 上一次输出的值，按 `${设备}.${变量}` 缓存（写值可注入字符串/布尔） */
+  private values = new Map<string, number | string | boolean>()
+
+  /** 缓存值数值化：非数值（如写入的字符串/布尔）回落到 fallback，避免游走算出 NaN */
+  private asNumber(key: string, fallback: number): number {
+    const v = Number(this.values.get(key))
+    return Number.isFinite(v) ? v : fallback
+  }
+
+  /**
+   * 带惯性的连续量：在上次值基础上小步游走，并向量程中点轻微回复，
+   * 避免在边界长期堆积（堆积会让报警一直挂在上面不再恢复）。
+   */
+  private walk(device: string, variable: string, min: number, max: number, rate = 0.06): number {
+    const key = `${device}.${variable}`
+    const span = max - min
+    const prev = this.asNumber(key, min + span * 0.5)
+    const mean = min + span * 0.5
+    const next = prev + (mean - prev) * 0.02 + (Math.random() - 0.5) * span * rate * 2
+    const clamped = Math.min(max, Math.max(min, next))
+    this.values.set(key, clamped)
+    return Number(clamped.toFixed(2))
+  }
+
+  /** 开关量：按给定的翻转概率切换，未触发时保持原状态 */
+  private toggle(
+    device: string,
+    variable: string,
+    onValue: number,
+    offValue: number,
+    flipChance = 0.05,
+  ): number {
+    const key = `${device}.${variable}`
+    const prev = this.asNumber(key, onValue)
+    const next = Math.random() < flipChance
+      ? (prev === onValue ? offValue : onValue)
+      : prev
+    this.values.set(key, next)
+    return next
+  }
+
+  /** 设备启停门控：用于「停机时该变量直接归零」的场景 */
+  private gateOpen(device: string, flipChance = 0.03): boolean {
+    const key = `${device}#gate`
+    const prev = this.asNumber(key, 1)
+    const next = Math.random() < flipChance ? (prev === 1 ? 0 : 1) : prev
+    this.values.set(key, next)
+    return next === 1
+  }
 
   async connect(config: DataSourceConfig): Promise<void> {
     this.status = 'connected'
@@ -13,92 +71,95 @@ export class MockDataAdapter implements DataSourceAdapter {
     this.interval = window.setInterval(() => {
       const update: DataUpdate = {
         motor_1: {
-          speed: Math.random() * 3000,
-          temp: 40 + Math.random() * 40,
-          vibration: Math.random() * 10,
+          speed: this.walk('motor_1', 'speed', 0, 3000, 0.05),
+          temp: this.walk('motor_1', 'temp', 40, 80, 0.04),
+          vibration: this.walk('motor_1', 'vibration', 0, 10, 0.08),
         },
         pump_1: {
-          speed: Math.random() * 3000,
-          flow: Math.random() * 100,
-          pressure: Math.random() * 10,
+          speed: this.walk('pump_1', 'speed', 0, 3000, 0.05),
+          flow: this.walk('pump_1', 'flow', 0, 100, 0.06),
+          pressure: this.walk('pump_1', 'pressure', 0, 10, 0.06),
         },
         valve_1: {
-          openDegree: Math.random() > 0.5 ? 100 : 0,
+          openDegree: this.walk('valve_1', 'openDegree', 0, 100, 0.1),
         },
         tank_1: {
-          level: Math.random() * 100,
-          temp: 20 + Math.random() * 30,
+          level: this.walk('tank_1', 'level', 0, 100, 0.07),
+          temp: this.walk('tank_1', 'temp', 20, 50, 0.04),
         },
         pipe_1: {
-          flowRate: Math.random() > 0.3 ? Math.random() * 100 : 0,
+          // 停流时输出 0，恢复后继续游走而不是换一个全新量级
+          flowRate: this.gateOpen('pipe_1', 0.04)
+            ? this.walk('pipe_1', 'flowRate', 0, 100, 0.08)
+            : 0,
         },
         sensor_1: {
-          value: Math.random() * 120,
+          value: this.walk('sensor_1', 'value', 0, 120, 0.06),
         },
         conveyor_1: {
-          speed: Math.random() > 0.25 ? Math.random() * 2 : 0,
-          load: Math.random() * 100,
+          speed: this.walk('conveyor_1', 'speed', 0, 2, 0.06),
+          load: this.walk('conveyor_1', 'load', 0, 100, 0.07),
         },
         shearer_1: {
-          speed: Math.random() > 0.3 ? Math.random() * 8 : 0,
-          load: Math.random() * 100,
+          speed: this.walk('shearer_1', 'speed', 0, 8, 0.06),
+          load: this.walk('shearer_1', 'load', 0, 100, 0.07),
         },
         coal_bunker_1: {
-          level: 20 + Math.random() * 75,
-          temp: 20 + Math.random() * 40,
+          level: this.walk('coal_bunker_1', 'level', 20, 95, 0.05),
+          temp: this.walk('coal_bunker_1', 'temp', 20, 60, 0.03),
         },
         roadheader_1: {
-          cutting: Math.random() > 0.35 ? 1 : 0,
-          load: 30 + Math.random() * 70,
+          cutting: this.toggle('roadheader_1', 'cutting', 1, 0, 0.03),
+          load: this.walk('roadheader_1', 'load', 30, 100, 0.07),
         },
         fan_1: {
-          speed: Math.random() > 0.15 ? 1480 : 0,
-          vibration: Math.random() * 8,
+          speed: this.walk('fan_1', 'speed', 0, 1600, 0.05),
+          vibration: this.walk('fan_1', 'vibration', 0, 8, 0.08),
         },
         gas_sensor_1: {
-          density: Math.random() * 1.5,
+          density: this.walk('gas_sensor_1', 'density', 0, 1.5, 0.06),
         },
         hoist_1: {
-          speed: Math.random() > 0.3 ? (Math.random() > 0.5 ? 3.5 : -3.5) : 0,
-          load: 20 + Math.random() * 75,
+          speed: this.walk('hoist_1', 'speed', -3.5, 3.5, 0.1),
+          load: this.walk('hoist_1', 'load', 20, 95, 0.06),
         },
         turbine_1: {
-          speed: 2900 + Math.random() * 420,
-          temp: 400 + Math.random() * 120,
+          speed: this.walk('turbine_1', 'speed', 2900, 3320, 0.02),
+          temp: this.walk('turbine_1', 'temp', 400, 520, 0.03),
         },
         generator_1: {
-          power: Math.random() * 620,
-          voltage: 10.5 + Math.random() * 0.8,
+          power: this.walk('generator_1', 'power', 0, 620, 0.05),
+          voltage: this.walk('generator_1', 'voltage', 10.5, 11.3, 0.02),
         },
         boiler_1: {
-          pressure: 4 + Math.random() * 10,
-          level: 30 + Math.random() * 60,
-          temp: 300 + Math.random() * 200,
+          pressure: this.walk('boiler_1', 'pressure', 4, 14, 0.05),
+          level: this.walk('boiler_1', 'level', 30, 90, 0.05),
+          temp: this.walk('boiler_1', 'temp', 300, 500, 0.03),
         },
         transformer_1: {
-          temp: 35 + Math.random() * 70,
-          load: Math.random() * 120,
+          temp: this.walk('transformer_1', 'temp', 35, 105, 0.05),
+          load: this.walk('transformer_1', 'load', 0, 120, 0.06),
         },
         breaker_1: {
-          closed: Math.random() > 0.3 ? 1 : 0,
+          closed: this.toggle('breaker_1', 'closed', 1, 0, 0.02),
         },
         reactor_1: {
-          temp: 40 + Math.random() * 220,
-          pressure: 0.5 + Math.random() * 2,
-          level: 40 + Math.random() * 55,
+          temp: this.walk('reactor_1', 'temp', 40, 260, 0.05),
+          pressure: this.walk('reactor_1', 'pressure', 0.5, 2.5, 0.05),
+          level: this.walk('reactor_1', 'level', 40, 95, 0.05),
         },
         heat_exchanger_1: {
-          flow: Math.random() > 0.25 ? Math.random() * 100 : 0,
-          tempIn: 60 + Math.random() * 60,
-          tempOut: 30 + Math.random() * 20,
+          flow: this.walk('heat_exchanger_1', 'flow', 0, 100, 0.08),
+          tempIn: this.walk('heat_exchanger_1', 'tempIn', 60, 120, 0.04),
+          tempOut: this.walk('heat_exchanger_1', 'tempOut', 30, 50, 0.04),
         },
         sediment_tank_1: {
-          level: 20 + Math.random() * 75,
-          turbidity: Math.random() * 60,
+          level: this.walk('sediment_tank_1', 'level', 20, 95, 0.05),
+          turbidity: this.walk('sediment_tank_1', 'turbidity', 0, 60, 0.07),
         },
         sub_pump_1: {
-          running: Math.random() > 0.4 ? 1 : 0,
-          flow: Math.random() * 200,
+          running: this.toggle('sub_pump_1', 'running', 1, 0, 0.03),
+          flow: this.walk('sub_pump_1', 'flow', 0, 200, 0.07),
         },
       }
       this.updateCallback?.(update)
@@ -115,6 +176,19 @@ export class MockDataAdapter implements DataSourceAdapter {
       'reactor_1', 'heat_exchanger_1',
       'sediment_tank_1', 'sub_pump_1',
     ]
+  }
+
+  /**
+   * 写值：覆盖模拟值并立即推送一次更新，让画面即时反映设定结果。
+   * 支持数值/字符串/布尔（点表 dataType 对应）；数值写入后游走从新值继续。
+   */
+  async write(req: WriteRequest): Promise<void> {
+    const value = req.value
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      throw new Error(`设定值非法: ${value}`)
+    }
+    this.values.set(`${req.deviceId}.${req.variable}`, value)
+    this.updateCallback?.({ [req.deviceId]: { [req.variable]: value } })
   }
 
   disconnect() {

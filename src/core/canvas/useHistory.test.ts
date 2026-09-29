@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useHistory } from '@/core/canvas/useHistory'
+import { useProjectStore } from '@/stores/projectStore'
 import type { ComponentInstance } from '@/types/scada'
 
 function makeElement(id: string, x = 0): ComponentInstance {
@@ -103,5 +104,48 @@ describe('useHistory', () => {
     history.undo()
     expect(connectionStore.connections).toHaveLength(1)
     expect(connectionStore.connections[0].sourceId).toBe('el_1')
+  })
+
+  it('首次保存建立基线不应标记未保存，之后的内容变化才标记', () => {
+    const projectStore = useProjectStore()
+
+    history.saveState() // 相当于编辑器挂载时记录初始状态
+    expect(projectStore.hasUnsavedChanges).toBe(false)
+
+    canvasStore.addElement(makeElement('el_1'))
+    history.saveState()
+    expect(projectStore.hasUnsavedChanges).toBe(true)
+  })
+
+  it('清空历史后应重新建立基线', () => {
+    const projectStore = useProjectStore()
+
+    history.saveState() // 基线
+    canvasStore.addElement(makeElement('el_1'))
+    history.saveState()
+    expect(projectStore.hasUnsavedChanges).toBe(true)
+
+    history.clearHistory()
+    projectStore.hasUnsavedChanges = false
+
+    // 清空后的第一次保存重新成为基线，不应把初始状态当成用户改动
+    history.saveState()
+    expect(projectStore.hasUnsavedChanges).toBe(false)
+  })
+
+  it('撤销与重做都应让工程回到未保存状态', () => {
+    const projectStore = useProjectStore()
+
+    history.saveState()
+    canvasStore.addElement(makeElement('el_1'))
+    history.saveState()
+    expect(projectStore.hasUnsavedChanges).toBe(true)
+
+    history.undo()
+    expect(projectStore.hasUnsavedChanges).toBe(true)
+
+    projectStore.hasUnsavedChanges = false
+    history.redo()
+    expect(projectStore.hasUnsavedChanges).toBe(true)
   })
 })

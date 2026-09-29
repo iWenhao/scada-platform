@@ -7,6 +7,7 @@ export type ComponentGroup =
   | 'power'
   | 'chemical'
   | 'water'
+  | 'chart'
   | 'custom'
 
 /** 组件定义（注册时使用） */
@@ -36,6 +37,15 @@ export interface ComponentInstance {
   rotation: number
   name: string
   layerId: string
+  /** 元素级锁定：锁定后不可拖动/缩放/旋转 */
+  locked?: boolean
+  /**
+   * 运行时点击跳转的目标画面 ID（多画面导航）。
+   * 未设置表示不跳转；目标画面不存在时预览端忽略。
+   */
+  navigateTo?: string
+  /** 来源设备模板 ID（可选，便于「从模板更新」等扩展） */
+  templateId?: string
   properties: Record<string, any>
   statusRules: StatusRule[]
   dataBindings: DataBinding[]
@@ -54,6 +64,9 @@ export interface PropertyDefinition {
   group?: string
 }
 
+/** 报警级别：决定该状态是否计入报警面板 */
+export type AlarmSeverity = 'normal' | 'warning' | 'critical'
+
 /** 状态规则 */
 export interface StatusRule {
   id: string
@@ -61,6 +74,12 @@ export interface StatusRule {
   color: string
   condition: Condition
   priority: number
+  /**
+   * 报警级别。未设置时按颜色兜底推断（历史数据兼容）。
+   * 注意："关闭/停止"这类正常工艺状态即便用了红色也应标为 normal，
+   * 否则设备停机就会刷满报警列表。
+   */
+  severity?: AlarmSeverity
 }
 
 /** 条件类型 */

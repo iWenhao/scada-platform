@@ -76,6 +76,22 @@ html.dark {
     border-color: var(--border-active) !important;
   }
 
+  /* 删除按钮：悬停/按下统一危险红（盖过上面的默认悬停色） */
+  &.btn-delete {
+    &:hover:not(.is-disabled),
+    &:focus:not(.is-disabled) {
+      background-color: color-mix(in srgb, var(--accent-danger) 22%, var(--bg-primary)) !important;
+      border-color: var(--accent-danger) !important;
+      color: var(--accent-danger) !important;
+    }
+
+    &:active:not(.is-disabled) {
+      background-color: color-mix(in srgb, var(--accent-danger) 40%, var(--bg-primary)) !important;
+      border-color: var(--accent-danger) !important;
+      color: var(--accent-danger) !important;
+    }
+  }
+
   &.is-disabled,
   &.is-disabled:hover,
   &.is-disabled:focus {

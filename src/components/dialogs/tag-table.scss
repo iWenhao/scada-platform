@@ -1,0 +1,80 @@
+.policy-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  .policy-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .policy-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+}
+
+.tag-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  .spacer {
+    flex: 1;
+  }
+
+  .search {
+    width: 220px;
+  }
+}
+
+.hidden-input {
+  display: none;
+}
+
+.half {
+  width: 45%;
+  margin-right: 4%;
+}
+
+.live-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .search {
+    width: 220px;
+  }
+}
+
+.live-value {
+  font-family: monospace;
+  color: var(--accent-primary);
+
+  // 数据不可信（陈旧/无数据）时数值置灰：不能让过期值看起来跟正常值一样可信
+  &.value-stale {
+    color: var(--text-muted);
+  }
+}
+
+.age {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.stale-hint {
+  color: var(--warning-color, #e6a23c);
+  font-weight: 600;
+}

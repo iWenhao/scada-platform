@@ -1,0 +1,19 @@
+# 存储后端镜像：零依赖 Node 服务（KV 存储 / 时序历史 / 账号会话 / 通知 / 审计）
+FROM node:20-alpine
+WORKDIR /app
+
+# 只需要 server/ 目录，不依赖前端构建产物
+COPY server/ ./server/
+
+ENV NODE_ENV=production \
+    PORT=5174 \
+    DATA_DIR=/data \
+    HISTORY_RETENTION_DAYS=30
+
+# 数据目录：账号表、用户空间工程、时序历史都在这里，必须挂卷
+VOLUME ["/data"]
+EXPOSE 5174
+
+HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:${PORT}/api/health >/dev/null || exit 1
+
+CMD ["node", "server/index.mjs"]

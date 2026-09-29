@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Connection, ConnectionStyle, PortPosition } from '@/types/connection'
 import { defaultConnectionStyle } from '@/types/connection'
+import { computeConnectionPoints } from '@/core/connection/portPoints'
+import { useCanvasStore } from './canvasStore'
 
 export const useConnectionStore = defineStore('connection', () => {
   // 连线列表
@@ -102,6 +104,19 @@ export const useConnectionStore = defineStore('connection', () => {
   }
 
   /**
+   * 按连线当前类型重算路径点（类型切换后调用）
+   */
+  function recalcConnection(id: string) {
+    const canvasStore = useCanvasStore()
+    const conn = connections.value.find(c => c.id === id)
+    if (!conn) return
+    const source = canvasStore.elements.find(el => el.id === conn.sourceId)
+    const target = canvasStore.elements.find(el => el.id === conn.targetId)
+    if (!source || !target) return
+    conn.points = computeConnectionPoints(source, conn.sourcePort, target, conn.targetPort, conn.type)
+  }
+
+  /**
    * 更新连线样式
    */
   function updateConnectionStyle(id: string, style: Partial<ConnectionStyle>) {
@@ -163,6 +178,7 @@ export const useConnectionStore = defineStore('connection', () => {
     deleteConnectionsByElement,
     updateConnection,
     updateConnectionStyle,
+    recalcConnection,
     selectConnection,
     getConnectionsByElement,
     toJSON,
