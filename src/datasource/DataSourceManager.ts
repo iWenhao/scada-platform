@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { DataSourceConfig, DataSourceAdapter, DataUpdate } from './types'
+import type { DataSourceConfig, DataSourceAdapter, DataUpdate, WriteRequest } from './types'
 import { MockDataAdapter } from './adapters/MockDataAdapter'
 import { WebSocketAdapter } from './adapters/WebSocketAdapter'
 import { HttpPollingAdapter } from './adapters/HttpPollingAdapter'
@@ -116,6 +116,23 @@ export class DataSourceManager {
    */
   listDevices(): string[] {
     return this.activeAdapter?.listDevices?.() ?? []
+  }
+
+  /** 当前数据源是否支持写值（UI 据此决定是否展示控制入口） */
+  canWrite(): boolean {
+    return typeof this.activeAdapter?.write === 'function'
+  }
+
+  /**
+   * 下行写值：委托当前活跃适配器。
+   * 未连接、数据源不支持写值或适配器执行失败都直接抛错，由 UI 层提示操作者。
+   */
+  async write(req: WriteRequest): Promise<void> {
+    const write = this.activeAdapter?.write
+    if (typeof write !== 'function') {
+      throw new Error('当前数据源不支持写值')
+    }
+    await write.call(this.activeAdapter, req)
   }
 
   /**

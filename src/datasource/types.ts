@@ -22,6 +22,13 @@ export interface DataUpdate {
   }
 }
 
+/** 写值请求（控制下行） */
+export interface WriteRequest {
+  deviceId: string
+  variable: string
+  value: number | string | boolean
+}
+
 /** 连接状态 */
 export type ConnectionStatus = 'connected' | 'disconnected' | 'error'
 
@@ -34,4 +41,9 @@ export interface DataSourceAdapter {
   getStatus(): ConnectionStatus
   /** 可绑定的设备/变量清单（如数据源支持枚举） */
   listDevices?(): string[]
+  /**
+   * 下行写值（可选能力）：不支持控制下行的数据源不实现，
+   * 调用方需通过 `adapter.write` 是否存在判断能力，而不是假设总是可用。
+   */
+  write?(req: WriteRequest): Promise<void>
 }

@@ -115,7 +115,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useDeviceStore } from '@/stores/deviceStore'
@@ -152,6 +152,12 @@ const trendDeviceId = ref('')
 const trendVariable = ref('')
 
 function handleElementClick(element: ComponentInstance) {
+  // 设定值控件走写值流程，其余元素查看趋势
+  if (element.type === 'setpoint') {
+    promptWriteValue(element)
+    return
+  }
+
   const variable = element.dataBindings?.[0]?.variable
   if (!variable) {
     ElMessage.info('该元素没有绑定数据变量，无法查看趋势')
@@ -160,6 +166,45 @@ function handleElementClick(element: ComponentInstance) {
   trendDeviceId.value = element.deviceId || element.id
   trendVariable.value = variable
   showTrendDialog.value = true
+}
+
+/**
+ * 写值交互：输入新值 → 确认后经数据源下发。
+ * prompt 确认框本身就是操作确认；不支持写值的数据源在下发时明确报错。
+ */
+async function promptWriteValue(element: ComponentInstance) {
+  const binding = element.dataBindings?.[0]
+  const deviceId = element.deviceId
+  if (!binding || !deviceId) {
+    ElMessage.info('该设定值未绑定目标变量，请在编辑器的属性面板中绑定设备与变量')
+    return
+  }
+
+  const current = deviceStore.getVariableValue(deviceId, binding.variable)
+  let input: string
+  try {
+    const result = await ElMessageBox.prompt(
+      `向 ${deviceId}.${binding.variable} 下发新值${element.properties?.unit ? `（${element.properties.unit}）` : ''}`,
+      element.name,
+      {
+        inputValue: current !== undefined ? String(current) : '',
+        confirmButtonText: '下发',
+        cancelButtonText: '取消',
+        inputPattern: /^-?\d+(\.\d+)?$/,
+        inputErrorMessage: '请输入数字',
+      },
+    )
+    input = result.value
+  } catch {
+    return // 用户取消
+  }
+
+  try {
+    await deviceStore.writeValue(deviceId, binding.variable, Number(input))
+    ElMessage.success(`已向 ${deviceId}.${binding.variable} 下发 ${input}`)
+  } catch (e) {
+    ElMessage.error(`写值失败: ${e instanceof Error ? e.message : e}`)
+  }
 }
 
 const stageConfig = computed(() => ({

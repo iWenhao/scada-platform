@@ -108,6 +108,19 @@ export const useDeviceStore = defineStore('device', () => {
     )
   }
 
+  /** 当前数据源是否支持写值（UI 据此决定是否展示控制入口） */
+  function canWrite(): boolean {
+    return dataSourceManager.canWrite()
+  }
+
+  /**
+   * 下行写值：委托数据源管理器。失败原样向上抛，由调用方提示操作者；
+   * Mock 数据源写入后本地数据立即生效。
+   */
+  async function writeValue(deviceId: string, variable: string, value: number | string | boolean) {
+    await dataSourceManager.write({ deviceId, variable, value })
+  }
+
   /**
    * 获取某个设备+变量的历史数据
    */
@@ -153,6 +166,8 @@ export const useDeviceStore = defineStore('device', () => {
     getHistory,
     clearHistory,
     suggestDeviceId,
+    canWrite,
+    writeValue,
     disconnect,
     reset,
   }

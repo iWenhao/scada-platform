@@ -81,4 +81,33 @@ describe('DataSourceManager', () => {
       expect(data).toEqual({})
     })
   })
+
+  describe('write 写值', () => {
+    it('未连接时写值应该抛错', async () => {
+      await expect(manager.write({ deviceId: 'motor_1', variable: 'speed', value: 1 }))
+        .rejects.toThrow('当前数据源不支持写值')
+      expect(manager.canWrite()).toBe(false)
+    })
+
+    it('应该透传给支持写值的适配器', async () => {
+      await manager.connect({ type: 'mock', name: 'test' })
+
+      expect(manager.canWrite()).toBe(true)
+      await expect(manager.write({ deviceId: 'motor_1', variable: 'speed', value: 800 }))
+        .resolves.toBeUndefined()
+      // Mock 写值立即生效
+      expect(manager.getDeviceData('motor_1').speed).toBe(800)
+    })
+
+    it('不支持写值的数据源应该抛错', async () => {
+      // HttpPolling 适配器未实现 write；打桩 fetch 避免真实网络请求
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }))
+      await manager.connect({ type: 'http', name: 'test', url: 'http://x/api', interval: 60000 })
+
+      expect(manager.canWrite()).toBe(false)
+      await expect(manager.write({ deviceId: 'motor_1', variable: 'speed', value: 1 }))
+        .rejects.toThrow('当前数据源不支持写值')
+      vi.unstubAllGlobals()
+    })
+  })
 })

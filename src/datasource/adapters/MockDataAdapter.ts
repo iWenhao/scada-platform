@@ -1,4 +1,4 @@
-import type { DataSourceAdapter, DataSourceConfig, DataUpdate } from '../types'
+import type { DataSourceAdapter, DataSourceConfig, DataUpdate, WriteRequest } from '../types'
 
 /**
  * 模拟数据源。
@@ -170,6 +170,19 @@ export class MockDataAdapter implements DataSourceAdapter {
       'reactor_1', 'heat_exchanger_1',
       'sediment_tank_1', 'sub_pump_1',
     ]
+  }
+
+  /**
+   * 写值：覆盖模拟值并立即推送一次更新，让画面即时反映设定结果；
+   * 下个 tick 的随机游走从写入值继续（不跳回旧值）。
+   */
+  async write(req: WriteRequest): Promise<void> {
+    const numeric = Number(req.value)
+    if (Number.isNaN(numeric)) {
+      throw new Error(`设定值必须是数字，收到 "${req.value}"`)
+    }
+    this.values.set(`${req.deviceId}.${req.variable}`, numeric)
+    this.updateCallback?.({ [req.deviceId]: { [req.variable]: numeric } })
   }
 
   disconnect() {
