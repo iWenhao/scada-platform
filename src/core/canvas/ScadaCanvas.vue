@@ -225,18 +225,8 @@
       </v-layer>
     </v-stage>
 
-      <!-- 图表 overlay：ECharts 需要 DOM 容器，按画布变换叠在 Konva 之上；
-           指针事件穿透，拖拽/选中/连线仍由 Konva 图层处理 -->
-      <div class="chart-overlay">
-        <div
-          v-for="element in chartElements"
-          :key="element.id"
-          class="chart-slot"
-          :style="chartSlotStyle(element)"
-        >
-          <ChartElement :element="element" />
-        </div>
-      </div>
+      <ChartOverlay />
+
 
           <MiniMap
             v-if="uiStore.showMinimap"
@@ -272,8 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ref, watch, nextTick } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -290,10 +279,9 @@ import { useElementDrag } from '@/core/canvas/useElementDrag'
 import CanvasRuler from '@/components/layout/CanvasRuler.vue'
 import MiniMap from '@/components/layout/MiniMap.vue'
 import ContextMenu from '@/components/layout/ContextMenu.vue'
-import type { ContextMenuItem } from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
-import ChartElement from '@/industrial/chart/ChartElement.vue'
-import { saveDeviceTemplate, templateFromElement } from '@/industrial/templateLibrary'
+import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
+import { useCanvasContextMenu } from '@/core/canvas/useCanvasContextMenu'
 import type { ComponentInstance } from '@/types/scada'
 
 const canvasStore = useCanvasStore()
@@ -336,82 +324,13 @@ const {
 } = visuals
 
 // ---- 图表 overlay：ECharts 实体渲染在 DOM 层，坐标跟随画布平移缩放 ----
-const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie']
-
-const chartElements = computed(() =>
-  canvasStore.elements.filter(el => CHART_TYPES.includes(el.type)),
-)
-
-function chartSlotStyle(element: ComponentInstance) {
-  const { zoom, offset } = canvasStore
-  return {
-    left: `${element.x * zoom + offset.x}px`,
-    top: `${element.y * zoom + offset.y}px`,
-    width: `${element.width * zoom}px`,
-    height: `${element.height * zoom}px`,
-    visibility: isLayerVisible(element.layerId) ? ('visible' as const) : ('hidden' as const),
-  }
-}
 const { selectionRect, beginRubber, moveRubber, endRubber } = selection
 const { setHovered, beginConnection, trackMove, finishOnMouseUp, drawingLineConfig } = connectionDraw
 const { alignGuides, gridSnapFunc, onDragStart, onDragMove, onDragEnd, onTransformEnd } = drag
 
-// 右键菜单
-const ctxMenuVisible = ref(false)
-const ctxMenuX = ref(0)
-const ctxMenuY = ref(0)
-const ctxMenuItems = ref<ContextMenuItem[]>([])
-
-function onElementContextMenu(element: ComponentInstance, e: any) {
-  e.evt.preventDefault()
-  if (uiStore.activeTool === 'connect') return
-  canvasStore.selectElement(element.id)
-  ctxMenuX.value = e.evt.clientX
-  ctxMenuY.value = e.evt.clientY
-  const isLocked = !!element.locked
-  ctxMenuItems.value = [
-    { label: '复制', icon: 'CopyDocument', shortcut: 'Ctrl+C', action: () => handleCopyFromCanvas() },
-    { label: '存为模板', icon: 'Collection', action: () => handleSaveAsTemplate(element) },
-    { label: '删除', icon: 'Delete', shortcut: 'Del', danger: true, action: () => handleDeleteFromCanvas() },
-    { label: isLocked ? '解锁' : '锁定', icon: 'Lock', action: () => canvasStore.updateElement(element.id, { locked: !isLocked }) },
-  ]
-  ctxMenuVisible.value = true
-}
-
-async function handleSaveAsTemplate(element: ComponentInstance) {
-  let name: string
-  try {
-    const result = await ElMessageBox.prompt('模板名称', '存为设备模板', {
-      inputValue: `${element.name} 模板`,
-      inputPattern: /\S+/,
-      inputErrorMessage: '名称不能为空',
-      confirmButtonText: '保存',
-      cancelButtonText: '取消',
-    })
-    name = result.value
-  } catch {
-    return
-  }
-  const body = templateFromElement(element, name)
-  const saved = await saveDeviceTemplate(body)
-  canvasStore.updateElement(element.id, { templateId: saved.id })
-  ElMessage.success(`已保存设备模板「${name}」`)
-}
-
-function handleCopyFromCanvas() {
-  const selected = canvasStore.selectedElements
-  if (selected.length) {
-    canvasStore.clipboard = JSON.parse(JSON.stringify(selected))
-  }
-}
-
-function handleDeleteFromCanvas() {
-  const ids = [...canvasStore.selectedIds]
-  if (!ids.length) return
-  canvasStore.removeElements(ids)
-  ids.forEach(id => connectionStore.deleteConnectionsByElement(id))
-  saveState()
-}
+// 右键菜单（复制/模板/删除/锁定）
+const { ctxMenuVisible, ctxMenuX, ctxMenuY, ctxMenuItems, onElementContextMenu } =
+  useCanvasContextMenu()
 
 // 变换器配置
 const transformerConfig = {
