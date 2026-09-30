@@ -123,8 +123,17 @@ export function useProjectActions() {
    */
   async function handlePublish() {
     try {
+      const { usePageStore } = await import('@/stores/pageStore')
+      const pageStore = usePageStore()
+      pageStore.captureActivePage()
+      const pages = pageStore.pages.length
+      const elements = pageStore.pages.reduce((n, p) => n + (p.elements?.length || 0), 0)
       await ElMessageBox.confirm(
-        `发布「${projectStore.projectName}」为运行版？\n\n• 发布后预览/运行端显示该版本\n• 之后继续编辑草稿不影响值班画面\n• 需再次「发布」才会更新运行版\n\n当前内容：多画面、数据源、报警、点表一并快照。`,
+        `发布「${projectStore.projectName}」为运行版？\n\n` +
+          `内容摘要：${pages} 个画面 / ${elements} 个组件 / ${projectStore.tagTable.length} 个点位\n\n` +
+          `• 发布后预览/运行端显示该版本\n` +
+          `• 之后继续编辑草稿不影响值班画面\n` +
+          `• 需再次「发布」才会更新运行版`,
         '发布工程',
         { type: 'warning', confirmButtonText: '发布', cancelButtonText: '取消' },
       )
