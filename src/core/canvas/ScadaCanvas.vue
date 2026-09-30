@@ -77,159 +77,34 @@
         />
       </v-layer>
 
-      <!-- 组件图层 -->
+      <!-- 组件图层（拆至 CanvasElements） -->
+      <CanvasElements
+        :elements="canvasStore.elements"
+        :selected-ids="canvasStore.selectedIds"
+        :active-tool="uiStore.activeTool"
+        :snap-to-grid="!!canvasStore.canvasConfig.snapToGrid"
+        :view-mode="uiStore.viewMode"
+        :visuals="visuals"
+        :pipe-flow-config="pipeFlowConfig"
+        :grid-snap-func="gridSnapFunc"
+        @element-click="onElementClick"
+        @element-contextmenu="onElementContextMenu"
+        @hover="setHovered"
+        @drag-start="onDragStart"
+        @drag-move="onDragMove"
+        @drag-end="onDragEnd"
+        @transform-end="onTransformEnd"
+        @port-down="beginConnection"
+      />
+
+      <!-- 选中变换器与对齐参考线 -->
       <v-layer>
-        <template v-for="element in canvasStore.elements" :key="element.id">
-          <v-group
-            :config="{
-              id: element.id,
-              x: element.x,
-              y: element.y,
-              width: element.width,
-              height: element.height,
-              rotation: element.rotation,
-              visible: isLayerVisible(element.layerId),
-              // 连线模式下禁用组件拖拽，避免端口拖拽被组件拖动劫持；元素级锁定同理
-              draggable: !isLayerLocked(element.layerId) && !element.locked && uiStore.activeTool !== 'connect',
-              dragBoundFunc: canvasStore.canvasConfig.snapToGrid ? gridSnapFunc : undefined,
-            }"
-            @click="onElementClick(element, $event)"
-            @contextmenu="onElementContextMenu(element, $event)"
-            @mouseenter="setHovered(element.id)"
-            @mouseleave="setHovered(null)"
-            @dragstart="onDragStart(element, $event)"
-            @dragmove="onDragMove(element, $event)"
-            @dragend="onDragEnd(element, $event)"
-            @transformend="onTransformEnd(element.id)"
-          >
-            <!-- 2.5D 体积：投影 + 侧面 -->
-            <v-ellipse
-              v-if="depthShadowConfig(element, uiStore.viewMode === '25d')"
-              :config="depthShadowConfig(element, uiStore.viewMode === '25d')!"
-            />
-            <v-rect
-              v-if="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')"
-              :config="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')!"
-            />
-
-            <!-- 组件主体 -->
-            <v-rect
-              :config="{
-                width: element.width,
-                height: element.height,
-                fill: getElementColor(element),
-                stroke: canvasStore.selectedIds.includes(element.id) ? '#00d4aa' : '#444',
-                strokeWidth: canvasStore.selectedIds.includes(element.id) ? 2 : 1,
-                cornerRadius: 4,
-              }"
-            />
-
-            <!-- 2.5D 顶面高光 -->
-            <v-rect
-              v-if="depthHighlightConfig(element, uiStore.viewMode === '25d')"
-              :config="depthHighlightConfig(element, uiStore.viewMode === '25d')!"
-            />
-
-            <!-- 组件图形 -->
-            <v-image
-              v-if="getIconImageConfig(element)"
-              :config="getIconImageConfig(element)"
-            />
-
-            <!-- 图片组件：用户配置的图片 -->
-            <v-image
-              v-if="getUserImageConfig(element)"
-              :config="getUserImageConfig(element)"
-            />
-
-            <!-- 管道内液体流动 -->
-            <v-line
-              v-if="element.type === 'pipe'"
-              :config="pipeFlowConfig(element)"
-            />
-
-            <!-- 底部标签条 -->
-            <v-rect
-              :config="{
-                y: element.height - getLabelHeight(element),
-                width: element.width,
-                height: getLabelHeight(element),
-                fill: 'rgba(10,14,26,0.55)',
-                cornerRadius: [0, 0, 4, 4],
-                listening: false,
-              }"
-            />
-
-            <!-- 组件名称 -->
-            <v-text
-              :config="{
-                text: element.name,
-                fontSize: 11,
-                fill: '#e0e0e0',
-                width: element.width,
-                align: 'center',
-                y: element.height - getLabelHeight(element) + 2,
-                listening: false,
-              }"
-            />
-
-            <!-- 数值显示图元：绑定变量的格式化值居中大字展示 -->
-            <v-text
-              v-if="isDisplayElement(element)"
-              :config="{
-                text: getDisplayValueText(element),
-                fontSize: 18,
-                fontStyle: 'bold',
-                fill: '#8fe6d3',
-                width: element.width,
-                align: 'center',
-                y: (element.height - getLabelHeight(element)) / 2 - 9,
-                listening: false,
-              }"
-            />
-
-            <!-- 实时数值 -->
-            <v-text
-              v-else-if="getElementValueText(element)"
-              :config="{
-                text: getElementValueText(element),
-                fontSize: 9,
-                fill: '#8fe6d3',
-                width: element.width,
-                align: 'center',
-                y: element.height - 11,
-                listening: false,
-              }"
-            />
-
-            <!-- 端口（连线模式下显示） -->
-            <template v-if="uiStore.activeTool === 'connect'">
-              <v-circle
-                v-for="port in getElementPorts(element)"
-                :key="port.id"
-                :config="{
-                  x: port.x,
-                  y: port.y,
-                  radius: 6,
-                  fill: '#1a1a2e',
-                  stroke: '#00d4aa',
-                  strokeWidth: 2,
-                }"
-                @mousedown="beginConnection(element.id, port.position)"
-              />
-            </template>
-          </v-group>
-        </template>
-
-        <!-- 选中变换器 -->
         <v-transformer
           v-if="canvasStore.selectedIds.length"
           ref="transformerRef"
           :config="transformerConfig"
         />
       </v-layer>
-
-      <!-- 对齐参考线与框选框 -->
       <v-layer :config="{ listening: false }">
         <v-rect
           v-if="selectionRect"
@@ -318,12 +193,12 @@ import { useElementSelection } from '@/core/canvas/useElementSelection'
 import { useConnectionDraw } from '@/core/canvas/useConnectionDraw'
 import { useElementDrag } from '@/core/canvas/useElementDrag'
 import { usePipeFlow } from '@/core/canvas/pipeFlow'
-import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import CanvasRuler from '@/components/layout/CanvasRuler.vue'
 import MiniMap from '@/components/layout/MiniMap.vue'
 import ContextMenu from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
+import CanvasElements from '@/core/canvas/CanvasElements.vue'
 import { useCanvasContextMenu } from '@/core/canvas/useCanvasContextMenu'
 import type { ComponentInstance } from '@/types/scada'
 
@@ -354,18 +229,6 @@ const drag = useElementDrag({
 
 const { stageSize, stageConfig, beginPan, movePan, endPan, onWheel, navigateTo } = viewport
 const { gridGroupConfig, canvasBackgroundConfig, canvasBorderConfig, smallGridLines, largeGridLines } = grid
-const {
-  getElementColor,
-  getElementValueText,
-  isDisplayElement,
-  getDisplayValueText,
-  getLabelHeight,
-  getIconImageConfig,
-  getUserImageConfig,
-  isLayerLocked,
-  isLayerVisible,
-  getElementPorts,
-} = visuals
 
 const { pipeFlowConfig } = usePipeFlow()
 

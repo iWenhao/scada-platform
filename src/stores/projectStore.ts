@@ -1,15 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useCanvasStore } from './canvasStore'
-import { useConnectionStore } from './connectionStore'
-import { useLayerStore } from './layerStore'
 import { usePageStore } from './pageStore'
 import { getStorage } from '@/storage'
 import type { DataSourceConfig } from '@/datasource/types'
 import type { AlarmDefinition } from '@/types/alarm'
 import { normalizeAlarmDef } from '@/types/alarm'
-import { createPageId, type ScadaPage } from '@/types/page'
-import { createTagId, type TagDef, type WritePolicy } from '@/types/tag'
+import type { ScadaPage } from '@/types/page'
+import type { TagDef, WritePolicy } from '@/types/tag'
+import { migrateLegacyToPages, normalizeTagList } from './projectLoad'
 import { publishedKey as pubKey, parsePublishedAt } from './projectPublish'
 
 export const useProjectStore = defineStore('project', () => {
@@ -78,24 +76,6 @@ export const useProjectStore = defineStore('project', () => {
   /**
    * 旧工程（单画面）包成一张「主页」
    */
-  function migrateLegacyToPages(projectData: Record<string, any>): ScadaPage[] {
-    const canvasStore = useCanvasStore()
-    const connectionStore = useConnectionStore()
-    const layerStore = useLayerStore()
-
-    // 先装入旧数据再抓快照，复用各 store 的解析逻辑
-    if (projectData.canvas) canvasStore.loadFromJSON(projectData.canvas)
-    if (projectData.connections) connectionStore.loadFromJSON(projectData.connections)
-    if (projectData.layers) layerStore.loadFromJSON(projectData.layers)
-
-    const pageStore = usePageStore()
-    return [{
-      id: createPageId(),
-      name: '主页',
-      ...pageStore.captureWorkingSet(),
-    }]
-  }
-
   /**
    * 应用加载到的工程数据（加载 / 导入共用）
    */
@@ -119,23 +99,7 @@ export const useProjectStore = defineStore('project', () => {
       : []
 
     // 点表：过滤缺 deviceId/name 的坏行
-    tagTable.value = Array.isArray(projectData.tagTable)
-      ? projectData.tagTable
-          .filter((t: any) => t && t.deviceId && t.name)
-          .map((t: any) => ({
-            id: t.id || createTagId(),
-            deviceId: String(t.deviceId),
-            name: String(t.name),
-            description: t.description || undefined,
-            unit: t.unit || undefined,
-            dataType: t.dataType === 'string' || t.dataType === 'boolean' ? t.dataType : 'number',
-            min: typeof t.min === 'number' ? t.min : undefined,
-            max: typeof t.max === 'number' ? t.max : undefined,
-            writable: t.writable === undefined ? undefined : !!t.writable,
-            deadband: typeof t.deadband === 'number' && t.deadband > 0 ? t.deadband : undefined,
-            note: t.note || undefined,
-          }))
-      : []
+    tagTable.value = normalizeTagList(projectData.tagTable)
 
     // 旧工程没有 writePolicy 字段，回落 allow 保持原行为
     writePolicy.value =
