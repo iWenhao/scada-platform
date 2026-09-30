@@ -143,6 +143,7 @@ import TagTableDialog from '@/components/dialogs/TagTableDialog.vue'
 import TopNav from './TopNav.vue'
 import ProjectCard from './ProjectCard.vue'
 import type { ProjectRow } from './types'
+import { thumbKey } from '@/core/canvas/thumbnail'
 import demoProjectJson from '../../../examples/demo-project.json?raw'
 import './dashboard.scss'
 
@@ -244,15 +245,24 @@ async function loadRecentProjects() {
         const data = raw ? JSON.parse(raw) : null
         const publishedAt = await projectStore.getPublishedAt(name)
         const pageCount = Array.isArray(data?.pages) ? data.pages.length : 1
+        const thumb = await getStorage().get(thumbKey(name))
         return {
           name,
           lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
           publishedAt,
           pageCount,
           timestamp: data?.timestamp || 0,
+          thumbnail: thumb || null,
         }
       } catch {
-        return { name, lastModified: '未知', publishedAt: null, pageCount: 1, timestamp: 0 }
+        return {
+          name,
+          lastModified: '未知',
+          publishedAt: null,
+          pageCount: 1,
+          timestamp: 0,
+          thumbnail: null,
+        }
       }
     }),
   )

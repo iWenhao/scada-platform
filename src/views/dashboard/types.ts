@@ -5,4 +5,6 @@ export interface ProjectRow {
   publishedAt: number | null
   pageCount: number
   timestamp: number
+  /** 画布缩略图 data URL，无则用占位示意图 */
+  thumbnail?: string | null
 }

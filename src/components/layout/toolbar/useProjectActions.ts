@@ -2,6 +2,8 @@ import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useProjectStore } from '@/stores/projectStore'
 import { useHistory } from '@/core/canvas/useHistory'
+import { captureCanvasThumbnail, thumbKey } from '@/core/canvas/thumbnail'
+import { getStorage } from '@/storage'
 
 /** 工程级操作：保存/导入导出/预览/重命名/返回主页 */
 export function useProjectActions() {
@@ -52,6 +54,18 @@ export function useProjectActions() {
   async function handleSave() {
     saveState()
     await projectStore.saveProject()
+    await saveThumbnail()
+  }
+
+  /** 保存后截一张画布缩略图，供首页卡片展示 */
+  async function saveThumbnail() {
+    const url = captureCanvasThumbnail()
+    if (!url) return
+    try {
+      await getStorage().set(thumbKey(projectStore.projectName), url)
+    } catch {
+      // 缩略图失败不影响保存
+    }
   }
 
   function handleExportImage() {
@@ -119,6 +133,7 @@ export function useProjectActions() {
     }
     await projectStore.saveProject()
     await projectStore.publishProject()
+    await saveThumbnail()
     ElMessage.success('已发布，预览将显示该版本')
   }
 

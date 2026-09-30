@@ -1,7 +1,8 @@
 <template>
   <div class="project-card" :class="{ published: !!project.publishedAt }">
     <div class="thumb">
-      <div class="thumb-scene">
+      <img v-if="project.thumbnail" :src="project.thumbnail" class="thumb-img" :alt="project.name" />
+      <div v-else class="thumb-scene">
         <div class="node n1" />
         <div class="node n2" />
         <div class="node n3" />
@@ -102,3 +103,13 @@ function formatTime(t: number) {
   return new Date(t).toLocaleString()
 }
 </script>
+
+<style scoped>
+.thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+</style>
