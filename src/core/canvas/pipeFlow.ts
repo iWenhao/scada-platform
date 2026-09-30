@@ -28,15 +28,16 @@ export function usePipeFlow() {
     const show = props.showFlow !== false
     const direction = props.flowDirection === 'reverse' ? 'reverse' : 'forward'
     const speed = Math.max(0, Number(props.flowSpeed) || 1)
-    // 方向决定 dash 推进方向
+    // 首次渲染即启动全局 RAF，否则 offset 永不推进
+    ensureTicker()
     const dir = direction === 'reverse' ? -1 : 1
     const dashOffset = -dir * offset.value * speed * 0.6
 
     return {
       points: [8, element.height / 2, element.width - 8, element.height / 2],
-      stroke: 'rgba(0, 212, 170, 0.85)',
-      strokeWidth: 3,
-      dash: [10, 8],
+      stroke: 'rgba(0, 212, 170, 0.9)',
+      strokeWidth: Math.max(2, element.height * 0.08),
+      dash: [12, 10],
       dashOffset,
       lineCap: 'round' as const,
       visible: show,
