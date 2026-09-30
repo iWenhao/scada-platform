@@ -64,26 +64,8 @@
           :config="pipeFlowConfig(element)"
         />
 
-        <!-- 标签条 -->
-        <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
-        <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
-
-        <!-- 数值显示图元 -->
-        <v-text
-          v-if="isDisplayElement(element)"
-          :config="{
-            text: getDisplayValueText(element),
-            fontSize: 18,
-            fontStyle: 'bold',
-            fill: '#8fe6d3',
-            width: element.width,
-            align: 'center',
-            y: (element.height - getLabelHeight(element)) / 2 - 9,
-            listening: false,
-          }"
-        />
-        <!-- 实时值胶囊 -->
-        <template v-else-if="getElementValueText(element)">
+        <!-- 实时值（有绑定时显示） -->
+        <template v-if="getElementValueText(element)">
           <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
           <v-text :config="valueTextConfig(element, getElementValueText(element))" />
         </template>
@@ -118,8 +100,6 @@ import {
   bodyShadowConfig,
   bodyFillConfig,
   bodyTopGlowConfig,
-  labelBarConfig,
-  labelTextConfig,
   valuePillConfig,
   valueTextConfig,
 } from '@/core/canvas/elementChrome'
@@ -163,11 +143,8 @@ const viewMode25d = computed(() => props.viewMode === '25d')
 
 const {
   getElementColor,
-  getLabelHeight,
   getIconImageConfig,
   getUserImageConfig,
-  isDisplayElement,
-  getDisplayValueText,
   getElementValueText,
   getElementPorts,
   isLayerVisible,
