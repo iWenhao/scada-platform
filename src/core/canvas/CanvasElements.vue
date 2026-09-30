@@ -44,7 +44,8 @@
         <v-rect
           :config="bodyFillConfig(element, getElementColor(element), selectedIds.includes(element.id))"
         />
-        <v-rect :config="bodyTopGlowConfig(element)" />
+        <!-- 顶部高光与数值胶囊位置重合，数值隐藏时一并隐藏，避免残留浅色胶囊底 -->
+        <v-rect v-if="isValueShown(element)" :config="bodyTopGlowConfig(element)" />
 
         <v-rect
           v-if="depthHighlightConfig(element, viewMode25d)"

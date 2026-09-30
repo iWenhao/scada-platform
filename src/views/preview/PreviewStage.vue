@@ -33,7 +33,8 @@
             />
             <v-rect :config="bodyShadowConfig(element)" />
             <v-rect :config="bodyFillConfig(element, getElementColor(element), false)" />
-            <v-rect :config="bodyTopGlowConfig(element)" />
+            <!-- 顶部高光与数值胶囊位置重合，数值隐藏时一并隐藏（与编辑器一致） -->
+            <v-rect v-if="isValueShown(element)" :config="bodyTopGlowConfig(element)" />
             <v-rect
               v-if="depthHighlightConfig(element, uiStore.viewMode === '25d')"
               :config="depthHighlightConfig(element, uiStore.viewMode === '25d')!"
