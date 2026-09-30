@@ -92,6 +92,13 @@ pnpm lint               # ESLint
   - 拆法：对话框/面板按区块拆子组件；样式外置 `*.scss`；逻辑抽 `use*.ts` composable；服务端按域拆 `lib/` 或 `notify/` 类模块；
   - 拆完必须 `vue-tsc --noEmit` + `vitest run` 通过，行为保持不变；
   - 数据/图标定义类长文件（如 `industrial/**` 组件目录）可例外，不必硬拆。
+- **收尾硬性检查（必做，不可跳过）**：每次功能改完、准备提交前，必须统计 `src/**` 与 `server/**` 下 `*.ts` / `*.vue` / `*.mjs` 行数；发现超过上述阈值的文件，**当次拆完再提交**，禁止「先提交超长文件以后再拆」。可用：
+
+  ```bash
+  Get-ChildItem src,server -Recurse -Include *.ts,*.vue,*.mjs |
+    ForEach-Object { [PSCustomObject]@{ Lines=(Get-Content $_.FullName | Measure-Object -Line).Lines; Path=$_.FullName } } |
+    Where-Object { $_.Lines -gt 400 } | Sort-Object Lines -Descending
+  ```
 
 ## 测试
 
