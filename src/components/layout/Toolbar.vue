@@ -55,12 +55,10 @@
 
         <el-tooltip :content="uiStore.viewMode === '25d' ? '切换平面 2D' : '切换立体 2.5D'" placement="bottom">
           <el-button
-            class="btn-viewmode"
             :type="uiStore.viewMode === '25d' ? 'primary' : 'default'"
             @click="uiStore.toggleViewMode()"
           >
-            <el-icon><Box /></el-icon>
-            {{ uiStore.viewMode === '25d' ? '2.5D' : '2D' }}
+            <ToolIcon :name="uiStore.viewMode === '25d' ? 'view-25d' : 'view-2d'" />
           </el-button>
         </el-tooltip>
 

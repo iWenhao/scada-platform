@@ -134,6 +134,18 @@
       <path d="M5.5 19.5 c1.2-3.2 3.6-4.8 6.5-4.8 s5.3 1.6 6.5 4.8" />
     </g>
 
+    <!-- 2D / 2.5D 视图 -->
+    <g v-else-if="name === 'view-2d'">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M4 12 H20 M12 4 V20" opacity="0.55" />
+    </g>
+    <g v-else-if="name === 'view-25d'">
+      <path d="M4 10 L12 6 L20 10 L20 18 L12 22 L4 18 Z" fill="currentColor" fill-opacity="0.12" />
+      <path d="M4 10 L12 6 L20 10 L12 14 Z" />
+      <path d="M12 14 V22" />
+      <path d="M4 10 V18 L12 22 V14 Z" opacity="0.75" />
+    </g>
+
     <!-- 默认：圆点占位 -->
     <circle v-else cx="12" cy="12" r="4" />
   </svg>
