@@ -6,6 +6,14 @@ import type { ComponentInstance } from '@/types/scada'
 
 type StageRef = { value: { getNode: () => any } | null }
 
+/** 拖入画布时放大到可读尺寸（原定义偏小，挤在一起看不清） */
+function fitDropSize(w: number, h: number) {
+  return {
+    width: Math.round(Math.max(w * 1.6, 110)),
+    height: Math.round(Math.max(h * 1.6, 80)),
+  }
+}
+
 /**
  * 组件/模板拖入画布：解析 dataTransfer，生成元素实例。
  */
@@ -33,15 +41,16 @@ export function useCanvasDrop(stageRef: StageRef) {
 
     if (data.kind === 'template' && data.template) {
       const tpl = data.template
+      const size = fitDropSize(tpl.width, tpl.height)
       const fromTemplate: ComponentInstance = {
         id: `el_${Date.now()}`,
         type: tpl.baseType,
         templateId: tpl.id,
         deviceId: deviceStore.suggestDeviceId(tpl.baseType),
-        x: pointerPosition.x - tpl.width / 2,
-        y: pointerPosition.y - tpl.height / 2,
-        width: tpl.width,
-        height: tpl.height,
+        x: pointerPosition.x - size.width / 2,
+        y: pointerPosition.y - size.height / 2,
+        width: size.width,
+        height: size.height,
         rotation: 0,
         name: tpl.name,
         layerId: layerStore.activeLayerId,
@@ -55,14 +64,15 @@ export function useCanvasDrop(stageRef: StageRef) {
       return
     }
 
+    const size = fitDropSize(data.defaultWidth || 100, data.defaultHeight || 80)
     const newElement: ComponentInstance = {
       id: `el_${Date.now()}`,
       type: data.type,
       deviceId: deviceStore.suggestDeviceId(data.type),
-      x: pointerPosition.x - data.defaultWidth / 2,
-      y: pointerPosition.y - data.defaultHeight / 2,
-      width: data.defaultWidth,
-      height: data.defaultHeight,
+      x: pointerPosition.x - size.width / 2,
+      y: pointerPosition.y - size.height / 2,
+      width: size.width,
+      height: size.height,
       rotation: 0,
       name: data.name,
       layerId: layerStore.activeLayerId,
