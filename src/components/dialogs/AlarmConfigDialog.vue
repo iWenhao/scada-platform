@@ -107,7 +107,6 @@
         </el-form-item>
       </el-form>
       </div>
-      </div>
 
       <div class="edit-actions">
         <el-button @click="cancelEdit">取消</el-button>
