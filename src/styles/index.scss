@@ -26,8 +26,45 @@ html, body {
 a {
   color: var(--accent-primary);
   text-decoration: none;
-  
+
   &:hover {
     color: var(--accent-secondary);
+  }
+}
+
+// ---- 键盘焦点（统一描边，暗色亮色主题都可见） ----
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+// ---- 文本选中色（深色背景下的默认蓝选区太突兀） ----
+::selection {
+  background: rgba(0, 212, 170, 0.25);
+  color: inherit;
+}
+
+// ---- 数值等宽：SCADA 界面数值跳动时不抖动 ----
+.tabular-nums,
+.dashboard-card .stat-value,
+.canvas-info span,
+.live-var-value,
+.trend-value,
+.alarm-value {
+  font-variant-numeric: tabular-nums;
+}
+
+// ---- Firefox 滚动条（与 ::-webkit-scrollbar 视觉一致） ----
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-secondary) transparent;
+}
+
+// ---- 无障碍：系统设置减少动效时关闭过渡/动画 ----
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

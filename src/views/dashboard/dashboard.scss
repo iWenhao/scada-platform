@@ -383,6 +383,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  // 悬停卡片时才展开操作按钮，保持卡片整洁
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.project-card:hover .card-actions,
+.project-card:focus-within .card-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .project-card.ghost {
