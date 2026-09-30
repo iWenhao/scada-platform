@@ -22,6 +22,9 @@
         @dragend="emit('drag-end', element, $event)"
         @transformend="emit('transform-end', element.id)"
       >
+        <!-- 命中层（不可见，保证可选中/拖拽/缩放） -->
+        <v-rect :config="hitAreaConfig(element)" />
+
         <!-- 2.5D 体积 -->
         <v-ellipse
           v-if="depthShadowConfig(element, viewMode25d)"
@@ -107,6 +110,7 @@ import { computed } from 'vue'
 import type { ComponentInstance } from '@/types/scada'
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import {
+  hitAreaConfig,
   bodyShadowConfig,
   bodyFillConfig,
   bodyTopGlowConfig,

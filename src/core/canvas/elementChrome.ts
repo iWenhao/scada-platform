@@ -1,5 +1,19 @@
 import type { ComponentInstance } from '@/types/scada'
 
+/**
+ * 命中层：透明矩形，保证 group 可点选/拖拽/变换。
+ * 装饰层均为 listening:false，否则 Konva 找不到命中目标。
+ */
+export function hitAreaConfig(element: ComponentInstance) {
+  return {
+    width: element.width,
+    height: element.height,
+    fill: 'transparent',
+    cornerRadius: 10,
+    listening: true,
+  }
+}
+
 /** 元素外框阴影 */
 export function bodyShadowConfig(element: ComponentInstance) {
   return {

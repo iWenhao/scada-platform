@@ -22,6 +22,7 @@
             }"
             @click="emit('element-click', element)"
           >
+            <v-rect :config="hitAreaConfig(element)" />
             <v-ellipse
               v-if="depthShadowConfig(element, uiStore.viewMode === '25d')"
               :config="depthShadowConfig(element, uiStore.viewMode === '25d')!"
@@ -112,6 +113,7 @@ import { useLayerStore } from '@/stores/layerStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import { usePipeFlow } from '@/core/canvas/pipeFlow'
 import {
+  hitAreaConfig,
   bodyShadowConfig,
   bodyFillConfig,
   bodyTopGlowConfig,
