@@ -22,8 +22,12 @@
         @dragend="emit('drag-end', element, $event)"
         @transformend="emit('transform-end', element.id)"
       >
-        <!-- 命中层（不可见，保证可选中/拖拽/缩放） -->
-        <v-rect :config="hitAreaConfig(element)" />
+        <!-- 命中层（不可见，保证可选中/拖拽/缩放/右键） -->
+        <v-rect
+          :config="hitAreaConfig(element)"
+          @click="emit('element-click', element, $event)"
+          @contextmenu="emit('element-contextmenu', element, $event)"
+        />
 
         <!-- 2.5D 体积 -->
         <v-ellipse

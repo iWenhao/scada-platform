@@ -343,7 +343,10 @@ function onMouseUp(_e: any) {
     return
   }
 
-  finishOnMouseUp()
+  // 连线完成后回到选择工具，否则元素一直不可拖拽
+  if (finishOnMouseUp()) {
+    uiStore.setActiveTool('select')
+  }
 }
 
 // 点击元素：Shift+点击切换选中（多选），普通点击单选；连线选中清除

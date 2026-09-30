@@ -2,7 +2,6 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
-import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import { saveDeviceTemplate, templateFromElement } from '@/industrial/templateLibrary'
 import type { ContextMenuItem } from '@/components/layout/ContextMenu.vue'
@@ -15,7 +14,6 @@ import type { ComponentInstance } from '@/types/scada'
 export function useCanvasContextMenu() {
   const canvasStore = useCanvasStore()
   const connectionStore = useConnectionStore()
-  const uiStore = useUiStore()
   const { saveState } = useHistory()
 
   const ctxMenuVisible = ref(false)
@@ -60,7 +58,7 @@ export function useCanvasContextMenu() {
 
   function onElementContextMenu(element: ComponentInstance, e: { evt: MouseEvent }) {
     e.evt.preventDefault()
-    if (uiStore.activeTool === 'connect') return
+    // 右键菜单任何工具下都可用（原先连线模式下静默忽略，会让人以为坏了）
     canvasStore.selectElement(element.id)
     ctxMenuX.value = e.evt.clientX
     ctxMenuY.value = e.evt.clientY
