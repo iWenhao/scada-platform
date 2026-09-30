@@ -1,5 +1,5 @@
 <template>
-  <div class="preview-canvas">
+  <div class="preview-canvas" :style="canvasGridStyle">
     <v-stage :config="stageConfig">
       <v-layer>
         <ConnectionLine
@@ -141,6 +141,16 @@ const connectionStore = useConnectionStore()
 const deviceStore = useDeviceStore()
 const layerStore = useLayerStore()
 
+/** 画布配置 → CSS 网格变量（与编辑器共用） */
+const canvasGridStyle = computed(() => {
+  const cfg = canvasStore.canvasConfig
+  const style: Record<string, string> = {}
+  if (cfg.gridColor) style['--ws-grid-color'] = cfg.gridColor
+  if (cfg.gridSize) style['--ws-grid-size'] = `${cfg.gridSize}px`
+  if (cfg.backgroundColor) style['background-color'] = cfg.backgroundColor
+  return style
+})
+
 const {
   getElementColor,
   getElementValueText,
@@ -208,9 +218,9 @@ const stageConfig = computed(() => ({
     right: 0;
     bottom: 0;
     background-image:
-      linear-gradient(var(--grid-color) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-    background-size: 20px 20px;
+      linear-gradient(var(--ws-grid-color, var(--grid-color)) 1px, transparent 1px),
+      linear-gradient(90deg, var(--ws-grid-color, var(--grid-color)) 1px, transparent 1px);
+    background-size: var(--ws-grid-size, 20px) var(--ws-grid-size, 20px);
     opacity: 0.5;
     pointer-events: none;
   }

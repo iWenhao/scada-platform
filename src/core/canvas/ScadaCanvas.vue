@@ -30,6 +30,7 @@
           ref="stageContainerRef"
           class="stage-container"
           :class="{ 'grid-off': !canvasStore.canvasConfig.showGrid }"
+          :style="canvasGridStyle"
         >
           <v-stage
             ref="stageRef"
@@ -168,7 +169,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -219,6 +220,16 @@ const drag = useElementDrag({
 
 const { stageSize, stageConfig, beginPan, movePan, endPan, onWheel, navigateTo } = viewport
 const { gridGroupConfig, canvasBackgroundConfig, canvasBorderConfig } = grid
+
+/** 画布配置 → CSS 网格变量（颜色/密度/底色） */
+const canvasGridStyle = computed(() => {
+  const cfg = canvasStore.canvasConfig
+  const style: Record<string, string> = {}
+  if (cfg.gridColor) style['--ws-grid-color'] = cfg.gridColor
+  if (cfg.gridSize) style['--ws-grid-size'] = `${cfg.gridSize}px`
+  if (cfg.backgroundColor) style['background-color'] = cfg.backgroundColor
+  return style
+})
 
 const { pipeFlowConfig } = usePipeFlow()
 
