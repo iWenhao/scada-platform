@@ -64,10 +64,23 @@
           :config="pipeFlowConfig(element)"
         />
 
-        <!-- 实时值（开关打开且绑定了变量时显示） -->
-        <template v-if="showLabels && getElementValueText(element)">
-          <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
-          <v-text :config="valueTextConfig(element, getElementValueText(element))" />
+        <!-- 名称与实时值（开关打开时显示） -->
+        <template v-if="showLabels">
+          <v-text
+            :config="{
+              text: element.name,
+              fontSize: 11,
+              fill: '#dce8ee',
+              width: element.width,
+              align: 'center',
+              y: element.height + 3,
+              listening: false,
+            }"
+          />
+          <template v-if="getElementValueText(element)">
+            <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
+            <v-text :config="valueTextConfig(element, getElementValueText(element))" />
+          </template>
         </template>
 
         <!-- 连线端口 -->
