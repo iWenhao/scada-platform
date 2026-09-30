@@ -10,11 +10,14 @@
       :connection-status="deviceStore.connectionStatus"
       :last-update-time="lastUpdateTime"
       :can-go-back="navStack.canBack"
+      :auto-rotate="autoRotate"
       @back="backToEditor"
       @nav-back="goBackPage"
       @switch-page="switchPage"
       @toggle-write-lock="toggleWriteLock"
       @open-audit="showAuditLog = true"
+      @toggle-rotate="toggleAutoRotate"
+      @fullscreen="toggleFullscreen"
     />
 
     <PreviewStage @element-click="handleElementClick" />
@@ -64,6 +67,32 @@ const { promptWriteValue } = useWriteValue()
 const navStack = new PageNavStack()
 
 const showAuditLog = ref(false)
+const autoRotate = ref(false)
+let rotateTimer: number | null = null
+
+function toggleAutoRotate() {
+  autoRotate.value = !autoRotate.value
+  if (autoRotate.value) {
+    rotateTimer = window.setInterval(() => {
+      if (pageStore.pages.length < 2) return
+      const idx = pageStore.pages.findIndex(p => p.id === pageStore.activePageId)
+      const next = pageStore.pages[(idx + 1) % pageStore.pages.length]
+      switchPage(next.id)
+    }, 15000)
+  } else if (rotateTimer) {
+    clearInterval(rotateTimer)
+    rotateTimer = null
+  }
+}
+
+function toggleFullscreen() {
+  const el = document.documentElement
+  if (!document.fullscreenElement) {
+    void el.requestFullscreen?.()
+  } else {
+    void document.exitFullscreen?.()
+  }
+}
 const showTrendDialog = ref(false)
 const trendDeviceId = ref('')
 const trendVariable = ref('')
@@ -173,6 +202,7 @@ watch(
 )
 
 onUnmounted(() => {
+  if (rotateTimer) clearInterval(rotateTimer)
   deviceStore.disconnect()
   if (updateInterval) {
     clearInterval(updateInterval)

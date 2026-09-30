@@ -133,6 +133,17 @@
       </div>
 
       <ChartOverlay />
+      <FloatingActions
+        :visible="!!canvasStore.selectedElement"
+        :x="floatPos.x"
+        :y="floatPos.y"
+        :locked="!!canvasStore.selectedElement?.locked"
+        @copy="handleCopyFromCanvas"
+        @delete="handleDeleteFromCanvas"
+        @toggle-lock="toggleLockSelected"
+        @bring-front="bringFront"
+        @send-back="sendBack"
+      />
 
 
           <MiniMap
@@ -189,6 +200,9 @@ import MiniMap from '@/components/layout/MiniMap.vue'
 import ContextMenu from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
+import FloatingActions from '@/core/canvas/FloatingActions.vue'
+import { useFloatingActions } from '@/core/canvas/useFloatingActions'
+import { useCanvasDrop } from '@/core/canvas/useCanvasDrop'
 import CanvasElements from '@/core/canvas/CanvasElements.vue'
 import { useCanvasContextMenu } from '@/core/canvas/useCanvasContextMenu'
 import type { ComponentInstance } from '@/types/scada'
@@ -241,6 +255,15 @@ const { alignGuides, gridSnapFunc, onDragStart, onDragMove, onDragEnd, onTransfo
 // 右键菜单（复制/模板/删除/锁定）
 const { ctxMenuVisible, ctxMenuX, ctxMenuY, ctxMenuItems, onElementContextMenu } =
   useCanvasContextMenu()
+
+const {
+  floatPos,
+  handleCopyFromCanvas,
+  handleDeleteFromCanvas,
+  toggleLockSelected,
+  bringFront,
+  sendBack,
+} = useFloatingActions()
 
 // 变换器配置
 const transformerConfig = {
@@ -340,69 +363,7 @@ function selectConnection(id: string) {
 }
 
 // 拖放处理
-function onDrop(e: DragEvent) {
-  e.preventDefault()
-  const dataStr = e.dataTransfer!.getData('component')
-  if (!dataStr) return
-
-  const data = JSON.parse(dataStr)
-  const stage = stageRef.value.getNode()
-
-  // 设置Konva的指针位置
-  stage.setPointersPositions(e)
-
-  // 获取相对于当前变换的指针位置
-  const pointerPosition = stage.getRelativePointerPosition()
-
-  if (!pointerPosition) {
-    console.warn('无法获取指针位置')
-    return
-  }
-
-  // 设备模板：带出属性/绑定/规则；普通组件走注册表默认值
-  if (data.kind === 'template' && data.template) {
-    const tpl = data.template
-    const fromTemplate: ComponentInstance = {
-      id: `el_${Date.now()}`,
-      type: tpl.baseType,
-      templateId: tpl.id,
-      deviceId: deviceStore.suggestDeviceId(tpl.baseType),
-      x: pointerPosition.x - tpl.width / 2,
-      y: pointerPosition.y - tpl.height / 2,
-      width: tpl.width,
-      height: tpl.height,
-      rotation: 0,
-      name: tpl.name,
-      layerId: layerStore.activeLayerId,
-      properties: JSON.parse(JSON.stringify(tpl.properties || {})),
-      statusRules: JSON.parse(JSON.stringify(tpl.statusRules || [])),
-      dataBindings: JSON.parse(JSON.stringify(tpl.dataBindings || [])),
-      locked: tpl.locked,
-    }
-    canvasStore.addElement(fromTemplate)
-    saveState()
-    return
-  }
-
-  const newElement: ComponentInstance = {
-    id: `el_${Date.now()}`,
-    type: data.type,
-    deviceId: deviceStore.suggestDeviceId(data.type),
-    x: pointerPosition.x - data.defaultWidth / 2,
-    y: pointerPosition.y - data.defaultHeight / 2,
-    width: data.defaultWidth,
-    height: data.defaultHeight,
-    rotation: 0,
-    name: data.name,
-    layerId: layerStore.activeLayerId,
-    properties: { ...data.defaultConfig },
-    statusRules: [...data.statusRules],
-    dataBindings: [...data.dataBindings],
-  }
-
-  canvasStore.addElement(newElement)
-  saveState()
-}
+const { onDrop } = useCanvasDrop(stageRef)
 
 // 按工程保存的数据源配置连接；切换或加载工程时自动切到对应数据源
 watch(

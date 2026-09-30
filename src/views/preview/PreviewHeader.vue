@@ -71,6 +71,18 @@
         <span class="btn-ico">{{ writeLocked ? '🔒' : '🔓' }}</span>
       </button>
 
+      <button
+        class="hud-btn icon"
+        type="button"
+        :class="{ on: autoRotate }"
+        :title="autoRotate ? '停止轮播' : '自动轮播画面'"
+        @click="emit('toggle-rotate')"
+      >
+        <span class="btn-ico">▶▶</span>
+      </button>
+      <button class="hud-btn icon" type="button" title="全屏" @click="emit('fullscreen')">
+        <span class="btn-ico">⛶</span>
+      </button>
       <button class="hud-btn icon" type="button" title="写值审计" @click="emit('open-audit')">
         <span class="btn-ico">📋</span>
       </button>
@@ -98,6 +110,7 @@ const props = defineProps<{
   connectionStatus: 'connected' | 'error' | 'connecting' | string
   lastUpdateTime: string
   canGoBack: boolean
+  autoRotate?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -106,6 +119,8 @@ const emit = defineEmits<{
   'switch-page': [id: string]
   'toggle-write-lock': []
   'open-audit': []
+  'toggle-rotate': []
+  fullscreen: []
 }>()
 
 const alarmOpen = ref(false)
@@ -182,6 +197,12 @@ const connText = computed(() => {
   &.danger {
     border-color: rgba(255, 71, 87, 0.55);
     background: rgba(255, 71, 87, 0.12);
+  }
+
+  &.on {
+    border-color: rgba(0, 212, 170, 0.65);
+    background: rgba(0, 212, 170, 0.18);
+    color: #b8fff0;
   }
 
   &.locked {
@@ -353,5 +374,31 @@ const connText = computed(() => {
   background: rgba(14, 20, 36, 0.96);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
   z-index: 30;
+}
+
+@media (max-width: 720px) {
+  .hud-bar {
+    height: auto;
+    min-height: 52px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .page-pills {
+    max-width: 100%;
+    order: 3;
+    width: 100%;
+  }
+
+  .brand-sub {
+    display: none;
+  }
+
+  .stat-chip {
+    padding: 0 8px;
+    height: 28px;
+    font-size: 11px;
+  }
 }
 </style>
