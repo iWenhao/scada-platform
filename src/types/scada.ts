@@ -39,8 +39,15 @@ export interface ComponentInstance {
   layerId: string
   /** 元素级锁定：锁定后不可拖动/缩放/旋转 */
   locked?: boolean
-  /** 是否在画布上显示名称与实时数值（默认 true，旧数据无此字段视为显示） */
+  /**
+   * 旧版合并开关：名称与实时数值一起显示/隐藏（默认 true，旧数据无此字段视为显示）。
+   * 已拆分为 showName / showValue；拆分字段缺省时依次回退到本字段，保证旧画面渲染不变。
+   */
   showLabel?: boolean
+  /** 是否显示名称标签条（新组件默认 false，仅当未设置时回退 showLabel） */
+  showName?: boolean
+  /** 是否显示实时数值（新组件默认 false，仅当未设置时回退 showLabel） */
+  showValue?: boolean
   /**
    * 运行时点击跳转的目标画面 ID（多画面导航）。
    * 未设置表示不跳转；目标画面不存在时预览端忽略。

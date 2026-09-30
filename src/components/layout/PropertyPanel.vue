@@ -19,10 +19,17 @@
       <div class="property-section">
         <div class="section-title">显示</div>
         <div class="property-item">
-          <div class="property-label">名称与实时数值</div>
+          <div class="property-label">显示名称</div>
           <el-switch
-            :model-value="selectedElement.showLabel !== false"
-            @change="(v: any) => updateElement({ showLabel: !!v })"
+            :model-value="isNameShown(selectedElement)"
+            @change="(v: any) => updateElement({ showName: !!v })"
+          />
+        </div>
+        <div class="property-item">
+          <div class="property-label">显示实时数值</div>
+          <el-switch
+            :model-value="isValueShown(selectedElement)"
+            @change="(v: any) => updateElement({ showValue: !!v })"
           />
         </div>
       </div>
@@ -65,6 +72,7 @@ import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
 import ConnectionProperties from './property/ConnectionProperties.vue'
 import ElementGeometry from './property/ElementGeometry.vue'
 import ElementBinding from './property/ElementBinding.vue'
+import { isNameShown, isValueShown } from '@/core/canvas/elementChrome'
 import type { ComponentInstance, StatusRule } from '@/types/scada'
 import type { ConnectionStyle, ConnectionType } from '@/types/connection'
 

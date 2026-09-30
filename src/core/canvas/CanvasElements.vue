@@ -64,15 +64,15 @@
           :config="pipeFlowConfig(element)"
         />
 
-        <!-- 标签条（showLabel !== false 时显示） -->
-        <template v-if="element.showLabel !== false">
+        <!-- 名称标签条（showName 开关，旧数据回退 showLabel） -->
+        <template v-if="isNameShown(element)">
           <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
           <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
         </template>
 
         <!-- 数值显示图元 -->
         <v-text
-          v-if="isDisplayElement(element) && element.showLabel !== false"
+          v-if="isDisplayElement(element) && isValueShown(element)"
           :config="{
             text: getDisplayValueText(element),
             fontSize: 18,
@@ -85,7 +85,7 @@
           }"
         />
         <!-- 实时值胶囊 -->
-        <template v-else-if="element.showLabel !== false && getElementValueText(element)">
+        <template v-else-if="isValueShown(element) && getElementValueText(element)">
           <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
           <v-text :config="valueTextConfig(element, getElementValueText(element))" />
         </template>
@@ -124,6 +124,8 @@ import {
   labelTextConfig,
   valuePillConfig,
   valueTextConfig,
+  isNameShown,
+  isValueShown,
 } from '@/core/canvas/elementChrome'
 
 type Visuals = {
@@ -145,7 +147,6 @@ const props = defineProps<{
   activeTool: string
   snapToGrid: boolean
   viewMode: string
-  showLabels: boolean
   visuals: Visuals
   pipeFlowConfig: (e: ComponentInstance) => any
   gridSnapFunc: any

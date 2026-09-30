@@ -54,6 +54,9 @@ export function useCanvasDrop(stageRef: StageRef) {
         rotation: 0,
         name: tpl.name,
         layerId: layerStore.activeLayerId,
+        // 新组件默认只显示图形主体，名称/实时数值由属性面板按需打开
+        showName: false,
+        showValue: false,
         properties: JSON.parse(JSON.stringify(tpl.properties || {})),
         statusRules: JSON.parse(JSON.stringify(tpl.statusRules || [])),
         dataBindings: JSON.parse(JSON.stringify(tpl.dataBindings || [])),
@@ -76,6 +79,9 @@ export function useCanvasDrop(stageRef: StageRef) {
       rotation: 0,
       name: data.name,
       layerId: layerStore.activeLayerId,
+      // 新组件默认只显示图形主体，名称/实时数值由属性面板按需打开
+      showName: false,
+      showValue: false,
       properties: { ...data.defaultConfig },
       statusRules: [...data.statusRules],
       dataBindings: [...data.dataBindings],

@@ -75,7 +75,6 @@
         :active-tool="uiStore.activeTool"
         :snap-to-grid="!!canvasStore.canvasConfig.snapToGrid"
         :view-mode="uiStore.viewMode"
-        :show-labels="uiStore.showLabels"
         :visuals="visuals"
         :pipe-flow-config="pipeFlowConfig"
         :grid-snap-func="gridSnapFunc"

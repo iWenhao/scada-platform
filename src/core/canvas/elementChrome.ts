@@ -1,6 +1,19 @@
 import type { ComponentInstance } from '@/types/scada'
 
 /**
+ * 名称/数值显示开关解析（纯函数，编辑器与预览页共用）。
+ * 兼容旧数据：拆分字段（showName/showValue）缺省时回退旧合并开关 showLabel，
+ * 两者都未设置时视为显示——旧画面渲染效果保持不变。
+ */
+export function isNameShown(element: ComponentInstance): boolean {
+  return element.showName ?? element.showLabel ?? true
+}
+
+export function isValueShown(element: ComponentInstance): boolean {
+  return element.showValue ?? element.showLabel ?? true
+}
+
+/**
  * 命中层：透明矩形，保证 group 可点选/拖拽/变换。
  * 装饰层均为 listening:false，否则 Konva 找不到命中目标。
  */

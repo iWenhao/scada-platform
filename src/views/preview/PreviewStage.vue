@@ -50,20 +50,13 @@
               v-if="element.type === 'pipe'"
               :config="pipeFlowConfig(element)"
             />
-            <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
-            <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
+            <!-- 名称标签条（showName 开关，与编辑器渲染保持一致） -->
+            <template v-if="isNameShown(element)">
+              <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
+              <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
+            </template>
             <v-text
-              :config="{
-                text: element.name,
-                fontSize: 11,
-                fill: '#e0e0e0',
-                width: element.width,
-                align: 'center',
-                y: element.height - getLabelHeight(element) + 2,
-              }"
-            />
-            <v-text
-              v-if="isDisplayElement(element)"
+              v-if="isDisplayElement(element) && isValueShown(element)"
               :config="{
                 text: getDisplayValueText(element),
                 fontSize: 18,
@@ -75,7 +68,7 @@
               }"
             />
             <v-text
-              v-else-if="getElementValueText(element)"
+              v-else-if="isValueShown(element) && getElementValueText(element)"
               :config="{
                 text: getElementValueText(element),
                 fontSize: 9,
@@ -119,6 +112,8 @@ import {
   bodyTopGlowConfig,
   labelBarConfig,
   labelTextConfig,
+  isNameShown,
+  isValueShown,
 } from '@/core/canvas/elementChrome'
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import { useUiStore } from '@/stores/uiStore'
