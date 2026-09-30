@@ -39,14 +39,10 @@ export function bodyFillConfig(
   return {
     width: element.width,
     height: element.height,
-    fill: color,
-    opacity: 0.22,
+    fill: 'transparent',
     cornerRadius: 10,
     stroke: selected ? '#00d4aa' : color,
-    strokeWidth: selected ? 2.5 : 1.5,
-    shadowColor: 'rgba(0,0,0,0.35)',
-    shadowBlur: selected ? 10 : 4,
-    shadowOffset: { x: 0, y: 2 },
+    strokeWidth: selected ? 2.5 : 1,
     listening: false,
   }
 }
