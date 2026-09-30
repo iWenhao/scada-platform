@@ -30,16 +30,9 @@
               v-if="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')"
               :config="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')!"
             />
-            <v-rect
-              :config="{
-                width: element.width,
-                height: element.height,
-                fill: getElementColor(element),
-                stroke: '#444',
-                strokeWidth: 1,
-                cornerRadius: 4,
-              }"
-            />
+            <v-rect :config="bodyShadowConfig(element)" />
+            <v-rect :config="bodyFillConfig(element, getElementColor(element), false)" />
+            <v-rect :config="bodyTopGlowConfig(element)" />
             <v-rect
               v-if="depthHighlightConfig(element, uiStore.viewMode === '25d')"
               :config="depthHighlightConfig(element, uiStore.viewMode === '25d')!"
@@ -56,15 +49,8 @@
               v-if="element.type === 'pipe'"
               :config="pipeFlowConfig(element)"
             />
-            <v-rect
-              :config="{
-                y: element.height - getLabelHeight(element),
-                width: element.width,
-                height: getLabelHeight(element),
-                fill: 'rgba(10,14,26,0.55)',
-                cornerRadius: [0, 0, 4, 4],
-              }"
-            />
+            <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
+            <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
             <v-text
               :config="{
                 text: element.name,
@@ -125,6 +111,13 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import { usePipeFlow } from '@/core/canvas/pipeFlow'
+import {
+  bodyShadowConfig,
+  bodyFillConfig,
+  bodyTopGlowConfig,
+  labelBarConfig,
+  labelTextConfig,
+} from '@/core/canvas/elementChrome'
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import { useUiStore } from '@/stores/uiStore'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'

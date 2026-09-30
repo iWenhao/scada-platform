@@ -32,17 +32,12 @@
           :config="depthSideConfig(element, getElementColor(element), viewMode25d)!"
         />
 
-        <!-- 组件主体 -->
+        <!-- 阴影 + 主体卡片 -->
+        <v-rect :config="bodyShadowConfig(element)" />
         <v-rect
-          :config="{
-            width: element.width,
-            height: element.height,
-            fill: getElementColor(element),
-            stroke: selectedIds.includes(element.id) ? '#00d4aa' : '#444',
-            strokeWidth: selectedIds.includes(element.id) ? 2 : 1,
-            cornerRadius: 4,
-          }"
+          :config="bodyFillConfig(element, getElementColor(element), selectedIds.includes(element.id))"
         />
+        <v-rect :config="bodyTopGlowConfig(element)" />
 
         <v-rect
           v-if="depthHighlightConfig(element, viewMode25d)"
@@ -63,28 +58,10 @@
         />
 
         <!-- 标签条 -->
-        <v-rect
-          :config="{
-            y: element.height - getLabelHeight(element),
-            width: element.width,
-            height: getLabelHeight(element),
-            fill: 'rgba(10,14,26,0.55)',
-            cornerRadius: [0, 0, 4, 4],
-          }"
-        />
-        <v-text
-          :config="{
-            text: element.name,
-            fontSize: 11,
-            fill: '#e0e0e0',
-            width: element.width,
-            align: 'center',
-            y: element.height - getLabelHeight(element) + 2,
-            listening: false,
-          }"
-        />
+        <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
+        <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
 
-        <!-- 数值显示 / 实时值 -->
+        <!-- 数值显示图元 -->
         <v-text
           v-if="isDisplayElement(element)"
           :config="{
@@ -98,18 +75,11 @@
             listening: false,
           }"
         />
-        <v-text
-          v-else-if="getElementValueText(element)"
-          :config="{
-            text: getElementValueText(element),
-            fontSize: 9,
-            fill: '#8fe6d3',
-            width: element.width,
-            align: 'center',
-            y: element.height - 11,
-            listening: false,
-          }"
-        />
+        <!-- 实时值胶囊 -->
+        <template v-else-if="getElementValueText(element)">
+          <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
+          <v-text :config="valueTextConfig(element, getElementValueText(element))" />
+        </template>
 
         <!-- 连线端口 -->
         <template v-if="activeTool === 'connect'">
@@ -136,6 +106,15 @@
 import { computed } from 'vue'
 import type { ComponentInstance } from '@/types/scada'
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
+import {
+  bodyShadowConfig,
+  bodyFillConfig,
+  bodyTopGlowConfig,
+  labelBarConfig,
+  labelTextConfig,
+  valuePillConfig,
+  valueTextConfig,
+} from '@/core/canvas/elementChrome'
 
 type Visuals = {
   getElementColor: (e: ComponentInstance) => string
@@ -155,14 +134,11 @@ const props = defineProps<{
   selectedIds: string[]
   activeTool: string
   snapToGrid: boolean
-  /** '2d' | '25d' */
   viewMode: string
   visuals: Visuals
   pipeFlowConfig: (e: ComponentInstance) => any
   gridSnapFunc: any
 }>()
-
-const viewMode25d = computed(() => props.viewMode === '25d')
 
 const emit = defineEmits<{
   'element-click': [e: ComponentInstance, evt: any]
@@ -174,6 +150,8 @@ const emit = defineEmits<{
   'transform-end': [id: string]
   'port-down': [id: string, port: any]
 }>()
+
+const viewMode25d = computed(() => props.viewMode === '25d')
 
 const {
   getElementColor,
