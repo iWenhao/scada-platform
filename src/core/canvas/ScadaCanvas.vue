@@ -26,7 +26,11 @@
           :viewport="stageSize.height"
         />
 
-        <div ref="stageContainerRef" class="stage-container">
+        <div
+          ref="stageContainerRef"
+          class="stage-container"
+          :class="{ 'grid-off': !canvasStore.canvasConfig.showGrid }"
+        >
           <v-stage
             ref="stageRef"
             :config="stageConfig"
@@ -35,25 +39,11 @@
             @mouseup="onMouseUp"
             @wheel="onWheel"
           >
-      <!-- 网格图层 -->
+      <!-- 网格图层（网格由 stage-container CSS 绘制，与预览一致） -->
       <v-layer>
         <v-group :config="gridGroupConfig">
           <!-- 底色（必须在网格之下） -->
           <v-rect :config="canvasBackgroundConfig" />
-          <!-- 小网格 -->
-          <template v-if="canvasStore.canvasConfig.showGrid">
-            <v-line
-              v-for="line in smallGridLines"
-              :key="line.id"
-              :config="line.config"
-            />
-            <!-- 大网格 -->
-            <v-line
-              v-for="line in largeGridLines"
-              :key="line.id"
-              :config="line.config"
-            />
-          </template>
 
           <!-- 画布边界 -->
           <v-rect :config="canvasBorderConfig" />
@@ -228,7 +218,7 @@ const drag = useElementDrag({
 })
 
 const { stageSize, stageConfig, beginPan, movePan, endPan, onWheel, navigateTo } = viewport
-const { gridGroupConfig, canvasBackgroundConfig, canvasBorderConfig, smallGridLines, largeGridLines } = grid
+const { gridGroupConfig, canvasBackgroundConfig, canvasBorderConfig } = grid
 
 const { pipeFlowConfig } = usePipeFlow()
 

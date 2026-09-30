@@ -14,13 +14,13 @@ export function useGridLines(canvasStore: CanvasStore) {
     listening: false,
   }))
 
-  // 画布底色（先画，避免盖住网格）
+  // 画布底色：透明，网格与背景由 stage-container 的 CSS 绘制（与预览一致）
   const canvasBackgroundConfig = computed(() => ({
     x: 0,
     y: 0,
     width: canvasStore.canvasConfig.width,
     height: canvasStore.canvasConfig.height,
-    fill: canvasStore.canvasConfig.backgroundColor || '#1e1e1e',
+    fill: 'transparent',
     listening: false,
   }))
 

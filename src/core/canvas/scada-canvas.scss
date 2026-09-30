@@ -46,6 +46,27 @@
   position: relative;
   min-width: 0;
   overflow: hidden;
+
+  /* 与预览页 preview-canvas 相同的 CSS 网格 */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &.grid-off::before {
+    display: none;
+  }
 }
 
 /* 图表 overlay：铺满 stage 容器，指针事件穿透给 Konva */
