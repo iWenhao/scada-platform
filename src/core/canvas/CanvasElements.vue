@@ -64,8 +64,8 @@
           :config="pipeFlowConfig(element)"
         />
 
-        <!-- 实时值（有绑定时显示） -->
-        <template v-if="getElementValueText(element)">
+        <!-- 实时值（开关打开且绑定了变量时显示） -->
+        <template v-if="showLabels && getElementValueText(element)">
           <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
           <v-text :config="valueTextConfig(element, getElementValueText(element))" />
         </template>
@@ -123,6 +123,7 @@ const props = defineProps<{
   activeTool: string
   snapToGrid: boolean
   viewMode: string
+  showLabels: boolean
   visuals: Visuals
   pipeFlowConfig: (e: ComponentInstance) => any
   gridSnapFunc: any

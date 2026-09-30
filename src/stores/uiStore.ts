@@ -56,6 +56,18 @@ export const useUiStore = defineStore('ui', () => {
   // 是否显示小地图
   const showMinimap = ref<boolean>(false)
 
+  // 是否显示组件名称与实时数值（默认关闭，画布保持干净；异步恢复偏好）
+  const showLabels = ref<boolean>(false)
+  getStorage()
+    .get('scada_show_labels')
+    .then(v => { showLabels.value = v === 'true' })
+    .catch(() => {})
+
+  function toggleShowLabels() {
+    showLabels.value = !showLabels.value
+    void getStorage().set('scada_show_labels', String(showLabels.value))
+  }
+
   /**
    * 组件渲染风格：2d 平面 / 25d 立体感（投影+侧面+高光）。
    * 会话级偏好，不随工程保存，避免老工程打开画风突变。
@@ -161,6 +173,8 @@ export const useUiStore = defineStore('ui', () => {
     showPorts,
     showRuler,
     showMinimap,
+    showLabels,
+    toggleShowLabels,
     viewMode,
     setViewMode,
     toggleViewMode,

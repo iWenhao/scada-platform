@@ -146,6 +146,12 @@
       <path d="M4 10 V18 L12 22 V14 Z" opacity="0.75" />
     </g>
 
+    <!-- 标签开关 -->
+    <g v-else-if="name === 'label'">
+      <rect x="4" y="6" width="16" height="12" rx="2" />
+      <text x="12" y="14.5" text-anchor="middle" font-size="6.5" fill="currentColor" stroke="none" font-weight="bold">Ab</text>
+    </g>
+
     <!-- 默认：圆点占位 -->
     <circle v-else cx="12" cy="12" r="4" />
   </svg>

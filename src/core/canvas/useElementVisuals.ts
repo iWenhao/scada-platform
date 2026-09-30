@@ -24,7 +24,16 @@ export function useElementVisuals(options: {
   function getElementColor(element: ComponentInstance): string {
     const data = deviceStore.getDeviceData(element.deviceId || element.id)
     const status = statusEngine.evaluate(element.statusRules, data)
-    return status?.color || '#2a2a2a'
+    return status?.color || '#8fe6d3'
+  }
+
+  /**
+   * 图标颜色：有状态规则时用状态色（与 getElementColor 一致），
+   * 没有规则时用中性灰（和画布网格/边框保持协调）。
+   */
+  function getIconStrokeColor(element: ComponentInstance): string {
+    if (!element.statusRules?.length) return '#8fe6d3'
+    return getElementColor(element)
   }
 
   /**
@@ -94,14 +103,15 @@ export function useElementVisuals(options: {
   // 图标加载完成后递增以触发画布重绘
   const iconVersion = ref(0)
 
-  // 组件图形（SVG 图标按比例适配到元素内部）
+  // 组件图形（SVG 图标按比例适配到元素内部；线条颜色跟随状态色）
   function getIconImageConfig(element: ComponentInstance) {
     // 图片组件由用户图整块渲染，不再叠默认图标
     if (element.type === 'image' && element.properties?.imageUrl) return null
     const def = getComponentDefinition(element.type)
     if (!def?.icon) return null
 
-    const img = getIconImage(element.type, def.icon, '#e8f0ef', () => {
+    const strokeColor = getIconStrokeColor(element)
+    const img = getIconImage(element.type, def.icon, strokeColor, () => {
       iconVersion.value++
     })
     if (!img) return null
@@ -171,6 +181,7 @@ export function useElementVisuals(options: {
 
   return {
     getElementColor,
+    getIconStrokeColor,
     getElementValueText,
     isDisplayElement,
     getDisplayValueText,
