@@ -173,18 +173,32 @@
 
       .card-actions {
         position: absolute;
-        top: 4px;
-        right: 4px;
-        display: none;
+        top: 3px;
+        right: 3px;
+        display: flex;
         gap: 2px;
+        opacity: 0.75;
+        transition: opacity 0.15s;
 
         .el-icon {
           cursor: pointer;
           color: var(--text-secondary);
+          width: 18px;
+          height: 18px;
+          border-radius: 4px;
+          padding: 1px;
+          background: rgba(0, 0, 0, 0.25);
 
           &:hover {
             color: var(--accent-danger);
+            background: rgba(255, 71, 87, 0.15);
           }
+        }
+      }
+
+      &:hover .card-actions {
+        opacity: 1;
+      }
         }
       }
 
@@ -198,9 +212,7 @@
       }
     }
 
-    .component-item:hover .card-actions {
-      display: flex;
-    }
+    
   }
 }
 
