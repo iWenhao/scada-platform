@@ -16,3 +16,52 @@
   position: relative;
   box-shadow: var(--shadow-lg);
 }
+
+.stage-container {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.empty-hint {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0.72;
+  z-index: 4;
+  user-select: none;
+}
+
+.hint-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  border-radius: 16px;
+  border: 1px dashed rgba(0, 212, 170, 0.55);
+  color: var(--accent-primary);
+  font-size: 28px;
+  line-height: 54px;
+  background: rgba(0, 212, 170, 0.08);
+}
+
+.hint-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.hint-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.hint-keys {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}

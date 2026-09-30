@@ -255,6 +255,17 @@
       </v-layer>
     </v-stage>
 
+      <!-- 空画布引导 -->
+      <div
+        v-if="!canvasStore.elements.length"
+        class="empty-hint"
+      >
+        <div class="hint-icon">＋</div>
+        <div class="hint-title">画布还是空的</div>
+        <div class="hint-sub">从左侧组件库拖入设备，或导入示例工程快速体验</div>
+        <div class="hint-keys">V 选择 · L 连线 · H 平移 · Ctrl+Z 撤销</div>
+      </div>
+
       <ChartOverlay />
 
 
