@@ -71,6 +71,30 @@
   gap: 8px;
 }
 
+.btn-save {
+  min-width: 96px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.25), 0 4px 12px rgba(0, 212, 170, 0.2);
+
+  &:hover {
+    filter: brightness(1.08);
+  }
+}
+
+.unsaved-dot {
+  margin-left: 2px;
+  padding: 0 5px !important;
+  height: 8px !important;
+  min-width: 8px !important;
+  background: var(--accent-warning);
+  border: none;
+
+  :deep(.el-tag__content) {
+    display: none;
+  }
+}
+
 .user-chip {
   display: inline-flex;
   align-items: center;

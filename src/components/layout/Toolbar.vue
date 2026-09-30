@@ -162,12 +162,6 @@
       <el-divider direction="vertical" />
 
       <el-button-group>
-        <el-tooltip content="保存 (Ctrl+S)" placement="bottom">
-          <el-button @click="handleSave">
-            <ToolIcon name="save" />
-          </el-button>
-        </el-tooltip>
-
         <el-tooltip content="导出JSON" placement="bottom">
           <el-button @click="handleExport">
             <ToolIcon name="download" />
@@ -193,6 +187,14 @@
         <el-button @click="handlePublish">
           <ToolIcon name="publish" />
           发布
+        </el-button>
+      </el-tooltip>
+
+      <el-tooltip content="保存 (Ctrl+S)" placement="bottom">
+        <el-button class="btn-save" type="primary" @click="handleSave">
+          <ToolIcon name="save" />
+          保存
+          <el-tag v-if="projectStore.hasUnsavedChanges" size="small" class="unsaved-dot" />
         </el-button>
       </el-tooltip>
 
