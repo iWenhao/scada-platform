@@ -5,7 +5,7 @@ import { statusEngine } from '@/status/StatusEngine'
 import { getIconImage } from './iconImage'
 import { loadUserImage, fitRect } from './userImage'
 import { getComponentDefinition } from '@/industrial/registry'
-import { isValueShown } from './elementChrome'
+import { isValueShown, isPureShapeMode } from './elementChrome'
 import type { ComponentInstance } from '@/types/scada'
 import type { PortPosition } from '@/types/connection'
 
@@ -95,8 +95,9 @@ export function useElementVisuals(options: {
     return unit ? `${text} ${unit}` : text
   }
 
-  // 底部标签条高度（实时数值显示时更高；数值被开关隐藏或无绑定值时只放名称）
+  // 底部标签条高度（纯图形模式为 0，图标按整块区域居中；数值显示时更高）
   function getLabelHeight(element: ComponentInstance): number {
+    if (isPureShapeMode(element)) return 0
     if (isDisplayElement(element)) return 16
     return isValueShown(element) && getElementValueText(element) ? 26 : 16
   }

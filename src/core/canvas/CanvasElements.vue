@@ -39,9 +39,10 @@
           :config="depthSideConfig(element, getElementColor(element), viewMode25d)!"
         />
 
-        <!-- 阴影 + 主体卡片 -->
-        <v-rect :config="bodyShadowConfig(element)" />
+        <!-- 阴影 + 主体卡片（纯图形模式下不渲染，只留组件自身图形） -->
+        <v-rect v-if="!isPureShapeMode(element)" :config="bodyShadowConfig(element)" />
         <v-rect
+          v-if="!isPureShapeMode(element) || !hasIntrinsicGraphic(element)"
           :config="bodyFillConfig(element, getElementColor(element), selectedIds.includes(element.id))"
         />
         <!-- 顶部高光与数值胶囊位置重合，数值隐藏时一并隐藏，避免残留浅色胶囊底 -->
@@ -127,6 +128,8 @@ import {
   valueTextConfig,
   isNameShown,
   isValueShown,
+  isPureShapeMode,
+  hasIntrinsicGraphic,
 } from '@/core/canvas/elementChrome'
 
 type Visuals = {

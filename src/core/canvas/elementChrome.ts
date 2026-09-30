@@ -1,4 +1,5 @@
 import type { ComponentInstance } from '@/types/scada'
+import { getComponentDefinition } from '@/industrial/registry'
 
 /**
  * 名称/数值显示开关解析（纯函数，编辑器与预览页共用）。
@@ -11,6 +12,21 @@ export function isNameShown(element: ComponentInstance): boolean {
 
 export function isValueShown(element: ComponentInstance): boolean {
   return element.showValue ?? element.showLabel ?? true
+}
+
+/** 纯图形模式：名称与数值都隐藏，元素只呈现自身图形（不带卡片描边/投影） */
+export function isPureShapeMode(element: ComponentInstance): boolean {
+  return !isNameShown(element) && !isValueShown(element)
+}
+
+/**
+ * 元素是否自带可见的图形主体（SVG 图标 / 用户图片 / 管线线条）。
+ * 纯图形模式下没有自绘图形的元素（如数值显示面板）仍保留卡片描边，避免整块不可见。
+ */
+export function hasIntrinsicGraphic(element: ComponentInstance): boolean {
+  if (element.type === 'pipe') return true
+  if (element.type === 'image' && element.properties?.imageUrl) return true
+  return !!getComponentDefinition(element.type)?.icon
 }
 
 /**

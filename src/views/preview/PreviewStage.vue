@@ -31,8 +31,12 @@
               v-if="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')"
               :config="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')!"
             />
-            <v-rect :config="bodyShadowConfig(element)" />
-            <v-rect :config="bodyFillConfig(element, getElementColor(element), false)" />
+            <!-- 阴影 + 主体卡片（纯图形模式下不渲染，与编辑器一致） -->
+            <v-rect v-if="!isPureShapeMode(element)" :config="bodyShadowConfig(element)" />
+            <v-rect
+              v-if="!isPureShapeMode(element) || !hasIntrinsicGraphic(element)"
+              :config="bodyFillConfig(element, getElementColor(element), false)"
+            />
             <!-- 顶部高光与数值胶囊位置重合，数值隐藏时一并隐藏（与编辑器一致） -->
             <v-rect v-if="isValueShown(element)" :config="bodyTopGlowConfig(element)" />
             <v-rect
@@ -115,6 +119,8 @@ import {
   labelTextConfig,
   isNameShown,
   isValueShown,
+  isPureShapeMode,
+  hasIntrinsicGraphic,
 } from '@/core/canvas/elementChrome'
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import { useUiStore } from '@/stores/uiStore'

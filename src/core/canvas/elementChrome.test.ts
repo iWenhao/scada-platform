@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { isNameShown, isValueShown } from './elementChrome'
+import {
+  isNameShown,
+  isValueShown,
+  isPureShapeMode,
+  hasIntrinsicGraphic,
+} from './elementChrome'
+import { registerComponents } from '@/industrial/registry'
+import { basicComponents } from '@/industrial/basic'
 import type { ComponentInstance } from '@/types/scada'
+
+// hasIntrinsicGraphic 依赖组件注册表，测试前注册内置组件
+registerComponents(basicComponents)
 
 function makeElement(extra: Partial<ComponentInstance> = {}): ComponentInstance {
   return {
@@ -54,5 +64,22 @@ describe('elementChrome 显示开关解析', () => {
     const el = makeElement({ showLabel: false, showName: true })
     expect(isNameShown(el)).toBe(true)
     expect(isValueShown(el)).toBe(false)
+  })
+})
+
+describe('elementChrome 纯图形模式', () => {
+  it('名称与数值都隐藏时进入纯图形模式', () => {
+    expect(isPureShapeMode(makeElement({ showName: false, showValue: false }))).toBe(true)
+    expect(isPureShapeMode(makeElement({ showName: false, showValue: true }))).toBe(false)
+    expect(isPureShapeMode(makeElement({ showName: true, showValue: false }))).toBe(false)
+  })
+
+  it('自带图形主体的类型（管线/带图组件）在纯图形模式可安全去掉卡片', () => {
+    expect(hasIntrinsicGraphic(makeElement({ type: 'pipe' }))).toBe(true)
+    expect(hasIntrinsicGraphic(makeElement({ type: 'pump' }))).toBe(true)
+  })
+
+  it('无自绘图形的未知类型保留卡片描边兜底，避免元素不可见', () => {
+    expect(hasIntrinsicGraphic(makeElement({ type: 'not-exist-type' }))).toBe(false)
   })
 })
