@@ -11,11 +11,11 @@
     </div>
     <div class="nav-actions">
       <el-dropdown @command="(c: string) => emit('system', c)">
-        <el-button text>
-          <el-icon><Tools /></el-icon>
-          系统设置
-          <el-icon><ArrowDown /></el-icon>
-        </el-button>
+        <span class="sys-chip">
+          <span class="sys-ico">⚙</span>
+          <span class="sys-text">系统设置</span>
+          <el-icon class="sys-caret"><ArrowDown /></el-icon>
+        </span>
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="notify">通知通道</el-dropdown-item>
