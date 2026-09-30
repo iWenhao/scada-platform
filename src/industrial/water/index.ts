@@ -6,7 +6,7 @@ export const SedimentTankDefinition: ComponentDefinition = {
   name: '沉淀池',
   group: 'water',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M20,35 L20,60 Q20,80 50,84 Q80,80 80,60 L80,35" />
       <line x1="14" y1="35" x2="86" y2="35" />
       <line x1="22" y1="50" x2="78" y2="50" stroke-dasharray="5,3" opacity="0.6" />
@@ -61,7 +61,7 @@ export const SubPumpDefinition: ComponentDefinition = {
   name: '潜污泵',
   group: 'water',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="52" cy="55" r="18" />
       <polygon points="34,55 18,46 18,64" />
       <path d="M20,24 Q30,14 40,24 T60,24 T80,24" />

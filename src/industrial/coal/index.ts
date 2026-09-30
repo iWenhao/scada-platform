@@ -6,7 +6,7 @@ export const ShearerDefinition: ComponentDefinition = {
   name: '采煤机',
   group: 'coal',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <line x1="6" y1="80" x2="94" y2="80" />
       <rect x="38" y="46" width="24" height="26" />
       <circle cx="20" cy="60" r="13" />
@@ -69,7 +69,7 @@ export const RoadheaderDefinition: ComponentDefinition = {
   name: '掘进机',
   group: 'coal',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <rect x="40" y="64" width="46" height="16" rx="8" />
       <circle cx="53" cy="72" r="4" />
       <circle cx="74" cy="72" r="4" />
@@ -134,7 +134,7 @@ export const ConveyorDefinition: ComponentDefinition = {
   name: '皮带输送机',
   group: 'coal',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="18" cy="62" r="9" />
       <circle cx="82" cy="62" r="9" />
       <line x1="18" y1="53" x2="82" y2="53" />
@@ -192,7 +192,7 @@ export const FanDefinition: ComponentDefinition = {
   name: '通风机',
   group: 'coal',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <rect x="22" y="22" width="56" height="56" rx="4" />
       <circle cx="50" cy="50" r="6" />
       <line x1="50" y1="50" x2="30" y2="30" />
@@ -254,7 +254,7 @@ export const GasSensorDefinition: ComponentDefinition = {
   name: '瓦斯传感器',
   group: 'coal',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <rect x="30" y="48" width="40" height="34" rx="3" />
       <text x="50" y="70" text-anchor="middle" font-size="13" font-weight="bold" fill="currentColor" stroke="none">CH4</text>
       <line x1="50" y1="48" x2="50" y2="34" />
@@ -309,7 +309,7 @@ export const HoistDefinition: ComponentDefinition = {
   name: '提升机',
   group: 'coal',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="28,90 50,28 72,90" />
       <circle cx="50" cy="22" r="8" />
       <line x1="50" y1="30" x2="50" y2="58" />
@@ -363,7 +363,7 @@ export const CoalBunkerDefinition: ComponentDefinition = {
   name: '原煤仓',
   group: 'coal',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M30,14 L70,14 L70,50 L58,76 L42,76 L30,50 Z" />
       <line x1="30" y1="28" x2="70" y2="28" stroke-dasharray="5,3" opacity="0.6" />
       <rect x="44" y="76" width="12" height="8" />

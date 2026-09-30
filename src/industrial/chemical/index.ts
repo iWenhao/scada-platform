@@ -6,7 +6,7 @@ export const ReactorDefinition: ComponentDefinition = {
   name: '反应釜',
   group: 'chemical',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M30,22 L70,22 L70,58 Q70,80 50,84 Q30,80 30,58 Z" />
       <rect x="44" y="8" width="12" height="10" />
       <line x1="50" y1="18" x2="50" y2="62" />
@@ -62,7 +62,7 @@ export const HeatExchangerDefinition: ComponentDefinition = {
   name: '换热器',
   group: 'chemical',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="50" cy="50" r="28" />
       <path d="M22,50 L34,38 L46,62 L58,38 L70,62 L78,50" />
     </g>

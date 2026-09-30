@@ -32,8 +32,9 @@
     </div>
 
     <div v-else class="empty-state">
-      <el-icon :size="48"><Select /></el-icon>
-      <p>请选择一个组件</p>
+      <div class="empty-icon">⊞</div>
+      <p class="empty-title">未选中对象</p>
+      <p class="empty-sub">点击画布上的组件或连线，这里会显示属性</p>
     </div>
 
     <StatusRuleDialog
@@ -153,11 +154,34 @@ function handleStatusRulesConfirm(rules: StatusRule[]) {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+  padding: 24px;
+  text-align: center;
+}
 
-  p {
-    margin-top: 12px;
-    font-size: 14px;
-  }
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  border: 1px dashed var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: var(--accent-primary);
+  background: rgba(0, 212, 170, 0.08);
+  margin-bottom: 12px;
+}
+
+.empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.empty-sub {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 :deep(.el-input__wrapper) {

@@ -146,3 +146,15 @@
 :deep(.el-divider--vertical) {
   border-left-color: var(--border-primary);
 }
+
+@media (max-width: 1100px) {
+  .toolbar-center {
+    gap: 4px;
+    overflow-x: auto;
+    max-width: 55vw;
+  }
+
+  .zoom-level {
+    display: none;
+  }
+}

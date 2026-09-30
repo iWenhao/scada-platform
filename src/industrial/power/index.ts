@@ -6,7 +6,7 @@ export const TurbineDefinition: ComponentDefinition = {
   name: '汽轮机',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="20,35 80,35 70,65 30,65" />
       <line x1="30" y1="35" x2="30" y2="65" />
       <line x1="40" y1="35" x2="40" y2="65" />
@@ -62,7 +62,7 @@ export const GeneratorDefinition: ComponentDefinition = {
   name: '发电机',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="50" cy="50" r="30" />
       <text x="50" y="59" text-anchor="middle" font-size="26" font-weight="bold" fill="currentColor" stroke="none">G</text>
       <line x1="20" y1="80" x2="80" y2="80" />
@@ -116,7 +116,7 @@ export const BoilerDefinition: ComponentDefinition = {
   name: '锅炉',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <path d="M30,25 Q30,14 41,14 L59,14 Q70,14 70,25 L70,74 L30,74 Z" />
       <line x1="30" y1="56" x2="70" y2="56" stroke-dasharray="5,3" opacity="0.6" />
       <line x1="36" y1="14" x2="36" y2="5" />
@@ -171,7 +171,7 @@ export const TransformerDefinition: ComponentDefinition = {
   name: '变压器',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="35" cy="50" r="18" />
       <circle cx="65" cy="50" r="18" />
       <line x1="35" y1="32" x2="35" y2="12" />
@@ -226,7 +226,7 @@ export const BreakerDefinition: ComponentDefinition = {
   name: '断路器',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <line x1="12" y1="55" x2="40" y2="55" />
       <circle cx="44" cy="55" r="3" />
       <line x1="48" y1="55" x2="70" y2="34" />

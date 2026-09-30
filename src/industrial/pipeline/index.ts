@@ -5,7 +5,7 @@ export const PipeDefinition: ComponentDefinition = {
   name: '管道',
   group: 'pipeline',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <line x1="10" y1="35" x2="90" y2="35" />
       <line x1="10" y1="65" x2="90" y2="65" />
       <line x1="10" y1="40" x2="90" y2="40" stroke-width="1" opacity="0.5" />

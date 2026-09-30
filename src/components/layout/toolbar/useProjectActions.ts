@@ -124,7 +124,7 @@ export function useProjectActions() {
   async function handlePublish() {
     try {
       await ElMessageBox.confirm(
-        `将「${projectStore.projectName}」当前内容发布为运行版？\n之后编辑草稿不会影响预览，需再次发布才生效。`,
+        `发布「${projectStore.projectName}」为运行版？\n\n• 发布后预览/运行端显示该版本\n• 之后继续编辑草稿不影响值班画面\n• 需再次「发布」才会更新运行版\n\n当前内容：多画面、数据源、报警、点表一并快照。`,
         '发布工程',
         { type: 'warning', confirmButtonText: '发布', cancelButtonText: '取消' },
       )

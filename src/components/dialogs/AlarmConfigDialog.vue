@@ -50,6 +50,8 @@
 
     <!-- 编辑态 -->
     <template v-else>
+      <div class="section">
+        <div class="section-title">基本信息</div>
       <el-form label-width="90px" size="default">
         <el-form-item label="名称">
           <el-input v-model="form.name" placeholder="如：储罐液位过高" maxlength="30" />
@@ -104,6 +106,9 @@
           <div class="form-hint">条件持续满足该时长才真正报警；0 = 立即；用于过滤瞬时毛刺</div>
         </el-form-item>
       </el-form>
+      </div>
+      </div>
+
       <div class="edit-actions">
         <el-button @click="cancelEdit">取消</el-button>
         <el-button type="primary" @click="save">保存</el-button>

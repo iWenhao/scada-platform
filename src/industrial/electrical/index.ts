@@ -5,7 +5,7 @@ export const MotorDefinition: ComponentDefinition = {
   name: '电机',
   group: 'electrical',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <rect x="25" y="30" width="50" height="40" rx="5" />
       <line x1="75" y1="50" x2="90" y2="50" />
       <circle cx="90" cy="50" r="5" />
@@ -92,7 +92,7 @@ export const SensorDefinition: ComponentDefinition = {
   name: '传感器',
   group: 'electrical',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="3">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="50" cy="40" r="15" />
       <line x1="50" y1="55" x2="50" y2="85" />
       <rect x="45" y="80" width="10" height="10" />
