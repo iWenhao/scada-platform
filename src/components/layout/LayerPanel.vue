@@ -12,6 +12,7 @@
     </div>
     
     <div class="layer-list">
+      <div v-if="!layerStore.layers.length" class="empty-tip">暂无图层，点 + 添加</div>
       <div
         v-for="layer in layerStore.layers"
         :key="layer.id"
@@ -214,5 +215,12 @@ async function handleDeleteLayer(layerId: string) {
 
 :deep(.el-tag) {
   font-size: 11px;
+}
+
+.empty-tip {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 </style>
