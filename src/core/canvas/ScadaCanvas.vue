@@ -133,17 +133,7 @@
       </div>
 
       <ChartOverlay />
-      <FloatingActions
-        :visible="!!canvasStore.selectedElement"
-        :x="floatPos.x"
-        :y="floatPos.y"
-        :locked="!!canvasStore.selectedElement?.locked"
-        @copy="handleCopyFromCanvas"
-        @delete="handleDeleteFromCanvas"
-        @toggle-lock="toggleLockSelected"
-        @bring-front="bringFront"
-        @send-back="sendBack"
-      />
+
 
 
           <MiniMap
@@ -200,8 +190,6 @@ import MiniMap from '@/components/layout/MiniMap.vue'
 import ContextMenu from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
-import FloatingActions from '@/core/canvas/FloatingActions.vue'
-import { useFloatingActions } from '@/core/canvas/useFloatingActions'
 import { useCanvasDrop } from '@/core/canvas/useCanvasDrop'
 import CanvasElements from '@/core/canvas/CanvasElements.vue'
 import { useCanvasContextMenu } from '@/core/canvas/useCanvasContextMenu'
@@ -256,14 +244,6 @@ const { alignGuides, gridSnapFunc, onDragStart, onDragMove, onDragEnd, onTransfo
 const { ctxMenuVisible, ctxMenuX, ctxMenuY, ctxMenuItems, onElementContextMenu } =
   useCanvasContextMenu()
 
-const {
-  floatPos,
-  handleCopyFromCanvas,
-  handleDeleteFromCanvas,
-  toggleLockSelected,
-  bringFront,
-  sendBack,
-} = useFloatingActions()
 
 // 变换器配置
 const transformerConfig = {
