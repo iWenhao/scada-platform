@@ -64,13 +64,15 @@
           :config="pipeFlowConfig(element)"
         />
 
-        <!-- 标签条 -->
-        <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
-        <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
+        <!-- 标签条（showLabel !== false 时显示） -->
+        <template v-if="element.showLabel !== false">
+          <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
+          <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
+        </template>
 
         <!-- 数值显示图元 -->
         <v-text
-          v-if="isDisplayElement(element)"
+          v-if="isDisplayElement(element) && element.showLabel !== false"
           :config="{
             text: getDisplayValueText(element),
             fontSize: 18,
@@ -83,7 +85,7 @@
           }"
         />
         <!-- 实时值胶囊 -->
-        <template v-else-if="getElementValueText(element)">
+        <template v-else-if="element.showLabel !== false && getElementValueText(element)">
           <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
           <v-text :config="valueTextConfig(element, getElementValueText(element))" />
         </template>

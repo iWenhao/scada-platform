@@ -39,6 +39,8 @@ export interface ComponentInstance {
   layerId: string
   /** 元素级锁定：锁定后不可拖动/缩放/旋转 */
   locked?: boolean
+  /** 是否在画布上显示名称与实时数值（默认 true，旧数据无此字段视为显示） */
+  showLabel?: boolean
   /**
    * 运行时点击跳转的目标画面 ID（多画面导航）。
    * 未设置表示不跳转；目标画面不存在时预览端忽略。

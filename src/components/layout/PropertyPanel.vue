@@ -17,6 +17,17 @@
       <ElementBinding :element="selectedElement" @update="updateElement" />
 
       <div class="property-section">
+        <div class="section-title">显示</div>
+        <div class="property-item">
+          <div class="property-label">名称与实时数值</div>
+          <el-switch
+            :model-value="selectedElement.showLabel !== false"
+            @change="(v: any) => updateElement({ showLabel: !!v })"
+          />
+        </div>
+      </div>
+
+      <div class="property-section">
         <div class="section-title">状态规则</div>
         <el-button size="small" @click="showStatusRuleDialog = true">
           配置状态规则
