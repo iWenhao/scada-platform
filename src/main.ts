@@ -11,6 +11,14 @@ import App from './App.vue'
 import router from './router'
 import { getStorage, initStorage, resolveLocalNamespace } from '@/storage'
 
+// 启动时在浏览器控制台打印项目名称与版本，便于确认当前页面加载的前端构建。
+// 名称/版本由 vite.config.ts 的 define 从 package.json 注入，无需重复维护。
+console.log(
+  `%c ${__APP_NAME__} v${__APP_VERSION__} %c 开源工业组态可视化编辑平台 `,
+  'background:#2563eb;color:#fff;font-weight:bold;border-radius:3px 0 0 3px;padding:2px 8px;',
+  'background:#e8f0fe;color:#2563eb;border-radius:0 3px 3px 0;padding:2px 8px;',
+)
+
 // 挂载前探测存储后端并应用保存的主题, 保证所有页面(含首页)一致并避免闪屏
 const applyTheme = (t: 'light' | 'dark') => {
   document.documentElement.dataset.theme = t

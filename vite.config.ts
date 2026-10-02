@@ -1,12 +1,38 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import { readFileSync } from 'node:fs'
 import path from 'path'
 
+// 读取 package.json 的名称/版本/描述：终端启动横幅与浏览器控制台横幅共用。
+// 用 readFileSync 而非 JSON import，避免为 resolveJsonModule 单独调 tsconfig.node.json。
+const pkg = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf-8'),
+) as { name: string; version: string; description: string }
+
+// 启动横幅插件：dev server 启动时在终端打印项目名称与版本。
+// configureServer 早于 Vite 自身的地址输出执行，横幅会显示在「Local:」之上。
+function startupBannerPlugin(): Plugin {
+  const line = '─'.repeat(56)
+  const banner = `\n${line}\n  ${pkg.name} v${pkg.version} · ${pkg.description}\n${line}`
+  return {
+    name: 'scada-startup-banner',
+    configureServer() {
+      console.log(banner)
+    },
+  }
+}
+
 export default defineConfig({
+  define: {
+    // 注入 package.json 名称/版本，供 main.ts 在浏览器控制台打印启动横幅
+    __APP_NAME__: JSON.stringify(pkg.name),
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   plugins: [
+    startupBannerPlugin(),
     vue(),
     AutoImport({
       resolvers: [ElementPlusResolver()],

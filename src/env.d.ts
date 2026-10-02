@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+/** vite.config.ts define 注入：package.json 的项目名称 */
+declare const __APP_NAME__: string
+/** vite.config.ts define 注入：package.json 的项目版本 */
+declare const __APP_VERSION__: string
+
 declare module '*?raw' {
   const content: string
   export default content

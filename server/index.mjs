@@ -19,6 +19,7 @@
 //   POST/GET/DELETE /api/audit
 //   GET/PUT /api/notify/channels    POST /api/notify/test|send   GET/DELETE /api/notify/log
 import { createServer } from 'node:http'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAuthStore, roleAtLeast } from './auth.mjs'
@@ -55,6 +56,10 @@ import {
 import { appendAudit, readAudit } from './lib/audit.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// 读取 package.json 的名称与版本，仅用于启动横幅展示（相对入口文件定位，与运行目录无关）
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8'))
+
 const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : path.join(__dirname, 'data')
@@ -330,6 +335,9 @@ await auth.init()
 
 server.listen(PORT, () => {
   const authMode = AUTH_TOKEN ? '会话登录 + 服务主密钥' : '会话登录（无主密钥）'
+  // 启动横幅：与 Vite dev server 的终端横幅同款样式，便于区分两个进程的输出
+  const line = '─'.repeat(56)
+  console.log(`\n${line}\n  ${pkg.name} v${pkg.version} · 存储后端\n${line}`)
   console.log(
     `[scada-server] 已启动: http://localhost:${PORT} (数据目录 ${DATA_DIR}, CORS ${CORS_ORIGIN === '*' ? '*' : CORS_ORIGIN}, ${authMode}, 体积上限 ${MAX_BODY_BYTES}B, 历史保留 ${RETENTION_DAYS} 天)`
   )
