@@ -141,11 +141,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { ElMessage } from 'element-plus'
-import type { DataSourceConfig, DataSourceType } from '@/datasource/types'
+import type { DataSourceType } from '@/datasource/types'
+import { useDataSourceForm } from './useDataSourceForm'
 
 const props = defineProps<{
   modelValue: boolean
@@ -171,21 +172,20 @@ const typeOptions = [
   { value: 'mqtt' as DataSourceType, label: 'MQTT', desc: 'Broker over WS' },
 ]
 
-const form = reactive({
-  type: 'mock' as DataSourceType,
-  name: 'default',
-  url: '',
-  interval: 5000,
-})
-
-const autoReconnect = ref(true)
-const reconnectInterval = ref(5000)
-const mockInterval = ref(1000)
-const topicFilter = ref('#')
-const topicPrefix = ref('')
-const mqttUsername = ref('')
-const mqttPassword = ref('')
-const nodeList = ref('')
+// 表单状态与「配置 ↔ 表单」映射在 useDataSourceForm.ts
+const {
+  form,
+  autoReconnect,
+  reconnectInterval,
+  mockInterval,
+  topicFilter,
+  topicPrefix,
+  mqttUsername,
+  mqttPassword,
+  nodeList,
+  applyConfig,
+  buildConfig,
+} = useDataSourceForm()
 
 const liveDevices = computed(() => {
   const data = deviceStore.deviceData
@@ -220,62 +220,9 @@ const statusText = computed(() => {
 watch(
   () => props.modelValue,
   val => {
-    if (!val) return
-    const cfg = projectStore.dataSourceConfig
-    form.type = cfg.type
-    form.name = cfg.name || 'default'
-    form.url = cfg.url || ''
-    form.interval = cfg.interval || 5000
-    autoReconnect.value = cfg.reconnect ?? true
-    reconnectInterval.value = cfg.reconnectInterval || 5000
-    mockInterval.value = cfg.type === 'mock' ? cfg.interval || 1000 : 1000
-    const nodes = (cfg.options?.nodes as string[] | undefined) || []
-    nodeList.value = nodes.join('\n')
-    topicFilter.value = (cfg.options?.topicFilter as string) || '#'
-    topicPrefix.value = (cfg.options?.topicPrefix as string) || ''
-    mqttUsername.value = (cfg.options?.username as string) || ''
-    mqttPassword.value = (cfg.options?.password as string) || ''
+    if (val) applyConfig(projectStore.dataSourceConfig)
   },
 )
-
-function parseNodeList(): string[] {
-  return nodeList.value
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-}
-
-function buildConfig(): DataSourceConfig {
-  return {
-    type: form.type,
-    name: form.name,
-    url: form.url || undefined,
-    interval:
-      form.type === 'http'
-        ? form.interval
-        : form.type === 'mock'
-          ? mockInterval.value
-          : form.type === 'opcua'
-            ? form.interval
-            : undefined,
-    reconnect:
-      form.type === 'websocket' || form.type === 'opcua' || form.type === 'mqtt'
-        ? autoReconnect.value
-        : false,
-    reconnectInterval: reconnectInterval.value,
-    options:
-      form.type === 'opcua'
-        ? { nodes: parseNodeList() }
-        : form.type === 'mqtt'
-          ? {
-              topicFilter: topicFilter.value.trim() || '#',
-              topicPrefix: topicPrefix.value,
-              ...(mqttUsername.value ? { username: mqttUsername.value } : {}),
-              ...(mqttPassword.value ? { password: mqttPassword.value } : {}),
-            }
-          : undefined,
-  }
-}
 
 async function handleTest() {
   try {

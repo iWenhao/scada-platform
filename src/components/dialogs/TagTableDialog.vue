@@ -114,37 +114,41 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/stores/projectStore'
-import { usePageStore } from '@/stores/pageStore'
-import { useDeviceStore } from '@/stores/deviceStore'
 import LivePointsTable from './LivePointsTable.vue'
 import TagEditDialog from './TagEditDialog.vue'
 import { exportTagsCsv } from './useTagCsv'
+import { useTagLivePoints } from './useTagLivePoints'
+import { useTagBindings } from './useTagBindings'
 import {
   parseTagCsv,
   tagKey,
   createTagId,
-  findTag,
-  collectConditionVariables,
   computeImportSummary,
   WRITE_POLICY_TEXT,
   type TagDef,
   type WritePolicy,
 } from '@/types/tag'
-import { QUALITY_TEXT, QUALITY_TAG_TYPE, formatAge, isUsable } from '@/types/quality'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 const projectStore = useProjectStore()
-const pageStore = usePageStore()
-const deviceStore = useDeviceStore()
 
 const tags = ref<TagDef[]>([])
 const keyword = ref('')
-const liveKeyword = ref('')
 const activeTab = ref<'tags' | 'live'>('tags')
 const saving = ref(false)
 const writePolicy = ref<WritePolicy>('allow')
+
+// 实时数据页与绑定反查各自成模块，点表编辑逻辑留在本组件
+const { deviceStore, liveKeyword, filteredLive } = useTagLivePoints(tags)
+const { bindVisible, bindings, showBindings, bindingCount } = useTagBindings()
+
+const editVisible = ref(false)
+const editing = ref<TagDef | null>(null)
+const editingIndex = ref(-1)
+
+const fileInput = ref<HTMLInputElement | null>(null)
 
 /** 策略变化即提交（随工程保存） */
 function onPolicyChange(policy: WritePolicy) {
@@ -160,15 +164,6 @@ watch(
   },
 )
 
-const editVisible = ref(false)
-const editing = ref<TagDef | null>(null)
-const editingIndex = ref(-1)
-
-const bindVisible = ref(false)
-const bindings = ref<Array<{ pageName: string; elementName: string; type: string }>>([])
-
-const fileInput = ref<HTMLInputElement | null>(null)
-
 const filtered = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return tags.value
@@ -180,112 +175,8 @@ const filtered = computed(() => {
   )
 })
 
-/**
- * 实时点位：数据源已推送的所有设备.变量 + 点表元数据 + 质量信息。
- * 依赖 dataTick（每秒跳动的质量时钟）：质量会随时间退化为陈旧，
- * 上报时间的"Xs 前"也要每秒重算，没有它列表会停留在打开瞬间的状态。
- */
-const livePoints = computed(() => {
-  void deviceStore.dataTick // pinia 已解包：直接读数值，依赖它每秒触发重算
-  const now = Date.now()
-  const rows: Array<{
-    deviceId: string
-    variable: string
-    value: unknown
-    tag: TagDef | null
-    unit: string
-    description: string
-    qualityText: string
-    tagType: 'success' | 'warning' | 'info' | 'danger'
-    usable: boolean
-    ageText: string
-    lastAtFull: string
-  }> = []
-  const data = deviceStore.deviceData as Record<string, Record<string, unknown>>
-  for (const [deviceId, vars] of Object.entries(data)) {
-    for (const [variable, value] of Object.entries(vars || {})) {
-      const tag = findTag(tags.value, deviceId, variable)
-      const quality = deviceStore.qualityOf(deviceId, variable)
-      const lastAt = deviceStore.variableMeta[`${deviceId}.${variable}`]?.t
-      rows.push({
-        deviceId,
-        variable,
-        value,
-        tag,
-        unit: tag?.unit || '',
-        description: tag?.description || '',
-        qualityText: QUALITY_TEXT[quality],
-        tagType: QUALITY_TAG_TYPE[quality],
-        usable: isUsable(quality),
-        ageText: lastAt ? formatAge(lastAt, now) : '-',
-        lastAtFull: lastAt ? new Date(lastAt).toLocaleString('zh-CN', { hour12: false }) : '',
-      })
-    }
-  }
-  return rows
-})
-
-/** 质量统计：陈旧/无数据数量非零时在表头提示，一眼看出数据是否可信 */
-
-const filteredLive = computed(() => {
-  const kw = liveKeyword.value.trim().toLowerCase()
-  if (!kw) return livePoints.value
-  return livePoints.value.filter(
-    r =>
-      r.deviceId.toLowerCase().includes(kw) ||
-      r.variable.toLowerCase().includes(kw) ||
-      (r.description || '').toLowerCase().includes(kw),
-  )
-})
-
-
-
-
 function typeLabel(t: string) {
   return t === 'boolean' ? '布尔' : t === 'string' ? '字符串' : '数值'
-}
-
-function collectBindings(tag: TagDef) {
-  const rows: Array<{ pageName: string; elementName: string; type: string }> = []
-
-  // 数据绑定（元素/图表）
-  for (const page of pageStore.pages) {
-    for (const el of page.elements) {
-      const hit = el.dataBindings?.some(
-        b =>
-          b.variable === tagKey(tag) ||
-          (b.variable === tag.name && (el.deviceId === tag.deviceId || !el.deviceId)),
-      )
-      if (hit) {
-        rows.push({ pageName: page.name, elementName: el.name, type: el.type })
-        continue
-      }
-      // 状态规则引用（着色也会因该点位变化）
-      const ruleHit = el.deviceId === tag.deviceId || !el.deviceId
-        ? el.statusRules?.some(r => collectConditionVariables(r.condition).includes(tag.name))
-        : false
-      if (ruleHit) {
-        rows.push({ pageName: page.name, elementName: el.name, type: `${el.type}（状态规则）` })
-      }
-    }
-  }
-
-  // 报警定义（工程级，不属于任何画面）
-  for (const def of projectStore.alarmDefs) {
-    if (def.deviceId === tag.deviceId && def.variable === tag.name) {
-      rows.push({ pageName: '—', elementName: def.name, type: '报警定义' })
-    }
-  }
-  return rows
-}
-
-function bindingCount(tag: TagDef) {
-  return collectBindings(tag).length
-}
-
-function showBindings(tag: TagDef) {
-  bindings.value = collectBindings(tag)
-  bindVisible.value = true
 }
 
 function refresh() {

@@ -1,5 +1,9 @@
 import type { TagDef } from '@/types/tag'
 import { createTagId } from '@/types/tag'
+import type { AlarmDefinition } from '@/types/alarm'
+import { normalizeAlarmDef } from '@/types/alarm'
+import type { DataSourceConfig } from '@/datasource/types'
+import type { WritePolicy } from '@/types/tag'
 import type { ScadaPage } from '@/types/page'
 import { createPageId } from '@/types/page'
 import { useCanvasStore } from '@/stores/canvasStore'
@@ -47,4 +51,34 @@ export function normalizeTagList(raw: unknown): TagDef[] {
       writable: t.writable === undefined ? undefined : !!t.writable,
       note: t.note || undefined,
     }))
+}
+
+/** 工程附属配置（加载/导入共用的归一化结果） */
+export interface ProjectExtras {
+  dataSource: DataSourceConfig
+  alarmDefs: AlarmDefinition[]
+  tagTable: TagDef[]
+  writePolicy: WritePolicy
+}
+
+/**
+ * 工程附属配置的加载侧归一化：旧工程缺字段时回落默认值，
+ * 坏数据（如手改 JSON）不进运行时。
+ */
+export function normalizeProjectExtras(projectData: Record<string, any>): ProjectExtras {
+  return {
+    // 旧工程没有 dataSource 字段，回落 mock 以保证向后兼容
+    dataSource: projectData.dataSource || { type: 'mock', name: 'default' },
+    // 旧工程没有 alarmDefs 字段；逐条 normalize，坏数据不进运行时
+    alarmDefs: Array.isArray(projectData.alarmDefs)
+      ? projectData.alarmDefs.map(normalizeAlarmDef).filter((d): d is AlarmDefinition => d !== null)
+      : [],
+    // 点表：过滤缺 deviceId/name 的坏行
+    tagTable: normalizeTagList(projectData.tagTable),
+    // 旧工程没有 writePolicy 字段，回落 allow 保持原行为
+    writePolicy:
+      projectData.writePolicy === 'warn' || projectData.writePolicy === 'deny'
+        ? projectData.writePolicy
+        : 'allow',
+  }
 }

@@ -4,11 +4,21 @@ import { usePageStore } from './pageStore'
 import { getStorage } from '@/storage'
 import type { DataSourceConfig } from '@/datasource/types'
 import type { AlarmDefinition } from '@/types/alarm'
-import { normalizeAlarmDef } from '@/types/alarm'
 import type { ScadaPage } from '@/types/page'
 import type { TagDef, WritePolicy } from '@/types/tag'
-import { migrateLegacyToPages, normalizeTagList } from './projectLoad'
-import { publishedKey as pubKey, parsePublishedAt } from './projectPublish'
+import { migrateLegacyToPages, normalizeProjectExtras } from './projectLoad'
+import {
+  projectKey,
+  draftKey,
+  publishedKey,
+  isProjectTaken,
+  renameProjectKeys,
+  listSavedProjects,
+  deleteProjectKeys,
+  removePublishedSnapshot,
+  hasPublishedSnapshot,
+  getPublishedSnapshotAt,
+} from './projectStorage'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -36,10 +46,7 @@ export const useProjectStore = defineStore('project', () => {
   // 未登记点位的写值策略：allow 放行（默认，兼容旧行为）/ warn 提示后允许 / deny 禁止
   const writePolicy = ref<WritePolicy>('allow')
 
-  /** 草稿存储键：独立于正式工程前缀 */
-  const draftKey = (name: string) => `scada_draft_${name}`
-  /** 发布快照：与草稿/工作副本分离，预览默认读发布版 */
-  const publishedKey = pubKey
+  /** 存储键命名与键级操作集中在 projectStorage.ts（便于独立单测） */
 
   /**
    * 组装完整的工程数据（保存 / 导出共用，避免两处结构漂移）
@@ -74,9 +81,6 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
-   * 旧工程（单画面）包成一张「主页」
-   */
-  /**
    * 应用加载到的工程数据（加载 / 导入共用）
    */
   function applyProjectData(projectData: Record<string, any>) {
@@ -90,22 +94,12 @@ export const useProjectStore = defineStore('project', () => {
       pageStore.setPages(pages)
     }
 
-    // 旧工程没有 dataSource 字段，回落 mock 以保证向后兼容
-    dataSourceConfig.value = projectData.dataSource || { type: 'mock', name: 'default' }
-
-    // 旧工程没有 alarmDefs 字段；逐条 normalize，坏数据（如手改 JSON）不进运行时
-    alarmDefs.value = Array.isArray(projectData.alarmDefs)
-      ? projectData.alarmDefs.map(normalizeAlarmDef).filter((d): d is AlarmDefinition => d !== null)
-      : []
-
-    // 点表：过滤缺 deviceId/name 的坏行
-    tagTable.value = normalizeTagList(projectData.tagTable)
-
-    // 旧工程没有 writePolicy 字段，回落 allow 保持原行为
-    writePolicy.value =
-      projectData.writePolicy === 'warn' || projectData.writePolicy === 'deny'
-        ? projectData.writePolicy
-        : 'allow'
+    // 附属配置（数据源/报警/点表/写值策略）归一化在 projectLoad.ts
+    const extras = normalizeProjectExtras(projectData)
+    dataSourceConfig.value = extras.dataSource
+    alarmDefs.value = extras.alarmDefs
+    tagTable.value = extras.tagTable
+    writePolicy.value = extras.writePolicy
   }
 
   /**
@@ -117,7 +111,7 @@ export const useProjectStore = defineStore('project', () => {
     }
 
     const json = JSON.stringify(buildProjectData())
-    await getStorage().set(`scada_project_${projectName.value}`, json)
+    await getStorage().set(projectKey(projectName.value), json)
 
     // 已正式落盘，自动草稿不再需要
     await clearDraft()
@@ -142,19 +136,22 @@ export const useProjectStore = defineStore('project', () => {
     return true
   }
 
-  /** 取消发布（删除发布快照，预览回落到草稿） */
-  async function unpublishProject(name: string): Promise<void> {
-    await getStorage().remove(publishedKey(name))
-  }
+  // 取消发布 / 查询发布版：纯存储操作，直接复用 projectStorage 的实现（对外名保持不变）
+  const unpublishProject = removePublishedSnapshot
+  const hasPublished = hasPublishedSnapshot
+  const getPublishedAt = getPublishedSnapshotAt
 
-  /** 是否存在发布版 */
-  async function hasPublished(name: string): Promise<boolean> {
-    return (await getStorage().get(publishedKey(name))) !== null
-  }
-
-  /** 发布时间；无发布版返回 null */
-  async function getPublishedAt(name: string): Promise<number | null> {
-    return parsePublishedAt(await getStorage().get(publishedKey(name)))
+  /** 应用已解析的工程数据并复位脏状态（加载草稿/发布版/导入三条路径共用） */
+  function applyLoadedProject(
+    projectData: Record<string, any>,
+    fallbackName: string,
+    savedAt: number | null,
+  ) {
+    projectName.value = projectData.name || fallbackName
+    projectDescription.value = projectData.description || ''
+    lastSaveTime.value = savedAt
+    applyProjectData(projectData)
+    hasUnsavedChanges.value = false
   }
 
   /**
@@ -167,11 +164,11 @@ export const useProjectStore = defineStore('project', () => {
     }
     try {
       const projectData = JSON.parse(raw)
-      projectName.value = projectData.name || name
-      projectDescription.value = projectData.description || ''
-      lastSaveTime.value = projectData.publishedAt || projectData.timestamp || null
-      applyProjectData(projectData)
-      hasUnsavedChanges.value = false
+      applyLoadedProject(
+        projectData,
+        name,
+        projectData.publishedAt || projectData.timestamp || null,
+      )
       return true
     } catch (e) {
       console.error('Failed to load published project:', e)
@@ -183,23 +180,15 @@ export const useProjectStore = defineStore('project', () => {
    * 从存储加载项目
    */
   async function loadProject(name: string): Promise<boolean> {
-    const json = await getStorage().get(`scada_project_${name}`)
+    const json = await getStorage().get(projectKey(name))
     if (!json) {
       console.error(`Project not found: ${name}`)
       return false
     }
-    
+
     try {
       const projectData = JSON.parse(json)
-      
-      projectName.value = projectData.name || name
-      projectDescription.value = projectData.description || ''
-      lastSaveTime.value = projectData.timestamp
-      
-      applyProjectData(projectData)
-      
-      hasUnsavedChanges.value = false
-      
+      applyLoadedProject(projectData, name, projectData.timestamp)
       return true
     } catch (e) {
       console.error('Failed to load project:', e)
@@ -220,15 +209,7 @@ export const useProjectStore = defineStore('project', () => {
   function importProject(json: string): boolean {
     try {
       const projectData = JSON.parse(json)
-      
-      projectName.value = projectData.name || '导入的项目'
-      projectDescription.value = projectData.description || ''
-      lastSaveTime.value = projectData.timestamp
-      
-      applyProjectData(projectData)
-      
-      hasUnsavedChanges.value = false
-      
+      applyLoadedProject(projectData, '导入的项目', projectData.timestamp)
       return true
     } catch (e) {
       console.error('Failed to import project:', e)
@@ -244,24 +225,13 @@ export const useProjectStore = defineStore('project', () => {
     const trimmed = newName.trim()
     if (!trimmed || trimmed === projectName.value) return false
 
-    const storage = getStorage()
     // 与已有项目重名时拒绝，避免覆盖别人的数据
-    if ((await storage.get(`scada_project_${trimmed}`)) !== null) return false
+    if (await isProjectTaken(trimmed)) return false
 
-    const oldKey = `scada_project_${projectName.value}`
-    const wasSaved = (await storage.get(oldKey)) !== null
-    if (wasSaved) {
-      await storage.set(`scada_project_${trimmed}`, (await storage.get(oldKey))!)
-      await storage.remove(oldKey)
-    }
-    // 发布快照跟随重命名，避免预览找不到
-    const oldPub = publishedKey(projectName.value)
-    const newPub = publishedKey(trimmed)
-    const pub = await storage.get(oldPub)
-    if (pub !== null) {
-      await storage.set(newPub, pub)
-      await storage.remove(oldPub)
-    }
+    // 已保存的迁移存储键（工作副本 + 发布快照）；未保存过的只改名称
+    const wasSaved = await isProjectTaken(projectName.value)
+    if (wasSaved) await renameProjectKeys(projectName.value, trimmed)
+
     projectName.value = trimmed
     hasUnsavedChanges.value = !wasSaved
     return true
@@ -275,44 +245,17 @@ export const useProjectStore = defineStore('project', () => {
     const trimmed = newName.trim()
     if (!trimmed || trimmed === oldName) return false
 
-    const storage = getStorage()
-    const oldKey = `scada_project_${oldName}`
-    const newKey = `scada_project_${trimmed}`
-    if ((await storage.get(oldKey)) === null || (await storage.get(newKey)) !== null) return false
-
-    await storage.set(newKey, (await storage.get(oldKey))!)
-    await storage.remove(oldKey)
-    const oldPub = publishedKey(oldName)
-    const newPub = publishedKey(trimmed)
-    const pub = await storage.get(oldPub)
-    if (pub !== null) {
-      await storage.set(newPub, pub)
-      await storage.remove(oldPub)
-    }
+    // 源不存在/目标重名都在键层拒绝，拒绝时不产生任何迁移
+    if (!(await renameProjectKeys(oldName, trimmed))) return false
     if (projectName.value === oldName) {
       projectName.value = trimmed
     }
     return true
   }
 
-  /**
-   * 获取已保存的项目列表
-   */
-  async function getSavedProjects(): Promise<string[]> {
-    const keys = await getStorage().keys()
-    return keys
-      .filter(key => key.startsWith('scada_project_'))
-      .map(key => key.replace('scada_project_', ''))
-  }
-
-  /**
-   * 删除项目
-   */
-  async function deleteProject(name: string) {
-    await getStorage().remove(`scada_project_${name}`)
-    await getStorage().remove(publishedKey(name))
-    await getStorage().remove(draftKey(name))
-  }
+  // 工程列表与删除：纯键级操作，直接复用 projectStorage 的实现（对外名保持不变）
+  const getSavedProjects = listSavedProjects
+  const deleteProject = deleteProjectKeys
 
   /**
    * 标记有未保存的更改
