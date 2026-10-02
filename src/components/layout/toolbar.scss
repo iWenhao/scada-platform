@@ -4,12 +4,18 @@
   justify-content: space-between;
   height: 100%;
   padding: 0 16px;
+  gap: 8px;
+  /* 极窄窗口的兜底：按钮组已不可能折行，放不下时整体横向滚动 */
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  /* 窗口变窄时先压缩项目名（省略号），避免挤压中右两段 */
+  min-width: 0;
 
   .logo {
     width: 32px;
@@ -27,18 +33,24 @@
     align-items: center;
     gap: 6px;
     cursor: pointer;
+    min-width: 0;
   }
 
   .project-name {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
   }
 
   .rename-icon {
     color: var(--text-muted);
     opacity: 0;
     transition: opacity 0.2s;
+    flex-shrink: 0;
   }
 
   .project-name-group:hover {
@@ -56,6 +68,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 
   .zoom-level {
     font-size: 12px;
@@ -69,6 +82,55 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.toolbar-secondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* EP 2.14 起水平按钮组是 inline-block + float:left 的老式实现，
+   作为 flex 项被挤窄时浮动按钮会像文字一样折行（按钮"掉下来"）。
+   这里统一恢复 inline-flex，保证组内永不折行。 */
+:deep(.el-button-group) {
+  display: inline-flex;
+  flex-wrap: nowrap;
+
+  > .el-button {
+    float: none;
+    white-space: nowrap;
+  }
+}
+
+/* 次要操作与「更多」菜单互斥：≥1700px 平铺（与旧版一致），
+   低于该宽度进入紧凑模式——次要操作收进「更多」，带文字的
+   发布/保存/预览只留图标（名称经 tooltip 悬停可见），省出
+   约 130px 保证 1200px 级窗口也放得下。 */
+.toolbar-more {
+  display: inline-flex;
+}
+
+@media (max-width: 1699px) {
+  .toolbar-secondary {
+    display: none;
+  }
+
+  .btn-text {
+    display: none;
+  }
+
+  /* 提高优先级盖过下方 .btn-save 的 min-width: 96px */
+  .toolbar-right .btn-save {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1700px) {
+  .toolbar-more {
+    display: none;
+  }
 }
 
 .btn-save {
@@ -80,12 +142,6 @@
   &:hover {
     filter: brightness(1.08);
   }
-}
-
-.btn-viewmode {
-  min-width: 64px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
 }
 
 .unsaved-dot {
@@ -153,38 +209,7 @@
   }
 }
 
-/* 删除按钮悬停/按下变红。
-   必须写成 :deep 一级选择器，且 background 也要 !important——
-   dark-theme.scss 里 html.dark .el-button:hover 的背景是 !important，不写会盖掉。 */
-:deep(.el-button.btn-delete:hover:not(.is-disabled)),
-:deep(.el-button.btn-delete:focus:not(.is-disabled)) {
-  background-color: color-mix(in srgb, var(--accent-danger) 22%, var(--bg-primary)) !important;
-  border-color: var(--accent-danger) !important;
-  color: var(--accent-danger) !important;
-
-  .el-icon {
-    color: inherit !important;
-  }
-}
-
-:deep(.el-button.btn-delete:active:not(.is-disabled)) {
-  background-color: color-mix(in srgb, var(--accent-danger) 40%, var(--bg-primary)) !important;
-  border-color: var(--accent-danger) !important;
-  color: var(--accent-danger) !important;
-}
-
 :deep(.el-divider--vertical) {
   border-left-color: var(--border-primary);
 }
 
-@media (max-width: 1100px) {
-  .toolbar-center {
-    gap: 4px;
-    overflow-x: auto;
-    max-width: 55vw;
-  }
-
-  .zoom-level {
-    display: none;
-  }
-}

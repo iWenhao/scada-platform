@@ -86,34 +86,6 @@
             <ToolIcon name="redo" />
           </el-button>
         </el-tooltip>
-
-        <el-tooltip content="复制 (Ctrl+C)" placement="bottom">
-          <el-button
-            :disabled="!canvasStore.selectedIds.length"
-            @click="handleCopy"
-          >
-            <ToolIcon name="copy" />
-          </el-button>
-        </el-tooltip>
-
-        <el-tooltip content="粘贴 (Ctrl+V)" placement="bottom">
-          <el-button
-            :disabled="!canvasStore.clipboard.length"
-            @click="handlePaste"
-          >
-            <ToolIcon name="paste" />
-          </el-button>
-        </el-tooltip>
-
-        <el-tooltip content="删除选中 (Delete)" placement="bottom">
-          <el-button
-            class="btn-delete"
-            :disabled="!canvasStore.selectedIds.length && !connectionStore.selectedConnectionId"
-            @click="handleDelete"
-          >
-            <ToolIcon name="delete" />
-          </el-button>
-        </el-tooltip>
       </el-button-group>
 
       <el-divider direction="vertical" />
@@ -141,59 +113,59 @@
       <span class="zoom-level">{{ Math.round(canvasStore.zoom * 100) }}%</span>
     </div>
 
-    <!-- 右侧：画布/文件/预览 + 账号（系统与项目配置在首页） -->
+    <!-- 右侧：发布/保存/预览 + 账号；次要操作宽屏平铺、窄屏收进「更多」 -->
     <div class="toolbar-right">
-      <el-button-group>
-        <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
-          <el-button @click="uiStore.toggleTheme()">
-            <ToolIcon :name="uiStore.theme === 'dark' ? 'theme-dark' : 'theme-light'" />
-          </el-button>
-        </el-tooltip>
+      <div class="toolbar-secondary">
+        <el-button-group>
+          <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
+            <el-button @click="uiStore.toggleTheme()">
+              <ToolIcon :name="uiStore.theme === 'dark' ? 'theme-dark' : 'theme-light'" />
+            </el-button>
+          </el-tooltip>
 
-        <el-tooltip content="画布配置" placement="bottom">
-          <el-button @click="showCanvasConfig = true">
-            <ToolIcon name="canvas" />
-          </el-button>
-        </el-tooltip>
-      </el-button-group>
+          <el-tooltip content="画布配置" placement="bottom">
+            <el-button @click="showCanvasConfig = true">
+              <ToolIcon name="canvas" />
+            </el-button>
+          </el-tooltip>
+        </el-button-group>
 
-      <el-divider direction="vertical" />
+        <el-divider direction="vertical" />
 
-      <el-divider direction="vertical" />
+        <el-button-group>
+          <el-tooltip content="导出JSON" placement="bottom">
+            <el-button @click="handleExport">
+              <ToolIcon name="download" />
+            </el-button>
+          </el-tooltip>
 
-      <el-button-group>
-        <el-tooltip content="导出JSON" placement="bottom">
-          <el-button @click="handleExport">
-            <ToolIcon name="download" />
-          </el-button>
-        </el-tooltip>
+          <el-tooltip content="导出图片(PNG)" placement="bottom">
+            <el-button @click="handleExportImage">
+              <ToolIcon name="image" />
+            </el-button>
+          </el-tooltip>
 
-        <el-tooltip content="导出图片(PNG)" placement="bottom">
-          <el-button @click="handleExportImage">
-            <ToolIcon name="image" />
-          </el-button>
-        </el-tooltip>
+          <el-tooltip content="导入JSON" placement="bottom">
+            <el-button @click="handleImport">
+              <ToolIcon name="upload" />
+            </el-button>
+          </el-tooltip>
+        </el-button-group>
 
-        <el-tooltip content="导入JSON" placement="bottom">
-          <el-button @click="handleImport">
-            <ToolIcon name="upload" />
-          </el-button>
-        </el-tooltip>
-      </el-button-group>
-
-      <el-divider direction="vertical" />
+        <el-divider direction="vertical" />
+      </div>
 
       <el-tooltip content="发布：把当前工程快照为运行版" placement="bottom">
         <el-button @click="handlePublish">
           <ToolIcon name="publish" />
-          发布
+          <span class="btn-text">发布</span>
         </el-button>
       </el-tooltip>
 
       <el-tooltip content="保存 (Ctrl+S)" placement="bottom">
         <el-button class="btn-save" type="primary" @click="handleSave">
           <ToolIcon name="save" />
-          保存
+          <span class="btn-text">保存</span>
           <el-tag v-if="projectStore.hasUnsavedChanges" size="small" class="unsaved-dot" />
         </el-button>
       </el-tooltip>
@@ -201,9 +173,54 @@
       <el-tooltip content="预览模式（默认显示发布版）" placement="bottom">
         <el-button type="success" @click="handlePreview">
           <ToolIcon name="play" />
-          预览
+          <span class="btn-text">预览</span>
         </el-button>
       </el-tooltip>
+
+      <!-- 窄屏时收纳次要操作；宽屏由样式隐藏，保持原平铺布局 -->
+      <el-dropdown class="toolbar-more" popper-class="toolbar-more-popper" trigger="click" @command="handleMoreCommand">
+        <el-button title="更多操作">
+          <ToolIcon name="more" />
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item
+              command="copy"
+              :disabled="!canvasStore.selectedIds.length"
+            >
+              <ToolIcon name="copy" />复制 (Ctrl+C)
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="paste"
+              :disabled="!canvasStore.clipboard.length"
+            >
+              <ToolIcon name="paste" />粘贴 (Ctrl+V)
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="delete"
+              :disabled="!canvasStore.selectedIds.length && !connectionStore.selectedConnectionId"
+            >
+              <ToolIcon name="delete" />删除选中 (Delete)
+            </el-dropdown-item>
+            <el-dropdown-item divided command="theme">
+              <ToolIcon :name="uiStore.theme === 'dark' ? 'theme-light' : 'theme-dark'" />
+              {{ uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题' }}
+            </el-dropdown-item>
+            <el-dropdown-item command="canvas">
+              <ToolIcon name="canvas" />画布配置
+            </el-dropdown-item>
+            <el-dropdown-item divided command="export">
+              <ToolIcon name="download" />导出 JSON
+            </el-dropdown-item>
+            <el-dropdown-item command="image">
+              <ToolIcon name="image" />导出图片 (PNG)
+            </el-dropdown-item>
+            <el-dropdown-item command="import">
+              <ToolIcon name="upload" />导入 JSON
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
 
       <el-dropdown @command="handleUserCommand">
         <UserChip
@@ -267,6 +284,36 @@ async function handleUserCommand(cmd: string) {
   }
 }
 
+/** 「更多」下拉：窄屏时替代被收起的次要按钮，动作与原按钮一一对应 */
+function handleMoreCommand(cmd: string) {
+  switch (cmd) {
+    case 'copy':
+      handleCopy()
+      break
+    case 'paste':
+      handlePaste()
+      break
+    case 'delete':
+      handleDelete()
+      break
+    case 'theme':
+      uiStore.toggleTheme()
+      break
+    case 'canvas':
+      showCanvasConfig.value = true
+      break
+    case 'export':
+      handleExport()
+      break
+    case 'image':
+      handleExportImage()
+      break
+    case 'import':
+      handleImport()
+      break
+  }
+}
+
 const { handleCopy, handlePaste, handleDelete } = useEditClipboard()
 const {
   handleRename,
@@ -303,3 +350,17 @@ onMounted(() => {
 </script>
 
 <style src="./toolbar.scss" scoped lang="scss"></style>
+
+<!-- 「更多」菜单 teleport 到 body，scoped 样式够不到，弹层样式单独给 -->
+<style lang="scss">
+.toolbar-more-popper .el-dropdown-menu__item {
+  gap: 8px;
+  align-items: center;
+
+  .tool-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+}
+</style>

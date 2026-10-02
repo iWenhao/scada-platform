@@ -134,6 +134,13 @@
       <path d="M5.5 19.5 c1.2-3.2 3.6-4.8 6.5-4.8 s5.3 1.6 6.5 4.8" />
     </g>
 
+    <!-- 更多：横向三点（窄屏收纳次要操作的入口） -->
+    <g v-else-if="name === 'more'">
+      <circle cx="5.2" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="18.8" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    </g>
+
     <!-- 2D / 2.5D 视图 -->
     <g v-else-if="name === 'view-2d'">
       <rect x="4" y="4" width="16" height="16" rx="2" />
