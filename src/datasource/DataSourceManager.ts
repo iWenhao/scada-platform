@@ -10,14 +10,8 @@ export class DataSourceManager {
   /** 当前活跃的数据源 */
   private activeAdapter: DataSourceAdapter | null = null
 
-  /** 最新数据快照 */
-  private data = ref<Record<string, Record<string, any>>>({})
-  
   /** 连接状态 */
   private connectionStatus = ref<'connected' | 'disconnected' | 'error'>('disconnected')
-  
-  /** 错误信息 */
-  private lastError = ref<string | null>(null)
 
   /** 数据更新回调列表 */
   private updateCallbacks: Array<(update: DataUpdate) => void> = []
@@ -51,30 +45,20 @@ export class DataSourceManager {
 
     this.activeAdapter = this.getAdapter(config.type)
 
-    // 监听数据更新
+    // 监听数据更新：只做回调分发，数据合并由订阅方 deviceStore 负责（避免双份快照）
     this.activeAdapter.onUpdate((update: DataUpdate) => {
-      // 合并更新到数据快照
-      for (const [deviceId, variables] of Object.entries(update)) {
-        if (!this.data.value[deviceId]) {
-          this.data.value[deviceId] = {}
-        }
-        Object.assign(this.data.value[deviceId], variables)
-      }
-
-      // 触发回调
       this.updateCallbacks.forEach(cb => cb(update))
     })
 
     // 监听错误
     this.activeAdapter.onError((error: Error) => {
       this.connectionStatus.value = 'error'
-      this.lastError.value = error.message
+      console.error('[DataSourceManager] 数据源错误:', error.message)
     })
 
     // 建立连接
     await this.activeAdapter.connect(config)
     this.connectionStatus.value = 'connected'
-    this.lastError.value = null
   }
 
   /**
@@ -98,20 +82,6 @@ export class DataSourceManager {
    */
   offUpdate(callback: (update: DataUpdate) => void) {
     this.updateCallbacks = this.updateCallbacks.filter(cb => cb !== callback)
-  }
-
-  /**
-   * 获取当前数据快照
-   */
-  getData() {
-    return this.data.value
-  }
-
-  /**
-   * 获取指定设备数据
-   */
-  getDeviceData(deviceId: string) {
-    return this.data.value[deviceId] || {}
   }
 
   /**
@@ -143,13 +113,6 @@ export class DataSourceManager {
    */
   getStatus() {
     return this.connectionStatus.value
-  }
-
-  /**
-   * 获取错误信息
-   */
-  getLastError() {
-    return this.lastError.value
   }
 }
 

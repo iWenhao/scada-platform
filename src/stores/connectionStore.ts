@@ -146,14 +146,7 @@ export const useConnectionStore = defineStore('connection', () => {
   }
 
   /**
-   * 序列化
-   */
-  function toJSON() {
-    return JSON.stringify(connections.value, null, 2)
-  }
-
-  /**
-   * 从JSON加载
+   * 从JSON加载（序列化统一走 projectStore.buildProjectData，这里只负责恢复）
    */
   function loadFromJSON(json: string) {
     try {
@@ -181,7 +174,6 @@ export const useConnectionStore = defineStore('connection', () => {
     recalcConnection,
     selectConnection,
     getConnectionsByElement,
-    toJSON,
     loadFromJSON,
   }
 })

@@ -1,13 +1,9 @@
 /**
  * 发布快照键与时间解析（与工程 KV 同存储）。
- * 工作副本: scada_project_<name>  发布版: scada_published_<name>
+ * 工作副本键 projectKey 统一定义在 projectStorage.ts，这里只管发布侧。
  */
 export function publishedKey(name: string): string {
   return `scada_published_${name}`
-}
-
-export function projectKey(name: string): string {
-  return `scada_project_${name}`
 }
 
 export function parsePublishedAt(raw: string | null): number | null {

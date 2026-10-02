@@ -111,17 +111,7 @@ export const useLayerStore = defineStore('layer', () => {
   }
 
   /**
-   * 序列化
-   */
-  function toJSON() {
-    return JSON.stringify({
-      layers: layers.value,
-      activeLayerId: activeLayerId.value,
-    }, null, 2)
-  }
-
-  /**
-   * 从JSON加载
+   * 从JSON加载（序列化统一走 projectStore.buildProjectData，这里只负责恢复）
    */
   function loadFromJSON(json: string) {
     try {
@@ -147,7 +137,6 @@ export const useLayerStore = defineStore('layer', () => {
     moveUp,
     moveDown,
     renameLayer,
-    toJSON,
     loadFromJSON,
   }
 })

@@ -106,19 +106,7 @@ export const useCanvasStore = defineStore('canvas', () => {
     offset.value = { x, y }
   }
   
-  // 序列化为JSON
-  function toJSON() {
-    return JSON.stringify({
-      version: '1.0',
-      timestamp: Date.now(),
-      canvasConfig: canvasConfig.value,
-      elements: elements.value,
-      zoom: zoom.value,
-      offset: offset.value,
-    }, null, 2)
-  }
-  
-  // 从JSON加载
+  // 从JSON加载（序列化统一走 projectStore.buildProjectData，这里只负责恢复）
   function loadFromJSON(json: string) {
     try {
       const data = JSON.parse(json)
@@ -163,7 +151,6 @@ export const useCanvasStore = defineStore('canvas', () => {
     clearSelection,
     setZoom,
     setOffset,
-    toJSON,
     loadFromJSON,
     clearCanvas,
   }

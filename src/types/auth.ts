@@ -8,21 +8,6 @@ export const ROLE_LABELS: Record<Role, string> = {
   admin: '管理员',
 }
 
-export interface AuthUser {
-  id: string
-  username: string
-  displayName: string
-  role: Role
-  /** 盐 */
-  salt: string
-  /** SHA-256(salt + password) 的十六进制 */
-  passwordHash: string
-  createdAt: number
-}
-
-/** 入库存储的用户（不含明文密码） */
-export type AuthUserRecord = AuthUser
-
 export interface LoginUser {
   id: string
   username: string

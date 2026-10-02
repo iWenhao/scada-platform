@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { DataSourceManager } from './DataSourceManager'
+import type { DataUpdate } from './types'
 
 describe('DataSourceManager', () => {
   let manager: DataSourceManager
@@ -64,24 +65,6 @@ describe('DataSourceManager', () => {
     })
   })
 
-  describe('getDeviceData', () => {
-    it('应该返回设备数据', async () => {
-      await manager.connect({ type: 'mock', name: 'test' })
-
-      // 等待模拟数据更新
-      await new Promise(resolve => setTimeout(resolve, 1100))
-
-      const data = manager.getDeviceData('motor_1')
-      expect(data).toBeDefined()
-      expect(typeof data.speed).toBe('number')
-    })
-
-    it('应该返回空对象对于未知设备', () => {
-      const data = manager.getDeviceData('unknown_device')
-      expect(data).toEqual({})
-    })
-  })
-
   describe('write 写值', () => {
     it('未连接时写值应该抛错', async () => {
       await expect(manager.write({ deviceId: 'motor_1', variable: 'speed', value: 1 }))
@@ -90,13 +73,16 @@ describe('DataSourceManager', () => {
     })
 
     it('应该透传给支持写值的适配器', async () => {
+      const updates: DataUpdate[] = []
+      manager.onUpdate(u => updates.push(u))
       await manager.connect({ type: 'mock', name: 'test' })
 
       expect(manager.canWrite()).toBe(true)
       await expect(manager.write({ deviceId: 'motor_1', variable: 'speed', value: 800 }))
         .resolves.toBeUndefined()
-      // Mock 写值立即生效
-      expect(manager.getDeviceData('motor_1').speed).toBe(800)
+      // Mock 写值立即生效并推送更新
+      const last = updates[updates.length - 1]?.motor_1
+      expect(last?.speed).toBe(800)
     })
 
     it('不支持写值的数据源应该抛错', async () => {

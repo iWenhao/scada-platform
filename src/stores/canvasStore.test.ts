@@ -56,11 +56,8 @@ describe('canvasStore', () => {
     expect(store.elements).toHaveLength(0)
   })
 
-  it('toJSON/loadFromJSON 应该完整往返保留绑定数据', () => {
-    store.addElement(makeElement('el_1'))
-    store.addElement(makeElement('el_2'))
-
-    const json = store.toJSON()
+  it('loadFromJSON 应该完整加载并保留绑定数据', () => {
+    const json = JSON.stringify({ elements: [makeElement('el_1'), makeElement('el_2')] })
     store.clearCanvas()
     expect(store.elements).toHaveLength(0)
 
