@@ -1,17 +1,12 @@
-import { renderTemplate, defaultBody } from './common.mjs'
+import { renderTemplate, mergeHeaders, sendHttp } from './common.mjs'
 
+/** Webhook：把报警事件 POST 到自定义 HTTP 端点，支持模板 body 与自定义 headers */
 export async function sendWebhook(channel, event) {
   const url = channel.config?.url
   if (!url) return { ok: false, error: 'webhook url 为空' }
-  const method = (channel.config?.method || 'POST').toUpperCase()
-  let headers = { 'content-type': 'application/json' }
-  if (channel.config?.headers) {
-    try {
-      headers = { ...headers, ...(typeof channel.config.headers === 'string' ? JSON.parse(channel.config.headers) : channel.config.headers) }
-    } catch {
-      return { ok: false, error: 'headers 不是合法 JSON' }
-    }
-  }
+  const headers = mergeHeaders(channel.config?.headers)
+  if (!headers) return { ok: false, error: 'headers 不是合法 JSON' }
+
   const bodyTpl = channel.config?.bodyTemplate
   const body = bodyTpl
     ? renderTemplate(bodyTpl, {
@@ -28,13 +23,5 @@ export async function sendWebhook(channel, event) {
         source: 'scada-platform',
       })
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: method === 'GET' || method === 'HEAD' ? undefined : body,
-  })
-  if (!res.ok) return { ok: false, error: `HTTP ${res.status}` }
-  return { ok: true }
+  return sendHttp(url, { method: channel.config?.method, headers, body })
 }
-
-/** 钉钉机器人：markdown 消息；可选加签 */

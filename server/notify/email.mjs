@@ -200,4 +200,3 @@ export async function sendEmail(channel, event) {
   })
 }
 
-/** 短信：通用 HTTP 网关（阿里云/腾讯云等一般都有 HTTP API 或适配 URL） */

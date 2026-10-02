@@ -1,8 +1,9 @@
 /**
- * 通知通道共用：正文拼装、配置读写。
+ * 通知通道共用：正文拼装、HTTP 发送、headers 归一化、配置读写、发送日志。
  */
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import { appendJsonl, readJsonl } from '../lib/jsonl.mjs'
 
 const NOTIFY_FILE_NAME = '_notify.json'
 const NOTIFY_LOG_FILE_NAME = '_notify_log.jsonl'
@@ -23,6 +24,37 @@ export function renderTemplate(tpl, vars) {
 
 export function defaultBody(channel, event) {
   return `【${event.level === 'critical' ? '报警' : '预警'}】${event.title}\n${event.message}\n时间: ${event.timeText}`
+}
+
+/**
+ * 归一化自定义 headers：默认带 JSON content-type，支持 JSON 字符串或对象配置。
+ * 解析失败返回 null，由调用方返回「headers 不是合法 JSON」。
+ */
+export function mergeHeaders(custom) {
+  let headers = { 'content-type': 'application/json' }
+  if (custom) {
+    try {
+      headers = { ...headers, ...(typeof custom === 'string' ? JSON.parse(custom) : custom) }
+    } catch {
+      return null
+    }
+  }
+  return headers
+}
+
+/**
+ * 通用 HTTP 发送：GET/HEAD 按约定省略 body，非 2xx 视为发送失败。
+ * webhook / 短信网关等 HTTP 型通道共用。
+ */
+export async function sendHttp(url, { method = 'POST', headers, body }) {
+  const m = String(method || 'POST').toUpperCase()
+  const res = await fetch(url, {
+    method: m,
+    headers,
+    body: m === 'GET' || m === 'HEAD' ? undefined : body,
+  })
+  if (!res.ok) return { ok: false, error: `HTTP ${res.status}` }
+  return { ok: true }
 }
 
 export async function loadNotifyConfig(dataDir) {
@@ -48,7 +80,7 @@ export async function saveNotifyConfig(dataDir, config) {
   return body
 }
 
-/** 追加一条发送记录（成功/失败/节流） */
+/** 追加一条发送记录（成功/失败/节流）；日志文件截断到 NOTIFY_LOG_MAX 条 */
 export async function appendNotifyLog(dataDir, entry) {
   const row = {
     t: Date.now(),
@@ -62,35 +94,11 @@ export async function appendNotifyLog(dataDir, entry) {
     error: entry.error || undefined,
     note: entry.note || undefined,
   }
-  await fs.mkdir(dataDir, { recursive: true })
-  await fs.appendFile(notifyLogPath(dataDir), JSON.stringify(row) + '\n', 'utf8')
-  try {
-    const text = await fs.readFile(notifyLogPath(dataDir), 'utf8')
-    const rows = text.split('\n').filter(Boolean)
-    if (rows.length > NOTIFY_LOG_MAX) {
-      await fs.writeFile(notifyLogPath(dataDir), rows.slice(-NOTIFY_LOG_MAX).join('\n') + '\n', 'utf8')
-    }
-  } catch {
-    // ignore
-  }
+  await appendJsonl(notifyLogPath(dataDir), row, { cap: NOTIFY_LOG_MAX })
 }
 
 export async function readNotifyLog(dataDir, limit = 100) {
-  try {
-    const text = await fs.readFile(notifyLogPath(dataDir), 'utf8')
-    const rows = []
-    for (const line of text.split('\n')) {
-      if (!line.trim()) continue
-      try {
-        rows.push(JSON.parse(line))
-      } catch {
-        // skip
-      }
-    }
-    return rows.slice(-Math.max(1, limit)).reverse()
-  } catch {
-    return []
-  }
+  return readJsonl(notifyLogPath(dataDir), limit)
 }
 
 export async function clearNotifyLog(dataDir) {
