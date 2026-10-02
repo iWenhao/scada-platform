@@ -125,6 +125,15 @@
   .toolbar-right .btn-save {
     min-width: 0;
   }
+
+  /* 用户胶囊只留首字头像，全名与角色走 title 悬停提示 */
+  .toolbar-right :deep(.user-chip .meta) {
+    display: none;
+  }
+
+  .toolbar-right :deep(.user-chip) {
+    padding-right: 5px;
+  }
 }
 
 @media (min-width: 1700px) {

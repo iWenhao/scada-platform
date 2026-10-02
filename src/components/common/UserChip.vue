@@ -15,11 +15,13 @@ import { ROLE_LABELS, type Role } from '@/types/auth'
 const props = defineProps<{
   displayName?: string
   username?: string
-  role: Role | null
+  // 不叫 role：el-dropdown 会向触发元素透传 role="button"，
+  // 同名 prop 会被它覆盖（角色显示丢失、头像配色失效）
+  userRole: Role | null
 }>()
 
-const roleLabel = computed(() => (props.role ? ROLE_LABELS[props.role] : ''))
-const roleClass = computed(() => props.role || 'viewer')
+const roleLabel = computed(() => (props.userRole ? ROLE_LABELS[props.userRole] : ''))
+const roleClass = computed(() => props.userRole || 'viewer')
 
 const initial = computed(() => {
   const s = (props.displayName || props.username || '?').trim()

@@ -27,7 +27,7 @@
       <el-dropdown @command="(c: string) => emit('user', c)">
         <UserChip
           :display-name="displayName"
-          :role="role"
+          :user-role="role"
         />
         <template #dropdown>
           <el-dropdown-menu>

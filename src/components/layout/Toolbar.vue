@@ -226,7 +226,7 @@
         <UserChip
           :display-name="authStore.displayName"
           :username="authStore.user?.username"
-          :role="authStore.role"
+          :user-role="authStore.role"
         />
         <template #dropdown>
           <el-dropdown-menu>
