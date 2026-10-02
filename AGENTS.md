@@ -87,6 +87,11 @@ pnpm lint               # ESLint
 - Vue SFC 中 Element Plus 组件与图标（`@element-plus/icons-vue` 全局注册于 main.ts）无需手动导入。
 - 注释用中文，说明"为什么"而非"做了什么"。
 - **凡是涉及服务端代码（`server/**`）的改动都必须加上注释**：新增/修改的函数、配置项、路由、数据文件格式要有中文说明（模块职责、接口约定、安全/兼容注意点），风格对齐现有 `server/auth.mjs`、`server/notify.mjs`、`server/index.mjs`。
+- **防重复：先找现成的，三次必收敛**：
+  - 写新逻辑前先搜索项目内是否已有实现（工具 `src/utils/`、展示映射 `src/status/`、画布共享逻辑 `src/core/canvas/` 的 composable 与纯函数），有就复用，不要复制一份改改；
+  - 同一段逻辑**第三次出现必须抽公共模块**，宁可当场花十分钟收敛，不要留下第四份（错误的抽象比重复更贵，但重复放任不管就是债）；
+  - 公共实现保持**单一来源**，扩展时优先复用、不要另写平行实现：实体 ID 生成走 `src/utils/id.ts`（`createElementId` / `createConnectionId` / `createLayerId` / `createPageId` / `createTagId`），连接状态→文案/Tag 类型/样式走 `src/status/connection.ts`，元素复制/粘贴/删除走 `useEditClipboard`，WebSocket 系适配器继承 `BaseWebSocketAdapter`，项目存储键统一 `projectStorage.ts`，server 端 JSONL 读写走 `server/lib/jsonl.mjs`、HTTP 型通知发送与 headers 归一化走 `notify/common.mjs`；
+  - 发版前可跑一遍重复扫描体检（如 `npx jscpd src server --min-tokens 60`），重复率明显上升或出现成段克隆时当次收敛。
 - **文件过长/过大时自动拆分**（不要等积重难返）：
   - 参考阈值：Vue SFC **> 400 行**、TS/JS 逻辑文件 **> 400 行**、`server/**/*.mjs` **> 400 行**、单文件 SCSS **> 500 行**；
   - 拆法：对话框/面板按区块拆子组件；样式外置 `*.scss`；逻辑抽 `use*.ts` composable；服务端按域拆 `lib/` 或 `notify/` 类模块；
