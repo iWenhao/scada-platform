@@ -30,7 +30,11 @@ pnpm lint               # ESLint
 
 - **Node ≥ 18**；pnpm 10/11 会拦截依赖构建脚本，白名单已在 `pnpm-workspace.yaml`（esbuild、@parcel/watcher、vue-demi），不要删掉它。
 - `pnpm install` 报 "Already up to date" 但运行时报 `Cannot find module .../vite/...`：node_modules 链接损坏，**删除 node_modules 重新 install**。
-- 大规模重构后 Vite HMR 可能残留陈旧模块导致白屏/诡异行为：**重启 dev server** 再判断，不要急着改代码。
+- 大规模重构/删除文件后 Vite HMR 可能残留陈旧模块，症状：白屏（`#app` 为空）、样式或代码改了不生效、Konva 事件监听指向旧舞台实例。按以下顺序排查（先轻后重），**不要急着改代码**：
+  1. **重启 dev server**，浏览器硬刷新（Ctrl+Shift+R）再判断；必要时关掉全部旧标签页、开全新 tab——多次 HMR 后同一 tab 会有 Konva 多 stage 实例污染，导致实测误判（功能实际正常但旧 tab 里不生效）；
+  2. 仍异常：`rm -rf node_modules/.vite` 清掉 Vite 依赖预构建缓存，再重启 dev server；
+  3. 运行时报 `Cannot find module .../vite/...`：node_modules 链接损坏，**删除 node_modules 重新 install**。
+- **dev server 只认 5173，不要让它漂移**：5173 被旧实例占用时 Vite 会自动跳到 5174，而 5174 既是存储后端（`pnpm server`）端口又是 `/api` 代理目标——Vite 落在 5174 会让代理指向自身形成回环，表现为登录/存储请求异常。发现 5173 被占：先停掉旧实例（`netstat -ano | findstr :5173` 找 PID）再启动；自己临时起过 dev server 验证完要停掉。
 - git 推送报 `SSL_ERROR_SYSCALL`：github.com 被网络重置，走本地代理推送：
   `git -c http.proxy=http://127.0.0.1:7897 push origin dev`（端口以实际代理为准）。
 - **推送失败不重试**：如果 push 失败（网络被墙等），提交保留在本地即可，不要连续多次重试；
