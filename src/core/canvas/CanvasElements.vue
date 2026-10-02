@@ -61,10 +61,20 @@
           v-if="getUserImageConfig(element)"
           :config="getUserImageConfig(element)"
         />
-        <v-line
-          v-if="element.type === 'pipe'"
-          :config="pipeFlowConfig(element)"
-        />
+        <!-- 管道：原生管身图形 + 流动虚线（方形等比图标会把横向管件缩成一小块，故不走 SVG 图标） -->
+        <template v-if="element.type === 'pipe'">
+          <v-line
+            v-for="(cfg, i) in pipeBodyConfigs(element, getElementColor(element), getLabelHeight(element))"
+            :key="`pipe-body-${i}`"
+            :config="cfg"
+          />
+          <PipeFlowLine
+            :element="element"
+            :color="getElementColor(element)"
+            :label-height="getLabelHeight(element)"
+            :flowing="isPipeFlowing(element)"
+          />
+        </template>
 
         <!-- 名称标签条（showName 开关，旧数据回退 showLabel） -->
         <template v-if="isNameShown(element)">
@@ -131,6 +141,8 @@ import {
   isPureShapeMode,
   hasIntrinsicGraphic,
 } from '@/core/canvas/elementChrome'
+import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
+import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
 
 type Visuals = {
   getElementColor: (e: ComponentInstance) => string
@@ -140,6 +152,7 @@ type Visuals = {
   isDisplayElement: (e: ComponentInstance) => boolean
   getDisplayValueText: (e: ComponentInstance) => string
   getElementValueText: (e: ComponentInstance) => string
+  isPipeFlowing: (e: ComponentInstance) => boolean
   getElementPorts: (e: ComponentInstance) => Array<{ id: string; x: number; y: number; position: string }>
   isLayerVisible: (id: string) => boolean
   isLayerLocked: (id: string) => boolean
@@ -152,7 +165,6 @@ const props = defineProps<{
   snapToGrid: boolean
   viewMode: string
   visuals: Visuals
-  pipeFlowConfig: (e: ComponentInstance) => any
   gridSnapFunc: any
 }>()
 
@@ -177,6 +189,7 @@ const {
   isDisplayElement,
   getDisplayValueText,
   getElementValueText,
+  isPipeFlowing,
   getElementPorts,
   isLayerVisible,
   isLayerLocked,

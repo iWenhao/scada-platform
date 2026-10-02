@@ -48,13 +48,27 @@
               :config="getIconImageConfig(element)"
             />
             <v-image
+              v-if="getIconImageConfig(element)"
+              :config="getIconImageConfig(element)"
+            />
+            <v-image
               v-if="getUserImageConfig(element)"
               :config="getUserImageConfig(element)"
             />
-            <v-line
-              v-if="element.type === 'pipe'"
-              :config="pipeFlowConfig(element)"
-            />
+            <!-- 管道：原生管身图形 + 流动虚线（与编辑器渲染保持一致） -->
+            <template v-if="element.type === 'pipe'">
+              <v-line
+                v-for="(cfg, i) in pipeBodyConfigs(element, getElementColor(element), getLabelHeight(element))"
+                :key="`pipe-body-${i}`"
+                :config="cfg"
+              />
+              <PipeFlowLine
+                :element="element"
+                :color="getElementColor(element)"
+                :label-height="getLabelHeight(element)"
+                :flowing="isPipeFlowing(element)"
+              />
+            </template>
             <!-- 名称标签条（showName 开关，与编辑器渲染保持一致） -->
             <template v-if="isNameShown(element)">
               <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
@@ -109,7 +123,8 @@ import { useConnectionStore } from '@/stores/connectionStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
-import { usePipeFlow } from '@/core/canvas/pipeFlow'
+import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
+import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
 import {
   hitAreaConfig,
   bodyShadowConfig,
@@ -156,10 +171,9 @@ const {
   getLabelHeight,
   getIconImageConfig,
   getUserImageConfig,
+  isPipeFlowing,
   isLayerVisible,
 } = useElementVisuals({ deviceStore, layerStore })
-
-const { pipeFlowConfig } = usePipeFlow()
 
 const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie']
 

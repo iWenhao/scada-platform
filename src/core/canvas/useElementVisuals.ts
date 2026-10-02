@@ -48,6 +48,23 @@ export function useElementVisuals(options: {
     return deviceStore.isDataUsable(element.deviceId || element.id, binding.variable)
   }
 
+  /**
+   * 管道是否处于流动状态（决定虚线是否推进）。
+   * 未绑定数据源时默认流动，便于组态阶段预览流向动画；
+   * 数据不可信（陈旧/脏值）时不冒充流动：虚线停住，与数值显示 `--` 的口径一致。
+   */
+  function isPipeFlowing(element: ComponentInstance): boolean {
+    const binding = element.dataBindings?.[0]
+    if (!binding) return true
+    if (!deviceStore.isDataUsable(element.deviceId || element.id, binding.variable)) {
+      return false
+    }
+    const data = deviceStore.getDeviceData(element.deviceId || element.id)
+    const value = Number(data[binding.variable])
+    // 绑定了但设备还没有该变量：按流动处理，与未绑定口径一致
+    return Number.isNaN(value) ? true : value > 0
+  }
+
   // 元素上展示的实时数值（取第一个数据绑定变量）
   function getElementValueText(element: ComponentInstance): string {
     const binding = element.dataBindings?.[0]
@@ -109,6 +126,8 @@ export function useElementVisuals(options: {
   function getIconImageConfig(element: ComponentInstance) {
     // 图片组件由用户图整块渲染，不再叠默认图标
     if (element.type === 'image' && element.properties?.imageUrl) return null
+    // 管道用原生管身图形绘制（见 pipeFlow.ts）：方形等比图标会把横向管件缩成一小块
+    if (element.type === 'pipe') return null
     const def = getComponentDefinition(element.type)
     if (!def?.icon) return null
 
@@ -184,6 +203,7 @@ export function useElementVisuals(options: {
   return {
     getElementColor,
     getIconStrokeColor,
+    isPipeFlowing,
     getElementValueText,
     isDisplayElement,
     getDisplayValueText,
