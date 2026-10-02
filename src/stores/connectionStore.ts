@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import type { Connection, ConnectionStyle, PortPosition } from '@/types/connection'
 import { defaultConnectionStyle } from '@/types/connection'
 import { computeConnectionPoints } from '@/core/connection/portPoints'
+import { createConnectionId } from '@/utils/id'
 import { useCanvasStore } from './canvasStore'
 
 export const useConnectionStore = defineStore('connection', () => {
@@ -51,7 +52,7 @@ export const useConnectionStore = defineStore('connection', () => {
     if (!drawingConnection.value) return null
     
     const newConnection: Connection = {
-      id: `conn_${Date.now()}`,
+      id: createConnectionId(),
       type: drawingConnection.value.type || 'polyline',
       sourceId: drawingConnection.value.sourceId!,
       sourcePort: drawingConnection.value.sourcePort!,

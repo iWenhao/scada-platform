@@ -122,12 +122,12 @@ import { useTagBindings } from './useTagBindings'
 import {
   parseTagCsv,
   tagKey,
-  createTagId,
   computeImportSummary,
   WRITE_POLICY_TEXT,
   type TagDef,
   type WritePolicy,
 } from '@/types/tag'
+import { createTagId } from '@/utils/id'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()

@@ -2,6 +2,7 @@ import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useHistory } from '@/core/canvas/useHistory'
+import { createElementId } from '@/utils/id'
 import type { ComponentInstance } from '@/types/scada'
 
 type StageRef = { value: { getNode: () => any } | null }
@@ -43,7 +44,7 @@ export function useCanvasDrop(stageRef: StageRef) {
       const tpl = data.template
       const size = fitDropSize(tpl.width, tpl.height)
       const fromTemplate: ComponentInstance = {
-        id: `el_${Date.now()}`,
+        id: createElementId(),
         type: tpl.baseType,
         templateId: tpl.id,
         deviceId: deviceStore.suggestDeviceId(tpl.baseType),
@@ -69,7 +70,7 @@ export function useCanvasDrop(stageRef: StageRef) {
 
     const size = fitDropSize(data.defaultWidth || 100, data.defaultHeight || 80)
     const newElement: ComponentInstance = {
-      id: `el_${Date.now()}`,
+      id: createElementId(),
       type: data.type,
       deviceId: deviceStore.suggestDeviceId(data.type),
       x: pointerPosition.x - size.width / 2,

@@ -1,8 +1,12 @@
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useHistory } from '@/core/canvas/useHistory'
+import { createElementId } from '@/utils/id'
 
-/** 画布编辑命令：复制/粘贴/删除选中（元素或连线） */
+/**
+ * 画布编辑命令：复制/粘贴/删除选中（元素或连线）。
+ * 工具栏快捷键、右键菜单、浮动工具条共用这一份实现，保证编辑语义一致。
+ */
 export function useEditClipboard() {
   const canvasStore = useCanvasStore()
   const connectionStore = useConnectionStore()
@@ -18,10 +22,9 @@ export function useEditClipboard() {
   function handlePaste() {
     if (!canvasStore.clipboard.length) return
 
-    const stamp = Date.now()
-    const pasted = canvasStore.clipboard.map((el, i) => ({
+    const pasted = canvasStore.clipboard.map(el => ({
       ...JSON.parse(JSON.stringify(el)),
-      id: `el_${stamp}_${i}`,
+      id: createElementId(),
       x: el.x + 20,
       y: el.y + 20,
       name: `${el.name} 副本`,

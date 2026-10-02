@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { defaultLayers, type Layer } from '@/types/layer'
+import { createLayerId } from '@/utils/id'
 
 export const useLayerStore = defineStore('layer', () => {
   // 图层列表
@@ -49,7 +50,7 @@ export const useLayerStore = defineStore('layer', () => {
   function addLayer(layer: Omit<Layer, 'id' | 'order'>): Layer {
     const newLayer: Layer = {
       ...layer,
-      id: `layer_${Date.now()}`,
+      id: createLayerId(),
       order: layers.value.length,
     }
     layers.value.push(newLayer)

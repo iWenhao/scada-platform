@@ -18,7 +18,3 @@ export interface ScadaPage {
 
 /** 工作区快照：从编辑 store 抓取的一张画面内容（不含 id/name） */
 export type ScadaPageContent = Omit<ScadaPage, 'id' | 'name'>
-
-export function createPageId(): string {
-  return `page_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-}

@@ -1,40 +1,23 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
-import { useConnectionStore } from '@/stores/connectionStore'
-import { useHistory } from '@/core/canvas/useHistory'
+import { useEditClipboard } from '@/core/canvas/useEditClipboard'
 import { saveDeviceTemplate, templateFromElement } from '@/industrial/templateLibrary'
 import type { ContextMenuItem } from '@/components/layout/ContextMenu.vue'
 import type { ComponentInstance } from '@/types/scada'
 
 /**
  * 画布右键菜单：复制 / 存为模板 / 删除 / 锁定。
- * 与工具栏剪贴板行为保持一致（复制进 canvasStore.clipboard）。
+ * 复制/删除复用工具栏剪贴板的共享实现（useEditClipboard），编辑语义一致。
  */
 export function useCanvasContextMenu() {
   const canvasStore = useCanvasStore()
-  const connectionStore = useConnectionStore()
-  const { saveState } = useHistory()
+  const { handleCopy, handleDelete } = useEditClipboard()
 
   const ctxMenuVisible = ref(false)
   const ctxMenuX = ref(0)
   const ctxMenuY = ref(0)
   const ctxMenuItems = ref<ContextMenuItem[]>([])
-
-  function handleCopyFromCanvas() {
-    const selected = canvasStore.selectedElements
-    if (selected.length) {
-      canvasStore.clipboard = JSON.parse(JSON.stringify(selected))
-    }
-  }
-
-  function handleDeleteFromCanvas() {
-    const ids = [...canvasStore.selectedIds]
-    if (!ids.length) return
-    canvasStore.removeElements(ids)
-    ids.forEach(id => connectionStore.deleteConnectionsByElement(id))
-    saveState()
-  }
 
   async function handleSaveAsTemplate(element: ComponentInstance) {
     let name: string
@@ -68,7 +51,7 @@ export function useCanvasContextMenu() {
         label: '复制',
         icon: 'CopyDocument',
         shortcut: 'Ctrl+C',
-        action: () => handleCopyFromCanvas(),
+        action: () => handleCopy(),
       },
       {
         label: '存为模板',
@@ -80,7 +63,7 @@ export function useCanvasContextMenu() {
         icon: 'Delete',
         shortcut: 'Del',
         danger: true,
-        action: () => handleDeleteFromCanvas(),
+        action: () => handleDelete(),
       },
       {
         label: isLocked ? '解锁' : '锁定',

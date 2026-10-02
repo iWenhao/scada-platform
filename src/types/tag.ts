@@ -4,6 +4,7 @@
  * 实时值仍由 deviceStore 按 deviceId.variable 取数。
  */
 import type { Condition } from './scada'
+import { createTagId } from '@/utils/id'
 
 export type { Condition }
 export interface TagDef {
@@ -31,10 +32,6 @@ export interface TagDef {
   deadband?: number
   /** 备注 */
   note?: string
-}
-
-export function createTagId(): string {
-  return `tag_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
 /** 点位完整键：deviceId.name */

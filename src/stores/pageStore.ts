@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { defaultCanvasConfig } from '@/types/canvas'
 import { defaultLayers } from '@/types/layer'
-import { createPageId, type ScadaPage, type ScadaPageContent } from '@/types/page'
+import { type ScadaPage, type ScadaPageContent } from '@/types/page'
+import { createElementId, createConnectionId, createPageId } from '@/utils/id'
 import { useCanvasStore } from './canvasStore'
 import { useConnectionStore } from './connectionStore'
 import { useLayerStore } from './layerStore'
@@ -132,13 +133,13 @@ export const usePageStore = defineStore('page', () => {
     content.layers = clone(source.layers)
     const idMap = new Map<string, string>()
     content.elements = clone(source.elements).map(el => {
-      const newId = `el_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const newId = createElementId()
       idMap.set(el.id, newId)
       return { ...el, id: newId }
     })
     content.connections = clone(source.connections).map(conn => ({
       ...conn,
-      id: `conn_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: createConnectionId(),
       sourceId: idMap.get(conn.sourceId) || conn.sourceId,
       targetId: idMap.get(conn.targetId) || conn.targetId,
     }))
