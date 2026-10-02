@@ -62,6 +62,7 @@ export function useCanvasContextMenu() {
         icon: 'Collection',
         action: () => void handleSaveAsTemplate(element),
       },
+      { divider: true },
       {
         // 元素在数组中的位置即渲染 z 序：上移一层 = 与后一位交换（视觉更靠前）
         label: '上移一层',
@@ -81,6 +82,7 @@ export function useCanvasContextMenu() {
           saveState()
         },
       },
+      { divider: true },
       {
         label: '删除',
         icon: 'Delete',

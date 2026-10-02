@@ -7,17 +7,19 @@
       @mousedown.stop
       @contextmenu.prevent
     >
-      <div
-        v-for="item in items"
-        :key="item.label"
-        class="context-menu-item"
-        :class="{ disabled: item.disabled, danger: item.danger }"
-        @click="handleClick(item)"
-      >
-        <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
-        <span>{{ item.label }}</span>
-        <span v-if="item.shortcut" class="shortcut">{{ item.shortcut }}</span>
-      </div>
+      <template v-for="(item, i) in items" :key="i">
+        <div v-if="item.divider" class="context-menu-sep" />
+        <div
+          v-else
+          class="context-menu-item"
+          :class="{ disabled: item.disabled, danger: item.danger }"
+          @click="handleClick(item)"
+        >
+          <el-icon v-if="item.icon"><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
+          <span v-if="item.shortcut" class="shortcut">{{ item.shortcut }}</span>
+        </div>
+      </template>
     </div>
   </Teleport>
 </template>
@@ -26,12 +28,14 @@
 import { onMounted, onUnmounted } from 'vue'
 
 export interface ContextMenuItem {
-  label: string
+  label?: string
   icon?: string
   shortcut?: string
   danger?: boolean
   disabled?: boolean
-  action: () => void
+  /** 分组分隔线：只渲染一条横线，不带动作 */
+  divider?: boolean
+  action?: () => void
 }
 
 defineProps<{
@@ -46,9 +50,9 @@ const emit = defineEmits<{
 }>()
 
 function handleClick(item: ContextMenuItem) {
-  if (item.disabled) return
+  if (item.disabled || item.divider) return
   emit('close')
-  item.action()
+  item.action?.()
 }
 
 function onGlobalClick() {
@@ -71,15 +75,16 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+// 视觉对齐画布悬浮工具条：胶囊圆角 + 品牌青描边 + 深阴影
 .context-menu {
   position: fixed;
   z-index: 9999;
-  min-width: 160px;
+  min-width: 168px;
+  padding: 5px;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  padding: 4px 0;
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
   user-select: none;
 }
 
@@ -87,14 +92,16 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 14px;
+  margin: 0 2px;
+  padding: 7px 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
   color: var(--text-primary);
   transition: background 0.15s;
 
   &:hover:not(.disabled) {
-    background: var(--bg-tertiary);
+    background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
   }
 
   &.disabled {
@@ -104,6 +111,14 @@ onUnmounted(() => {
 
   &.danger {
     color: var(--accent-danger);
+
+    .el-icon {
+      color: var(--accent-danger);
+    }
+  }
+
+  .el-icon {
+    color: var(--text-secondary);
   }
 
   .shortcut {
@@ -111,5 +126,11 @@ onUnmounted(() => {
     color: var(--text-muted);
     font-size: 11px;
   }
+}
+
+.context-menu-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border-primary);
 }
 </style>
