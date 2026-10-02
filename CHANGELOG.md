@@ -23,6 +23,10 @@
 
 - 首页去掉欢迎区与项目网格末尾重复的「新建工程」入口：欢迎区只保留「导入」，新建统一走项目卡片流末尾的「＋ 新建工程」幽灵卡片，无项目时的空状态引导按钮保留，页面不再同时出现两个相同入口
 
+### 重构与清理
+
+- 冗余/重复代码专项清理（对外行为不变，全量测试通过）：删除死代码——前端平行账号体系 `src/auth/userLibrary.ts`/`password.ts`（鉴权早已走服务端，只保留登录页用的种子账号常量 `seedUsers.ts`）、三个 store 无人调用的 `toJSON()`、DataSourceManager 与 deviceStore 重复维护的数据快照及 `getData/getDeviceData/getLastError` 死方法、无引用的浮动工具条 FloatingActions 组件与 composable；预览页渲染与编辑器统一口径——图表 overlay 直接复用 `ChartOverlay` 组件、实时值胶囊改用 `elementChrome` 共享配置（修复同一图元在编辑器与预览数值位置不一致）、删除复制粘贴的重复图标绘制；WebSocket/OpcUa 网关适配器抽公共基类 `BaseWebSocketAdapter`（连接生命周期/重连/断开下沉，子类只留握手与解析）；连接状态→文案/Tag 类型/指示灯映射抽取 `src/status/connection.ts` 供首页/预览头部/数据源对话框/点位表四处共用；复制/删除选中元素收敛到 `useEditClipboard` 共享实现（右键菜单复用）；实体 ID 生成统一 `src/utils/id.ts` 工厂（时间戳+随机后缀，杜绝同毫秒批量创建撞 ID）；server 端 JSONL 读写抽 `lib/jsonl.mjs`（审计与通知日志共用，截断策略各自保留）、钉钉/企微机器人发送合并、headers 归一化与 HTTP 发送抽 `notify/common.mjs` 共用、清理文件拆分遗留的错位注释
+
 ## [0.0.4-261002] - 261002
 
 ### 修复
