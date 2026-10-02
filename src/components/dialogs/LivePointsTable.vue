@@ -50,6 +50,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TagDef } from '@/types/tag'
+import { connectionStatusView } from '@/status/connection'
 
 type LivePointRow = {
   deviceId: string
@@ -68,21 +69,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:keyword': [v: string] }>()
 
-const connTagType = computed(() => {
-  switch (props.connectionStatus) {
-    case 'connected': return 'success'
-    case 'error': return 'danger'
-    default: return 'info'
-  }
-})
-
-const connText = computed(() => {
-  switch (props.connectionStatus) {
-    case 'connected': return '已连接'
-    case 'error': return '连接错误'
-    default: return '未连接'
-  }
-})
+const connView = computed(() => connectionStatusView(props.connectionStatus))
+const connTagType = computed(() => connView.value.tagType)
+const connText = computed(() => connView.value.text)
 
 function formatVal(v: unknown): string {
   if (v === undefined || v === null) return '-'

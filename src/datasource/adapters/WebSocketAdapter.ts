@@ -1,4 +1,4 @@
-import type { DataSourceAdapter, DataSourceConfig, DataUpdate, WriteRequest } from '../types'
+import type { DataSourceAdapter, DataUpdate, WriteRequest } from '../types'
 import { parseDataUpdate } from '../parseUpdate'
 import { BaseWebSocketAdapter } from './BaseWebSocketAdapter'
 

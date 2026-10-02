@@ -146,6 +146,7 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { ElMessage } from 'element-plus'
 import type { DataSourceType } from '@/datasource/types'
+import { connectionStatusView } from '@/status/connection'
 import { useDataSourceForm } from './useDataSourceForm'
 
 const props = defineProps<{
@@ -200,21 +201,9 @@ const liveDevices = computed(() => {
     }))
 })
 
-const statusType = computed(() => {
-  switch (deviceStore.connectionStatus) {
-    case 'connected': return 'success'
-    case 'error': return 'danger'
-    default: return 'info'
-  }
-})
-
-const statusText = computed(() => {
-  switch (deviceStore.connectionStatus) {
-    case 'connected': return '已连接'
-    case 'error': return '连接错误'
-    default: return '未连接'
-  }
-})
+const connView = computed(() => connectionStatusView(deviceStore.connectionStatus))
+const statusType = computed(() => connView.value.tagType)
+const statusText = computed(() => connView.value.text)
 
 // 打开对话框时用工程中已保存的配置回填
 watch(

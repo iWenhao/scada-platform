@@ -111,6 +111,7 @@ import { computed, ref } from 'vue'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import type { ScadaPage } from '@/types/page'
 import { useBrandingStore } from '@/stores/brandingStore'
+import { connectionStatusView } from '@/status/connection'
 
 // 品牌图标读全局设置（默认回落 public/logo.svg）
 const branding = useBrandingStore()
@@ -143,17 +144,9 @@ const emit = defineEmits<{
 
 const alarmOpen = ref(false)
 
-const connClass = computed(() => {
-  if (props.connectionStatus === 'connected') return 'ok'
-  if (props.connectionStatus === 'error') return 'bad'
-  return 'warn'
-})
-
-const connText = computed(() => {
-  if (props.connectionStatus === 'connected') return '已连接'
-  if (props.connectionStatus === 'error') return '连接错误'
-  return '未连接'
-})
+const connView = computed(() => connectionStatusView(props.connectionStatus))
+const connClass = computed(() => connView.value.cls)
+const connText = computed(() => connView.value.text)
 </script>
 
 <style scoped lang="scss">

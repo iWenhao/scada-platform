@@ -131,6 +131,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useAlarmStore } from '@/stores/alarmStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { getStorage } from '@/storage'
+import { connectionStatusView } from '@/status/connection'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import NotifyConfigDialog from '@/components/dialogs/NotifyConfigDialog.vue'
 import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
@@ -165,12 +166,7 @@ const editingValue = ref('')
 
 const publishedCount = computed(() => recentProjects.value.filter(p => p.publishedAt).length)
 
-const dataSourceLabel = computed(() => {
-  const s = deviceStore.connectionStatus
-  if (s === 'connected') return '已连接'
-  if (s === 'error') return '连接错误'
-  return '未连接'
-})
+const dataSourceLabel = computed(() => connectionStatusView(deviceStore.connectionStatus).text)
 
 const heroSummary = computed(() => {
   const alarms = alarmStore.unackedCount
