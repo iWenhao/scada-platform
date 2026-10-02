@@ -33,7 +33,7 @@ pnpm lint               # ESLint
 - 大规模重构/删除文件后 Vite HMR 可能残留陈旧模块，症状：白屏（`#app` 为空）、样式或代码改了不生效、Konva 事件监听指向旧舞台实例。按以下顺序排查（先轻后重），**不要急着改代码**：
   1. **重启 dev server**，浏览器硬刷新（Ctrl+Shift+R）再判断；必要时关掉全部旧标签页、开全新 tab——多次 HMR 后同一 tab 会有 Konva 多 stage 实例污染，导致实测误判（功能实际正常但旧 tab 里不生效）；
   2. 仍异常：`rm -rf node_modules/.vite` 清掉 Vite 依赖预构建缓存，再重启 dev server；
-  3. 运行时报 `Cannot find module .../vite/...`：node_modules 链接损坏，**删除 node_modules 重新 install**。
+  3. 仍报 `Cannot find module .../vite/...`：node_modules 链接损坏，转上方重装流程。
 - **dev server 只认 5173，不要让它漂移**：5173 被旧实例占用时 Vite 会自动跳到 5174，而 5174 既是存储后端（`pnpm server`）端口又是 `/api` 代理目标——Vite 落在 5174 会让代理指向自身形成回环，表现为登录/存储请求异常。发现 5173 被占：先停掉旧实例（`netstat -ano | findstr :5173` 找 PID）再启动；自己临时起过 dev server 验证完要停掉。
 - **`vite.config.ts` 的 `server.host: '127.0.0.1'` 绑定勿删**：Clash Verge（mihomo）TUN 模式会拦截本机 IPv6 回环 `::1` 的 TCP 连接，删掉该绑定后 Node 17+ 的 Vite 只监听 `[::1]`，复发「服务已启动但浏览器打不开」——症状像 node_modules 损坏，先用 `node -e` 分别测 `127.0.0.1` 与 `::1` 回环连通性再排查。
 - **编辑器「恢复草稿」弹窗的行为**：挂载时若存在未正式保存的自动草稿会弹框询问——选「恢复」不会删除草稿文件，「丢弃」才删；恢复后直接刷新页面会丢失内存中未保存的改动（草稿只在正式保存或丢弃时清理），实测与排查时别把「恢复」当成已持久化。
@@ -49,7 +49,6 @@ pnpm lint               # ESLint
 - **变更日志**：功能与修复类提交需同步更新 `CHANGELOG.md` 的 `[Unreleased]` 区。
 - **版本号**：从 `0.0.1` 起步，末位每次 +1，满 10 进位（0.0.9 → 0.0.10 → 0.1.0）；发版时版本号后附当天日期 YYMMDD（如 `0.0.2-260928`，CHANGELOG 标题与 tag 使用），`package.json` 保留三段数字并同步修改。
 - **发版时机**：版本号只在用户明确说"发版"时才更新（改 `package.json` + 把 CHANGELOG 的 `[Unreleased]` 定稿为新版本号）。平时提交一律不动版本号，新内容只写入 `[Unreleased]`。
-- **变更日志**：功能与修复类提交需同步更新 `CHANGELOG.md` 的 `[Unreleased]` 区。
 - **不提交**：`node_modules/`、`dist/`、诊断用的临时代码（如 index.html 里的错误钩子）。
 - **UI 交互约定**：新功能必须有可见 UI 入口——只有快捷键没有按钮等同没做；次级操作图标默认隐藏、悬停显示或收进「⋯ 更多」类菜单，按钮放显眼位置（如面板标题右侧）；不做视觉冗余的堆砌，普通用户的标准是"看得到、找得到、用得顺"。
 - `components.d.ts` / `auto-imports.d.ts` 是 unplugin 自动生成的，跟随相关改动一起提交即可。
@@ -115,7 +114,7 @@ pnpm lint               # ESLint
 
 ## 测试
 
-- 单测放被测文件同目录（`*.test.ts`），现有覆盖：StatusEngine、DataSourceManager、WebSocket/HttpPolling/OpcUaGateway 适配器、PathCalculator、useHistory、canvasStore、storage。
+- 单测放被测文件同目录（`*.test.ts`），覆盖分布直接看各目录下的同名测试文件，不在此枚举（清单会过期）。
 - Pinia 测试用 `setActivePinia(createPinia())`；时间相关用 `vi.useFakeTimers()`；WebSocket/scroll 等浏览器 API 用 `vi.stubGlobal` 打桩。
 - 新增核心逻辑时补同目录测试；UI 组件暂不强求。
 - **UI 改动的浏览器实测套路**：组件拖放是 HTML5 原生拖拽、Konva 画布内对象常规点击命中不了——测右键菜单对 `.konvajs-content` 合成 `contextmenu` 事件（坐标 = 容器 rect + 元素中心），测拖入需合成 `dragover`/`drop` DragEvent，被遮挡的按钮可在页面内程序化 `el.click()`；元素坐标可查 `examples/demo-project.json`。灌 3D 演示工程用 `scripts/seed-demo3d.mjs`（admin/admin123 登录换 token）。
