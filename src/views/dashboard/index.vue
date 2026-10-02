@@ -106,6 +106,7 @@
     <DataSourceDialog v-model="showDataSource" />
     <AlarmConfigDialog v-model="showAlarmConfig" />
     <TagTableDialog v-model="showTagTable" />
+    <BrandingDialog v-model="showBranding" />
 
     <el-dialog v-model="showOpenDialog" title="打开项目" width="420px">
       <div class="open-project-list">
@@ -140,6 +141,7 @@ import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
 import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
 import AlarmConfigDialog from '@/components/dialogs/AlarmConfigDialog.vue'
 import TagTableDialog from '@/components/dialogs/TagTableDialog.vue'
+import BrandingDialog from '@/components/dialogs/BrandingDialog.vue'
 import TopNav from './TopNav.vue'
 import ProjectCard from './ProjectCard.vue'
 import type { ProjectRow } from './types'
@@ -160,6 +162,7 @@ const showUserManage = ref(false)
 const showDataSource = ref(false)
 const showAlarmConfig = ref(false)
 const showTagTable = ref(false)
+const showBranding = ref(false)
 
 const editingName = ref<string | null>(null)
 const editingValue = ref('')
@@ -184,6 +187,7 @@ const heroSummary = computed(() => {
 
 function handleSystemCommand(cmd: string) {
   if (cmd === 'notify') showNotifyConfig.value = true
+  else if (cmd === 'branding') showBranding.value = true
   else if (cmd === 'users') showUserManage.value = true
 }
 

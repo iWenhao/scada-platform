@@ -46,6 +46,7 @@ import {
   readValue,
   writeValue,
   removeValue,
+  GLOBAL_SCOPE,
 } from './lib/kv.mjs'
 import {
   historyDirFor,
@@ -71,6 +72,9 @@ const AUTH_TOKEN = (process.env.AUTH_TOKEN || '').trim()
 const RETENTION_DAYS = Number(process.env.HISTORY_RETENTION_DAYS || 30)
 const AUDIT_MAX = 500
 
+/** 站点品牌存储键（部署级全局设置），与前端 src/stores/brandingStore.ts 保持一致 */
+const BRANDING_KEY = 'site:branding'
+
 const corsHeaders = makeCorsHeaders(CORS_ORIGIN)
 const auth = createAuthStore(DATA_DIR)
 /** 通知节流：channelId -> 上次发送时间戳 */
@@ -93,6 +97,14 @@ const server = createServer(async (req, res) => {
     // ---------- 公开 ----------
     if (url.pathname === '/api/health') {
       return ok(res, req, 200, { ok: true })
+    }
+
+    // ---------- 站点品牌（部署级全局设置）----------
+    // GET 必须公开（放在鉴权之前）：登录页等未鉴权页面也要展示部署品牌。
+    // 数据落 u/global/ 全局命名空间（见 lib/kv.mjs GLOBAL_SCOPE），不随用户隔离；
+    // 值为前端 brandingStore 写入的 JSON 字符串，此处只做透明存取不解析。
+    if (url.pathname === '/api/branding' && req.method === 'GET') {
+      return ok(res, req, 200, { value: await readValue(DATA_DIR, BRANDING_KEY, GLOBAL_SCOPE) })
     }
 
     if (url.pathname === '/api/auth/login' && req.method === 'POST') {
@@ -289,6 +301,16 @@ const server = createServer(async (req, res) => {
       const key = url.searchParams.get('key')
       if (!key) return ok(res, req, 400, { error: 'missing key' })
       await removeValue(DATA_DIR, key, scope)
+      return ok(res, req, 200, { ok: true })
+    }
+
+    // 站点品牌写入：影响整个部署，权限提高到 admin（普通 KV 键 engineer 即可写）。
+    // 品牌负载含图标 data URL（前端已缩放为 256×256 PNG），512KB 上限足够。
+    if (url.pathname === '/api/branding' && req.method === 'PUT') {
+      if (!requireRole(authn, 'admin', roleAtLeast)) {
+        return ok(res, req, 403, { error: 'forbidden' })
+      }
+      await writeValue(DATA_DIR, BRANDING_KEY, GLOBAL_SCOPE, await readBody(req, 512 * 1024))
       return ok(res, req, 200, { ok: true })
     }
 

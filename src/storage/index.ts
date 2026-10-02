@@ -27,6 +27,14 @@ export interface StorageAdapter {
 const LOCAL_MIGRATED_FLAG = 'scada:local-migrated'
 
 /**
+ * 部署级全局键：站点品牌等设置属于整个部署而非某个用户，
+ * 不参与本地用户命名空间隔离（各命名空间读写同一份数据）；
+ * 远程模式则由服务端落 u/global/ 全局命名空间（见 brandingStore 的 /api/branding）。
+ * 键名刻意不以 scada_ 开头，避免被 migrateLocalPrefix 误复制进用户空间。
+ */
+export const SITE_BRANDING_KEY = 'site:branding'
+
+/**
  * localStorage 实现（后端离线时的回落）。
  * prefix 为用户命名空间：键按 `u/<userId>/<key>` 组织，
  * keys() 只枚举本空间的键并剥离前缀，对上层完全透明。
@@ -34,9 +42,10 @@ const LOCAL_MIGRATED_FLAG = 'scada:local-migrated'
 export class LocalStorageAdapter implements StorageAdapter {
   /**
    * 不参与命名空间隔离的键：会话缓存是"本机记住上次登录"的凭据，
-   * 若随用户空间隔离，登出切到匿名空间后就再也读不到它了。
+   * 若随用户空间隔离，登出切到匿名空间后就再也读不到它了；
+   * 站点品牌是部署级设置，登录前（匿名空间）就要展示，同样必须全局。
    */
-  private static readonly GLOBAL_KEYS = new Set([LOCAL_SESSION_KEY])
+  private static readonly GLOBAL_KEYS = new Set([LOCAL_SESSION_KEY, SITE_BRANDING_KEY])
 
   constructor(readonly prefix = '') {}
 

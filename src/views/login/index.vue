@@ -13,11 +13,11 @@
       <!-- 品牌区 -->
       <div class="brand">
         <div class="brand-mark">
-          <img src="/logo.svg" alt="SCADA Platform" class="brand-logo" />
+          <img :src="branding.displayIcon" :alt="branding.displayName" class="brand-logo" />
         </div>
         <div class="brand-text">
-          <h1>SCADA Platform</h1>
-          <p>INDUSTRIAL VISUALIZATION · 工业组态可视化平台</p>
+          <h1>{{ branding.displayName }}</h1>
+          <p>INDUSTRIAL VISUALIZATION · {{ branding.displaySubtitle }}</p>
         </div>
       </div>
 
@@ -105,11 +105,14 @@
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { useBrandingStore } from '@/stores/brandingStore'
 import { SEED_USERS } from '@/auth/userLibrary'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+// 品牌由 main.ts 在挂载前加载（远程模式走公开接口，未登录也能读到）
+const branding = useBrandingStore()
 
 const username = ref('admin')
 const password = ref('')

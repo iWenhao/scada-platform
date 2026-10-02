@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { MemoryStorageAdapter, LocalStorageAdapter, getStorage, setStorage } from './index'
+import {
+  MemoryStorageAdapter,
+  LocalStorageAdapter,
+  getStorage,
+  setStorage,
+  SITE_BRANDING_KEY,
+} from './index'
 import { useProjectStore } from '@/stores/projectStore'
 
 describe('MemoryStorageAdapter', () => {
@@ -40,6 +46,25 @@ describe('LocalStorageAdapter', () => {
 
     await storage.remove('k')
     expect(localStorage.getItem('k')).toBeNull()
+  })
+
+  it('全局键（站点品牌）不参与用户命名空间前缀，跨命名空间共读同一份', async () => {
+    localStorage.clear()
+    const alice = new LocalStorageAdapter('u/alice/')
+    await alice.set(SITE_BRANDING_KEY, 'brand')
+
+    // 落在无前缀的全局键上，而不是 u/alice/ 下
+    expect(localStorage.getItem(SITE_BRANDING_KEY)).toBe('brand')
+    expect(localStorage.getItem('u/alice/' + SITE_BRANDING_KEY)).toBeNull()
+
+    // 切到其他用户（或匿名）命名空间后仍读到同一份品牌
+    const bob = new LocalStorageAdapter('u/bob/')
+    expect(await bob.get(SITE_BRANDING_KEY)).toBe('brand')
+
+    // 对照：普通键仍按用户隔离
+    await alice.set('scada_theme', 'dark')
+    expect(localStorage.getItem('u/alice/scada_theme')).toBe('dark')
+    expect(localStorage.getItem('scada_theme')).toBeNull()
   })
 })
 

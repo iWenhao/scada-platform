@@ -10,6 +10,7 @@ import './styles/index.scss'
 import App from './App.vue'
 import router from './router'
 import { getStorage, initStorage, resolveLocalNamespace } from '@/storage'
+import { useBrandingStore } from '@/stores/brandingStore'
 
 // 启动时在浏览器控制台打印项目名称与版本，便于确认当前页面加载的前端构建。
 // 名称/版本由 vite.config.ts 的 define 从 package.json 注入，无需重复维护。
@@ -43,6 +44,8 @@ initStorage(undefined, resolveLocalNamespace())
   .then(async () => {
     const saved = await getStorage().get('scada_theme')
     if (saved === 'light' || saved === 'dark') applyTheme(saved)
+    // 挂载前加载站点品牌并同步标题/favicon：登录页等未鉴权页面也能显示部署品牌
+    await useBrandingStore().init()
   })
   .catch(() => {})
   .finally(() => {

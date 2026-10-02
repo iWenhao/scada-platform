@@ -3,7 +3,7 @@
     <!-- 左侧Logo和项目名 -->
     <div class="toolbar-left">
       <el-tooltip content="返回主页" placement="bottom">
-        <img src="/logo.svg" alt="返回主页" class="logo" @click="goHome" />
+        <img :src="branding.displayIcon" alt="返回主页" class="logo" @click="goHome" />
       </el-tooltip>
       <div class="project-name-group" title="点击重命名" @click="handleRename">
         <span class="project-name">{{ projectStore.projectName }}</span>
@@ -243,12 +243,14 @@ import { useEditClipboard } from './toolbar/useEditClipboard'
 import { useProjectActions } from './toolbar/useProjectActions'
 import { useToolbarShortcuts } from './toolbar/useToolbarShortcuts'
 import { useAuthStore } from '@/stores/authStore'
+import { useBrandingStore } from '@/stores/brandingStore'
 
 const canvasStore = useCanvasStore()
 const connectionStore = useConnectionStore()
 const projectStore = useProjectStore()
 const uiStore = useUiStore()
 const authStore = useAuthStore()
+const branding = useBrandingStore()
 
 const { canUndo, canRedo, undo, redo, saveState } = useHistory()
 

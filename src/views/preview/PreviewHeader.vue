@@ -17,7 +17,7 @@
       </button>
 
       <div class="hud-brand">
-        <img src="/logo.svg" alt="" class="brand-logo" />
+        <img :src="branding.displayIcon" alt="" class="brand-logo" />
         <div class="brand-text">
           <div class="brand-name">{{ projectName }}</div>
           <div class="brand-sub">运行监控</div>
@@ -110,6 +110,10 @@
 import { computed, ref } from 'vue'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import type { ScadaPage } from '@/types/page'
+import { useBrandingStore } from '@/stores/brandingStore'
+
+// 品牌图标读全局设置（默认回落 public/logo.svg）
+const branding = useBrandingStore()
 
 const props = defineProps<{
   projectName: string
