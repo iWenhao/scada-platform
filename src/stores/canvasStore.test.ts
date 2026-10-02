@@ -74,6 +74,25 @@ describe('canvasStore', () => {
     expect(store.elements).toHaveLength(1)
   })
 
+  it('moveElementForward/moveElementBackward 应调整元素叠放次序', () => {
+    // 数组顺序即渲染 z 序：末位画在最上层
+    store.addElement(makeElement('el_1'))
+    store.addElement(makeElement('el_2'))
+    store.addElement(makeElement('el_3'))
+
+    store.moveElementForward('el_2')
+    expect(store.elements.map(el => el.id)).toEqual(['el_1', 'el_3', 'el_2'])
+
+    store.moveElementBackward('el_2')
+    expect(store.elements.map(el => el.id)).toEqual(['el_1', 'el_2', 'el_3'])
+
+    // 边界：已在顶层/底层时幂等不变
+    store.moveElementForward('el_3')
+    expect(store.elements.map(el => el.id)).toEqual(['el_1', 'el_2', 'el_3'])
+    store.moveElementBackward('el_1')
+    expect(store.elements.map(el => el.id)).toEqual(['el_1', 'el_2', 'el_3'])
+  })
+
   it('多选: selectMany/toggleElement/clearSelection 应正常工作', () => {
     store.addElement(makeElement('el_1'))
     store.addElement(makeElement('el_2'))

@@ -73,6 +73,24 @@ export const useCanvasStore = defineStore('canvas', () => {
     selectedIds.value = selectedIds.value.filter(sid => !ids.includes(sid))
   }
 
+  // 元素上移一层（朝顶层，视觉遮挡更靠前）：与数组中后一位交换；已在顶层则不变
+  function moveElementForward(id: string) {
+    const list = elements.value
+    const idx = list.findIndex(el => el.id === id)
+    if (idx < 0 || idx >= list.length - 1) return
+    const [item] = list.splice(idx, 1)
+    list.splice(idx + 1, 0, item)
+  }
+
+  // 元素下移一层（朝底层）：与数组中前一位交换；已在底层则不变
+  function moveElementBackward(id: string) {
+    const list = elements.value
+    const idx = list.findIndex(el => el.id === id)
+    if (idx <= 0) return
+    const [item] = list.splice(idx, 1)
+    list.splice(idx - 1, 0, item)
+  }
+
   // 选择元素（单选；传 null 清空选择）
   function selectElement(id: string | null) {
     selectedIds.value = id ? [id] : []
@@ -143,6 +161,8 @@ export const useCanvasStore = defineStore('canvas', () => {
     resetCanvasConfig,
     addElement,
     updateElement,
+    moveElementForward,
+    moveElementBackward,
     removeElement,
     removeElements,
     selectElement,

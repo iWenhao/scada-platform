@@ -1,18 +1,20 @@
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useCanvasStore } from '@/stores/canvasStore'
+import { useHistory } from '@/core/canvas/useHistory'
 import { useEditClipboard } from '@/core/canvas/useEditClipboard'
 import { saveDeviceTemplate, templateFromElement } from '@/industrial/templateLibrary'
 import type { ContextMenuItem } from '@/components/layout/ContextMenu.vue'
 import type { ComponentInstance } from '@/types/scada'
 
 /**
- * 画布右键菜单：复制 / 存为模板 / 删除 / 锁定。
+ * 画布右键菜单：复制 / 存为模板 / 上下移一层 / 删除 / 锁定。
  * 复制/删除复用工具栏剪贴板的共享实现（useEditClipboard），编辑语义一致。
  */
 export function useCanvasContextMenu() {
   const canvasStore = useCanvasStore()
   const { handleCopy, handleDelete } = useEditClipboard()
+  const { saveState } = useHistory()
 
   const ctxMenuVisible = ref(false)
   const ctxMenuX = ref(0)
@@ -46,6 +48,8 @@ export function useCanvasContextMenu() {
     ctxMenuX.value = e.evt.clientX
     ctxMenuY.value = e.evt.clientY
     const isLocked = !!element.locked
+    // 元素在数组中的下标：0 = 最底层（最先绘制），length-1 = 最顶层
+    const elementIndex = canvasStore.elements.findIndex(el => el.id === element.id)
     ctxMenuItems.value = [
       {
         label: '复制',
@@ -57,6 +61,25 @@ export function useCanvasContextMenu() {
         label: '存为模板',
         icon: 'Collection',
         action: () => void handleSaveAsTemplate(element),
+      },
+      {
+        // 元素在数组中的位置即渲染 z 序：上移一层 = 与后一位交换（视觉更靠前）
+        label: '上移一层',
+        icon: 'Top',
+        disabled: elementIndex >= canvasStore.elements.length - 1,
+        action: () => {
+          canvasStore.moveElementForward(element.id)
+          saveState()
+        },
+      },
+      {
+        label: '下移一层',
+        icon: 'Bottom',
+        disabled: elementIndex <= 0,
+        action: () => {
+          canvasStore.moveElementBackward(element.id)
+          saveState()
+        },
       },
       {
         label: '删除',
