@@ -48,10 +48,6 @@
               :config="getIconImageConfig(element)"
             />
             <v-image
-              v-if="getIconImageConfig(element)"
-              :config="getIconImageConfig(element)"
-            />
-            <v-image
               v-if="getUserImageConfig(element)"
               :config="getUserImageConfig(element)"
             />
@@ -74,6 +70,7 @@
               <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
               <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
             </template>
+            <!-- 数值显示图元与实时值胶囊（与编辑器共用 elementChrome 配置，口径一致） -->
             <v-text
               v-if="isDisplayElement(element) && isValueShown(element)"
               :config="{
@@ -84,35 +81,20 @@
                 width: element.width,
                 align: 'center',
                 y: (element.height - getLabelHeight(element)) / 2 - 9,
+                listening: false,
               }"
             />
-            <v-text
-              v-else-if="isValueShown(element) && getElementValueText(element)"
-              :config="{
-                text: getElementValueText(element),
-                fontSize: 9,
-                fill: '#8fe6d3',
-                width: element.width,
-                align: 'center',
-                y: element.height - 11,
-              }"
-            />
+            <template v-else-if="isValueShown(element) && getElementValueText(element)">
+              <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
+              <v-text :config="valueTextConfig(element, getElementValueText(element))" />
+            </template>
           </v-group>
         </template>
       </v-layer>
     </v-stage>
 
-    <!-- 图表 overlay：与编辑器一致的 ECharts 实体渲染 -->
-    <div class="chart-overlay">
-      <div
-        v-for="element in chartElements"
-        :key="element.id"
-        class="chart-slot"
-        :style="chartSlotStyle(element)"
-      >
-        <ChartElement :element="element" />
-      </div>
-    </div>
+    <!-- 图表 overlay：与编辑器共用同一组件 -->
+    <ChartOverlay />
   </div>
 </template>
 
@@ -132,6 +114,8 @@ import {
   bodyTopGlowConfig,
   labelBarConfig,
   labelTextConfig,
+  valuePillConfig,
+  valueTextConfig,
   isNameShown,
   isValueShown,
   isPureShapeMode,
@@ -140,7 +124,7 @@ import {
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import { useUiStore } from '@/stores/uiStore'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
-import ChartElement from '@/industrial/chart/ChartElement.vue'
+import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
 import type { ComponentInstance } from '@/types/scada'
 
 const emit = defineEmits<{
@@ -175,23 +159,6 @@ const {
   isLayerVisible,
 } = useElementVisuals({ deviceStore, layerStore })
 
-const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie']
-
-const chartElements = computed(() =>
-  canvasStore.elements.filter(el => CHART_TYPES.includes(el.type)),
-)
-
-function chartSlotStyle(element: ComponentInstance) {
-  const { zoom, offset } = canvasStore
-  return {
-    left: `${element.x * zoom + offset.x}px`,
-    top: `${element.y * zoom + offset.y}px`,
-    width: `${element.width * zoom}px`,
-    height: `${element.height * zoom}px`,
-    visibility: isLayerVisible(element.layerId) ? ('visible' as const) : ('hidden' as const),
-  }
-}
-
 const stageConfig = computed(() => ({
   width: window.innerWidth,
   height: window.innerHeight - 60,
@@ -208,18 +175,6 @@ const stageConfig = computed(() => ({
   position: relative;
   overflow: hidden;
   background: var(--bg-canvas);
-
-  .chart-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 5;
-  }
-
-  .chart-slot {
-    position: absolute;
-    pointer-events: none;
-  }
 
   &::before {
     content: '';
