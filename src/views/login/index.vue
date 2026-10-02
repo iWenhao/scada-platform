@@ -106,7 +106,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useBrandingStore } from '@/stores/brandingStore'
-import { SEED_USERS } from '@/auth/userLibrary'
+import { SEED_USERS } from '@/auth/seedUsers'
 
 const router = useRouter()
 const route = useRoute()
