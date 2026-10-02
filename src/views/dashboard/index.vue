@@ -15,10 +15,6 @@
           <p class="hero-sub">{{ heroSummary }}</p>
         </div>
         <div class="hero-actions">
-          <el-button type="primary" @click="goToEditor">
-            <el-icon><Plus /></el-icon>
-            新建工程
-          </el-button>
           <el-button @click="importProject">导入</el-button>
         </div>
       </div>
