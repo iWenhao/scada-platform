@@ -1,8 +1,8 @@
 import { ref } from 'vue'
 import type { useDeviceStore } from '@/stores/deviceStore'
 import type { useLayerStore } from '@/stores/layerStore'
-import { statusEngine } from '@/status/StatusEngine'
 import { getIconImage } from './iconImage'
+import { DEFAULT_ELEMENT_COLOR, evaluateElementColor } from './elementStatus'
 import { loadUserImage, fitRect } from './userImage'
 import { getComponentDefinition } from '@/industrial/registry'
 import { isValueShown, isPureShapeMode } from './elementChrome'
@@ -21,11 +21,12 @@ export function useElementVisuals(options: {
 }) {
   const { deviceStore, layerStore } = options
 
-  // 获取元素状态颜色
+  // 获取元素状态颜色（求值逻辑与 3D 场景共用，见 elementStatus.ts）
   function getElementColor(element: ComponentInstance): string {
-    const data = deviceStore.getDeviceData(element.deviceId || element.id)
-    const status = statusEngine.evaluate(element.statusRules, data)
-    return status?.color || '#8fe6d3'
+    return evaluateElementColor(
+      element.statusRules,
+      deviceStore.getDeviceData(element.deviceId || element.id),
+    )
   }
 
   /**
@@ -33,7 +34,7 @@ export function useElementVisuals(options: {
    * 没有规则时用中性灰（和画布网格/边框保持协调）。
    */
   function getIconStrokeColor(element: ComponentInstance): string {
-    if (!element.statusRules?.length) return '#8fe6d3'
+    if (!element.statusRules?.length) return DEFAULT_ELEMENT_COLOR
     return getElementColor(element)
   }
 
