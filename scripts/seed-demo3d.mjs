@@ -26,8 +26,8 @@ const layers = [
 ]
 
 const canvasConfig = {
-  width: 1920, height: 1080, backgroundColor: '#101a2c', showGrid: true,
-  gridSize: 20, gridColor: '#2a3a4a', snapToGrid: true, enableZoom: true,
+  width: 1920, height: 1080, backgroundColor: '', showGrid: true,
+  gridSize: 20, gridColor: '', snapToGrid: true, enableZoom: true,
   minZoom: 0.1, maxZoom: 5, enablePan: true,
 }
 

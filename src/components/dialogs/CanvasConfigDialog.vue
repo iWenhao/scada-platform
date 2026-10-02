@@ -28,6 +28,7 @@
       
       <el-form-item label="背景颜色">
         <el-color-picker v-model="form.backgroundColor" />
+        <span class="unit">留空跟随亮暗主题</span>
       </el-form-item>
       
       <el-form-item label="显示网格">
@@ -46,6 +47,7 @@
       
       <el-form-item label="网格颜色">
         <el-color-picker v-model="form.gridColor" />
+        <span class="unit">留空跟随亮暗主题</span>
       </el-form-item>
 
       <el-form-item label="网格吸附">
@@ -134,7 +136,12 @@ function handleReset() {
 }
 
 function handleConfirm() {
-  canvasStore.updateCanvasConfig({ ...form })
+  // 取色器「清除」会吐出 null，统一归一为空串（= 跟随主题）
+  canvasStore.updateCanvasConfig({
+    ...form,
+    backgroundColor: form.backgroundColor || '',
+    gridColor: form.gridColor || '',
+  })
   // 画布尺寸/网格等属于工程内容，标脏以便保存
   useProjectStore().markDirty()
   visible.value = false

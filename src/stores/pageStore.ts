@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { defaultCanvasConfig } from '@/types/canvas'
+import { defaultCanvasConfig, normalizeCanvasConfig } from '@/types/canvas'
 import { defaultLayers } from '@/types/layer'
 import { type ScadaPage, type ScadaPageContent } from '@/types/page'
 import { createElementId, createConnectionId, createPageId } from '@/utils/id'
@@ -52,7 +52,8 @@ export const usePageStore = defineStore('page', () => {
     const connectionStore = useConnectionStore()
     const layerStore = useLayerStore()
 
-    canvasStore.canvasConfig = { ...defaultCanvasConfig, ...clone(content.canvasConfig) }
+    // 归一化含旧工程默认底色/网格色的主题迁移（切换画面也走这里，幂等）
+    canvasStore.canvasConfig = normalizeCanvasConfig(content.canvasConfig)
     canvasStore.elements = clone(content.elements || [])
     canvasStore.clearSelection()
     connectionStore.connections = clone(content.connections || [])

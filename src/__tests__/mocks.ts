@@ -8,10 +8,10 @@ export function createMockCanvasStore() {
     canvasConfig: {
       width: 1920,
       height: 1080,
-      backgroundColor: '#1e1e1e',
+      backgroundColor: '',
       showGrid: true,
       gridSize: 20,
-      gridColor: '#2a2a2a',
+      gridColor: '',
       enableZoom: true,
       minZoom: 0.1,
       maxZoom: 5,

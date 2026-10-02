@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { defaultCanvasConfig, type CanvasConfig } from '@/types/canvas'
+import { defaultCanvasConfig, normalizeCanvasConfig, type CanvasConfig } from '@/types/canvas'
 import type { ComponentInstance } from '@/types/scada'
 
 export const useCanvasStore = defineStore('canvas', () => {
@@ -128,7 +128,8 @@ export const useCanvasStore = defineStore('canvas', () => {
   function loadFromJSON(json: string) {
     try {
       const data = JSON.parse(json)
-      canvasConfig.value = { ...defaultCanvasConfig, ...data.canvasConfig }
+      // 归一化含旧工程默认底色/网格色的主题迁移
+      canvasConfig.value = normalizeCanvasConfig(data.canvasConfig)
       elements.value = data.elements || []
       zoom.value = data.zoom || 1
       offset.value = data.offset || { x: 0, y: 0 }
