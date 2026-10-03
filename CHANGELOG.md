@@ -14,6 +14,7 @@
 - 编辑器工具栏窄屏「按钮掉下来」：Element Plus 2.14 把水平按钮组改成了 `inline-block + float:left` 的老式实现，窗口不够宽时 flex 挤压按钮组、浮动按钮像文字一样折行，堆成两三行并溢出 52px 工具栏压到标签栏。现将按钮组统一恢复为 `inline-flex` 布局（组内永不折行）；窄于 1700px 进入紧凑模式——次要操作（复制/粘贴/删除、主题切换、画布配置、导入导出）收进「⋯ 更多」下拉菜单，发布/保存/预览只留图标（名称经 tooltip 悬停可见），用户胶囊只留首字头像（全名与角色经 title 悬停可见），项目名超长省略号截断，极窄窗口横向滚动兜底，工具栏在任意宽度下保持单行
 - 用户胶囊角色显示丢失：`el-dropdown` 会向触发元素透传 `role="button"` 属性，`UserChip` 恰好声明了同名 `role` prop 而被覆盖（Vue 将透传属性匹配到同名 prop），导致首页与编辑器的用户头像配色失效、角色徽标不显示、悬停提示里角色一律是「用户」。prop 更名 `userRole` 规避与 HTML `role` 属性的冲突，头像按角色着色（admin 红 / engineer 橙 / operator 青 / viewer 蓝）与角色徽标恢复正常
 - 历史查询服务端窗口聚合缺失：前端趋势图长跨度（24h/7天）已按 `agg/window` 请求服务端聚合，但 `GET /api/history/query` 直接忽略该参数、全量回传原始点（7天1秒采样约60万点），服务端全文件解析排序、前端再抽稀，慢且费内存。现 `querySamples` 支持 `agg=min/avg/max + windowMs`——边读边按窗口（epoch 对齐）归约，内存只保留窗口数；仍超 `maxPoints` 时再均匀抽稀兜底；非法参数回落普通查询不报错，旧前端兼容
+- 用户胶囊里同一个词上下显示两遍：种子账号（`admin`→管理员、`engineer`→工程师、`operator`→操作员、`viewer`→观察员）的 `displayName` 就等于角色标签，右侧叠成「管理员 / 管理员」两行同词，且头像首字也取自它，分不清哪个是身份、哪个是权限。现 `UserChip` 增加 `nameText`（显示名优先、回落用户名）与 `showRole`（角色标签与显示名同字时整行不渲染），真实姓名账号（如「张三」/操作员）不受影响仍显示两行；`title` 悬停提示保留 `用户名 · 角色` 便于区分
 
 ### 功能
 
@@ -26,10 +27,13 @@
 
 - 右键菜单视觉升级（对齐悬浮工具条设计语言）：深色胶囊圆角 10px + 品牌青描边 + 深阴影，菜单项悬停高亮圆角化，图标独立灰阶层级；新增分组分隔线能力——「复制 / 存为模板 ‖ 上移 / 下移一层 ‖ 删除 / 锁定」三组视觉分区，亮暗主题均走 CSS 变量适配
 - 首页去掉欢迎区与项目网格末尾重复的「新建工程」入口：欢迎区只保留「导入」，新建统一走项目卡片流末尾的「＋ 新建工程」幽灵卡片，无项目时的空状态引导按钮保留，页面不再同时出现两个相同入口
+- 顶栏「系统设置」与「用户」两个胶囊高低不齐：系统设置胶囊写死 `height: 34px`，用户胶囊由 32px 头像加上下各 5px padding 撑到 44px，并排差 10px 肉眼可见。新增共享尺寸变量 `--chip-h: 40px`（`variables.scss`，亮暗主题共用）两者各自消费，不再各写各的数值；用户胶囊改为固定高度、上下不 padding 靠 `align-items` 居中，32px 头像上下各留 3px
+- 首页顶栏系统设置图标偏小且风格不搭：原用 emoji 字符 `⚙`，Windows 下走 Segoe UI Emoji 渲染成带阴影的彩色齿轮，与全站 Element Plus 扁平线性图标（同一行的下拉 caret 即是）明显不搭，且 22px 圆底里只能排到 12px、显小。改为已全局注册的 Element Plus `Setting` 线性图标（随 `currentColor` 变色），圆底 22→24px、字号 12→15px，并补 `flex: none` 防止被 flex 压扁
 
 ### 重构与清理
 
 - 冗余/重复代码专项清理（对外行为不变，全量测试通过）：删除死代码——前端平行账号体系 `src/auth/userLibrary.ts`/`password.ts`（鉴权早已走服务端，只保留登录页用的种子账号常量 `seedUsers.ts`）、三个 store 无人调用的 `toJSON()`、DataSourceManager 与 deviceStore 重复维护的数据快照及 `getData/getDeviceData/getLastError` 死方法、无引用的浮动工具条 FloatingActions 组件与 composable；预览页渲染与编辑器统一口径——图表 overlay 直接复用 `ChartOverlay` 组件、实时值胶囊改用 `elementChrome` 共享配置（修复同一图元在编辑器与预览数值位置不一致）、删除复制粘贴的重复图标绘制；WebSocket/OpcUa 网关适配器抽公共基类 `BaseWebSocketAdapter`（连接生命周期/重连/断开下沉，子类只留握手与解析）；连接状态→文案/Tag 类型/指示灯映射抽取 `src/status/connection.ts` 供首页/预览头部/数据源对话框/点位表四处共用；复制/删除选中元素收敛到 `useEditClipboard` 共享实现（右键菜单复用）；实体 ID 生成统一 `src/utils/id.ts` 工厂（时间戳+随机后缀，杜绝同毫秒批量创建撞 ID）；server 端 JSONL 读写抽 `lib/jsonl.mjs`（审计与通知日志共用，截断策略各自保留）、钉钉/企微机器人发送合并、headers 归一化与 HTTP 发送抽 `notify/common.mjs` 共用、清理文件拆分遗留的错位注释
+- 删除 `dashboard.scss` 中重复且从未生效的 `.user-chip`：该文件经 `import` 全局引入（非 scoped），选择器权重低于 `UserChip.vue` 自身 scoped 规则，其 `padding`/`border-radius`/`font-size` 等声明实际从未生效——首页看到的药丸形圆角与间距都来自组件本身（改这段的人会白排查很久），只有 hover 背景真正漏了出来；且与 `toolbar.scss` 那份逐字重复近九成，属误导性死代码。删除后 hover 底色按原值（`var(--bg-tertiary)`）收进 `UserChip.vue` 作单一来源，视觉零变化；`toolbar.scss` 那份因需覆盖紧凑形态（`padding: 4px 8px`、圆角 4px）且是 scoped 不外泄，予以保留
 
 ## [0.0.4-261002] - 261002
 
