@@ -103,23 +103,6 @@
   opacity: 0.7;
 }
 
-.user-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 8px;
-  color: var(--text-secondary);
-  font-size: 13px;
-  border: 1px solid var(--border-primary);
-
-  &:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-  }
-}
-
 .dashboard-content {
   max-width: 1200px;
   margin: 0 auto;

@@ -57,6 +57,10 @@ const initial = computed(() => {
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 
   &:hover {
+    // hover 底色收在这里作单一来源：原先 dashboard.scss 与 toolbar.scss 各抄一份，
+    // 而 dashboard.scss 是全局样式、权重低于本组件的 scoped 规则，其 padding/圆角等
+    // 声明其实从未生效，只有 hover 背景真正漏了出来。删除那两处后由本行统一提供。
+    background: var(--bg-tertiary);
     border-color: rgba(0, 212, 170, 0.55);
     box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.12);
     transform: translateY(-1px);
