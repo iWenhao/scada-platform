@@ -3,8 +3,8 @@
   min-height: 100vh;
   overflow: hidden;
   background:
-    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(0, 212, 170, 0.12), transparent 55%),
-    linear-gradient(160deg, #0b1020 0%, #12182e 45%, #0a1628 100%);
+    radial-gradient(ellipse 90% 60% at 50% -10%, var(--login-glow-color), transparent 55%),
+    linear-gradient(160deg, var(--login-bg-1) 0%, var(--login-bg-2) 45%, var(--login-bg-3) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,8 +16,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 212, 170, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 170, 0.05) 1px, transparent 1px);
+    linear-gradient(var(--login-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--login-grid-color) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 75%);
   pointer-events: none;
@@ -27,7 +27,7 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(60px);
-  opacity: 0.35;
+  opacity: var(--login-orb-opacity);
   pointer-events: none;
   animation: drift 12s ease-in-out infinite alternate;
 }
@@ -95,8 +95,8 @@
     0deg,
     transparent,
     transparent 3px,
-    rgba(0, 0, 0, 0.05) 3px,
-    rgba(0, 0, 0, 0.05) 4px
+    var(--login-scan-color) 3px,
+    var(--login-scan-color) 4px
   );
   pointer-events: none;
   opacity: 0.4;
@@ -141,7 +141,7 @@
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 1px;
-  background: linear-gradient(90deg, #e8fff8, #00d4aa 55%, #3498db);
+  background: linear-gradient(90deg, var(--login-brand-from), #00d4aa 55%, #3498db);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -151,7 +151,7 @@
   margin: 4px 0 0;
   font-size: 11px;
   letter-spacing: 2px;
-  color: rgba(160, 176, 192, 0.85);
+  color: var(--login-text-dim);
 }
 
 .login-card {
@@ -165,7 +165,7 @@
     rgba(255, 255, 255, 0.08)
   );
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.45),
+    var(--login-card-shadow),
     0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
@@ -180,7 +180,7 @@
 .card-inner {
   border-radius: 19px;
   padding: 28px 28px 22px;
-  background: rgba(12, 18, 36, 0.82);
+  background: var(--login-card-bg);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
@@ -195,7 +195,7 @@
 .title-main {
   font-size: 18px;
   font-weight: 700;
-  color: #e8f1f0;
+  color: var(--login-text);
 }
 
 .title-sub {
@@ -220,7 +220,7 @@
 .field-label {
   font-size: 11px;
   letter-spacing: 1px;
-  color: rgba(160, 176, 192, 0.9);
+  color: var(--login-text-dim);
 }
 
 .input-wrap {
@@ -230,8 +230,8 @@
   height: 46px;
   padding: 0 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--login-field-bg);
+  border: 1px solid var(--login-field-border);
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 
   &:focus-within {
@@ -245,11 +245,11 @@
     border: none;
     outline: none;
     background: transparent;
-    color: #e8f1f0;
+    color: var(--login-text);
     font-size: 14px;
 
     &::placeholder {
-      color: rgba(140, 155, 170, 0.55);
+      color: var(--login-text-muted);
     }
   }
 }
@@ -365,12 +365,12 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+    background: linear-gradient(90deg, transparent, var(--login-field-border), transparent);
   }
 
   span {
     font-size: 11px;
-    color: rgba(150, 165, 180, 0.75);
+    color: var(--login-text-dim);
     letter-spacing: 1px;
     white-space: nowrap;
   }
@@ -389,8 +389,8 @@
   gap: 2px;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--login-field-border);
+  background: var(--login-field-bg);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, transform 0.15s;
 
@@ -421,13 +421,13 @@
 
 .seed-user {
   font-size: 13px;
-  color: #e8f1f0;
+  color: var(--login-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .seed-pwd {
   font-size: 11px;
-  color: rgba(150, 165, 180, 0.65);
+  color: var(--login-text-muted);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -435,8 +435,37 @@
   margin: 18px 0 0;
   text-align: center;
   font-size: 11px;
-  color: rgba(130, 145, 160, 0.6);
+  color: var(--login-text-muted);
   letter-spacing: 0.5px;
+}
+
+// 主题切换：右上角浮动圆钮，玻璃质感与登录卡一致
+.theme-fab {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--login-text);
+  background: var(--login-card-bg);
+  border: 1px solid var(--login-card-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--login-card-shadow);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: rgba(0, 212, 170, 0.55);
+  }
 }
 
 @media (max-width: 420px) {

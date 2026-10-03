@@ -41,6 +41,40 @@
   // 顶栏胶囊高度：系统设置与用户胶囊共用，两处组件各自消费同一数值，
   // 避免一个写死 height、一个由 32px 头像+padding 撑出 44px 而高低不齐
   --chip-h: 40px;
+
+  // 预览页 HUD 配色（原写死在 preview-header.scss，亮色主题下无法跟随）
+  --hud-bg-top: rgba(12, 18, 36, 0.96);
+  --hud-bg-bottom: rgba(10, 14, 26, 0.92);
+  --hud-border: rgba(0, 212, 170, 0.25);
+  --hud-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --hud-surface: rgba(255, 255, 255, 0.04);
+  --hud-surface-border: rgba(255, 255, 255, 0.1);
+  --hud-divider: rgba(255, 255, 255, 0.08);
+  --hud-text: #d7e4e8;
+  --hud-text-strong: #e8f1f0;
+  --hud-text-dim: #b7c6cc;
+  --hud-text-hover: #b8fff0;
+  --hud-pop-bg: rgba(14, 20, 36, 0.96);
+  --hud-pop-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+
+  // 登录页配色（原写死在 login.scss，整页为暗色玻璃风）
+  --login-bg-1: #0b1020;
+  --login-bg-2: #12182e;
+  --login-bg-3: #0a1628;
+  --login-card-bg: rgba(255, 255, 255, 0.045);
+  --login-card-border: rgba(255, 255, 255, 0.1);
+  --login-card-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  --login-text: #e8f1f0;
+  // 品牌标题渐变首色：暗色近白，亮色需转深青否则白字糊在浅底上
+  --login-brand-from: #e8fff8;
+  --login-text-dim: rgba(232, 241, 240, 0.62);
+  --login-text-muted: rgba(232, 241, 240, 0.38);
+  --login-field-bg: rgba(255, 255, 255, 0.05);
+  --login-field-border: rgba(255, 255, 255, 0.12);
+  --login-orb-opacity: 0.35;
+  --login-grid-color: rgba(0, 212, 170, 0.05);
+  --login-scan-color: rgba(0, 212, 170, 0.06);
+  --login-glow-color: rgba(0, 212, 170, 0.22);
 }
 
 // 亮色主题变量（暗色为 :root 默认，通过 html[data-theme] 切换）
@@ -69,4 +103,37 @@ html[data-theme='light'] {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+  // 预览页 HUD：亮色下改为浅底深字，品牌青仅留作强调色
+  --hud-bg-top: rgba(255, 255, 255, 0.97);
+  --hud-bg-bottom: rgba(246, 248, 251, 0.95);
+  --hud-border: rgba(15, 23, 42, 0.1);
+  --hud-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  --hud-surface: rgba(15, 23, 42, 0.04);
+  --hud-surface-border: rgba(15, 23, 42, 0.14);
+  --hud-divider: rgba(15, 23, 42, 0.1);
+  --hud-text: #334155;
+  --hud-text-strong: #0f172a;
+  --hud-text-dim: #64748b;
+  --hud-text-hover: #0b7a63;
+  --hud-pop-bg: rgba(255, 255, 255, 0.98);
+  --hud-pop-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+
+  // 登录页：亮色下走浅色玻璃卡，光晕与网格减弱以免显脏
+  --login-bg-1: #f5f7fa;
+  --login-bg-2: #eef2f8;
+  --login-bg-3: #e6edf6;
+  --login-card-bg: rgba(255, 255, 255, 0.72);
+  --login-card-border: rgba(15, 23, 42, 0.1);
+  --login-card-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+  --login-text: #1f2937;
+  --login-brand-from: #0f766e;
+  --login-text-dim: rgba(31, 41, 55, 0.68);
+  --login-text-muted: rgba(31, 41, 55, 0.45);
+  --login-field-bg: rgba(255, 255, 255, 0.85);
+  --login-field-border: rgba(15, 23, 42, 0.14);
+  --login-orb-opacity: 0.12;
+  --login-grid-color: rgba(0, 180, 140, 0.08);
+  --login-scan-color: rgba(0, 180, 140, 0.05);
+  --login-glow-color: rgba(0, 180, 140, 0.12);
 }
