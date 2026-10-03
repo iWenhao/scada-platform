@@ -79,15 +79,18 @@
 }
 
 .sys-ico {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 212, 170, 0.14);
   color: var(--accent-primary);
-  font-size: 12px;
+  /* 线性图标随字号缩放：原为 emoji 字符只能按 12px 排版，图形偏小且带系统彩色，
+     换成 Element Plus 图标后可放大到 15px，与右侧 caret 的视觉重量一致 */
+  font-size: 15px;
+  flex: none;
 }
 
 .sys-text {

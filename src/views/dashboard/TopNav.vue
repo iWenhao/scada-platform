@@ -12,7 +12,7 @@
     <div class="nav-actions">
       <el-dropdown @command="(c: string) => emit('system', c)">
         <span class="sys-chip">
-          <span class="sys-ico">⚙</span>
+          <el-icon class="sys-ico"><Setting /></el-icon>
           <span class="sys-text">系统设置</span>
           <el-icon class="sys-caret"><ArrowDown /></el-icon>
         </span>
