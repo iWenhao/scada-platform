@@ -37,6 +37,10 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+
+  // 顶栏胶囊高度：系统设置与用户胶囊共用，两处组件各自消费同一数值，
+  // 避免一个写死 height、一个由 32px 头像+padding 撑出 44px 而高低不齐
+  --chip-h: 40px;
 }
 
 // 亮色主题变量（暗色为 :root 默认，通过 html[data-theme] 切换）

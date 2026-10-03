@@ -59,7 +59,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
+  // 与用户胶囊同高，取共享变量（原先写死 34px，比用户胶囊矮 10px）
+  height: var(--chip-h);
   padding: 0 12px 0 10px;
   border-radius: 999px;
   border: 1px solid var(--border-primary);

@@ -45,7 +45,10 @@ const initial = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 5px 12px 5px 5px;
+  // 与顶栏「系统设置」胶囊同高：高度取共享变量，改为上下不 padding、靠 align 居中，
+  // 32px 头像在 40px 里上下各留 3px。原先 5px padding 会把高度撑到 44px
+  height: var(--chip-h);
+  padding: 0 12px 0 5px;
   border-radius: 999px;
   border: 1px solid var(--border-primary);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
