@@ -9,6 +9,13 @@
     <!-- 鼠标跟随光晕 -->
     <div class="cursor-glow" :style="glowStyle" />
 
+    <!-- 主题切换：登录页是进入系统的第一屏，未登录也要能改外观 -->
+    <ThemeToggle v-slot="{ tip, emoji, toggle }">
+      <button class="theme-fab" type="button" :title="tip" @click="toggle">
+        {{ emoji }}
+      </button>
+    </ThemeToggle>
+
     <div class="login-shell">
       <!-- 品牌区 -->
       <div class="brand">
@@ -106,6 +113,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useBrandingStore } from '@/stores/brandingStore'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import { SEED_USERS } from '@/auth/seedUsers'
 
 const router = useRouter()

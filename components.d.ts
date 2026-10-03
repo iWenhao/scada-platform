@@ -61,6 +61,7 @@ declare module 'vue' {
     StatusRuleDialog: typeof import('./src/components/dialogs/StatusRuleDialog.vue')['default']
     TagEditDialog: typeof import('./src/components/dialogs/TagEditDialog.vue')['default']
     TagTableDialog: typeof import('./src/components/dialogs/TagTableDialog.vue')['default']
+    ThemeToggle: typeof import('./src/components/common/ThemeToggle.vue')['default']
     Toolbar: typeof import('./src/components/layout/Toolbar.vue')['default']
     ToolIcon: typeof import('./src/components/layout/ToolIcon.vue')['default']
     TrendChartDialog: typeof import('./src/components/dialogs/TrendChartDialog.vue')['default']

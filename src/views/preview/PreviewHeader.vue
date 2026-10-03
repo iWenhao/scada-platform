@@ -97,6 +97,12 @@
       <button class="hud-btn icon" type="button" title="写值审计" @click="emit('open-audit')">
         <span class="btn-ico">📋</span>
       </button>
+
+      <ThemeToggle v-slot="{ tip, emoji, toggle }">
+        <button class="hud-btn icon" type="button" :title="tip" @click="toggle">
+          <span class="btn-ico">{{ emoji }}</span>
+        </button>
+      </ThemeToggle>
     </div>
 
     <!-- 报警浮层 -->
@@ -109,6 +115,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import type { ScadaPage } from '@/types/page'
 import { useBrandingStore } from '@/stores/brandingStore'
 import { connectionStatusView } from '@/status/connection'

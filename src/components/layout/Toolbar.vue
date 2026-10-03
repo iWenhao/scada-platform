@@ -117,11 +117,8 @@
     <div class="toolbar-right">
       <div class="toolbar-secondary">
         <el-button-group>
-          <el-tooltip :content="uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题'" placement="bottom">
-            <el-button @click="uiStore.toggleTheme()">
-              <ToolIcon :name="uiStore.theme === 'dark' ? 'theme-dark' : 'theme-light'" />
-            </el-button>
-          </el-tooltip>
+          <!-- 主题切换：与首页/预览页共用同一组件，展示语义由 useThemeToggle 提供 -->
+          <ThemeToggle />
 
           <el-tooltip content="画布配置" placement="bottom">
             <el-button @click="showCanvasConfig = true">
@@ -202,9 +199,10 @@
             >
               <ToolIcon name="delete" />删除选中 (Delete)
             </el-dropdown-item>
+            <!-- 窄屏下的同一入口，文案与图标复用主题切换的单一来源 -->
             <el-dropdown-item divided command="theme">
-              <ToolIcon :name="uiStore.theme === 'dark' ? 'theme-light' : 'theme-dark'" />
-              {{ uiStore.theme === 'dark' ? '切换亮色主题' : '切换暗色主题' }}
+              <ToolIcon :name="themeIcon" />
+              {{ themeTip }}
             </el-dropdown-item>
             <el-dropdown-item command="canvas">
               <ToolIcon name="canvas" />画布配置
@@ -254,6 +252,8 @@ import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import ToolIcon from './ToolIcon.vue'
 import UserChip from '@/components/common/UserChip.vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import { useThemeToggle } from '@/composables/useThemeToggle'
 import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
 import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
 import { useEditClipboard } from '@/core/canvas/useEditClipboard'
@@ -273,6 +273,9 @@ const { canUndo, canRedo, undo, redo, saveState } = useHistory()
 
 const showCanvasConfig = ref(false)
 const showUserManage = ref(false)
+
+// 「更多」菜单里的主题项：图标与文案与顶栏按钮同源，避免再写一份三元表达式
+const { icon: themeIcon, tip: themeTip, toggle: toggleTheme } = useThemeToggle()
 
 
 async function handleUserCommand(cmd: string) {
@@ -297,7 +300,7 @@ function handleMoreCommand(cmd: string) {
       handleDelete()
       break
     case 'theme':
-      uiStore.toggleTheme()
+      toggleTheme()
       break
     case 'canvas':
       showCanvasConfig.value = true

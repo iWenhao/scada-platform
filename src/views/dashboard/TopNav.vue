@@ -10,6 +10,7 @@
       </div>
     </div>
     <div class="nav-actions">
+      <ThemeToggle />
       <el-dropdown @command="(c: string) => emit('system', c)">
         <span class="sys-chip">
           <el-icon class="sys-ico"><Setting /></el-icon>
@@ -43,6 +44,7 @@
 <script setup lang="ts">
 import type { Role } from '@/types/auth'
 import UserChip from '@/components/common/UserChip.vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import { useBrandingStore } from '@/stores/brandingStore'
 
 defineProps<{
