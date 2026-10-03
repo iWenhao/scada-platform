@@ -145,6 +145,7 @@ import type { ProjectRow } from './types'
 import { thumbKey } from '@/core/canvas/thumbnail'
 import demoProjectJson from '../../../examples/demo-project.json?raw'
 import './dashboard.scss'
+import './project-card.scss'
 
 const router = useRouter()
 const projectStore = useProjectStore()
