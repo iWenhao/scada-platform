@@ -62,7 +62,8 @@
   height: var(--chip-h);
   padding: 0;
   border-radius: 999px;
-  border: 1px solid var(--border-primary);
+  // 顶栏三个控件统一去掉 1px 边框：el-button 自带边框，需显式 none 而非删掉声明
+  border: none;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
   color: var(--text-secondary);
   display: inline-flex;
@@ -72,15 +73,21 @@
 
   &:hover {
     color: var(--text-primary);
-    border-color: rgba(0, 212, 170, 0.55);
     box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.12);
     transform: translateY(-1px);
   }
 }
 
-// 亮色主题下白色叠加层会糊在白底上，改成实底保证按钮轮廓可见
-html[data-theme='light'] .nav-actions :deep(.theme-toggle) {
-  background: var(--bg-secondary);
+// 亮色主题下白色叠加层会糊在白底上，改成实底保证按钮轮廓可见。
+// 取 --bg-tertiary 而非 --bg-secondary：亮色下 secondary 就是顶栏底色（#ffffff），
+// 用它等于把按钮画成和顶栏同色，去掉边框后轮廓依旧看不出来。
+html[data-theme='light'] .nav-actions :deep(.theme-toggle),
+html[data-theme='light'] .sys-chip {
+  background: var(--bg-tertiary);
+
+  &:hover {
+    filter: brightness(0.96);
+  }
 }
 
 .sys-chip {
@@ -91,7 +98,6 @@ html[data-theme='light'] .nav-actions :deep(.theme-toggle) {
   height: var(--chip-h);
   padding: 0 12px 0 10px;
   border-radius: 999px;
-  border: 1px solid var(--border-primary);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
   color: var(--text-secondary);
   font-size: 12px;
@@ -100,7 +106,6 @@ html[data-theme='light'] .nav-actions :deep(.theme-toggle) {
 
   &:hover {
     color: var(--text-primary);
-    border-color: rgba(0, 212, 170, 0.55);
     box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.12);
     transform: translateY(-1px);
   }
