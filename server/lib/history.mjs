@@ -49,9 +49,41 @@ export async function appendSamples(historyDir, key, samples) {
 }
 
 /**
- * 查询 [from, to] 区间采样。超过 maxPoints 时均匀抽稀（保留首尾）。
+ * 窗口聚合方式：min 取窗口内最小值，max 取最大值，avg 取算术平均。
+ * 与前端 src/history/historian.ts 的 HistoryAgg 取值保持一致。
  */
-export async function querySamples(historyDir, key, from, to, maxPoints) {
+const AGG_KINDS = new Set(['min', 'avg', 'max'])
+
+/**
+ * 按窗口把已按时间排序的点聚合成一个点（t 取窗口起始，跨查询稳定可比）。
+ * @param {number} bucket 窗口起始时间戳
+ * @param {{ min: number, max: number, sum: number, count: number }} acc 窗口累加器
+ * @param {string} agg 聚合方式
+ */
+function bucketToPoint(bucket, acc, agg) {
+  const v = agg === 'min' ? acc.min : agg === 'max' ? acc.max : acc.sum / acc.count
+  return { t: bucket, v }
+}
+
+/**
+ * 超过 maxPoints 时均匀抽稀（保留首尾），前后端行为保持一致。
+ */
+function limitPoints(points, maxPoints) {
+  if (!(maxPoints > 0) || points.length <= maxPoints) return points
+  if (maxPoints === 1) return [points[points.length - 1]]
+  const step = (points.length - 1) / (maxPoints - 1)
+  const sampled = []
+  for (let i = 0; i < maxPoints; i++) sampled.push(points[Math.round(i * step)])
+  return sampled
+}
+
+/**
+ * 查询 [from, to] 区间采样。超过 maxPoints 时均匀抽稀（保留首尾）。
+ * 传 options.agg + options.windowMs 时走服务端窗口聚合：边读边按窗口归约，
+ * 内存只保留窗口数（几百个）而非全部原始点，长跨度查询不再全量回传。
+ * @param {object} [options] 可选 { agg: 'min'|'avg'|'max', windowMs: number }
+ */
+export async function querySamples(historyDir, key, from, to, maxPoints, options = {}) {
   const encodedKey = encodeURIComponent(key)
   let files = []
   try {
@@ -76,6 +108,16 @@ export async function querySamples(historyDir, key, from, to, maxPoints) {
     })
     .sort((a, b) => (a.day < b.day ? -1 : 1))
 
+  // 聚合参数归一：非法取值回落为普通查询（兼容旧前端与手工调用）。
+  const agg = AGG_KINDS.has(options?.agg) ? options.agg : null
+  const windowMs = Number(options?.windowMs)
+  const useAgg = agg !== null && Number.isFinite(windowMs) && windowMs >= 1000
+  // 窗口上限 24h：窗口过大将整区间压成一个点，失去趋势意义，直接拒绝走普通查询。
+  const effectiveAgg = useAgg && windowMs <= 24 * 3600 * 1000 ? agg : null
+  const effectiveWindow = effectiveAgg ? Math.round(windowMs) : 0
+  // 窗口按 epoch 对齐（floor(t / window)），多次查询/翻页结果稳定可比。
+  const buckets = effectiveAgg ? new Map() : null
+
   const points = []
   for (const { file } of shards) {
     let text
@@ -88,8 +130,21 @@ export async function querySamples(historyDir, key, from, to, maxPoints) {
       if (!line.trim()) continue
       try {
         const p = JSON.parse(line)
-        if (typeof p.t === 'number' && typeof p.v === 'number' && p.t >= from && p.t <= to) {
-          points.push(p)
+        if (typeof p.t !== 'number' || typeof p.v !== 'number' || !Number.isFinite(p.t) || !Number.isFinite(p.v)) continue
+        if (p.t < from || p.t > to) continue
+        if (effectiveAgg) {
+          const bucket = Math.floor(p.t / effectiveWindow) * effectiveWindow
+          let acc = buckets.get(bucket)
+          if (!acc) {
+            acc = { min: p.v, max: p.v, sum: 0, count: 0 }
+            buckets.set(bucket, acc)
+          }
+          if (p.v < acc.min) acc.min = p.v
+          if (p.v > acc.max) acc.max = p.v
+          acc.sum += p.v
+          acc.count += 1
+        } else {
+          points.push({ t: p.t, v: p.v })
         }
       } catch {
         // 损坏行跳过
@@ -97,14 +152,15 @@ export async function querySamples(historyDir, key, from, to, maxPoints) {
     }
   }
 
-  points.sort((a, b) => a.t - b.t)
-  if (maxPoints > 0 && points.length > maxPoints) {
-    const step = (points.length - 1) / (maxPoints - 1)
-    const sampled = []
-    for (let i = 0; i < maxPoints; i++) sampled.push(points[Math.round(i * step)])
-    return sampled
+  if (effectiveAgg) {
+    const aggregated = [...buckets.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([bucket, acc]) => bucketToPoint(bucket, acc, effectiveAgg))
+    return limitPoints(aggregated, maxPoints)
   }
-  return points
+
+  points.sort((a, b) => a.t - b.t)
+  return limitPoints(points, maxPoints)
 }
 
 /**

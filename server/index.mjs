@@ -333,6 +333,9 @@ const server = createServer(async (req, res) => {
       return ok(res, req, 200, { ok: true, written })
     }
 
+    // 历史查询：agg/window 为可选窗口聚合（与前端 historian.resolveAgg 对接）。
+    // 不传则保持旧行为（均匀抽稀）；非法聚合参数回落为普通查询，不报错，
+    // 避免旧版前端/手工调用因多带参数被拒绝。
     if (url.pathname === '/api/history/query' && req.method === 'GET') {
       const key = url.searchParams.get('key')
       if (!key) return ok(res, req, 400, { error: 'missing key' })
@@ -340,7 +343,13 @@ const server = createServer(async (req, res) => {
       const from = Number(url.searchParams.get('from')) || now - 24 * 3600 * 1000
       const to = Number(url.searchParams.get('to')) || now
       const maxPoints = Math.min(Math.max(Number(url.searchParams.get('maxPoints')) || 600, 1), 5000)
-      const points = await querySamples(historyDir, key, from, to, maxPoints)
+      const aggRaw = url.searchParams.get('agg')
+      const windowRaw = Number(url.searchParams.get('window'))
+      const agg = aggRaw === 'min' || aggRaw === 'avg' || aggRaw === 'max' ? aggRaw : undefined
+      const windowMs = Number.isFinite(windowRaw) && windowRaw >= 1000 && windowRaw <= 24 * 3600 * 1000
+        ? Math.round(windowRaw)
+        : undefined
+      const points = await querySamples(historyDir, key, from, to, maxPoints, { agg, windowMs })
       return ok(res, req, 200, { points })
     }
 
