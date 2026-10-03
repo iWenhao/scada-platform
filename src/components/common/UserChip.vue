@@ -2,8 +2,8 @@
   <span class="user-chip" :title="`${username || displayName} · ${roleLabel || '用户'}`">
     <span class="avatar" :class="roleClass">{{ initial }}</span>
     <span class="meta">
-      <span class="name">{{ displayName || username }}</span>
-      <span v-if="roleLabel" class="role">{{ roleLabel }}</span>
+      <span class="name">{{ nameText }}</span>
+      <span v-if="showRole" class="role">{{ roleLabel }}</span>
     </span>
   </span>
 </template>
@@ -22,6 +22,16 @@ const props = defineProps<{
 
 const roleLabel = computed(() => (props.userRole ? ROLE_LABELS[props.userRole] : ''))
 const roleClass = computed(() => props.userRole || 'viewer')
+
+/** 实际展示的名字：显示名优先，回落用户名 */
+const nameText = computed(() => props.displayName || props.username || '')
+
+/**
+ * 显示名与角色标签同字时不再渲染第二行。
+ * 种子账号（admin→管理员、engineer→工程师…）的显示名就是角色名，
+ * 两行同词会让人分不清哪个是身份、哪个是权限；真实姓名（如「张三」/操作员）不受影响。
+ */
+const showRole = computed(() => !!roleLabel.value && roleLabel.value !== nameText.value.trim())
 
 const initial = computed(() => {
   const s = (props.displayName || props.username || '?').trim()
