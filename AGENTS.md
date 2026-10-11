@@ -5,7 +5,9 @@
 
 ## 项目概述
 
-SCADA Platform：基于 **Vue 3 + TypeScript + Konva.js (vue-konva) + Pinia + Element Plus + Vite** 的开源工业组态可视化编辑平台。纯前端项目，无后端；数据来自可插拔的数据源适配器（Mock / WebSocket / HTTP 轮询 / OPC UA 网关）。
+SCADA Platform：基于 **Vue 3 + TypeScript + Konva.js (vue-konva) + Pinia + Element Plus + Vite** 的开源工业组态可视化编辑平台。
+- 前端是纯前端项目（构建产物可直接托管）；后端是可选的零依赖存储服务 `server/index.mjs`，不在线时回落 localStorage。
+- 数据来自可插拔的数据源适配器（Mock / WebSocket / HTTP 轮询 / OPC UA 网关）。
 
 三页面结构：`/` 首页（项目管理）→ `/editor` 组态编辑器 → `/preview` 只读运行预览。
 
@@ -35,13 +37,15 @@ pnpm lint               # ESLint
 ## 环境与已知坑
 
 - **Node ≥ 18**；pnpm 10/11 会拦截依赖构建脚本，白名单已在 `pnpm-workspace.yaml`（esbuild、@parcel/watcher、vue-demi），不要删掉它。
-- `pnpm install` 报 "Already up to date" 但运行时报 `Cannot find module .../vite/...`：node_modules 链接损坏，**删除 node_modules 重新 install**。
+- `pnpm install` 报 "Already up to date" 但运行时报 `Cannot find module .../vite/...`：
+  - 症状是 node_modules 链接损坏，**删除 node_modules 重新 install**。
 - 大规模重构/删除文件后 Vite HMR 可能残留陈旧模块。症状：白屏（`#app` 为空）、样式或代码改了不生效、Konva 事件监听指向旧舞台实例。按以下顺序排查（先轻后重），**不要急着改代码**：
   1. **重启 dev server**，浏览器硬刷新（Ctrl+Shift+R）再判断；必要时关掉全部旧标签页、开全新 tab；
   2. 仍异常：`rm -rf node_modules/.vite` 清掉 Vite 依赖预构建缓存，再重启 dev server；
   3. 仍报 `Cannot find module .../vite/...`：node_modules 链接损坏，转上方重装流程。
   - 为什么强调「开全新 tab」：多次 HMR 后同一 tab 会有 Konva 多 stage 实例污染，导致实测误判（功能实际正常，但旧 tab 里就是不生效）。
-- **dev server 只认 5173，不要让它漂移**：5173 被旧实例占用时 Vite 会自动跳到 5174，而 5174 既是存储后端（`pnpm server`）端口又是 `/api` 代理目标——Vite 落在 5174 会让代理指向自身形成回环，表现为登录/存储请求异常。
+- **dev server 只认 5173，不要让它漂移**：
+  - 5173 被旧实例占用时 Vite 会自动跳到 5174，而 5174 既是存储后端（`pnpm server`）端口又是 `/api` 代理目标——Vite 落在 5174 会让代理指向自身形成回环，表现为登录/存储请求异常；
   - 发现 5173 被占：先停掉旧实例（`netstat -ano | findstr :5173` 找PID）再启动；
   - 自己临时起过 dev server 验证完要停掉。
 - **`vite.config.ts` 的 `server.host: '127.0.0.1'` 绑定勿删**：Clash Verge（mihomo）TUN 模式会拦截本机 IPv6 回环 `::1` 的 TCP 连接，删掉该绑定后 Node 17+ 的 Vite 只监听 `[::1]`，复发「服务已启动但浏览器打不开」。
@@ -60,17 +64,21 @@ pnpm lint               # ESLint
   ```
   两个要点：
   - **乱码只影响终端显示，不会污染代码或提交内容**（写文件一律走 edit/write 工具，不用 shell），所以别因为看到乱码就去"修"文件；
-  - **中文内容校验不要相信控制台渲染**——`Get-Content | ConvertFrom-Json` 会因字节被改写而直接报解析错，`git show | Select-String` 还会把相邻两行显示成一行（曾据此误判 CSS 注释吞掉了声明）。校验中文一律用 `node -e` 读原始字节并打印码点。
-- **推送失败不重试**：如果 push 失败（网络被墙等），提交保留在本地即可，不要连续多次重试；
-  等待一段时间后再试一次，仍失败就留到下次推送，避免浪费时间和触发网络风控。
+  - **中文内容校验不要相信控制台渲染**：`Get-Content | ConvertFrom-Json` 会因字节被改写而直接报解析错，`git show | Select-String` 还会把相邻两行显示成一行（曾据此误判 CSS 注释吞掉了声明）。
+    - 校验中文一律用 `node -e` 读原始字节并打印码点。
+- **推送失败不重试**：如果 push 失败（网络被墙等），提交保留在本地即可，不要连续多次重试。
+  - 等待一段时间后再试一次，仍失败就留到下次推送，避免浪费时间和触发网络风控。
 
 ## 工作流约定
 
 - **分支**：日常开发提交到 `dev` 分支并推送 `origin dev`；master 用于发布合并。
 - **提交粒度**：一个功能/修复一个提交，信息用中文，格式 `功能:/修复:/重构:/清理:/测试:/文档: 一句话说明`。
 - **变更日志**：功能与修复类提交需同步更新 `CHANGELOG.md` 的 `[Unreleased]` 区。
-- **版本号**：从 `0.0.1` 起步，末位每次 +1，满 10 进位（0.0.9 → 0.0.10 → 0.1.0）；发版时版本号后附当天日期 YYMMDD（如 `0.0.2-260928`，CHANGELOG 标题与 tag 使用），`package.json` 保留三段数字并同步修改。
-- **发版时机**：版本号只在用户明确说"发版"时才更新（改 `package.json` + 把 CHANGELOG 的 `[Unreleased]` 定稿为新版本号）。平时提交一律不动版本号，新内容只写入 `[Unreleased]`。
+- **版本号**：从 `0.0.1` 起步，末位每次 +1，满 10 进位（0.0.9 → 0.0.10 → 0.1.0）。
+  - 发版时版本号后附当天日期 YYMMDD（如 `0.0.2-260928`，CHANGELOG 标题与 tag 使用）；
+  - `package.json` 保留三段数字并同步修改。
+- **发版时机**：版本号只在用户明确说"发版"时才更新（改 `package.json` + 把 CHANGELOG 的 `[Unreleased]` 定稿为新版本号）。
+  - 平时提交一律不动版本号，新内容只写入 `[Unreleased]`。
 - **不提交**：`node_modules/`、`dist/`、诊断用的临时代码（如 index.html 里的错误钩子）。
 - **UI 交互约定**：新功能必须有可见 UI 入口——只有快捷键没有按钮等同没做。
   - 次级操作图标默认隐藏、悬停显示或收进「⋯ 更多」类菜单，按钮放显眼位置（如面板标题右侧）；
