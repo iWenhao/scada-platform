@@ -56,6 +56,19 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/element-plus')) return 'vendor-element'
+          if (id.includes('node_modules/konva')) return 'vendor-konva'
+          if (id.includes('node_modules/vue')) return 'vendor-vue'
+          if (id.includes('Preview3DStage') || id.includes('scene3d')) return 'chunk-3d'
+          return undefined
+        },
+      },
+    },
+  },
   server: {
     // 显式绑定 IPv4 回环地址(127.0.0.1)，不用默认的 localhost。
     // 问题背景：本机 Clash Verge(mihomo) 开 TUN 模式时，所有连往 IPv6 回环 ::1 的
