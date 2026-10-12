@@ -91,8 +91,44 @@ export const ChartPieDefinition: ComponentDefinition = {
   properties: [nameProperty('饼图')],
 }
 
+
+
+export const ChartRadarDefinition: ComponentDefinition = {
+  type: 'chart-radar',
+  name: '雷达图',
+  group: 'chart',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round">
+      <polygon points="50,14 82,38 70,76 30,76 18,38" />
+      <polygon points="50,32 66,42 60,64 40,64 34,42" />
+      <line x1="50" y1="14" x2="50" y2="32" />
+      <line x1="82" y1="38" x2="66" y2="42" />
+      <line x1="70" y1="76" x2="60" y2="64" />
+      <line x1="30" y1="76" x2="40" y2="64" />
+      <line x1="18" y1="38" x2="34" y2="42" />
+    </g>
+  </svg>`,
+  defaultWidth: 280,
+  defaultHeight: 240,
+  defaultConfig: {},
+  statusRules: [],
+  dataBindings: [],
+  properties: [
+    nameProperty('雷达图'),
+    {
+      key: 'radarMax',
+      label: '半径上限（0=自动）',
+      type: 'number',
+      default: 0,
+      min: 0,
+      group: '显示',
+    },
+  ],
+}
+
 export const chartComponents: ComponentDefinition[] = [
   ChartTrendDefinition,
   ChartBarDefinition,
   ChartPieDefinition,
+  ChartRadarDefinition,
 ]

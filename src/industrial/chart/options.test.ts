@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { buildTrendOption, buildBarOption, buildPieOption, downsample, CHART_PALETTE } from './options'
+import {
+  buildTrendOption,
+  buildBarOption,
+  buildPieOption,
+  buildRadarOption,
+  downsample,
+  CHART_PALETTE,
+} from './options'
 
 describe('downsample', () => {
   it('点数不足时原样返回', () => {
@@ -72,5 +79,64 @@ describe('buildPieOption', () => {
   it('全零/负值时渲染占位环而非空图', () => {
     const option = buildPieOption([{ name: 'a', value: 0 }, { name: 'b', value: 0 }])
     expect(option.series[0].data[0].name).toBe('暂无数据')
+  })
+})
+
+describe('buildRadarOption', () => {
+  const items = [
+    { name: 'speed', value: 30 },
+    { name: 'load', value: 60 },
+    { name: 'temp', value: 45 },
+  ]
+
+  it('每个绑定生成一个指标轴，取当前值', () => {
+    const option = buildRadarOption(items)
+    expect(option.radar.indicator).toHaveLength(3)
+    expect(option.radar.indicator.map((i: { name: string }) => i.name)).toEqual(['speed', 'load', 'temp'])
+    expect(option.series[0].data[0].value).toEqual([30, 60, 45])
+  })
+
+  it('上限缺省取最大绝对值的 1.2 倍，保证最外圈有数据触达', () => {
+    const option = buildRadarOption(items)
+    expect(option.radar.indicator[0].max).toBeCloseTo(72, 5)
+  })
+
+  it('显式传入上限时以传入值为准', () => {
+    const option = buildRadarOption(items, 100)
+    expect(option.radar.indicator.every((i: { max: number }) => i.max === 100)).toBe(true)
+  })
+
+  it('全 0 时用占位多边形而不是退化成一个点', () => {
+    const option = buildRadarOption([
+      { name: 'a', value: 0 },
+      { name: 'b', value: 0 },
+    ])
+    // 占位值必须是正的，否则雷达图仍然画不出东西
+    expect(option.series[0].data[0].value.every((v: number) => v > 0)).toBe(true)
+    // 上限至少为 1，避免全 0 时除零得到 NaN
+    expect(option.radar.indicator[0].max).toBeGreaterThanOrEqual(1)
+  })
+
+  it('非有限值按 0 处理，不把 NaN 传进 ECharts', () => {
+    // 混在一个有效值里，才能单独看出 NaN/Infinity 被转成了 0
+    const option = buildRadarOption([
+      { name: 'a', value: 30 },
+      { name: 'b', value: Number.NaN },
+      { name: 'c', value: Number.POSITIVE_INFINITY },
+    ])
+    expect(option.series[0].data[0].value).toEqual([30, 0, 0])
+  })
+
+  it('全部非有限值时转成 0 后落入占位分支，仍然画得出东西', () => {
+    const option = buildRadarOption([
+      { name: 'a', value: Number.NaN },
+      { name: 'b', value: Number.POSITIVE_INFINITY },
+    ])
+    // 与「全 0」同一分支：占位值必须为正
+    expect(option.series[0].data[0].value.every((v: number) => v > 0)).toBe(true)
+  })
+
+  it('背景透明，透出画布底色', () => {
+    expect(buildRadarOption(items).backgroundColor).toBe('transparent')
   })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isNameShown, isValueShown } from './elementChrome'
+import { isNameShown, isValueShown, plainTextConfig } from './elementChrome'
 import type { ComponentInstance } from '@/types/scada'
 
 function makeElement(extra: Partial<ComponentInstance> = {}): ComponentInstance {
@@ -54,5 +54,53 @@ describe('elementChrome 显示开关解析', () => {
     const el = makeElement({ showLabel: false, showName: true })
     expect(isNameShown(el)).toBe(true)
     expect(isValueShown(el)).toBe(false)
+  })
+})
+
+describe('plainTextConfig（纯文本图元）', () => {
+  const cfg = (properties: Record<string, unknown>, over: Partial<ComponentInstance> = {}) =>
+    plainTextConfig(makeElement({ properties, ...over }), String(properties.text ?? '文本'), '#00d4aa')
+
+  it('按属性面板取值：内容/字号/加粗/对齐', () => {
+    const c = cfg({ text: '一号巷道', fontSize: 28, bold: true, align: 'right' })
+    expect(c.fontSize).toBe(28)
+    expect(c.fontStyle).toBe('bold')
+    expect(c.align).toBe('right')
+    expect(c.fill).toBe('#00d4aa')
+  })
+
+  it('缺省值：16px 常规体、水平垂直居中', () => {
+    const c = cfg({})
+    expect(c.fontSize).toBe(16)
+    expect(c.fontStyle).toBe('normal')
+    expect(c.align).toBe('center')
+    expect(c.verticalAlign).toBe('middle')
+  })
+
+  it('字号夹在 8~200，防止撑爆元素或小到看不见', () => {
+    expect(cfg({ fontSize: 9999 }).fontSize).toBe(200)
+    expect(cfg({ fontSize: 1 }).fontSize).toBe(8)
+    // 非数字（含 NaN / 字符串）回落默认值，不把 NaN 传给 Konva
+    expect(cfg({ fontSize: 'abc' }).fontSize).toBe(16)
+  })
+
+  it('非法对齐值回落，避免 Konva 拿到未知 align / verticalAlign', () => {
+    expect(cfg({ align: 'middle' }).align).toBe('center')
+    expect(cfg({ valign: 'bottom' }).verticalAlign).toBe('middle')
+    expect(cfg({ valign: 'top' }).verticalAlign).toBe('top')
+  })
+
+  it('带文本外发光且不参与命中', () => {
+    const c = cfg({})
+    expect(c.shadowBlur).toBeGreaterThan(0)
+    expect(c.shadowColor).toContain('rgba')
+    // 装饰层一律 listening:false，否则会挡住下层元素的点选
+    expect(c.listening).toBe(false)
+  })
+
+  it('宽高取自元素本身，文字按元素范围排版', () => {
+    const c = cfg({}, { width: 320, height: 90 })
+    expect(c.width).toBe(320)
+    expect(c.height).toBe(90)
   })
 })

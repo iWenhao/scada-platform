@@ -38,6 +38,42 @@ export function hitAreaConfig(element: ComponentInstance) {
 }
 
 /**
+ * 纯文本图元（`text` 类型）的文字配置。
+ *
+ * 与名称/数值那两条素文本的区别：内容是用户自由输入的，且要支持字号/加粗/对齐，
+ * 所以位置按元素高度居中而非贴在布局分区的固定条上。颜色走元素状态色
+ * （无状态规则时由调用方传默认色），与画布其余部分同一套变色口径。
+ */
+export function plainTextConfig(
+  element: ComponentInstance,
+  text: string,
+  color: string,
+  fallbackFontSize = 16,
+) {
+  const props = element.properties ?? {}
+  const fontSize = Math.min(Math.max(Number(props.fontSize) || fallbackFontSize, 8), 200)
+  const bold = props.bold === true
+  const align = (['left', 'center', 'right'] as const).includes(props.align)
+    ? (props.align as 'left' | 'center' | 'right')
+    : 'center'
+  const vertical = props.valign === 'top' ? 'top' : 'middle'
+  return {
+    text,
+    fontSize,
+    fontStyle: bold ? ('bold' as const) : ('normal' as const),
+    fontFamily: 'system-ui, "Segoe UI", "Microsoft YaHei", sans-serif',
+    fill: color,
+    width: element.width,
+    height: element.height,
+    align,
+    verticalAlign: vertical,
+    padding: 2,
+    listening: false,
+    ...TEXT_HALO,
+  }
+}
+
+/**
  * 文本外发光：画面上没有底条承托文字，用深色光晕保证名称/数值压在图形或网格上
  * 依然可读（Konva 的 Text 不支持 CSS text-shadow，用 shadow* 系列实现）。
  */

@@ -131,7 +131,7 @@
         <div class="hint-keys">V 选择 · L 连线 · H 平移 · Ctrl+Z 撤销</div>
       </div>
 
-      <ChartOverlay />
+      <HtmlOverlay />
 
 
 
@@ -187,7 +187,7 @@ import CanvasRuler from '@/components/layout/CanvasRuler.vue'
 import MiniMap from '@/components/layout/MiniMap.vue'
 import ContextMenu from '@/components/layout/ContextMenu.vue'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
-import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
+import HtmlOverlay from '@/core/canvas/HtmlOverlay.vue'
 import { useCanvasDrop } from '@/core/canvas/useCanvasDrop'
 import CanvasElements from '@/core/canvas/CanvasElements.vue'
 import { useCanvasContextMenu } from '@/core/canvas/useCanvasContextMenu'

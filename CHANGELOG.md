@@ -47,6 +47,18 @@
 
 ### 功能
 
+- 补齐 C/D 两类共 **11 个功能型组件**（基础图形与装饰之外的最后一批缺口），组件总数由 166 增至 **177**
+  - **C 类·功能组件**：文字（`text`）、进度条（`progress-bar`）、报表（`report-table`）、网格图（`grid-chart`）、表格（`filter-table`）、雷达图（`chart-radar`）、日期（`date`）、时间（`clock`）；**D 类·富媒体**：视频（`video`）、网页（`iframe`）、超文本（`super-text`）。至此源配置 166 项里除「研发中」组与「其它」组定制贴图外全部落地
+  - **渲染路径分三路，按"谁需要 DOM"分流**：① 文字用 Konva 原生 `Text`（矢量、随画布缩放，且要与名称/数值的素文本保持同一套命中与拖拽行为——overlay 是 `pointer-events: none` 的，扛不了交互）；② 雷达图并入既有 ECharts 链路（按需注册 `RadarChart` + `RadarComponent`）；③ 其余 9 个挂件新建 `widget/WidgetElement.vue` 统一渲染。覆盖层由 `ChartOverlay.vue` 泛化为 `HtmlOverlay.vue`，编辑器与预览页两处同步接入
+  - **挂件内部字号/内边距都乘了画布 zoom**：overlay 容器的尺寸是按 zoom 放大后的，但 CSS 的 px 不跟着缩放，不乘的话缩小画布时字会相对变大。预览页传 `readonly`，挂件内的搜索输入等交互在运行端禁用
+  - **Konva 侧不再画 overlay 类元素的图标**：这 13 个类型（4 图表 + 9 挂件）+ `text` 都带 `icon`，若走图标路径会在 overlay 底下多画一张缩略图。`useElementVisuals` 增 `isOverlayElement()` 与 `HTML_OVERLAY_TYPES` 清单，与 `HtmlOverlay.vue` 的类型表保持一致——**新增 DOM 承载的组件时两处必须同步改**
+  - 雷达图与饼图同样要处理「全 0 退化成一条线」，用占位多边形保持布局稳定；非有限值（NaN/Infinity）压成 0 再判断是否落入占位分支
+  - 源产品把日期/时间/视频/网页/超文本列在「基础组件」下，沿用该口径；数据展示类（进度条/报表/网格图/表格/雷达图）进「图表组件」
+  - **WidgetElement.vue 445 行**，走 `src/industrial/*` 的行数例外（与本目录其他定义/渲染类长文件同口径）。若后续要拆，建议把报表/网格图/表格三块独立成 SFC，并把取数 computed 下沉为 composable
+  - 未做：源配置里横管/竖管/导航（PNG 源文件）、以及「其它」组定制贴图维持不导入
+  - 验证：**48 个测试文件逐文件单跑全通过、0 失败，共 421 个用例**；`pnpm build`（vue-tsc + vite build）通过；ESLint 对 12 个改动文件 0 error 1 warning（`v-html` 与组件库图标注入同一信任模型——内容是用户在本工程里配的，非外部输入）；`check-long-files.ps1` 通过，例外跳过数由 35 增至 38
+  - ⚠️ 沙箱 `vitest run` 的 EPERM 掐断频率高到**整批跑都凑不齐 48 个**（多轮 + 补跑也不收敛）。已改用逐文件单跑汇总：可靠但慢（约 9 分钟），且汇总脚本必须先剥 ANSI 色码再解析，否则全部误判为失败
+
 - 补齐对照源配置后发现漏加的两段：**基础图形 7 个** 与 **装饰组件 10 个**，组件总数由 149 增至 **166**
   - 前几轮只做了配置里 `devices` 那一段（通用/电力/主运输/水/洗选/热力/主通风/综采共 121 台），`basics`（基础组件 15 项）、`图表组件`（8 项）、`装饰组件`（12 项）三段被整体漏掉。经逐项对照，源配置共 166 项，此前已加 121、有等价物 4 项，**真正缺口 41 项**；本次补掉其中成本最低的 17 项，其余 24 项见下方「未做」
   - **基础图形 7 个**（`src/industrial/basic/shapes.ts`，新增 `basic` 分组内置项）：矩形 / 圆 / 三角 / 横线 / 竖线 / 虚横线 / 虚竖线。源产品这 7 项只给了 PNG 缩略图（`base0~2.png`、`hr1/2.png`、`dashed1/2.png`）、没有矢量源，故**手绘成 `currentColor` 线条稿**而非贴图——任意缩放不虚、能跟随元素状态变色、与仓库既有手写图元同一套口径（viewBox 0 0 100 100、stroke-width 2.6）。与 `CustomComponentDialog.vue` 的 `SHAPES` 是两套东西不要合并：那边给用户自建组件用、颜色由用户指定（写死 `stroke="#xxxxxx"`），这边必须走 `currentColor` 才能被状态色替换

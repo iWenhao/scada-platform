@@ -129,6 +129,8 @@ import { ventilationComponents } from '@/industrial/ventilation'
 import { washComponents } from '@/industrial/wash'
 import { thermalComponents } from '@/industrial/thermal'
 import { decoComponents } from '@/industrial/deco'
+import { widgetComponents } from '@/industrial/widget'
+import { textComponents } from '@/industrial/basic/text'
 import { chartComponents } from '@/industrial/chart'
 import { loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
 import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/templateLibrary'
@@ -150,6 +152,8 @@ registerComponents([
   ...washComponents,
   ...thermalComponents,
   ...decoComponents,
+  ...widgetComponents,
+  ...textComponents,
   ...chartComponents,
 ])
 

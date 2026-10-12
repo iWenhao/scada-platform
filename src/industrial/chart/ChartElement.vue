@@ -5,15 +5,29 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts/core'
-import { LineChart, BarChart, PieChart } from 'echarts/charts'
-import { GridComponent, LegendComponent } from 'echarts/components'
+import { LineChart, BarChart, PieChart, RadarChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, RadarComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useDeviceStore } from '@/stores/deviceStore'
-import { buildTrendOption, buildBarOption, buildPieOption } from './options'
+import {
+  buildTrendOption,
+  buildBarOption,
+  buildPieOption,
+  buildRadarOption,
+} from './options'
 import type { ComponentInstance } from '@/types/scada'
 
-// 按需注册：只打包折线/柱状/饼三种图与网格、图例，控制产物体积
-echarts.use([LineChart, BarChart, PieChart, GridComponent, LegendComponent, CanvasRenderer])
+// 按需注册：只打包折线/柱状/饼/雷达四种图与网格、图例、雷达坐标系，控制产物体积
+echarts.use([
+  LineChart,
+  BarChart,
+  PieChart,
+  RadarChart,
+  GridComponent,
+  LegendComponent,
+  RadarComponent,
+  CanvasRenderer,
+])
 
 const props = defineProps<{
   element: ComponentInstance
@@ -48,6 +62,15 @@ function buildOption() {
     return buildBarOption(
       names,
       names.map(v => Number(data[v]) || 0),
+    )
+  }
+
+  if (el.type === 'chart-radar') {
+    const data = deviceStore.getDeviceData(deviceId)
+    const max = Number(el.properties?.radarMax) > 0 ? Number(el.properties.radarMax) : undefined
+    return buildRadarOption(
+      seriesNames().map(v => ({ name: v, value: Number(data[v]) || 0 })),
+      max,
     )
   }
 

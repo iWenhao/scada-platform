@@ -63,6 +63,12 @@
           />
         </template>
 
+        <!-- 纯文本图元：内容/字号/加粗/对齐由属性面板配置，颜色随元素状态 -->
+        <v-text
+          v-if="element.type === 'text'"
+          :config="plainTextConfig(element, textContent(element), getElementColor(element))"
+        />
+
         <!-- 名称：素文本（无底条） -->
         <v-text
           v-if="getElementLayout(element).showName"
@@ -115,6 +121,7 @@ import {
   labelTextConfig,
   valueTextConfig,
   displayTextConfig,
+  plainTextConfig,
 } from '@/core/canvas/elementChrome'
 import type { ElementLayout } from '@/core/canvas/elementLayout'
 import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
@@ -176,6 +183,13 @@ const {
   isLayerVisible,
   isLayerLocked,
 } = props.visuals
+
+/** 纯文本图元的显示内容：属性面板可改，缺省给个占位避免拖进来是空白 */
+function textContent(element: ComponentInstance): string {
+  const raw = element.properties?.text
+  const text = typeof raw === 'string' ? raw : String(raw ?? '')
+  return text.length > 0 ? text : '文本'
+}
 
 void props.gridSnapFunc
 </script>

@@ -82,7 +82,7 @@
     </v-stage>
 
     <!-- 图表 overlay：与编辑器共用同一组件 -->
-    <ChartOverlay />
+    <HtmlOverlay readonly />
   </div>
 </template>
 
@@ -104,7 +104,7 @@ import {
 } from '@/core/canvas/elementChrome'
 import { useProjectStore } from '@/stores/projectStore'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
-import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
+import HtmlOverlay from '@/core/canvas/HtmlOverlay.vue'
 import type { ComponentInstance } from '@/types/scada'
 
 const emit = defineEmits<{

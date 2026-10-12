@@ -166,6 +166,34 @@ export function useElementVisuals(options: {
    * 方框死区（改造前采煤机 176×96 的元素里只有 56×23px 的可见图形）。
    * 测量不可用（非浏览器环境）时回退方形缩放，行为与改造前一致。
    */
+  /**
+   * 由 HTML overlay 承载的元素类型（图表 + DOM 挂件）。
+   *
+   * 这些类型的图形完全由 overlay 里的 ECharts / DOM 画出来，若再走 Konva 图标
+   * 路径就会在 overlay 底下多画一张缩略图——表现为「图表/挂件背后有个淡淡的图标」。
+   * 清单与 core/canvas/HtmlOverlay.vue 的 CHART_TYPES / WIDGET_TYPES 保持一致。
+   */
+  const HTML_OVERLAY_TYPES = new Set([
+    'chart-trend',
+    'chart-bar',
+    'chart-pie',
+    'chart-radar',
+    'progress-bar',
+    'report-table',
+    'grid-chart',
+    'filter-table',
+    'date',
+    'clock',
+    'video',
+    'iframe',
+    'super-text',
+  ])
+
+  /** 该元素是否由 HTML overlay 呈现（Konva 侧不再画图标） */
+  function isOverlayElement(element: ComponentInstance): boolean {
+    return HTML_OVERLAY_TYPES.has(element.type)
+  }
+
   function getIconImageConfig(element: ComponentInstance) {
     // 订阅图标解码完成信号（见 iconVersion 注释）：位图是异步的，首次求值必然
     // 拿不到 image 而返回 null，必须靠这个依赖在 onLoad 后重跑一次
@@ -176,6 +204,8 @@ export function useElementVisuals(options: {
     if (element.type === 'pipe') return null
     // 数值显示图元由实时数值大字承担，不叠内建图标（原先两者重叠成重影）
     if (isDisplayElement(element)) return null
+    // 纯文本与 HTML overlay 类元素同理：图形另有承载，不再叠内建图标
+    if (element.type === 'text' || isOverlayElement(element)) return null
     const def = getComponentDefinition(element.type)
     if (!def?.icon) return null
 
@@ -305,6 +335,7 @@ export function useElementVisuals(options: {
     getLabelHeight,
     getIconImageConfig,
     getUserImageConfig,
+    isOverlayElement,
     isLayerLocked,
     isLayerVisible,
     getElementPorts,

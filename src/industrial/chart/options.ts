@@ -133,3 +133,47 @@ export function downsample<T>(items: T[], maxPoints: number): T[] {
   }
   return result
 }
+
+/**
+ * 雷达图：每条绑定是一个维度（指标轴），取该维度的当前值。
+ *
+ * 与饼图一样要处理「全 0」：雷达图所有轴都是 0 时会退化成一条看不见的线，
+ * 用占位多边形保持布局稳定，避免用户以为组件坏了。
+ */
+export function buildRadarOption(items: Array<{ name: string; value: number }>, max?: number) {
+  const names = items.map(it => it.name)
+  const values = items.map(it => (Number.isFinite(it.value) ? it.value : 0))
+  const hasData = values.some(v => v !== 0)
+  // 上限缺省取数据最大值的 1.2 倍（至少 1，防全 0 时除零）
+  const ceiling = Math.max(1, max ?? Math.max(...values.map(Math.abs), 0) * 1.2)
+  return {
+    backgroundColor: 'transparent',
+    color: [...CHART_PALETTE],
+    animation: false,
+    tooltip: { show: false },
+    legend: {
+      bottom: 2,
+      left: 'center',
+      textStyle: { color: TEXT_COLOR, fontSize: 10 },
+      itemWidth: 12,
+      itemHeight: 8,
+    },
+    radar: {
+      indicator: names.map(n => ({ name: n, max: ceiling })),
+      center: ['50%', '46%'],
+      radius: '58%',
+      axisName: { color: TEXT_COLOR, fontSize: 10 },
+      splitLine: { lineStyle: { color: SPLIT_LINE_COLOR } },
+      splitArea: { show: false },
+      axisLine: { lineStyle: { color: AXIS_LINE_COLOR } },
+    },
+    series: [
+      {
+        type: 'radar',
+        data: hasData
+          ? [{ value: values, name: '当前值', areaStyle: { opacity: 0.25 }, lineStyle: { width: 2 } }]
+          : [{ value: names.map(() => ceiling * 0.35), name: '暂无数据', lineStyle: { opacity: 0.25 } }],
+      },
+    ],
+  }
+}
