@@ -70,6 +70,15 @@ pnpm lint               # ESLint
     - 校验中文一律用 `node -e` 读原始字节并打印码点。
 - **〔本机〕推送失败不重试**：如果 push 失败（网络被墙等），提交保留在本地即可，不要连续多次重试。
   - 等待一段时间后再试一次，仍失败就留到下次推送，避免浪费时间和触发网络风控。
+- **〔本机〕git 反复弹「CredentialHelperSelector」凭据助手选择框**（勾选 "Always use this from now on" 也照弹）：WorkBuddy 便携版 Git 的 system 配置（`D:/WorkBuddy/resources/vendor/PortableGit/etc/gitconfig`）写死了 `credential.helper = helper-selector`，而弹窗里的选择只会**追加**到 global，列表于是成了 `[helper-selector, manager]`——弹窗程序排在第一位，每次取凭据都会先调用它。
+  - 机制：`credential.helper` 是**多值**键，按 `system → global → local` **依次尝试**直到拿到用户名+密码；**取空值会清空此前累积的列表**。`credential.helperselector.selected` 只决定弹窗的默认选中项，**不能阻止弹窗**。
+  - 修法（改 user 级 `~/.gitconfig`）：在 `[credential]` 段**先写一条空值、再写 manager**，顺序不能反（反了会把 manager 一起清掉，变成没有 helper）：
+  ```ini
+  [credential]
+  	helper =
+  	helper = !"D:/WorkBuddy/resources/vendor/PortableGit/mingw64/bin/git-credential-manager.exe"
+  ```
+  - 只对便携版 Git 生效；独立版（`C:\Program Files\Git`）的 system 本就是 `manager`，不会弹。
 
 ## 任务清单与进度可见性（任何 agent 必读）
 
