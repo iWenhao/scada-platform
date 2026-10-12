@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onUnmounted } from 'vue'
-import type { ComponentInstance } from '@/types/scada'
+import type { ComponentInstance, ViewMode } from '@/types/scada'
 import type { ElementLayout } from './elementLayout'
 import { getComponentDefinition } from '@/industrial/registry'
 import { onFrame } from './animationClock'
@@ -35,6 +35,8 @@ const props = defineProps<{
   element: ComponentInstance
   layout: ElementLayout
   color: string
+  /** 渲染风格：可动件片段与主图标必须同风格，否则两者明暗会不一致 */
+  viewMode: ViewMode
   /** 运转状态（null 表示该元素没有可动件，由调用方用 v-if 拦住） */
   state: { running: boolean; speed: number } | null
 }>()
@@ -56,7 +58,14 @@ const beltOffset = ref(0)
 
 const rotors = computed(() => {
   void imageVersion.value
-  return getRotorConfigs(props.element, props.layout, props.color, angleDeg.value, handleIconLoad)
+  return getRotorConfigs(
+    props.element,
+    props.layout,
+    props.color,
+    props.viewMode,
+    angleDeg.value,
+    handleIconLoad,
+  )
 })
 
 const belts = computed(() =>

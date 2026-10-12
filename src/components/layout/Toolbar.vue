@@ -54,7 +54,11 @@
         </el-tooltip>
 
         <el-tooltip
-          :content="projectStore.viewMode === '25d' ? '切换平面 2D' : '切换立体 2.5D'"
+          :content="
+            projectStore.viewMode === '25d'
+              ? '切换平面 2D（关闭光照）'
+              : '切换立体 2.5D（开启光照）'
+          "
           placement="bottom"
         >
           <el-button

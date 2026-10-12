@@ -7,12 +7,13 @@ export const ValveDefinition: ComponentDefinition = {
   group: 'basic',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M18 22 L50 50 L18 78 Z" fill="currentColor" fill-opacity="0.12"/>
-      <path d="M82 22 L50 50 L82 78 Z" fill="currentColor" fill-opacity="0.12"/>
+      <ellipse cx="50" cy="79" rx="30" ry="6" data-shadow="1"/>
       <path d="M50 50 V18"/>
-      <circle cx="50" cy="13" r="7.5"/>
-      <path d="M42.5 13 H57.5"/>
-      <circle cx="50" cy="50" r="3.2" fill="currentColor" stroke="none" opacity="0.85"/>
+      <path d="M18 22 L50 50 L18 78 Z" data-face="front"/>
+      <path d="M82 22 L50 50 L82 78 Z" data-face="side"/>
+      <circle cx="50" cy="13" r="7.5" data-face="cap"/>
+      <path d="M42.5 13 H57.5" stroke-opacity="0.7"/>
+      <circle cx="50" cy="50" r="3.2" fill="currentColor" stroke="none"/>
     </g>
   </svg>`,
   defaultWidth: 60,
@@ -80,13 +81,14 @@ export const PumpDefinition: ComponentDefinition = {
   group: 'basic',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="52" cy="52" r="28" fill="currentColor" fill-opacity="0.1"/>
-      <path d="M52 52 C42 42 38 36 48 32 C58 30 64 38 52 52 Z" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2"/>
-      <path d="M52 52 C62 42 66 36 56 32" stroke="currentColor" stroke-width="2" opacity="0.55"/>
-      <path d="M18 52 H42"/>
-      <path d="M36 47 L42 52 L36 57"/>
-      <path d="M52 22 V40"/>
-      <path d="M47 27 L52 21 L57 27"/>
+      <ellipse cx="52" cy="78" rx="32" ry="7" data-shadow="1"/>
+      <path d="M16 52 H42" data-pipe="base"/>
+      <path d="M16 50.5 H42" data-pipe="hi"/>
+      <path d="M52 20 V42" data-pipe="base"/>
+      <path d="M50.5 20 V42" data-pipe="hi"/>
+      <circle cx="52" cy="52" r="28" data-face="cap"/>
+      <path d="M52 52 C42 42 38 36 48 32 C58 30 64 38 52 52 Z" stroke="currentColor" stroke-width="2" stroke-opacity="0.85"/>
+      <path d="M52 52 C62 42 66 36 56 32" stroke="currentColor" stroke-width="2" stroke-opacity="0.55"/>
       <circle cx="52" cy="52" r="3" fill="currentColor" stroke="none"/>
     </g>
   </svg>`,
@@ -142,13 +144,12 @@ export const TankDefinition: ComponentDefinition = {
   group: 'basic',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="50" cy="24" rx="28" ry="9" fill="currentColor" fill-opacity="0.08"/>
-      <path d="M22 24 V72"/>
-      <path d="M78 24 V72"/>
-      <ellipse cx="50" cy="72" rx="28" ry="9" fill="currentColor" fill-opacity="0.12"/>
-      <path d="M24 58 H76" stroke-dasharray="4 3" opacity="0.45"/>
-      <path d="M50 81 V92"/>
-      <rect x="44" y="92" width="12" height="5" rx="1.5" fill="currentColor" fill-opacity="0.2"/>
+      <ellipse cx="50" cy="74" rx="33" ry="7" data-shadow="1"/>
+      <path d="M22 24 A28 9 0 0 0 78 24 L78 72 A28 9 0 0 1 22 72 Z" data-face="front"/>
+      <ellipse cx="50" cy="24" rx="28" ry="9" data-face="cap"/>
+      <path d="M24 58 H76" stroke-dasharray="4 3" stroke-opacity="0.5"/>
+      <path d="M50 81 V90"/>
+      <rect x="44" y="90" width="12" height="6" rx="1.5" data-face="cap"/>
     </g>
   </svg>`,
   defaultWidth: 80,

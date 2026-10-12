@@ -208,7 +208,12 @@ const stageContainerRef = ref<HTMLElement | null>(null)
 // 组合式函数装配：视口/网格/元素渲染/框选/连线/拖拽
 const viewport = useCanvasViewport({ stageContainerRef, canvasStore })
 const grid = useGridLines(canvasStore)
-const visuals = useElementVisuals({ deviceStore, layerStore })
+const visuals = useElementVisuals({
+  deviceStore,
+  layerStore,
+  // 渲染风格是工程级设置：图标据此在「面基 + 光照 / 面基平涂」之间切换
+  viewMode: () => projectStore.viewMode,
+})
 const selection = useElementSelection(canvasStore)
 const connectionDraw = useConnectionDraw({ stageRef, canvasStore, connectionStore })
 const drag = useElementDrag({

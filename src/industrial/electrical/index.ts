@@ -6,13 +6,14 @@ export const MotorDefinition: ComponentDefinition = {
   group: 'electrical',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="25" y="30" width="50" height="40" rx="5" />
-      <line x1="75" y1="50" x2="90" y2="50" />
-      <circle cx="90" cy="50" r="5" />
-      <rect x="35" y="20" width="20" height="10" />
-      <line x1="40" y1="20" x2="40" y2="15" />
-      <line x1="50" y1="20" x2="50" y2="15" />
-      <line x1="45" y1="20" x2="45" y2="15" />
+      <ellipse cx="50" cy="73" rx="30" ry="6" data-shadow="1"/>
+      <rect x="25" y="30" width="50" height="40" rx="4" data-face="front"/>
+      <rect x="35" y="19" width="20" height="11" rx="2" data-face="top"/>
+      <path d="M75 50 H85"/>
+      <circle cx="90" cy="50" r="5" data-face="cap"/>
+      <path d="M40 19 V13"/>
+      <path d="M45 19 V13"/>
+      <path d="M50 19 V13"/>
       <text x="50" y="55" text-anchor="middle" font-size="14" font-weight="bold" fill="currentColor">M</text>
     </g>
   </svg>`,

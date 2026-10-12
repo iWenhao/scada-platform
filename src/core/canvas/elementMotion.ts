@@ -15,7 +15,7 @@
  * 单测直接喂显式包围盒即可覆盖，不依赖浏览器。
  */
 
-import type { ComponentInstance, MotionBelt, MotionRotor } from '@/types/scada'
+import type { ComponentInstance, MotionBelt, MotionRotor, ViewMode } from '@/types/scada'
 import type { ElementLayout, FitRect } from './elementLayout'
 import { fitIconRect } from './elementLayout'
 import { getComponentDefinition } from '@/industrial/registry'
@@ -190,6 +190,7 @@ export function getRotorConfigs(
   element: ComponentInstance,
   layout: ElementLayout,
   color: string,
+  mode: ViewMode,
   angleDeg: number,
   onLoad?: () => void,
 ): Array<Record<string, any>> {
@@ -207,8 +208,14 @@ export function getRotorConfigs(
     const rotorBox = getIconBounds(wrapped)
     if (!rotorBox) return
 
-    // 缓存键要带类型与序号：图集按 type|color 缓存，不同可动件不能互相顶掉
-    const img = getIconImage(`${element.type}#rotor${index}`, tightenIconSvg(wrapped), color, onLoad)
+    // 缓存键要带类型与序号：图集按 type|color|风格 缓存，不同可动件不能互相顶掉
+    const img = getIconImage(
+      `${element.type}#rotor${index}`,
+      tightenIconSvg(wrapped),
+      color,
+      mode,
+      onLoad,
+    )
     if (!img) return
 
     const config = placeRotor(frame, rotorBox, rotor, angleDeg, img)

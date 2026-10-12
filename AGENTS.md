@@ -1,7 +1,7 @@
 # AGENTS.md — AI 编码代理工作指南
 
 > 本文件供 AI 编码代理（以及新加入的开发者）在本仓库工作时遵循。
-> 面向使用者的操作手册在 [docs/USER_GUIDE.md](docs/USER_GUIDE.md)，架构图与二次开发指南在 [README.md](README.md)。
+> 文档地图：[README.md](README.md)（架构图与二次开发指南）、[docs/USER_GUIDE.md](docs/USER_GUIDE.md)（使用者操作手册）、[docs/DEPLOY.md](docs/DEPLOY.md)（部署）、[docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)（图元绘制规范，触发即必读）。
 
 ## 项目概述
 
@@ -22,7 +22,7 @@ npx vitest run          # 测试单次运行（pnpm test 是 watch 模式，会�
 pnpm lint               # ESLint
 ```
 
-验证基准：任何功能提交前，`vue-tsc --noEmit` 零错误 + `vitest run` 全过 + `pnpm build` 成功；UI 改动需浏览器实测交互。过程中的检查轻重取舍见「验证节奏」一节。
+提交前的必跑项（门槛）与按改动范围的检查取舍，统一由「验证节奏」一节定义，此处不重复。要单独记住的一条：**用户可见的输出（UI / 控制台 / 日志格式）必须真跑一次看结果**，优先级高于全部静态检查。
 
 ## 存储后端
 
@@ -36,6 +36,8 @@ pnpm lint               # ESLint
 
 ## 环境与已知坑
 
+> 标 **〔本机〕** 的条目与本机的系统环境绑定（系统代理、终端代码页等），换机器或 CI 上不适用，**不要照搬**；其余条目是仓库属性，任何环境下都成立。
+
 - **Node ≥ 18**；pnpm 10/11 会拦截依赖构建脚本，白名单已在 `pnpm-workspace.yaml`（esbuild、@parcel/watcher、vue-demi），不要删掉它。
 - `pnpm install` 报 "Already up to date" 但运行时报 `Cannot find module .../vite/...`：
   - 症状是 node_modules 链接损坏，**删除 node_modules 重新 install**。
@@ -48,15 +50,15 @@ pnpm lint               # ESLint
   - 5173 被旧实例占用时 Vite 会自动跳到 5174，而 5174 既是存储后端（`pnpm server`）端口又是 `/api` 代理目标——Vite 落在 5174 会让代理指向自身形成回环，表现为登录/存储请求异常；
   - 发现 5173 被占：先停掉旧实例（`netstat -ano | findstr :5173` 找PID）再启动；
   - 自己临时起过 dev server 验证完要停掉。
-- **`vite.config.ts` 的 `server.host: '127.0.0.1'` 绑定勿删**：Clash Verge（mihomo）TUN 模式会拦截本机 IPv6 回环 `::1` 的 TCP 连接，删掉该绑定后 Node 17+ 的 Vite 只监听 `[::1]`，复发「服务已启动但浏览器打不开」。
+- **〔本机〕`vite.config.ts` 的 `server.host: '127.0.0.1'` 绑定勿删**：Clash Verge（mihomo）TUN 模式会拦截本机 IPv6 回环 `::1` 的 TCP 连接，删掉该绑定后 Node 17+ 的 Vite 只监听 `[::1]`，复发「服务已启动但浏览器打不开」。
   - 该症状像 node_modules 损坏，别被误导；先用 `node -e` 分别测 `127.0.0.1` 与 `::1` 回环连通性再排查。
 - **编辑器「恢复草稿」弹窗的行为**：挂载时若存在未正式保存的自动草稿会弹框询问。
   - 选「恢复」**不会**删除草稿文件，选「丢弃」才删；
   - 恢复后直接刷新页面会丢失内存中未保存的改动（草稿只在正式保存或丢弃时清理）；
   - 实测与排查时别把「恢复」当成已持久化。
-- git 推送报 `SSL_ERROR_SYSCALL`：github.com 被网络重置，走本地代理推送：
+- **〔本机〕** git 推送报 `SSL_ERROR_SYSCALL`：github.com 被网络重置，走本地代理推送：
   `git -c http.proxy=http://127.0.0.1:7897 push origin dev`（端口以实际代理为准）。
-- **控制台中文乱码**：症状是终端里中文显示成 `???` / `�`（如 `git log`、`Select-String` 读中文文件、命令里写中文字面量）。
+- **〔本机〕控制台中文乱码**：症状是终端里中文显示成 `???` / `�`（如 `git log`、`Select-String` 读中文文件、命令里写中文字面量）。
   - 成因：编码不匹配——控制台代码页为 936(GB2312)，而 git/node 等原生工具输出 UTF-8，PowerShell 5.1 的命令行也按 ANSI 代码页解析；
   - 修法：**确认存在此问题后**，在命令开头加两行即可（控制台本就是 UTF-8 的环境不需要加，别无条件套用）：
   ```powershell
@@ -66,17 +68,15 @@ pnpm lint               # ESLint
   - **乱码只影响终端显示，不会污染代码或提交内容**（写文件一律走 edit/write 工具，不用 shell），所以别因为看到乱码就去"修"文件；
   - **中文内容校验不要相信控制台渲染**：`Get-Content | ConvertFrom-Json` 会因字节被改写而直接报解析错，`git show | Select-String` 还会把相邻两行显示成一行（曾据此误判 CSS 注释吞掉了声明）。
     - 校验中文一律用 `node -e` 读原始字节并打印码点。
-- **推送失败不重试**：如果 push 失败（网络被墙等），提交保留在本地即可，不要连续多次重试。
+- **〔本机〕推送失败不重试**：如果 push 失败（网络被墙等），提交保留在本地即可，不要连续多次重试。
   - 等待一段时间后再试一次，仍失败就留到下次推送，避免浪费时间和触发网络风控。
 
 ## 任务清单与进度可见性（任何 agent 必读）
 
 本仓库的既定要求：**多步任务必须有一份对用户可见的进度清单**——开工前列出、过程中更新、收尾给出最终状态。只在内部维护而不展示，等于没做。
 
-- **第一步先自查：你的环境有没有原生清单能力？** 有就直接用它，不必手写。**判断依据是"我这轮有没有 list / todo 类工具"，不是工具的具体名字**——名字会变，以下仅作举例（不是白名单）：
-  - 国际：Cursor 的 Agent To-dos（2.1 起是 `.cursor/plans/` 下的交互式 plan）、Cline 的 Focus Chain、Gemini CLI 的 `write_todos`、Claude Code 的 `TodoWrite` / `Task*` 系列（新模型上默认关闭，需 `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` 恢复）。
-  - 国内：Qoder 的「待办事项」（聊天窗底部，空心圈=未开始 / 旋转圈=进行中 / 复选框=已完成，`/plan` 可主动触发规划）、Trae SOLO 的 To-Do List（Plan 先出方案再执行）、ZCode 的任务清单（需一句「先列个任务清单再开始」触发）、MiniMax Code 的 Goal Mode（长任务登记为 goal、持续显示状态与耗时）、小米 MiMo Code 的树形任务系统（`T1` / `T1.1`…，`/task list` 查看、`/task skip` 跳过）。
-  - 有的实现把清单落成**文件**而不只在 UI 里（Cursor 的 `.cursor/plans/`、MiMo Code 的 `.mimo/task.log`），自查时「UI 面板」与「仓库里的清单文件」两条都要看。
+- **第一步先自查：你的环境有没有原生清单能力？** 有就直接用它，不必手写。**判断依据是"我这轮有没有 list / todo 类工具"，不是工具的具体名字**——名字会变，别照抄别人的工具清单。
+  - 自查时「UI 面板」与「仓库里的清单文件」两条都要看：有的实现只把清单落成文件，面板上反而看不到。
 - **没有原生能力时，降级方案是硬要求而非可选项**：在对话正文里给文字版清单，**开工的第一条消息与收尾的最后一条消息各附一份**：
   - 状态标记固定用 `✅ 已完成` / `🔄 进行中` / `⬜ 未开始`；
   - 清单要一眼看出"哪些做了、哪些没做"，**不要只汇报做完的部分**。
@@ -100,7 +100,7 @@ pnpm lint               # ESLint
   - `package.json` 保留三段数字并同步修改。
 - **发版时机**：版本号只在用户明确说"发版"时才更新（改 `package.json` + 把 CHANGELOG 的 `[Unreleased]` 定稿为新版本号）。
   - 平时提交一律不动版本号，新内容只写入 `[Unreleased]`。
-- **不提交**：`node_modules/`、`dist/`、诊断用的临时代码（如 index.html 里的错误钩子）。
+- **不提交**：`node_modules/`、`dist/`、诊断用的临时代码（如 index.html 里的错误钩子）。下列几类已在 `.gitignore` 里，但最容易在 `git add -A` 时被顺手带进来，提交前扫一眼暂存区：存储后端运行时数据 `server/data/`、本目录的会话记忆 `.workbuddy/`、设计沙箱的构建产物 `design/probe/*bundle.js`。
 - **UI 交互约定**：新功能必须有可见 UI 入口——只有快捷键没有按钮等同没做。
   - 次级操作图标默认隐藏、悬停显示或收进「⋯ 更多」类菜单，按钮放显眼位置（如面板标题右侧）；
   - 不做视觉冗余的堆砌，普通用户的标准是"看得到、找得到、用得顺"。
@@ -113,7 +113,7 @@ pnpm lint               # ESLint
 照 `src/industrial/coal/index.ts` 中现有组件（如 `ShearerDefinition`）的格式写 `ComponentDefinition`：
 
 1. `type` 全局唯一且用英文小写（如 `shearer`），Mock 设备按 `<type>_1` 命名即可被 `deviceStore.suggestDeviceId()` 自动绑定。
-2. 提供 SVG `icon`（viewBox 0 0 100 100，`currentColor` 会被画布替换颜色）、`defaultWidth/Height`、`statusRules`（优先级数字越小越高）、`dataBindings`（首个绑定变量会显示在元素上）、`properties`。图标有两种绘制档位——图标级（线条稿，默认）与插画级（面基），见 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)。
+2. 提供 SVG `icon`（viewBox 0 0 100 100，`currentColor` 会被画布替换颜色）、`defaultWidth/Height`、`statusRules`（优先级数字越小越高）、`dataBindings`（首个绑定变量会显示在元素上）、`properties`。图标绘制已统一到**插画级（面基）**——**新写的一律按面基写**，不要新写线条稿；存量线条稿正在分批迁移，两档可共存。规格见下方「2.5D / 立体观感图元」一节与 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)。
 3. 在 `src/components/layout/ComponentPanel.vue` 注册并补充分组名。
 4. 在 `MockDataAdapter` 的 update 数据与 `listDevices()` 中补充对应模拟设备。
 5. 同步更新 README 组件表与 docs/USER_GUIDE.md 的设备清单。
@@ -123,8 +123,10 @@ pnpm lint               # ESLint
 凡任务涉及「2.5D」「伪 3D」「立体观感的设备图」「等轴测场景」「把图元画得更立体」，**先读 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md) 再动手**。该文档自包含（含全部代码），不依赖仓库外的文件。要点速览：
 
 - **先判档，别先选技术**：投影 / 遮挡 / 剖切**不需要在运行时变化** → 走 2D/2.5D，**不要引入 Three.js**；需要转视角、真实前后遮挡、任意剖切、漫游巡检 → 才用 3D 渲染器，且要等轴测观感时用 `OrthographicCamera`（正交相机）而非透视相机。
-- **图元分两档**：图标级（线条 + 分档透明度，数量多时用；`src/industrial/**` 现有组件全属此档）与**插画级**（连续渐变 + 接触阴影 + 环境参照 + 材质区分）。插画级成本与设备数量是**乘法**，密集排布不要用。
-- **插画级不由手调明暗**：作者只标面朝向（`data-face="top|front|side|cap"`、`data-ground`、`data-shadow`、`data-pipe`），**不写** `fill` / `fill-opacity` / 渐变；光照由 `FACE_STYLE` token + `bakeLighting()` 统一展开。改 token 一处 = 改全局光感，避免各图元光源方向不一致。
+- **图元分两档**：图标级（线条 + 分档透明度）与**插画级**（面基 + 连续渐变 + 接触阴影）。插画级成本与设备数量是**乘法**，密集排布不要用。
+- **已决定统一到插画级（面基），且是分批迁移**：实现落在 `src/core/canvas/faceLighting.ts`，`styleIcon()` 对不含任何 `data-*` 标注的线条稿**原样返回**——所以已迁移与未迁移的组件可以共存，不会出现「一半正常一半空白」。**新写设备图元一律按面基写**；改造存量线条稿时优先挑本次没动过的设备，避免与迁移批次撞车。
+- **两种风格由工程级 `viewMode` 决定**（编辑器工具栏切换、运行端只读跟随）：`25d` = 面基 + `bakeLighting()` 展开渐变；`2d` = 面基平涂。**不要在元素背后铺背景色块**（旧的 `depthLayers.ts` 已删除，那是与「纯图形」方向冲突的做法）。
+- **插画级不由手调明暗**：作者只标面朝向（`data-face="top|front|side|cap"`、`data-shadow`、`data-pipe`；画布图元**不要用** `data-ground`——画布网格已是地面参照，逐台铺地台是噪音），**不写** `fill` / `fill-opacity` / 渐变；光照由 `FACE_STYLE` token + `bakeLighting()` 统一展开。改 token 一处 = 改全局光感，避免各图元光源方向不一致。
 - **硬约束**：颜色只有一条通道，渐变必须写 `stop-color="currentColor"` + `stop-opacity`；`<defs>` 必须写在片段内部（片段独立光栅化）；可动件必须从主图标挖掉另立片段（两处同步）；**不做透视**（SVG 的 `transform` 只有 2D 仿射，等轴测可精确表达，透视不能）；2.5D 场景必须显式做深度排序（`depth = gridX + gridY` 升序）。
 
 ### 数据源适配器
@@ -188,13 +190,13 @@ pnpm lint               # ESLint
 
 ## 验证节奏（按改动范围分级，不必每次全跑）
 
-上面的「验证基准」是提交前的底线；过程中的检查按改动范围挑着跑——各检查的实际价值并不均等，全跑一遍往往既慢又稀释信号：
+下表的「准备提交或交付」一行**就是提交前的底线（唯一权威定义）**；过程中的检查按改动范围挑着跑——各检查的实际价值并不均等，全跑一遍往往既慢又稀释信号：
 
 | 改动情形 | 该跑什么 | 为什么 |
 | --- | --- | --- |
 | 迭代中（还没改完） | 只跑刚动的那个测试文件 | 全量慢，且中途失败多为半成品状态，噪声大于信息 |
 | 跨模块重构 / 改了类型签名与导出 | 加跑 `vue-tsc --noEmit` | 跨文件重构的错误类型检查最灵（`Record` 缺键、接口字段漏传这类单测看不出来） |
-| 准备提交或交付 | 全量 `vitest run` + `vue-tsc --noEmit` + `scripts/check-long-files.ps1` | 项目底线，不可跳过 |
+| 准备提交或交付 | 全量 `vitest run` + `vue-tsc --noEmit` + `pnpm build` + `scripts/check-long-files.ps1` | 项目底线，不可跳过。`pnpm build` 覆盖类型检查看不见的静态资源与分包问题；行数检查单测与类型检查都抓不到 |
 | 引入新文件或改动文件较多 | 加跑**改动文件**的 `eslint` | 全量 eslint 会被仓库既有 `.vue` 报警（`vue/html-indent`、`no-mutating-props` 等）淹没，信号被稀释 |
 | 影响用户可见的输出（UI / 控制台 / 日志格式） | **必须真跑一次并看结果**，优先级排在上面全部静态检查之前 | 见下 |
 

@@ -8,7 +8,7 @@ import { getComponentDefinition } from '@/industrial/registry'
 import { isNameShown, isValueShown } from './elementChrome'
 import { computeElementLayout, fitIconRect, type ElementLayout } from './elementLayout'
 import { tightenIconSvg, getIconAspect } from './iconBounds'
-import type { ComponentInstance } from '@/types/scada'
+import type { ComponentInstance, ViewMode } from '@/types/scada'
 import type { PortPosition } from '@/types/connection'
 
 type DeviceStore = ReturnType<typeof useDeviceStore>
@@ -20,8 +20,14 @@ type LayerStore = ReturnType<typeof useLayerStore>
 export function useElementVisuals(options: {
   deviceStore: DeviceStore
   layerStore: LayerStore
+  /**
+   * 渲染风格读取器（工程级设置，编辑器切换、运行端只读跟随）。
+   * 只有消费图标的调用方需要传；不传按平面处理，未迁移的线条稿图标不受影响。
+   */
+  viewMode?: () => ViewMode
 }) {
   const { deviceStore, layerStore } = options
+  const readViewMode = options.viewMode ?? (() => '2d' as ViewMode)
 
   // 获取元素状态颜色（求值逻辑抽为纯函数，编辑器与预览页共用，见 elementStatus.ts）
   function getElementColor(element: ComponentInstance): string {
@@ -160,9 +166,15 @@ export function useElementVisuals(options: {
     if (!def?.icon) return null
 
     const strokeColor = getIconStrokeColor(element)
-    const img = getIconImage(element.type, tightenIconSvg(def.icon), strokeColor, () => {
-      iconVersion.value++
-    })
+    const img = getIconImage(
+      element.type,
+      tightenIconSvg(def.icon),
+      strokeColor,
+      readViewMode(),
+      () => {
+        iconVersion.value++
+      },
+    )
     if (!img) return null
 
     const layout = getElementLayout(element)

@@ -29,21 +29,8 @@
           @contextmenu="emit('element-contextmenu', element, $event)"
         />
 
-        <!-- 2.5D 体积 -->
-        <v-ellipse
-          v-if="depthShadowConfig(element, viewMode25d)"
-          :config="depthShadowConfig(element, viewMode25d)!"
-        />
-        <v-rect
-          v-if="depthSideConfig(element, getElementColor(element), viewMode25d)"
-          :config="depthSideConfig(element, getElementColor(element), viewMode25d)!"
-        />
-        <v-rect
-          v-if="depthHighlightConfig(element, viewMode25d)"
-          :config="depthHighlightConfig(element, viewMode25d)!"
-        />
-
-        <!-- 设备图形：只有线稿，无卡片底色/描边（状态由线条颜色表达） -->
+        <!-- 设备图形：立体感由图标内部的面基图元 + 光照承担（faceLighting），
+             不在元素背后铺背景色块 -->
         <v-image
           v-if="getIconImageConfig(element)"
           :config="getIconImageConfig(element)"
@@ -58,6 +45,7 @@
           :element="element"
           :layout="getElementLayout(element)"
           :color="getIconStrokeColor(element)"
+          :view-mode="viewMode"
           :state="getElementMotion(element)"
         />
         <!-- 管道：原生管身图形 + 流动虚线（图标方案画不出任意长度的管段） -->
@@ -121,9 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { ComponentInstance } from '@/types/scada'
-import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
+import type { ComponentInstance, ViewMode } from '@/types/scada'
 import {
   hitAreaConfig,
   labelTextConfig,
@@ -157,7 +143,8 @@ const props = defineProps<{
   selectedIds: string[]
   activeTool: string
   snapToGrid: boolean
-  viewMode: string
+  /** 渲染风格：只用于可动件片段与主图标保持一致（图标本身由 visuals 内部按风格产出） */
+  viewMode: ViewMode
   visuals: Visuals
   gridSnapFunc: any
 }>()
@@ -172,8 +159,6 @@ const emit = defineEmits<{
   'transform-end': [id: string]
   'port-down': [id: string, port: any]
 }>()
-
-const viewMode25d = computed(() => props.viewMode === '25d')
 
 const {
   getElementColor,

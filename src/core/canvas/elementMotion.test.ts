@@ -160,12 +160,12 @@ describe('非浏览器环境的降级', () => {
   }
 
   it('测量不可用时旋转件与带面都返回空，且不抛错', () => {
-    expect(getRotorConfigs(makeElement('shearer'), layout, '#0f0', 45)).toEqual([])
+    expect(getRotorConfigs(makeElement('shearer'), layout, '#0f0', '25d', 45)).toEqual([])
     expect(getBeltConfigs(makeElement('conveyor'), layout, '#0f0', 45)).toEqual([])
   })
 
   it('没有声明动效的组件同样返回空', () => {
-    expect(getRotorConfigs(makeElement('gas_sensor'), layout, '#0f0', 45)).toEqual([])
+    expect(getRotorConfigs(makeElement('gas_sensor'), layout, '#0f0', '25d', 45)).toEqual([])
     expect(getBeltConfigs(makeElement('gas_sensor'), layout, '#0f0', 45)).toEqual([])
   })
 })
