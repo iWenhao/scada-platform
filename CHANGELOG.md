@@ -8,6 +8,15 @@
 
 ## [Unreleased]
 
+### 修复
+
+- 行数检查脚本 `scripts/check-long-files.ps1` 一直在少算行数，已改为精确计数并内置 `src/industrial/**` 例外
+  - 根因是用了 `(Get-Content | Measure-Object -Line).Lines`：该 cmdlet **不计空行**，对纯 LF 文件漏得更多——2026-10-13 实测同一批文件少算 3~25 行（`src/core/canvas/faceLighting.ts` 报 85、实际 110；`src/core/canvas/iconImage.ts` 报 31、实际 40）。本仓库行尾本就混用（`industrial/**` 是 CRLF、新写的画布文件是 LF），两种都会失真
+  - 后果不是数字难看而是**守卫失效**：全量精确重扫时真实超限 3 个文件，脚本只报出 1 个——被漏掉的是 `src/stores/projectStore.ts`（实际 415，脚本读 369）与 `server/index.mjs`（实际 409，脚本读 374）。两者都是既有欠账、非本次改动引入，故本次只修脚本、不顺手拆它们（另行处理）
+  - 计数改用 `[System.IO.File]::ReadAllLines().Count`，与行尾风格无关；已在 6 个文件上与真实换行符数逐一比对（CRLF 与 LF 两类各含），另 3 个文件与 `wc -l` 交叉核对，数值完全一致
+  - 例外改为机械判定：新增 `-Exempt` 参数（默认 `src/industrial/*`），命中即不参与门槛，并在输出末尾报出跳过数量（当前 18 个）——例外必须可见，否则会变成静默豁免。`src/industrial/coal/index.ts` 实际 470 行，按此例外放行
+  - AGENTS.md 同步明确门槛的**适用范围**：只针对本次改动新增或触及的文件；脚本报出的既有超限文件不阻塞无关提交，但必须在当次汇报里如实列出，不许默默略过
+
 ### 功能
 
 - 设备在运转状态下会「动」起来——采煤机的两个截割滚筒与掘进机的截割头随截齿旋转、皮带输送机的带面沿输送方向滚动，转速与流向由绑定点位的实时值决定
