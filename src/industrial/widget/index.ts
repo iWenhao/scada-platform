@@ -56,6 +56,18 @@ const fontSizeProp = (d = 12) => ({
   group: '显示',
 })
 
+/**
+ * 自定义格式模板（date / clock 共用）：非空时优先于「显示格式」预设。
+ * 占位符见 format.ts 的 TOKEN_RE 注释；留空表示只用预设。
+ */
+const customFormatProp = () => ({
+  key: 'customFormat',
+  label: '自定义模板',
+  type: 'string' as const,
+  default: '',
+  group: '显示',
+})
+
 export const ProgressBarDefinition = widgetDef(
   'progress-bar',
   '进度条',
@@ -152,6 +164,7 @@ export const DateDefinition = widgetDef(
       options: CLOCK_FORMAT_OPTIONS,
       group: '显示',
     },
+    customFormatProp(),
   ],
 )
 
@@ -172,6 +185,7 @@ export const ClockDefinition = widgetDef(
       options: CLOCK_FORMAT_OPTIONS,
       group: '显示',
     },
+    customFormatProp(),
   ],
 )
 

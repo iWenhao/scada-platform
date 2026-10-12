@@ -99,7 +99,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
 import type { ComponentInstance } from '@/types/scada'
-import { formatDateTime, nextTickDelay, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT } from './format'
+import { formatCustom, formatDateTime, nextTickDelay, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT } from './format'
 
 /**
  * HTML 挂件层：图表之外的那些需要 DOM 的组件（进度条/报表/网格图/表格/
@@ -297,7 +297,12 @@ const formatId = computed(() =>
   prop('format', type.value === 'date' ? DEFAULT_DATE_FORMAT : DEFAULT_CLOCK_FORMAT),
 )
 
-const clockText = computed(() => formatDateTime(now.value, formatId.value))
+/** 自定义模板非空时优先于预设：预设管快捷选择，模板管自由组合 */
+const customTemplate = computed(() => String(prop('customFormat', '') ?? '').trim())
+
+const clockText = computed(() =>
+  customTemplate.value ? formatCustom(now.value, customTemplate.value) : formatDateTime(now.value, formatId.value),
+)
 
 const clockStyle = computed(() => ({
   fontSize: `${num(prop('fontSize', 24), 24) * z.value}px`,
@@ -340,7 +345,7 @@ function scheduleTick() {
   timer = window.setTimeout(() => {
     now.value = new Date()
     scheduleTick()
-  }, nextTickDelay(formatId.value, now.value))
+  }, nextTickDelay(formatId.value, now.value, customTemplate.value))
 }
 
 function stopTick() {
@@ -354,8 +359,8 @@ onMounted(() => {
   scheduleTick()
 })
 
-// 格式切换后旧的对齐点可能不再是合适的刷新节奏，立即重排
-watch(formatId, () => {
+// 格式或模板切换后旧的对齐点可能不再是合适的刷新节奏，立即重排
+watch([formatId, customTemplate], () => {
   if (timer === null) return
   stopTick()
   scheduleTick()

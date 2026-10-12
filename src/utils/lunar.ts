@@ -93,6 +93,18 @@ export function toLunar(date: Date): LunarDate | null {
 }
 
 /**
+ * 农历年的干支纪年写法，如 2026 →「丙午」。
+ * 算法：天干地支各以 (year - 4) 对 10 / 12 取模（公元 4 年为甲子年）。
+ * 传入的应是农历年（toLunar().year），不是公历年——公历 1 月属上一农历年。
+ */
+const GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+
+export function lunarYearGanZhi(year: number): string {
+  return `${GAN[(year - 4) % 10]}${ZHI[(year - 4) % 12]}`
+}
+
+/**
  * 农历月日的中文写法，如「九月初四」「闰六月初三」。
  * 越界（早于 1900 或晚于 2100）返回空串，由调用方回退到公历。
  */
@@ -103,3 +115,4 @@ export function lunarMonthDayText(date: Date): string {
   const day = DAY_NAMES[lunar.day - 1]
   return `${lunar.isLeap ? '闰' : ''}${month}月${day ?? ''}`
 }
+
