@@ -24,7 +24,8 @@
   - 不是本次新增组件引入的问题：链路是共享的，所有设备图元的**首帧**都受影响；只是小图标（几百字节）常在本次渲染结束前就已 `complete`，而被导入的图元要按 512px 长边光栅化、解码更慢，窗口期大到肉眼必然看到
   - 修法对齐同目录 `ElementMotion.vue` 的既有手法（`rotors` computed 里的 `void imageVersion.value`）：在 `getIconImageConfig` 与 `getUserImageConfig` 各读一次，把调用方（`CanvasElements` / `PreviewStage` 的渲染）登记为依赖方；同时把 `iconVersion` 加进 composable 返回对象，避免它再次悄悄死掉
   - 新增 `src/core/canvas/useElementVisuals.test.ts`：用假 `Image`（微任务模拟「本帧之后才就绪」）断言 ① `getIconImageConfig` / `getUserImageConfig` 订阅 `iconVersion`（包进同步 `watchEffect`，递增后必须重跑）；② 位图就绪后返回非 null 且宽高为正的可绘配置。**已验证该测试能抓住回归**——临时撤掉订阅读取后，第 ① 条断言如期失败
-  - 实测：`npx vitest run` 47 文件 / 386 用例全通过；`pnpm build`（vue-tsc + vite build）通过；`eslint` 对两个改动文件 0 error 0 warning
+  - 实测：`npx vitest run` 48 文件 / 408 用例全通过；`pnpm build`（vue-tsc + vite build）通过；`eslint` 对两个改动文件 0 error 0 warning
+  - ⚠️ 用例数一度记错：本机沙箱写 `%TEMP%` 会偶发 `EPERM`，**`vitest run` 会被提前掐断**，末尾汇总显示 46~47 个文件 / 368~386 个用例，看起来「全绿」实则少跑了一到两个文件。可信口径是以 `--reporter=verbose` 重跑、确认汇总无 `Errors` 且逐文件列出与磁盘一致（本次实测 48 个文件与 `find` 结果逐一相符）。上一条「通用设备」记载里的 45/367 同为此因，已一并更正
 
 - 宽屏（≥1700px）下删除 / 复制 / 粘贴没有任何可见工具栏入口——修窄屏折行时（`16924109`）把三个编辑按钮从顶部**直接删除**而非挪位，而它们的替代落点「更多」菜单在宽屏恰好被 `display: none` 隐藏（`toolbar.scss` 的 `min-width: 1700px` 规则），宽屏用户只剩快捷键 / 右键菜单 / 属性面板可用
   - 修复：复制/粘贴加回撤销/重做按钮组（配置数组 `editActions` + v-for，disabled 条件与「更多」菜单项一致），样式类 `edit-action` 与「更多」菜单**互斥显示**——≥1700px 平铺、低于该宽度隐藏并走「更多」菜单，复用 `toolbar-secondary` 已确立的断点模式，不加剧 1200px 级窗口的宽度压力
@@ -48,7 +49,7 @@
   - 这批图元是单色线条稿（无 `data-face` 标注），`faceLighting.styleIcon()` 会原样放行——2D 与 2.5D 下外观一致，与已迁移 6 台的面基图元共存（迁移可分批，见 `docs/2.5D_ILLUSTRATION_GUIDE.md`）
   - 素材扫描实测：264 个 SVG / 33 个 PNG；262 个规范化干净（仅 `test.svg` / `test2.svg` 为无 `<svg>` 根的垃圾文件，未纳入清单）；123 个命中隐形底衬矩形；2 个含 `<style>`（即上述垃圾文件）；29 个含非主题色（集中在未采用的装饰组件与火焰/指示灯图元）；清单项 0 缺失
   - 配套 `--preview` 模式与 `scripts/subunit-preview.mjs`（模板拆出，主脚本保持在 400 行门槛内）：生成图元核对页，页内 JS 是 `iconBounds.measure()` / `buildTightSvg()` 与 `currentColor` 替换的忠实移植（浏览器里真跑 `getBBox`），按元素默认尺寸列出每台设备的默认/运行/报警三色，供「看真东西」——这三类问题（画不出来、包围盒收紧失效、变色不生效）静态检查与单测都抓不到
-  - 验证：`npx vitest run` 45 文件 / 367 用例全通过；`pnpm build`（vue-tsc + vite build）通过；`scripts/check-long-files.ps1` 通过（超限的两项 `src/stores/projectStore.ts` 415 / `server/index.mjs` 409 均是既有欠账，非本次引入；本次新增的 3 个 `src/industrial/**` 文件走该脚本内置例外，当前共跳过 21 个）
+  - 验证：`npx vitest run` 47 文件 / 405 用例全通过；`pnpm build`（vue-tsc + vite build）通过；`scripts/check-long-files.ps1` 通过（超限的两项 `src/stores/projectStore.ts` 415 / `server/index.mjs` 409 均是既有欠账，非本次引入；本次新增的 3 个 `src/industrial/**` 文件走该脚本内置例外，当前共跳过 21 个）
   - **面板与画布中的实际观感尚未由人眼确认**：本机沙箱内无法启动无头浏览器（Chrome 启动被拦截、无输出即终止），按既定约定不为此下载浏览器运行时。核对页已生成，可在自己的浏览器打开；或在编辑器「基础组件」页签下查看「通用设备」分组（需重启 dev server 让新组件注册生效）
   - 未做（待后续批次）：电力 / 主运输 / 水 / 洗选 / 热力 / 主通风 / 综采各系统设备，以及图表缺口（进度条 / 报表 / 网格图）与纯文本组件
 - 设备在运转状态下会「动」起来——采煤机的两个截割滚筒与掘进机的截割头随截齿旋转、皮带输送机的带面沿输送方向滚动，转速与流向由绑定点位的实时值决定
