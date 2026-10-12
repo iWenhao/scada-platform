@@ -40,6 +40,15 @@
 
 ### 功能
 
+- 补齐外部素材库的其余 7 个系统，组件总数由 41 个增至 **149 个**（其中素材导入 121 个）
+  - **通用设备**（13，`general`）、**电力系统**（22，归入既有 `electrical`）、**主运输系统**（5，新分组 `transport`）、**水系统**（27，归入既有 `water`）、**洗选系统**（17，新分组 `wash`）、**热力系统**（22，新分组 `thermal`）、**主通风系统**（6，新分组 `ventilation`）、**综采系统**（9，归入既有 `coal`）。分组名与源产品一致；新增 4 个 `ComponentGroup` 成员，`ComponentInstance` 无 `group` 字段，故对既有工程数据零影响
+  - **素材一律改取 `real/` 而非 `icon/`**：两套是同源图元，但 `icon/` 是把整张图缩放进 40×40 方画布的缩略图（描边被放大到 1/40 比例），`real/` 才是原始比例（viewBox 与配置里的 w/h 完全吻合，如采煤机 610×232、布袋除尘器 82×69）。缩略图那套会让导入设备的线宽明显重于其他图元。已连 `general` 一起重新生成，121 个图元线宽口径统一
+  - **两处同名但 type 不同，互不覆盖**：`water` 组的「沉淀池」与手写 `SedimentTankDefinition` 同名，`coal` 组的「采煤机」与手写 `ShearerDefinition` 同名。registry 用 `Map.set`，同 type 会静默覆盖——本次全部 121 个 type 均带系统前缀（`gen_`/`elec_`/`trans_`/`water_`/`wash_`/`thermal_`/`vent_`/`coal_`），已逐一核对与既有 28 个手写 type 零冲突，组内亦无同名
+  - 源配置里 `hidden: true` 的条目未导入（雷达图、filterTable、`trans` 的皮带、「研发中」组的旋转/面板/弹窗）；「其它」组的管网与新增1~4 属项目定制贴图、无语义，同样未导入
+  - 修掉导入脚本自身两个缺陷：① 参数解析把位于末尾的无值开关（`--scan`）置成 `undefined`，命令直接落到 "nothing to do"——带 `--report` 的调用会侥幸跑通，问题被掩盖；② 在 `.mjs` 里写了 TS 类型标注，一跑就 `SyntaxError`
+  - 验证：`npx vitest run` 48 文件 / 408 用例全通过；`pnpm build`（vue-tsc + vite build）通过；ESLint 对 10 个改动文件 0 error 0 warning（`ComponentPanel.vue` 的 73 条告警全在第 30–99 行模板区，本次改动均在 119 行之后的 `<script>`，属存量）；`check-long-files.ps1` 通过，例外跳过数由 21 增至 32
+  - ⚠️ **本机 `vitest run` 被沙箱 `%TEMP%` 写失败随机掐断的根因解法**：把 `TEMP`/`TMP` 重定向到仓库内可写目录即可一次跑全——`TEMP=<仓库>/.workbuddy/tmp TMP=<仓库>/.workbuddy/tmp npx vitest run`，实测 48 文件 / 408 用例全到、汇总无 `Errors`。此前三次全量分别只跑到 45/367、47/390、47/392（各漏 1~2 个文件且不报失败），数字不可信
+
 - 新增「通用设备」组件分组（13 台：泵1 / 泵2 / 油泵 / 电磁阀 / 风机 / 防爆门 / 过滤容器 / 搅拌器 / 油桶 / 球机 / 水桶 / PLC / PLC2），图标由外部组态产品的素材库导入
   - 新增一次性导入工具 `scripts/import-subunit-assets.mjs` 与素材清单 `scripts/subunit-manifest.json`（记录 type ↔ 源文件 ↔ 面板名称，可追溯、可重跑）。素材是另一套产品导出的 Sketch 风格 SVG，直接内联有三个问题，故规范化四步：① 去 XML 声明 / `<title>` / `<desc>` / `id` / `version` / `xmlns:xlink`；② 去「带 `opacity` 但无任何可见 `fill`/`stroke`」的整幅底衬矩形——**它不可见却仍会进入 `getBBox()`**，会让 `iconBounds.buildTightSvg()` 拿到整幅方形包围盒、内容收紧整体失效；③ 主题色 `#57A9FB` → `currentColor`（不替换则状态变色对它完全无效，会恒定显示素材自带蓝）；④ 压成单行，减小内联体积
   - **刻意不处理 `transform`**：素材里成对出现的 `translate(-x,-y)` / `translate(x,y)` 互相抵消，残留偏移由 `getBBox()` 正确计入并被重写进 viewBox——手工清 transform 反而容易把真实几何偏移一并删掉。非主题色（指示灯绿、火焰红等 20 种）同样保留，它们承载语义且不会被状态色覆盖

@@ -1,4 +1,6 @@
 import type { ComponentDefinition } from '@/types/scada'
+import { buildAssetComponents } from '../assetComponents'
+import { coalAssetIcons, coalAssetMeta } from './assets.generated'
 
 /** 采煤机 */
 export const ShearerDefinition: ComponentDefinition = {
@@ -467,4 +469,8 @@ export const coalComponents: ComponentDefinition[] = [
   GasSensorDefinition,
   HoistDefinition,
   CoalBunkerDefinition,
+  // 综采系统（外部素材导入，9 台）：组合开关/采煤机/液压支架/破碎机/转载机等。
+  // 与手写的 ShearerDefinition 重名（同为「采煤机」，一个是线条稿、一个是素材图元），
+  // type 不同故互不覆盖；溯源见 scripts/subunit-manifest.json
+  ...buildAssetComponents('coal', coalAssetIcons, coalAssetMeta),
 ]

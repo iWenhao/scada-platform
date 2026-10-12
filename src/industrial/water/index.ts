@@ -1,4 +1,6 @@
 import type { ComponentDefinition } from '@/types/scada'
+import { buildAssetComponents } from '../assetComponents'
+import { waterAssetIcons, waterAssetMeta } from './assets.generated'
 
 /** 沉淀池 */
 export const SedimentTankDefinition: ComponentDefinition = {
@@ -105,4 +107,8 @@ export const SubPumpDefinition: ComponentDefinition = {
 export const waterComponents: ComponentDefinition[] = [
   SedimentTankDefinition,
   SubPumpDefinition,
+  // 水系统（外部素材导入，27 台）：沉淀池/格栅/加药/过滤/各类泵阀。
+  // 注意与手写的 SedimentTankDefinition 重名（同为「沉淀池」，一个是线条稿、一个是素材图元），
+  // type 不同故互不覆盖；溯源见 scripts/subunit-manifest.json
+  ...buildAssetComponents('water', waterAssetIcons, waterAssetMeta),
 ]

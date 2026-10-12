@@ -288,10 +288,19 @@ function runPreview(srcRoot, sysKey, outPath) {
 }
 
 function main(argv) {
+  // 无值开关（--scan / --emit <key> 里的 --emit 有值）与带值参数要分开：
+  // 早先写成 `argv[i+1]?.startsWith('--') ? true : argv[++i]`，开关位于参数末尾时
+  // argv[i+1] 为 undefined，`undefined?.startsWith()` 得 undefined（假），
+  // 于是把 argv[i+1]（也是 undefined）吃进去，开关变成假值，命令直接落到
+  // "nothing to do"——而带 --report 的调用会侥幸跑通，问题被掩盖。
   const args = {}
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (a.startsWith('--')) args[a.slice(2)] = argv[i + 1]?.startsWith('--') ? true : argv[++i]
+    if (!a.startsWith('--')) continue
+    const key = a.slice(2)
+    const next = argv[i + 1]
+    if (next === undefined || next.startsWith('--')) args[key] = true
+    else args[key] = argv[++i]
   }
   const srcRoot = typeof args.src === 'string' ? resolve(args.src) : null
   if (!srcRoot) {

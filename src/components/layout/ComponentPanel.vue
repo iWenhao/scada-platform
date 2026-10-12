@@ -124,6 +124,10 @@ import { coalComponents } from '@/industrial/coal'
 import { powerComponents } from '@/industrial/power'
 import { chemicalComponents } from '@/industrial/chemical'
 import { waterComponents } from '@/industrial/water'
+import { transportComponents } from '@/industrial/transport'
+import { ventilationComponents } from '@/industrial/ventilation'
+import { washComponents } from '@/industrial/wash'
+import { thermalComponents } from '@/industrial/thermal'
 import { chartComponents } from '@/industrial/chart'
 import { loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
 import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/templateLibrary'
@@ -140,6 +144,10 @@ registerComponents([
   ...powerComponents,
   ...chemicalComponents,
   ...waterComponents,
+  ...transportComponents,
+  ...ventilationComponents,
+  ...washComponents,
+  ...thermalComponents,
   ...chartComponents,
 ])
 
@@ -168,7 +176,16 @@ const indicatorStyle = computed(() => {
 /** 基础 Tab 覆盖的注册分组 */
 const BASIC_GROUPS: ComponentGroup[] = ['basic', 'general', 'pipeline', 'electrical', 'chart']
 /** 行业 Tab 覆盖的注册分组 */
-const INDUSTRY_GROUPS: ComponentGroup[] = ['coal', 'power', 'chemical', 'water']
+const INDUSTRY_GROUPS: ComponentGroup[] = [
+  'coal',
+  'transport',
+  'ventilation',
+  'wash',
+  'thermal',
+  'power',
+  'chemical',
+  'water',
+]
 
 const customDefs = ref<ComponentDefinition[]>([])
 const deviceTemplates = ref<DeviceTemplate[]>([])
@@ -208,6 +225,10 @@ const groupNames: Record<string, string> = {
   pipeline: '管道组件',
   electrical: '电气组件',
   coal: '煤矿组件',
+  transport: '主运输系统',
+  ventilation: '主通风系统',
+  wash: '洗选系统',
+  thermal: '热力系统',
   power: '电厂组件',
   chemical: '化工组件',
   water: '水处理组件',

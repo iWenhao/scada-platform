@@ -43,6 +43,7 @@ pnpm lint               # ESLint
   - 症状是 node_modules 链接损坏，**删除 node_modules 重新 install**。
 - **〔本机〕`vitest run` 可能被沙箱提前掐断，汇总数字不可信**：
   - 症状：末尾汇总出现 `Errors`（形如 `EPERM: operation not permitted, open 'C:\Users\...\AppData\Local\Temp\...\web\<hash>'`），同时 `Test Files` / `Tests` 比真实值少——实测同一次全量在 45~47 个文件、367~408 个用例之间跳动，而磁盘上实际有 48 个测试文件。**少跑的一到两个文件不会报失败**，只看绿灯会漏。
+  - 根因解法：把 `TEMP`/`TMP` 重定向到仓库内可写目录，即可一次跑全——`TEMP=<仓库>/.workbuddy/tmp TMP=<仓库>/.workbuddy/tmp npx vitest run`（`pnpm build` 同理）。实测重定向后 48 文件 / 408 用例全到、汇总无 `Errors`。
   - 判据：汇总行有 `Errors` 即视为本次运行不可信；可信口径是用 `npx vitest run --reporter=verbose` 重跑，确认无 `Errors`，并把逐文件列表与 `find src examples shared scripts -name "*.test.ts"` 的结果比对一致。
   - 写进 CHANGELOG 的「实测用例数」必须来自上面这种完整运行，别直接抄被掐断那次的数字。
 - 大规模重构/删除文件后 Vite HMR 可能残留陈旧模块。症状：白屏（`#app` 为空）、样式或代码改了不生效、Konva 事件监听指向旧舞台实例。按以下顺序排查（先轻后重），**不要急着改代码**：

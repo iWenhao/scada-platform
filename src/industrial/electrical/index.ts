@@ -1,4 +1,9 @@
 import type { ComponentDefinition } from '@/types/scada'
+import { buildAssetComponents } from '../assetComponents'
+import {
+  electricalAssetIcons,
+  electricalAssetMeta,
+} from './assets.generated'
 
 export const MotorDefinition: ComponentDefinition = {
   type: 'motor',
@@ -171,4 +176,7 @@ export const SensorDefinition: ComponentDefinition = {
 export const electricalComponents: ComponentDefinition[] = [
   MotorDefinition,
   SensorDefinition,
+  // 电力系统（外部素材导入，22 台）：变电/变压器/互感器/断路器/开关等。
+  // 图元为单色线条稿，状态走统一 state 契约；溯源见 scripts/subunit-manifest.json
+  ...buildAssetComponents('electrical', electricalAssetIcons, electricalAssetMeta),
 ]

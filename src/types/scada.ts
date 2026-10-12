@@ -8,6 +8,10 @@ export type ComponentGroup =
   | 'power'
   | 'chemical'
   | 'water'
+  | 'transport'
+  | 'ventilation'
+  | 'wash'
+  | 'thermal'
   | 'chart'
   | 'custom'
 
