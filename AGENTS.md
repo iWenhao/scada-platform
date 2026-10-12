@@ -92,10 +92,19 @@ pnpm lint               # ESLint
 照 `src/industrial/coal/index.ts` 中现有组件（如 `ShearerDefinition`）的格式写 `ComponentDefinition`：
 
 1. `type` 全局唯一且用英文小写（如 `shearer`），Mock 设备按 `<type>_1` 命名即可被 `deviceStore.suggestDeviceId()` 自动绑定。
-2. 提供 SVG `icon`（viewBox 0 0 100 100，线条风格，`currentColor` 会被画布替换颜色）、`defaultWidth/Height`、`statusRules`（优先级数字越小越高）、`dataBindings`（首个绑定变量会显示在元素上）、`properties`。
+2. 提供 SVG `icon`（viewBox 0 0 100 100，`currentColor` 会被画布替换颜色）、`defaultWidth/Height`、`statusRules`（优先级数字越小越高）、`dataBindings`（首个绑定变量会显示在元素上）、`properties`。图标有两种绘制档位——图标级（线条稿，默认）与插画级（面基），见 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)。
 3. 在 `src/components/layout/ComponentPanel.vue` 注册并补充分组名。
 4. 在 `MockDataAdapter` 的 update 数据与 `listDevices()` 中补充对应模拟设备。
 5. 同步更新 README 组件表与 docs/USER_GUIDE.md 的设备清单。
+
+### 2.5D / 立体观感图元（触发即必读）
+
+凡任务涉及「2.5D」「伪 3D」「立体观感的设备图」「等轴测场景」「把图元画得更立体」，**先读 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md) 再动手**。该文档自包含（含全部代码），不依赖仓库外的文件。要点速览：
+
+- **先判档，别先选技术**：投影 / 遮挡 / 剖切**不需要在运行时变化** → 走 2D/2.5D，**不要引入 Three.js**；需要转视角、真实前后遮挡、任意剖切、漫游巡检 → 才用 3D 渲染器，且要等轴测观感时用 `OrthographicCamera`（正交相机）而非透视相机。
+- **图元分两档**：图标级（线条 + 分档透明度，数量多时用；`src/industrial/**` 现有组件全属此档）与**插画级**（连续渐变 + 接触阴影 + 环境参照 + 材质区分）。插画级成本与设备数量是**乘法**，密集排布不要用。
+- **插画级不由手调明暗**：作者只标面朝向（`data-face="top|front|side|cap"`、`data-ground`、`data-shadow`、`data-pipe`），**不写** `fill` / `fill-opacity` / 渐变；光照由 `FACE_STYLE` token + `bakeLighting()` 统一展开。改 token 一处 = 改全局光感，避免各图元光源方向不一致。
+- **硬约束**：颜色只有一条通道，渐变必须写 `stop-color="currentColor"` + `stop-opacity`；`<defs>` 必须写在片段内部（片段独立光栅化）；可动件必须从主图标挖掉另立片段（两处同步）；**不做透视**（SVG 的 `transform` 只有 2D 仿射，等轴测可精确表达，透视不能）；2.5D 场景必须显式做深度排序（`depth = gridX + gridY` 升序）。
 
 ### 数据源适配器
 

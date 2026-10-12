@@ -467,6 +467,8 @@
 
 ## 图标规范
 
+> 组件图元要做「立体观感」（2.5D / 插画级）时，绘制规范、光照 token、硬约束与验收清单见 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)。本节只规定尺寸与颜色。
+
 ### 工具栏图标
 - 大小: 18x18
 - 颜色: #e0e0e0
