@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeElementLayout } from './elementLayout'
+import { computeElementLayout, fitIconRect } from './elementLayout'
 
 const base = { wantName: true, wantValue: true }
 
@@ -77,3 +77,51 @@ describe('elementLayout 分区与降级', () => {
   })
 })
 
+describe('fitIconRect 图形适配', () => {
+  // 图标与运转动效的可动件共用本函数算矩形，两边必须得到同一个结果，
+  // 否则滚筒会与机身错位——这里把「同一套变换」的要求固化成用例。
+  it('横向设备在宽扁图形区里受宽限制：铺满宽度，按内容长宽比定高并垂直居中', () => {
+    // 图形区 168×88、内容长宽比 2.59（采煤机）：区比 1.91 < 2.59，宽度先用尽
+    const r = fitIconRect(4, 4, 168, 88, 2.59)
+    expect(r.width).toBeCloseTo(168, 5)
+    expect(r.height).toBeCloseTo(168 / 2.59, 5)
+    expect(r.x).toBeCloseTo(4, 5)
+    expect(r.y).toBeCloseTo(4 + (88 - 168 / 2.59) / 2, 5)
+  })
+
+  it('横向设备在窄高图形区里受高限制：铺满高度，按内容长宽比定宽并水平居中', () => {
+    // 图形区 300×72、内容长宽比 2.59：区比 4.17 > 2.59，高度先用尽
+    const r = fitIconRect(0, 0, 300, 72, 2.59)
+    expect(r.height).toBeCloseTo(72, 5)
+    expect(r.width).toBeCloseTo(72 * 2.59, 5)
+    expect(r.x).toBeCloseTo((300 - 72 * 2.59) / 2, 5)
+    expect(r.y).toBeCloseTo(0, 5)
+  })
+
+  it('纵向设备受高限制：高度铺满并按内容长宽比收窄', () => {
+    // 图形区 100×140、内容长宽比 0.68（储罐）：区比 0.71 > 0.68，高度先用尽
+    const r = fitIconRect(0, 0, 100, 140, 0.68)
+    expect(r.height).toBeCloseTo(140, 5)
+    expect(r.width).toBeCloseTo(140 * 0.68, 5)
+    expect(r.x).toBeCloseTo((100 - 140 * 0.68) / 2, 5)
+    expect(r.y).toBeCloseTo(0, 5)
+  })
+
+  it('长宽比缺失时回退方形居中（与改造前的行为一致）', () => {
+    const r = fitIconRect(4, 4, 168, 72, 0)
+    expect(r.width).toBe(72)
+    expect(r.height).toBe(72)
+    expect(r.x).toBeCloseTo(4 + (168 - 72) / 2, 5)
+    expect(r.y).toBe(4)
+  })
+
+  it('图形永远落在图形区内，不越界', () => {
+    for (const aspect of [0.3, 0.68, 1, 1.58, 2.59, 6]) {
+      const r = fitIconRect(4, 10, 120, 60, aspect)
+      expect(r.x).toBeGreaterThanOrEqual(4 - 1e-6)
+      expect(r.y).toBeGreaterThanOrEqual(10 - 1e-6)
+      expect(r.x + r.width).toBeLessThanOrEqual(124 + 1e-6)
+      expect(r.y + r.height).toBeLessThanOrEqual(70 + 1e-6)
+    }
+  })
+})

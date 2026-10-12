@@ -11,6 +11,60 @@ export type ComponentGroup =
   | 'custom'
 
 /** 组件定义（注册时使用） */
+/**
+ * 可动件（旋转）：绕给定圆心转动的图形片段。
+ *
+ * 坐标与主图标同在 `viewBox="0 0 100 100"` 的用户坐标系里——渲染侧复用图标的
+ * contain 变换把它摆到同一位置，因此圆心/图形可以直接照抄主图标里的坐标。
+ * 片段必须从 `icon` 中移除（见 motion 字段说明），否则会出现「静止齿 + 转动齿」重影。
+ */
+export interface MotionRotor {
+  /** 图形片段（含自己的 stroke="currentColor"，颜色跟随元素状态色） */
+  svg: string
+  /** 旋转中心（用户坐标） */
+  cx: number
+  cy: number
+  /** 转动方向：1 顺时针（缺省）/ -1 逆时针 */
+  direction?: 1 | -1
+}
+
+/**
+ * 可动件（流动）：输送带面上的滚动标记，沿元素水平方向滚动。
+ * 实体带面无法用位图局部平移，改用推进 dashOffset 的竖线标记（与管道流动同一手法）。
+ */
+export interface MotionBelt {
+  x1: number
+  x2: number
+  /** 标记所在高度（用户坐标），通常取带面中线 */
+  y: number
+  /**
+   * 带面厚度（用户单位，即上下带边之间的距离）：滚动标记的高度按它取值。
+   * 必须显式给出——否则只能猜一个像素高度，在带面上会糊成一条细线，
+   * 既看不出在动，也不再是「输送带」的样子。
+   */
+  bandHeight: number
+  /** 输送方向：1 向右（缺省）/ -1 向左 */
+  direction?: 1 | -1
+}
+
+/**
+ * 数据驱动的运转动效定义。
+ *
+ * 设备图标是「整体光栅化成一张位图」后交给 Konva 的，位图里的某个圆无法单独旋转，
+ * 因此可动件必须从 icon 里拆出来、作为独立节点渲染（见 core/canvas/elementMotion.ts）。
+ * 代价是图形定义要写两处（静态机身 + 可动件），改动图形时需同步——这是局部旋转绕不开的。
+ */
+export interface ComponentMotion {
+  /** 驱动变量名（对应 dataBindings 里的 variable）；缺省取第一个绑定 */
+  driveVariable?: string
+  /** 「运转中」的判定阈值（缺省 0.1，与 statusRules 里 speed > 0.1 的口径一致） */
+  threshold?: number
+  /** 角速度系数（度/秒 每单位速度值）：不同设备的视觉转速差异靠它调 */
+  degPerUnit?: number
+  rotors?: MotionRotor[]
+  belts?: MotionBelt[]
+}
+
 export interface ComponentDefinition {
   type: string
   name: string
@@ -22,6 +76,8 @@ export interface ComponentDefinition {
   statusRules: StatusRule[]
   dataBindings: DataBinding[]
   properties: PropertyDefinition[]
+  /** 运转动效（可选）：仅有可动件的设备需要声明 */
+  motion?: ComponentMotion
 }
 
 /** 组件实例（画布中使用） */

@@ -44,6 +44,14 @@
               v-if="getUserImageConfig(element)"
               :config="getUserImageConfig(element)"
             />
+            <!-- 运转动效：可动件独立渲染，与编辑器渲染保持一致 -->
+            <ElementMotion
+              v-if="getElementMotion(element)"
+              :element="element"
+              :layout="getElementLayout(element)"
+              :color="getIconStrokeColor(element)"
+              :state="getElementMotion(element)"
+            />
             <!-- 管道：原生管身图形 + 流动虚线（与编辑器渲染保持一致） -->
             <template v-if="element.type === 'pipe'">
               <v-line
@@ -98,6 +106,7 @@ import { useLayerStore } from '@/stores/layerStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
 import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
+import ElementMotion from '@/core/canvas/ElementMotion.vue'
 import {
   hitAreaConfig,
   labelTextConfig,
@@ -132,6 +141,7 @@ const canvasGridStyle = computed(() => {
 
 const {
   getElementColor,
+  getIconStrokeColor,
   getElementValueText,
   isDisplayElement,
   getDisplayValueText,
@@ -139,6 +149,7 @@ const {
   getLabelHeight,
   getIconImageConfig,
   getUserImageConfig,
+  getElementMotion,
   isPipeFlowing,
   isLayerVisible,
 } = useElementVisuals({ deviceStore, layerStore })

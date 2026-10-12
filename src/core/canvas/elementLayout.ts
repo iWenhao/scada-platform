@@ -101,3 +101,51 @@ export function computeElementLayout(input: ElementLayoutInput): ElementLayout {
     displayY: (H - nameHeight) / 2 - displayFontSize / 2,
   }
 }
+
+export interface FitRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/**
+ * 图形按内容长宽比 contain 到图形区并居中（装备图标与可动件共用同一变换）。
+ *
+ * 抽成纯函数而非留在渲染层内联，是因为运转动效必须按「同一套变换」把滚筒/齿
+ * 摆到机身上——两边各算一次迟早会漂移，届时画面表现就是「滚筒转了但脱离了机身」。
+ * 长宽比不可用时（测量失败）回退方形居中，与改造前的行为一致。
+ */
+export function fitIconRect(
+  contentX: number,
+  contentY: number,
+  contentWidth: number,
+  contentHeight: number,
+  aspect: number,
+): FitRect {
+  const w = Math.max(contentWidth, 1)
+  const h = Math.max(contentHeight, 1)
+
+  let width: number
+  let height: number
+  if (Number.isFinite(aspect) && aspect > 0) {
+    if (w / h > aspect) {
+      height = h
+      width = h * aspect
+    } else {
+      width = w
+      height = w / aspect
+    }
+  } else {
+    const side = Math.min(w, h)
+    width = side
+    height = side
+  }
+
+  return {
+    x: contentX + (w - width) / 2,
+    y: contentY + (h - height) / 2,
+    width,
+    height,
+  }
+}

@@ -6,7 +6,7 @@ import { DEFAULT_ELEMENT_COLOR, evaluateElementColor } from './elementStatus'
 import { loadUserImage, fitRect } from './userImage'
 import { getComponentDefinition } from '@/industrial/registry'
 import { isNameShown, isValueShown } from './elementChrome'
-import { computeElementLayout, type ElementLayout } from './elementLayout'
+import { computeElementLayout, fitIconRect, type ElementLayout } from './elementLayout'
 import { tightenIconSvg, getIconAspect } from './iconBounds'
 import type { ComponentInstance } from '@/types/scada'
 import type { PortPosition } from '@/types/connection'
@@ -168,31 +168,55 @@ export function useElementVisuals(options: {
     const layout = getElementLayout(element)
     const aspect = getIconAspect(def.icon)
 
-    let iconW: number
-    let iconH: number
-    if (aspect && aspect > 0) {
-      // contain：按内容长宽比铺满图形区，取较小缩放比
-      if (layout.contentWidth / layout.contentHeight > aspect) {
-        iconH = layout.contentHeight
-        iconW = iconH * aspect
-      } else {
-        iconW = layout.contentWidth
-        iconH = iconW / aspect
-      }
-    } else {
-      const side = Math.min(layout.contentWidth, layout.contentHeight)
-      iconW = side
-      iconH = side
-    }
+    // contain 适配到图形区：矩形由 elementLayout.fitIconRect 统一给出，
+    // 运转动效的可动件按同一矩形换算坐标，两边不会漂移
+    const rect = fitIconRect(
+      layout.contentX,
+      layout.contentY,
+      layout.contentWidth,
+      layout.contentHeight,
+      aspect ?? 0,
+    )
 
     return {
       image: img,
-      x: layout.contentX + (layout.contentWidth - iconW) / 2,
-      y: layout.contentY + (layout.contentHeight - iconH) / 2,
-      width: iconW,
-      height: iconH,
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
       listening: false,
     }
+  }
+
+  /**
+   * 设备运转动效状态；null 表示该元素没有可动件，或用户关掉了动效。
+   *
+   * 「运转中」判定与 statusRules 同口径（驱动变量 > 阈值，缺省 0.1）。
+   * 两条边界与管道流动保持一致：
+   * - 未绑定数据源 → 视为运转：组态阶段拖进来就能看到效果，不必先接上数据源；
+   * - 数据陈旧/脏值 → 停住：不能拿过期信号让操作员以为设备还在转。
+   */
+  function getElementMotion(element: ComponentInstance): { running: boolean; speed: number } | null {
+    const motion = getComponentDefinition(element.type)?.motion
+    if (!motion || !(motion.rotors?.length || motion.belts?.length)) return null
+    if (element.properties?.animate === false) return null
+
+    const binding = motion.driveVariable
+      ? element.dataBindings?.find(b => b.variable === motion.driveVariable)
+      : element.dataBindings?.[0]
+    if (!binding) return { running: true, speed: 1 }
+
+    const deviceId = element.deviceId || element.id
+    if (!deviceStore.isDataUsable(deviceId, binding.variable)) {
+      return { running: false, speed: 0 }
+    }
+
+    const raw = Number(deviceStore.getDeviceData(deviceId)[binding.variable])
+    // 绑定了但设备还没有该变量：按运转处理，与未绑定的口径一致
+    if (Number.isNaN(raw)) return { running: true, speed: 1 }
+
+    const speed = Math.abs(raw)
+    return { running: speed > (motion.threshold ?? 0.1), speed }
   }
 
   /** 图片组件：用户配置的 URL/data:URL 整块渲染 */
@@ -245,6 +269,7 @@ export function useElementVisuals(options: {
     getElementColor,
     getIconStrokeColor,
     isPipeFlowing,
+    getElementMotion,
     getElementValueText,
     isDisplayElement,
     getDisplayValueText,

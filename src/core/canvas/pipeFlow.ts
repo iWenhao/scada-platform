@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { ComponentInstance } from '@/types/scada'
+import { onFrame } from './animationClock'
 
 /**
  * 管道画布渲染与流动动画。
@@ -9,39 +10,33 @@ import type { ComponentInstance } from '@/types/scada'
  * 绘制管身（上下管壁 + 两端法兰 + 管内流动虚线），任意宽高都清晰对齐，
  * 编辑器与预览页共用本模块的几何计算。
  *
- * 流动动画由全局 RAF 推进共享 offset，避免每根管道各开定时器；
- * 只有「流动中」的管道才订阅 offset，静止管道不参与每帧重绘。
+ * 流动动画交给全局动画时钟（animationClock.ts）推进共享 offset，与设备运转动效
+ * 共用同一个 RAF；只有「流动中」的管道才订阅 offset，静止管道不参与每帧重绘。
  */
 
-// —— 全局流动动画 ticker ——
+// —— 全局流动动画：由共享时钟推进的 offset ——
 export const flowOffset = ref(0)
-let raf = 0
-let running = false
 let flowUsers = 0
+let stopClock: (() => void) | null = null
 
-function tick() {
-  flowOffset.value = (flowOffset.value + 1) % 10000
-  raf = requestAnimationFrame(tick)
-}
-
-function ensureTicker() {
-  if (running) return
-  running = true
-  raf = requestAnimationFrame(tick)
-}
-
-/** 流动中的管道注册动画；返回清理函数，最后一个订阅者释放后停掉 RAF */
+/** 流动中的管道注册动画；返回清理函数，最后一个订阅者释放后停掉共享时钟 */
 export function registerFlowAnimation(): () => void {
   flowUsers++
-  ensureTicker()
+  if (!stopClock) {
+    // 时间基准而非帧计数：60Hz 下每帧约推进 1（沿用改造前的视觉速度），
+    // 同时免除刷新率对流速的影响
+    stopClock = onFrame(dt => {
+      flowOffset.value = (flowOffset.value + dt * 0.06) % 10000
+    })
+  }
   let released = false
   return () => {
     if (released) return
     released = true
     flowUsers = Math.max(0, flowUsers - 1)
-    if (flowUsers === 0 && running) {
-      running = false
-      cancelAnimationFrame(raf)
+    if (flowUsers === 0 && stopClock) {
+      stopClock()
+      stopClock = null
     }
   }
 }

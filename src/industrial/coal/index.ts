@@ -5,6 +5,8 @@ export const ShearerDefinition: ComponentDefinition = {
   type: 'shearer',
   name: '采煤机',
   group: 'coal',
+  // 两个截割滚筒的截齿不在这里：它们要随滚筒转动，已移入 motion.rotors
+  // （整张图标是光栅位图，位图内部的图形无法单独旋转）
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <line x1="6" y1="80" x2="94" y2="80" />
@@ -13,14 +15,6 @@ export const ShearerDefinition: ComponentDefinition = {
       <circle cx="80" cy="60" r="13" />
       <line x1="33" y1="55" x2="38" y2="55" />
       <line x1="62" y1="55" x2="67" y2="55" />
-      <line x1="11" y1="50" x2="7" y2="46" />
-      <line x1="29" y1="50" x2="33" y2="46" />
-      <line x1="11" y1="70" x2="7" y2="74" />
-      <line x1="29" y1="70" x2="33" y2="74" />
-      <line x1="71" y1="50" x2="67" y2="46" />
-      <line x1="89" y1="50" x2="93" y2="46" />
-      <line x1="71" y1="70" x2="67" y2="74" />
-      <line x1="89" y1="70" x2="93" y2="74" />
     </g>
   </svg>`,
   defaultWidth: 110,
@@ -28,6 +22,34 @@ export const ShearerDefinition: ComponentDefinition = {
   defaultConfig: {
     haulSpeed: 0,
     load: 0,
+    animate: true,
+  },
+  // 截齿绕各自滚筒圆心转动：坐标与上方图标同一用户坐标系，圆心即 circle 的 cx/cy
+  motion: {
+    driveVariable: 'speed',
+    degPerUnit: 70,
+    rotors: [
+      {
+        cx: 20,
+        cy: 60,
+        svg: `<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <line x1="11" y1="50" x2="7" y2="46" />
+          <line x1="29" y1="50" x2="33" y2="46" />
+          <line x1="11" y1="70" x2="7" y2="74" />
+          <line x1="29" y1="70" x2="33" y2="74" />
+        </g>`,
+      },
+      {
+        cx: 80,
+        cy: 60,
+        svg: `<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <line x1="71" y1="50" x2="67" y2="46" />
+          <line x1="89" y1="50" x2="93" y2="46" />
+          <line x1="71" y1="70" x2="67" y2="74" />
+          <line x1="89" y1="70" x2="93" y2="74" />
+        </g>`,
+      },
+    ],
   },
   statusRules: [
     {
@@ -59,6 +81,7 @@ export const ShearerDefinition: ComponentDefinition = {
   ],
   properties: [
     { key: 'name', label: '名称', type: 'string', default: '采煤机', group: '基本' },
+    { key: 'animate', label: '运转动效', type: 'boolean', default: true, group: '基本' },
     { key: 'haulSpeed', label: '牵引速度(m/min)', type: 'number', default: 0, min: 0, max: 15, group: '运行参数' },
   ],
 }
@@ -68,6 +91,7 @@ export const RoadheaderDefinition: ComponentDefinition = {
   type: 'roadheader',
   name: '掘进机',
   group: 'coal',
+  // 截割头的截齿要随截割头转动，已移入 motion.rotors（悬臂与机身保持静止）
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
       <rect x="40" y="64" width="46" height="16" rx="8" />
@@ -76,10 +100,6 @@ export const RoadheaderDefinition: ComponentDefinition = {
       <rect x="44" y="42" width="34" height="22" />
       <line x1="44" y1="52" x2="23" y2="38" />
       <circle cx="16" cy="33" r="11" />
-      <line x1="9" y1="25" x2="5" y2="21" />
-      <line x1="23" y1="24" x2="27" y2="20" />
-      <line x1="6" y1="33" x2="1" y2="33" />
-      <line x1="24" y1="41" x2="28" y2="44" />
     </g>
   </svg>`,
   defaultWidth: 100,
@@ -87,6 +107,24 @@ export const RoadheaderDefinition: ComponentDefinition = {
   defaultConfig: {
     cutting: 0,
     load: 0,
+    animate: true,
+  },
+  // 截齿绕截割头圆心（16,33）转动
+  motion: {
+    driveVariable: 'cutting',
+    degPerUnit: 120,
+    rotors: [
+      {
+        cx: 16,
+        cy: 33,
+        svg: `<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <line x1="9" y1="25" x2="5" y2="21" />
+          <line x1="23" y1="24" x2="27" y2="20" />
+          <line x1="6" y1="33" x2="1" y2="33" />
+          <line x1="24" y1="41" x2="28" y2="44" />
+        </g>`,
+      },
+    ],
   },
   statusRules: [
     {
@@ -124,6 +162,7 @@ export const RoadheaderDefinition: ComponentDefinition = {
   ],
   properties: [
     { key: 'name', label: '名称', type: 'string', default: '掘进机', group: '基本' },
+    { key: 'animate', label: '运转动效', type: 'boolean', default: true, group: '基本' },
     { key: 'load', label: '截割载荷(%)', type: 'number', default: 0, min: 0, max: 120, group: '运行参数' },
   ],
 }
@@ -151,6 +190,12 @@ export const ConveyorDefinition: ComponentDefinition = {
   defaultConfig: {
     beltSpeed: 0,
     length: 100,
+    animate: true,
+  },
+  // 带面滚动：在上下带边（y=53..71，厚 18）之间推进竖线标记，表达输送方向与带速
+  motion: {
+    driveVariable: 'speed',
+    belts: [{ x1: 20, x2: 80, y: 62, bandHeight: 18, direction: 1 }],
   },
   statusRules: [
     {
@@ -182,6 +227,7 @@ export const ConveyorDefinition: ComponentDefinition = {
   ],
   properties: [
     { key: 'name', label: '名称', type: 'string', default: '皮带输送机', group: '基本' },
+    { key: 'animate', label: '运转动效', type: 'boolean', default: true, group: '基本' },
     { key: 'beltSpeed', label: '带速(m/s)', type: 'number', default: 0, min: 0, max: 4, group: '运行参数' },
   ],
 }

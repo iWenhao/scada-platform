@@ -52,6 +52,14 @@
           v-if="getUserImageConfig(element)"
           :config="getUserImageConfig(element)"
         />
+        <!-- 运转动效：可动件独立渲染（整张位图无法局部旋转），静止设备不订阅帧回调 -->
+        <ElementMotion
+          v-if="getElementMotion(element)"
+          :element="element"
+          :layout="getElementLayout(element)"
+          :color="getIconStrokeColor(element)"
+          :state="getElementMotion(element)"
+        />
         <!-- 管道：原生管身图形 + 流动虚线（图标方案画不出任意长度的管段） -->
         <template v-if="element.type === 'pipe'">
           <v-line
@@ -125,13 +133,16 @@ import {
 import type { ElementLayout } from '@/core/canvas/elementLayout'
 import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
 import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
+import ElementMotion from '@/core/canvas/ElementMotion.vue'
 
 type Visuals = {
   getElementColor: (e: ComponentInstance) => string
+  getIconStrokeColor: (e: ComponentInstance) => string
   getElementLayout: (e: ComponentInstance) => ElementLayout
   getLabelHeight: (e: ComponentInstance) => number
   getIconImageConfig: (e: ComponentInstance) => any
   getUserImageConfig: (e: ComponentInstance) => any
+  getElementMotion: (e: ComponentInstance) => { running: boolean; speed: number } | null
   isDisplayElement: (e: ComponentInstance) => boolean
   getDisplayValueText: (e: ComponentInstance) => string
   getElementValueText: (e: ComponentInstance) => string
@@ -166,10 +177,12 @@ const viewMode25d = computed(() => props.viewMode === '25d')
 
 const {
   getElementColor,
+  getIconStrokeColor,
   getElementLayout,
   getLabelHeight,
   getIconImageConfig,
   getUserImageConfig,
+  getElementMotion,
   isDisplayElement,
   getDisplayValueText,
   getElementValueText,
