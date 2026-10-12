@@ -56,6 +56,11 @@ pnpm lint               # ESLint
   - 选「恢复」**不会**删除草稿文件，选「丢弃」才删；
   - 恢复后直接刷新页面会丢失内存中未保存的改动（草稿只在正式保存或丢弃时清理）；
   - 实测与排查时别把「恢复」当成已持久化。
+- **在 POSIX shell（Git Bash）里丢弃输出要用 `> /dev/null`，不要写 `> nul`**：`nul` 是 cmd 的空设备名，bash 不认，`命令 > nul` 会在**当前目录建出一个名为 `nul` 的真实文件**（已实测复现：`echo payload > nul` 得到一个 8 字节文件）。同类保留设备名还有 `con` / `aux` / `prn` / `com1`~`com9` / `lpt1`~`lpt9`。
+  - 正确写法：Git Bash 用 `> /dev/null`（连 stderr 一起丢用 `> /dev/null 2>&1`）；cmd 用 `> NUL`；PowerShell 用 `> $null`。要留报告文件时用工具自带的输出参数（如 `npx vitest run --reporter=json --outputFile=report.json`），别靠重定向。
+  - **〔本机〕这类文件一旦建出来就删不掉**：实测 `rm` / `mv` / `cmd del "\\?\…"` / Node `fs.unlink` / .NET `File.Delete` / Win32 `DeleteFileW` / 改写 DACL / NT 层 `NtCreateFile` **全部失败**，错误码集中在 `ERROR_ACCESS_DENIED(5)` 与 `0x800704B0 指定的设备名无效`；**脱离沙箱后同样失败**，拦截来源未确证（疑似安全软件或系统对保留设备名的规则）。**所以预防是唯一可靠策略，别指望事后清理。**
+  - **判断它是否还在，别用 `exists`**：`os.path.exists('D:\...\nul')` **恒为 True**（裸路径被解析成 NUL 设备，永远「存在」）。可靠判据只有两条：① 目录列举里有没有这一项；② `GetFileAttributesW('\\?\<绝对路径>\nul')` 是否返回 `0xFFFFFFFF / err=3`。
+  - `.gitignore` 已忽略这类名字，避免误入提交。
 - **〔本机〕** git 推送报 `SSL_ERROR_SYSCALL`：github.com 被网络重置，走本地代理推送：
   `git -c http.proxy=http://127.0.0.1:7897 push origin dev`（端口以实际代理为准）。
 - **〔本机〕控制台中文乱码**：症状是终端里中文显示成 `???` / `�`（如 `git log`、`Select-String` 读中文文件、命令里写中文字面量）。

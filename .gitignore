@@ -33,7 +33,14 @@ server/data/
 *.log
 
 # Windows 下 bash 的 `> nul` 会生成一个名为 nul 的真实文件，而不是丢弃输出
+# （同类保留设备名 con/aux/prn/com1-9/lpt1-9 在 bash 里重定向也会建出真实文件，
+#   且这些文件在本机建出来就删不掉，故一并忽略以防误入提交）
 nul
+con
+aux
+prn
+com[1-9]
+lpt[1-9]
 
 # 浏览器自动化本地缓存
 .playwright-cli/
