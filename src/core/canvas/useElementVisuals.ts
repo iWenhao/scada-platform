@@ -5,7 +5,9 @@ import { getIconImage } from './iconImage'
 import { DEFAULT_ELEMENT_COLOR, evaluateElementColor } from './elementStatus'
 import { loadUserImage, fitRect } from './userImage'
 import { getComponentDefinition } from '@/industrial/registry'
-import { isValueShown, isPureShapeMode } from './elementChrome'
+import { isNameShown, isValueShown } from './elementChrome'
+import { computeElementLayout, type ElementLayout } from './elementLayout'
+import { tightenIconSvg, getIconAspect } from './iconBounds'
 import type { ComponentInstance } from '@/types/scada'
 import type { PortPosition } from '@/types/connection'
 
@@ -30,8 +32,10 @@ export function useElementVisuals(options: {
   }
 
   /**
-   * 图标颜色：有状态规则时用状态色（与 getElementColor 一致），
-   * 没有规则时用中性灰（和画布网格/边框保持协调）。
+   * 设备线条颜色：有状态规则时用状态色（与 getElementColor 一致），
+   * 没有规则时用默认青绿（和画布网格/边框保持协调）。
+   *
+   * 画布是纯图形形态，这条颜色就是元素唯一的「状态表达通道」。
    */
   function getIconStrokeColor(element: ComponentInstance): string {
     if (!element.statusRules?.length) return DEFAULT_ELEMENT_COLOR
@@ -81,7 +85,7 @@ export function useElementVisuals(options: {
     return `${binding.variable}: ${formatted}`
   }
 
-  // 数值显示图元：只读展示绑定变量的格式化值（居中大字，与普通元素的底部小字区分）
+  // 数值显示图元：只读展示绑定变量的格式化值（居中大字，与普通元素的顶部小字区分）
   function isDisplayElement(element: ComponentInstance): boolean {
     return element.type === 'display'
   }
@@ -113,42 +117,78 @@ export function useElementVisuals(options: {
     return unit ? `${text} ${unit}` : text
   }
 
-  // 底部标签条高度（纯图形模式为 0，图标按整块区域居中；数值显示时更高）
+  /**
+   * 元素内部分区（顶部数值区 / 中部图形区 / 底部名称区）。
+   * 具体规则见 elementLayout.ts——信息区高度按比例自适应，空间不足时按
+   * 「先撤数值、再撤名称」降级，保证设备图形永远有位置。
+   */
+  function getElementLayout(element: ComponentInstance): ElementLayout {
+    const isDisplay = isDisplayElement(element)
+    return computeElementLayout({
+      width: element.width,
+      height: element.height,
+      isDisplay,
+      wantName: isNameShown(element),
+      wantValue: isValueShown(element) && (isDisplay || !!getElementValueText(element)),
+    })
+  }
+
+  /** 名称区高度（管道绘制仍需知道底部留白，语义与布局一致） */
   function getLabelHeight(element: ComponentInstance): number {
-    if (isPureShapeMode(element)) return 0
-    if (isDisplayElement(element)) return 16
-    return isValueShown(element) && getElementValueText(element) ? 26 : 16
+    return getElementLayout(element).nameHeight
   }
 
   // 图标加载完成后递增以触发画布重绘
   const iconVersion = ref(0)
 
-  // 组件图形（SVG 图标按比例适配到元素内部；线条颜色跟随状态色）
+  /**
+   * 设备图形：按内容包围盒的长宽比适配到图形区。
+   *
+   * 关键在 tightenIconSvg——把 viewBox 收紧到图形实际占用的范围并给出等比
+   * width/height，于是 SVG 内容正好铺满整张位图，这里再做 contain 就不会留下
+   * 方框死区（改造前采煤机 176×96 的元素里只有 56×23px 的可见图形）。
+   * 测量不可用（非浏览器环境）时回退方形缩放，行为与改造前一致。
+   */
   function getIconImageConfig(element: ComponentInstance) {
     // 图片组件由用户图整块渲染，不再叠默认图标
     if (element.type === 'image' && element.properties?.imageUrl) return null
-    // 管道用原生管身图形绘制（见 pipeFlow.ts）：方形等比图标会把横向管件缩成一小块
+    // 管道用原生管身图形绘制（见 pipeFlow.ts）：图标方案画不出任意长度的管段
     if (element.type === 'pipe') return null
+    // 数值显示图元由实时数值大字承担，不叠内建图标（原先两者重叠成重影）
+    if (isDisplayElement(element)) return null
     const def = getComponentDefinition(element.type)
     if (!def?.icon) return null
 
     const strokeColor = getIconStrokeColor(element)
-    const img = getIconImage(element.type, def.icon, strokeColor, () => {
+    const img = getIconImage(element.type, tightenIconSvg(def.icon), strokeColor, () => {
       iconVersion.value++
     })
     if (!img) return null
 
-    const labelH = getLabelHeight(element)
-    const boxW = Math.max(element.width - 12, 4)
-    const boxH = Math.max(element.height - labelH - 10, 4)
-    const scale = Math.min(boxW / 100, boxH / 100)
-    const iconW = 100 * scale
-    const iconH = 100 * scale
+    const layout = getElementLayout(element)
+    const aspect = getIconAspect(def.icon)
+
+    let iconW: number
+    let iconH: number
+    if (aspect && aspect > 0) {
+      // contain：按内容长宽比铺满图形区，取较小缩放比
+      if (layout.contentWidth / layout.contentHeight > aspect) {
+        iconH = layout.contentHeight
+        iconW = iconH * aspect
+      } else {
+        iconW = layout.contentWidth
+        iconH = iconW / aspect
+      }
+    } else {
+      const side = Math.min(layout.contentWidth, layout.contentHeight)
+      iconW = side
+      iconH = side
+    }
 
     return {
       image: img,
-      x: (element.width - iconW) / 2,
-      y: 4 + (boxH - iconH) / 2,
+      x: layout.contentX + (layout.contentWidth - iconW) / 2,
+      y: layout.contentY + (layout.contentHeight - iconH) / 2,
       width: iconW,
       height: iconH,
       listening: false,
@@ -164,10 +204,10 @@ export function useElementVisuals(options: {
       iconVersion.value++
     })
     if (!img) return null
-    const labelH = getLabelHeight(element)
+    const layout = getElementLayout(element)
     const box = {
       width: Math.max(element.width, 1),
-      height: Math.max(element.height - labelH, 1),
+      height: Math.max(element.height - layout.nameHeight, 1),
     }
     const fit = (element.properties?.fit as 'contain' | 'cover' | 'fill') || 'contain'
     const rect = fitRect(img, box, fit)
@@ -208,6 +248,7 @@ export function useElementVisuals(options: {
     getElementValueText,
     isDisplayElement,
     getDisplayValueText,
+    getElementLayout,
     getLabelHeight,
     getIconImageConfig,
     getUserImageConfig,

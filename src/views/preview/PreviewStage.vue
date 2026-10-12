@@ -31,18 +31,11 @@
               v-if="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')"
               :config="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')!"
             />
-            <!-- 阴影 + 主体卡片（纯图形模式下不渲染，与编辑器一致） -->
-            <v-rect v-if="!isPureShapeMode(element)" :config="bodyShadowConfig(element)" />
-            <v-rect
-              v-if="!isPureShapeMode(element) || !hasIntrinsicGraphic(element)"
-              :config="bodyFillConfig(element, getElementColor(element), false)"
-            />
-            <!-- 顶部高光与数值胶囊位置重合，数值隐藏时一并隐藏（与编辑器一致） -->
-            <v-rect v-if="isValueShown(element)" :config="bodyTopGlowConfig(element)" />
             <v-rect
               v-if="depthHighlightConfig(element, uiStore.viewMode === '25d')"
               :config="depthHighlightConfig(element, uiStore.viewMode === '25d')!"
             />
+            <!-- 设备图形：只有线稿，无卡片底色/描边（与编辑器一致） -->
             <v-image
               v-if="getIconImageConfig(element)"
               :config="getIconImageConfig(element)"
@@ -65,29 +58,27 @@
                 :flowing="isPipeFlowing(element)"
               />
             </template>
-            <!-- 名称标签条（showName 开关，与编辑器渲染保持一致） -->
-            <template v-if="isNameShown(element)">
-              <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
-              <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
-            </template>
-            <!-- 数值显示图元与实时值胶囊（与编辑器共用 elementChrome 配置，口径一致） -->
+            <!-- 名称：素文本（无底条，与编辑器一致） -->
             <v-text
-              v-if="isDisplayElement(element) && isValueShown(element)"
-              :config="{
-                text: getDisplayValueText(element),
-                fontSize: 18,
-                fontStyle: 'bold',
-                fill: '#8fe6d3',
-                width: element.width,
-                align: 'center',
-                y: (element.height - getLabelHeight(element)) / 2 - 9,
-                listening: false,
-              }"
+              v-if="getElementLayout(element).showName"
+              :config="labelTextConfig(element, getElementLayout(element))"
             />
-            <template v-else-if="isValueShown(element) && getElementValueText(element)">
-              <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
-              <v-text :config="valueTextConfig(element, getElementValueText(element))" />
-            </template>
+            <!-- 数值显示图元与实时值（与编辑器共用 elementChrome 配置，口径一致） -->
+            <v-text
+              v-if="isDisplayElement(element) && getElementLayout(element).showValue"
+              :config="
+                displayTextConfig(
+                  element,
+                  getElementLayout(element),
+                  getDisplayValueText(element),
+                  getElementColor(element),
+                )
+              "
+            />
+            <v-text
+              v-else-if="getElementLayout(element).showValue && getElementValueText(element)"
+              :config="valueTextConfig(element, getElementLayout(element), getElementValueText(element))"
+            />
           </v-group>
         </template>
       </v-layer>
@@ -109,17 +100,9 @@ import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
 import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
 import {
   hitAreaConfig,
-  bodyShadowConfig,
-  bodyFillConfig,
-  bodyTopGlowConfig,
-  labelBarConfig,
   labelTextConfig,
-  valuePillConfig,
   valueTextConfig,
-  isNameShown,
-  isValueShown,
-  isPureShapeMode,
-  hasIntrinsicGraphic,
+  displayTextConfig,
 } from '@/core/canvas/elementChrome'
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import { useUiStore } from '@/stores/uiStore'
@@ -152,6 +135,7 @@ const {
   getElementValueText,
   isDisplayElement,
   getDisplayValueText,
+  getElementLayout,
   getLabelHeight,
   getIconImageConfig,
   getUserImageConfig,

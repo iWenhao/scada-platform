@@ -38,21 +38,12 @@
           v-if="depthSideConfig(element, getElementColor(element), viewMode25d)"
           :config="depthSideConfig(element, getElementColor(element), viewMode25d)!"
         />
-
-        <!-- 阴影 + 主体卡片（纯图形模式下不渲染，只留组件自身图形） -->
-        <v-rect v-if="!isPureShapeMode(element)" :config="bodyShadowConfig(element)" />
-        <v-rect
-          v-if="!isPureShapeMode(element) || !hasIntrinsicGraphic(element)"
-          :config="bodyFillConfig(element, getElementColor(element), selectedIds.includes(element.id))"
-        />
-        <!-- 顶部高光与数值胶囊位置重合，数值隐藏时一并隐藏，避免残留浅色胶囊底 -->
-        <v-rect v-if="isValueShown(element)" :config="bodyTopGlowConfig(element)" />
-
         <v-rect
           v-if="depthHighlightConfig(element, viewMode25d)"
           :config="depthHighlightConfig(element, viewMode25d)!"
         />
 
+        <!-- 设备图形：只有线稿，无卡片底色/描边（状态由线条颜色表达） -->
         <v-image
           v-if="getIconImageConfig(element)"
           :config="getIconImageConfig(element)"
@@ -61,7 +52,7 @@
           v-if="getUserImageConfig(element)"
           :config="getUserImageConfig(element)"
         />
-        <!-- 管道：原生管身图形 + 流动虚线（方形等比图标会把横向管件缩成一小块，故不走 SVG 图标） -->
+        <!-- 管道：原生管身图形 + 流动虚线（图标方案画不出任意长度的管段） -->
         <template v-if="element.type === 'pipe'">
           <v-line
             v-for="(cfg, i) in pipeBodyConfigs(element, getElementColor(element), getLabelHeight(element))"
@@ -76,31 +67,29 @@
           />
         </template>
 
-        <!-- 名称标签条（showName 开关，旧数据回退 showLabel） -->
-        <template v-if="isNameShown(element)">
-          <v-rect :config="labelBarConfig(element, getLabelHeight(element))" />
-          <v-text :config="labelTextConfig(element, getLabelHeight(element))" />
-        </template>
-
-        <!-- 数值显示图元 -->
+        <!-- 名称：素文本（无底条） -->
         <v-text
-          v-if="isDisplayElement(element) && isValueShown(element)"
-          :config="{
-            text: getDisplayValueText(element),
-            fontSize: 18,
-            fontStyle: 'bold',
-            fill: '#8fe6d3',
-            width: element.width,
-            align: 'center',
-            y: (element.height - getLabelHeight(element)) / 2 - 9,
-            listening: false,
-          }"
+          v-if="getElementLayout(element).showName"
+          :config="labelTextConfig(element, getElementLayout(element))"
         />
-        <!-- 实时值胶囊 -->
-        <template v-else-if="isValueShown(element) && getElementValueText(element)">
-          <v-rect :config="valuePillConfig(element, getElementValueText(element))" />
-          <v-text :config="valueTextConfig(element, getElementValueText(element))" />
-        </template>
+
+        <!-- 数值显示图元：数值即图形，居中大字 -->
+        <v-text
+          v-if="isDisplayElement(element) && getElementLayout(element).showValue"
+          :config="
+            displayTextConfig(
+              element,
+              getElementLayout(element),
+              getDisplayValueText(element),
+              getElementColor(element),
+            )
+          "
+        />
+        <!-- 实时值：素文本（无胶囊底色） -->
+        <v-text
+          v-else-if="getElementLayout(element).showValue && getElementValueText(element)"
+          :config="valueTextConfig(element, getElementLayout(element), getElementValueText(element))"
+        />
 
         <!-- 连线端口 -->
         <template v-if="activeTool === 'connect'">
@@ -129,23 +118,17 @@ import type { ComponentInstance } from '@/types/scada'
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
 import {
   hitAreaConfig,
-  bodyShadowConfig,
-  bodyFillConfig,
-  bodyTopGlowConfig,
-  labelBarConfig,
   labelTextConfig,
-  valuePillConfig,
   valueTextConfig,
-  isNameShown,
-  isValueShown,
-  isPureShapeMode,
-  hasIntrinsicGraphic,
+  displayTextConfig,
 } from '@/core/canvas/elementChrome'
+import type { ElementLayout } from '@/core/canvas/elementLayout'
 import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
 import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
 
 type Visuals = {
   getElementColor: (e: ComponentInstance) => string
+  getElementLayout: (e: ComponentInstance) => ElementLayout
   getLabelHeight: (e: ComponentInstance) => number
   getIconImageConfig: (e: ComponentInstance) => any
   getUserImageConfig: (e: ComponentInstance) => any
@@ -183,6 +166,7 @@ const viewMode25d = computed(() => props.viewMode === '25d')
 
 const {
   getElementColor,
+  getElementLayout,
   getLabelHeight,
   getIconImageConfig,
   getUserImageConfig,

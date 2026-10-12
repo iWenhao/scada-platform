@@ -10,6 +10,13 @@
 
 ### 功能
 
+- 画布元素改为「纯图形」形态：元素只呈现设备自身的线稿，不套卡片底色、不描边，状态变化只改线条颜色（`getIconStrokeColor` 成为元素唯一的状态表达通道）
+  - 删除 `elementChrome.ts` 的 `bodyShadowConfig` / `bodyFillConfig` / `bodyTopGlowConfig` 与 `CanvasElements.vue` 里对应的 `v-rect`，`isPureShapeMode` / `hasIntrinsicGraphic` 随之失去意义一并清理；名称条（`rgba(8,12,24,.72)` 填充块）与数值胶囊（带底色）本质上也是「元素上的背景色」，一并改为素文本 + 深色外发光（Konva 的 `Text` 不支持 CSS `text-shadow`，用 `shadow*` 系列实现）保证压在图形或网格上仍可读
+  - 选中反馈不依赖卡片描边：选中框与 8 个锚点由 `v-transformer` 绑定选中节点列表绘制，去掉描边不会「选中看不见」；元素仍保留一层不可见命中矩形供点选 / 拖拽 / 变换
+- 图标改为按「内容包围盒」长宽比适配（新增 `src/core/canvas/iconBounds.ts`）：组件 SVG 一律是 `viewBox="0 0 100 100"` 的方形画布，而图形往往只占其中一部分（采煤机实际只占 x6–94 / y46–80），渲染层却按正方形等比缩放，于是横向设备被压成居中一小块——实测采煤机拖入 176×96 后可见图形仅 56×23px、左右各留 45px 死区（管道因此一直被特判为走原生管身绘制，其他横向设备没享受同样处理）。现用离屏 SVG 的 `getBBox()` 测出内容包围盒（补偿最大 `stroke-width`/2——`getBBox` 不含描边），据此收紧 viewBox 并写入等比 `width`/`height`，渲染层再按内容长宽比 contain 进图形区。三个坑已实测并固化：只收紧 viewBox 会依赖浏览器按比例换算；`width`/`height` 取 viewBox 原尺寸则基准过小、放大发虚；故统一按 512px 长边基准。改造后可见图形面积提升 2.1×–6.1×（采煤机 79×32 → 168×69、汽轮机 68×26 → 168×64），缩放 0.45× 时仍保 71×29（改造前 30×12）
+- 修复数值显示图元重影：`display` 类型既渲染内建图标（画着 "8.8" 的方框）又叠加实时数值大字，两者重叠；现由实时值单独承担，颜色跟随元素状态色
+- 元素内部分区抽成纯函数（新增 `src/core/canvas/elementLayout.ts` + 同目录单测）：顶部数值区 / 中部图形区 / 底部名称区的高度原先散落在 `getLabelHeight` 的固定 16/26 与模板里的 +4/+12 魔法数字中，元素一缩小就互相挤压——固定条高在 0.6× 的采煤机上会把图形空间吃光、图标只剩 16×6px。现改为「按元素高度比例取值并夹在上下限之间」，图形可用高度不足时按「先撤数值、再撤名称」降级，保证设备图形永远有位置（H ≤ 40 撤数值、H ≤ 34 撤名称）；配 8 个单测覆盖拖入尺寸、降级边界与自适应比例。顺带修正 `DEFAULT_ELEMENT_COLOR` 注释与实现不符（实为薄荷色 `#8fe6d3`，注释写「中性灰」）
+- 编辑器与预览页共用同一套元素外观配置，两处渲染同步修改——只改一边会导致预览画面与实际运行不一致
 - 启动横幅升级为「LOGO + 名称 + 信息」的终端个人主页风格（参考 neofetch 布局），且**浏览器控制台、`pnpm dev` 前端终端、`pnpm server` 存储后端三处共用同一份布局**：从左到右依次为系统 LOGO 像素画、系统名称/副标题/版本、进程信息栏，底部 shell 提示符 + Star 引导语
   - 核心下沉到 `shared/consoleBanner.mjs`（纯 ESM，不碰 DOM/Vue/Pinia/Node）+ 同目录 `consoleBanner.d.mts` 补类型：Node 不能 import `.ts`，核心必须是 `.mjs` 才可能被前后端共用，否则两端各写一份、布局迟早漂移；`server/` 因此依赖仓库根的 `shared/`，分发时要连 `shared` 一起带上（已在服务端注释标注）
   - 三处渲染各管一段：浏览器用 `%c` + CSS（`src/utils/consoleBanner.ts`，名称取 `brandingStore` 默认品牌值）；`vite.config.ts` 与 `server/index.mjs` 用 SGR 24 位真彩色，能力判定收敛到核心的 `supportsColor()`（`NO_COLOR` / `FORCE_COLOR` / TTY；Windows 上额外要求 Windows Terminal 或 mintty 类宿主——传统 conhost（PowerShell 5.1）不处理 VT 序列，转义字符会被当正文打印成乱码）

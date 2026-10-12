@@ -1,8 +1,16 @@
 import type { ComponentInstance } from '@/types/scada'
-import { getComponentDefinition } from '@/industrial/registry'
+import type { ElementLayout } from './elementLayout'
 
 /**
- * 名称/数值显示开关解析（纯函数，编辑器与预览页共用）。
+ * 元素外观配置（纯函数，编辑器画布与预览页共用）。
+ *
+ * 画布形态已定为「纯图形」：元素只呈现设备自身的线稿，不套卡片底色、不描边，
+ * 状态变化只改设备线条颜色（见 useElementVisuals 的 getIconStrokeColor）。
+ * 因此这里只保留三件事：显示开关解析、命中层、名称/数值的素文本样式。
+ */
+
+/**
+ * 名称/数值显示开关解析。
  * 兼容旧数据：拆分字段（showName/showValue）缺省时回退旧合并开关 showLabel，
  * 两者都未设置时视为显示——旧画面渲染效果保持不变。
  */
@@ -14,24 +22,10 @@ export function isValueShown(element: ComponentInstance): boolean {
   return element.showValue ?? element.showLabel ?? true
 }
 
-/** 纯图形模式：名称与数值都隐藏，元素只呈现自身图形（不带卡片描边/投影） */
-export function isPureShapeMode(element: ComponentInstance): boolean {
-  return !isNameShown(element) && !isValueShown(element)
-}
-
-/**
- * 元素是否自带可见的图形主体（SVG 图标 / 用户图片 / 管线线条）。
- * 纯图形模式下没有自绘图形的元素（如数值显示面板）仍保留卡片描边，避免整块不可见。
- */
-export function hasIntrinsicGraphic(element: ComponentInstance): boolean {
-  if (element.type === 'pipe') return true
-  if (element.type === 'image' && element.properties?.imageUrl) return true
-  return !!getComponentDefinition(element.type)?.icon
-}
-
 /**
  * 命中层：透明矩形，保证 group 可点选/拖拽/变换。
- * 装饰层均为 listening:false，否则 Konva 找不到命中目标。
+ * 元素现在没有任何可见的边底，命中层是唯一（不可见但必需）的结构层；
+ * 其余装饰层一律 listening:false，否则 Konva 找不到命中目标。
  */
 export function hitAreaConfig(element: ComponentInstance) {
   return {
@@ -43,102 +37,71 @@ export function hitAreaConfig(element: ComponentInstance) {
   }
 }
 
-/** 元素外框阴影 */
-export function bodyShadowConfig(element: ComponentInstance) {
+/**
+ * 文本外发光：画面上没有底条承托文字，用深色光晕保证名称/数值压在图形或网格上
+ * 依然可读（Konva 的 Text 不支持 CSS text-shadow，用 shadow* 系列实现）。
+ */
+const TEXT_HALO = {
+  shadowColor: 'rgba(4,8,16,0.92)',
+  shadowBlur: 4,
+  shadowOffsetX: 0,
+  shadowOffsetY: 0,
+  shadowOpacity: 1,
+} as const
+
+/** 底部名称：素文本（原先是一条 72% 不透明度的深色填充条，已去除） */
+export function labelTextConfig(element: ComponentInstance, layout: ElementLayout) {
   return {
-    x: 2,
-    y: 3,
+    text: element.name,
+    fontSize: layout.nameFontSize,
+    fill: '#dce8ee',
     width: element.width,
-    height: element.height,
-    fill: 'rgba(0,0,0,0.28)',
-    cornerRadius: 10,
+    align: 'center' as const,
+    y: layout.nameY,
     listening: false,
+    ellipsis: true,
+    ...TEXT_HALO,
+  }
+}
+
+/** 顶部实时值：素文本（原先带底色胶囊，已去除） */
+export function valueTextConfig(
+  element: ComponentInstance,
+  layout: ElementLayout,
+  text: string,
+) {
+  return {
+    text,
+    fontSize: layout.valueFontSize,
+    fill: '#8fe6d3',
+    width: element.width,
+    align: 'center' as const,
+    y: layout.valueY,
+    listening: false,
+    ellipsis: true,
+    ...TEXT_HALO,
   }
 }
 
 /**
- * 元素主体：圆角卡片 + 状态色低饱和填充 + 描边。
- * 比纯色块更接近「工业仪表卡片」质感。
+ * 数值显示图元：数值即图形本身，居中大字，颜色跟随元素状态色。
+ * 该类型不再叠加内建图标（原先画着 "8.8" 的方框与实时大字重叠成重影）。
  */
-export function bodyFillConfig(
+export function displayTextConfig(
   element: ComponentInstance,
+  layout: ElementLayout,
+  text: string,
   color: string,
-  selected: boolean,
 ) {
   return {
-    width: element.width,
-    height: element.height,
-    fill: 'transparent',
-    cornerRadius: 10,
-    stroke: selected ? '#00d4aa' : color,
-    strokeWidth: selected ? 2.5 : 1,
-    listening: false,
-  }
-}
-
-/** 内层高光线，增强体积 */
-export function bodyTopGlowConfig(element: ComponentInstance) {
-  return {
-    x: 4,
-    y: 4,
-    width: Math.max(element.width - 8, 1),
-    height: Math.min(14, element.height * 0.22),
-    fill: 'rgba(255,255,255,0.1)',
-    cornerRadius: 8,
-    listening: false,
-  }
-}
-
-/** 底部标签条 */
-export function labelBarConfig(element: ComponentInstance, labelH: number) {
-  return {
-    y: element.height - labelH,
-    width: element.width,
-    height: labelH,
-    fill: 'rgba(8,12,24,0.72)',
-    cornerRadius: [0, 0, 10, 10],
-    listening: false,
-  }
-}
-
-export function labelTextConfig(element: ComponentInstance, labelH: number) {
-  return {
-    text: element.name,
-    fontSize: Math.min(12, Math.max(9, labelH - 6)),
-    fill: '#dce8ee',
-    width: element.width,
-    align: 'center' as const,
-    y: element.height - labelH + (labelH - 14) / 2 + 1,
-    listening: false,
-    ellipsis: true,
-  }
-}
-
-/** 实时值胶囊（非 display 图元） */
-export function valuePillConfig(element: ComponentInstance, text: string) {
-  const w = Math.min(element.width - 8, Math.max(36, text.length * 8 + 14))
-  return {
-    x: (element.width - w) / 2,
-    y: 6,
-    width: w,
-    height: 18,
-    fill: 'rgba(0, 212, 170, 0.12)',
-    stroke: 'rgba(0, 212, 170, 0.35)',
-    strokeWidth: 1,
-    cornerRadius: 9,
-    listening: false,
-  }
-}
-
-export function valueTextConfig(element: ComponentInstance, text: string) {
-  return {
     text,
-    fontSize: 10,
-    fill: '#8fe6d3',
+    fontSize: layout.displayFontSize,
+    fontStyle: 'bold' as const,
+    fill: color,
     width: element.width,
     align: 'center' as const,
-    y: 10,
+    y: layout.displayY,
     listening: false,
-    ellipsis: true,
+    ...TEXT_HALO,
   }
 }
