@@ -28,6 +28,18 @@
 
 ### 功能
 
+- 新增「通用设备」组件分组（13 台：泵1 / 泵2 / 油泵 / 电磁阀 / 风机 / 防爆门 / 过滤容器 / 搅拌器 / 油桶 / 球机 / 水桶 / PLC / PLC2），图标由外部组态产品的素材库导入
+  - 新增一次性导入工具 `scripts/import-subunit-assets.mjs` 与素材清单 `scripts/subunit-manifest.json`（记录 type ↔ 源文件 ↔ 面板名称，可追溯、可重跑）。素材是另一套产品导出的 Sketch 风格 SVG，直接内联有三个问题，故规范化四步：① 去 XML 声明 / `<title>` / `<desc>` / `id` / `version` / `xmlns:xlink`；② 去「带 `opacity` 但无任何可见 `fill`/`stroke`」的整幅底衬矩形——**它不可见却仍会进入 `getBBox()`**，会让 `iconBounds.buildTightSvg()` 拿到整幅方形包围盒、内容收紧整体失效；③ 主题色 `#57A9FB` → `currentColor`（不替换则状态变色对它完全无效，会恒定显示素材自带蓝）；④ 压成单行，减小内联体积
+  - **刻意不处理 `transform`**：素材里成对出现的 `translate(-x,-y)` / `translate(x,y)` 互相抵消，残留偏移由 `getBBox()` 正确计入并被重写进 viewBox——手工清 transform 反而容易把真实几何偏移一并删掉。非主题色（指示灯绿、火焰红等 20 种）同样保留，它们承载语义且不会被状态色覆盖
+  - viewBox 无需手工归一：`getIconBounds()` 会按内容包围盒重写，素材自带的 `40px×40px` 方形画布被自动收紧，素材面板给出的 102×50 等默认尺寸可直接采用
+  - 状态契约统一为单一 `state` 变量（0 停机 / 1 运行 / 2 报警），组装逻辑下沉到 `src/industrial/assetComponents.ts`（后续系统复用同一入口）：这批图元出厂不带语义，逐台发明 `speed`/`load`/`level` 会凭空造出上百个数据源里并不存在的变量，而改绑只需在数据绑定面板操作。`severity` 一律显式声明——按 `src/types/scada.ts` 的约定，不声明会按颜色兜底推断，停机态会被误判成报警而刷满报警面板
+  - 面板接入：`ComponentGroup` 增 `'general'`，`BASIC_GROUPS` 中排在「基础组件」之后。分组只存在于组件定义层、不进元素实例（`ComponentInstance` 无 `group` 字段），故**对既有工程数据零影响**
+  - 这批图元是单色线条稿（无 `data-face` 标注），`faceLighting.styleIcon()` 会原样放行——2D 与 2.5D 下外观一致，与已迁移 6 台的面基图元共存（迁移可分批，见 `docs/2.5D_ILLUSTRATION_GUIDE.md`）
+  - 素材扫描实测：264 个 SVG / 33 个 PNG；262 个规范化干净（仅 `test.svg` / `test2.svg` 为无 `<svg>` 根的垃圾文件，未纳入清单）；123 个命中隐形底衬矩形；2 个含 `<style>`（即上述垃圾文件）；29 个含非主题色（集中在未采用的装饰组件与火焰/指示灯图元）；清单项 0 缺失
+  - 配套 `--preview` 模式与 `scripts/subunit-preview.mjs`（模板拆出，主脚本保持在 400 行门槛内）：生成图元核对页，页内 JS 是 `iconBounds.measure()` / `buildTightSvg()` 与 `currentColor` 替换的忠实移植（浏览器里真跑 `getBBox`），按元素默认尺寸列出每台设备的默认/运行/报警三色，供「看真东西」——这三类问题（画不出来、包围盒收紧失效、变色不生效）静态检查与单测都抓不到
+  - 验证：`npx vitest run` 45 文件 / 367 用例全通过；`pnpm build`（vue-tsc + vite build）通过；`scripts/check-long-files.ps1` 通过（超限的两项 `src/stores/projectStore.ts` 415 / `server/index.mjs` 409 均是既有欠账，非本次引入；本次新增的 3 个 `src/industrial/**` 文件走该脚本内置例外，当前共跳过 21 个）
+  - **面板与画布中的实际观感尚未由人眼确认**：本机沙箱内无法启动无头浏览器（Chrome 启动被拦截、无输出即终止），按既定约定不为此下载浏览器运行时。核对页已生成，可在自己的浏览器打开；或在编辑器「基础组件」页签下查看「通用设备」分组（需重启 dev server 让新组件注册生效）
+  - 未做（待后续批次）：电力 / 主运输 / 水 / 洗选 / 热力 / 主通风 / 综采各系统设备，以及图表缺口（进度条 / 报表 / 网格图）与纯文本组件
 - 设备在运转状态下会「动」起来——采煤机的两个截割滚筒与掘进机的截割头随截齿旋转、皮带输送机的带面沿输送方向滚动，转速与流向由绑定点位的实时值决定
   - 绕不开的约束：设备图标是 `new Image()` 把整段 SVG 光栅化后的**一张位图**，Konva 无法让位图里的某个圆单独旋转。因此把可动件（滚筒/截割头的截齿、带面标记）从主图标里拆出来，放进定义层的 `motion.rotors` / `motion.belts`，渲染时按与主图标**同一套 contain 变换**换算坐标摆回原位——代价是图形定义要写两处（静态机身 + 可动件），改图形时需同步，已在该字段注释里标注
   - 新增 `src/core/canvas/elementMotion.ts`（几何纯函数）+ `ElementMotion.vue`（可动件层）：`makeIconFrame` / `placeRotor` / `buildBeltConfig` 可脱离浏览器单测（坐标映射是最易错的一环），`getRotorConfigs` / `getBeltConfigs` 在 SVG 测量不可用时返回空数组——宁可暂不画可动件，也不能靠猜坐标把滚筒摆到机身外面

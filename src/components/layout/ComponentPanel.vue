@@ -117,6 +117,7 @@ import type { ComponentDefinition, ComponentGroup } from '@/types/scada'
 
 // 初始化组件注册
 import { basicComponents } from '@/industrial/basic'
+import { generalComponents } from '@/industrial/general'
 import { pipelineComponents } from '@/industrial/pipeline'
 import { electricalComponents } from '@/industrial/electrical'
 import { coalComponents } from '@/industrial/coal'
@@ -132,6 +133,7 @@ import type { DeviceTemplate } from '@/types/template'
 // 注册内置组件（自定义从存储恢复后单独注册）
 registerComponents([
   ...basicComponents,
+  ...generalComponents,
   ...pipelineComponents,
   ...electricalComponents,
   ...coalComponents,
@@ -164,7 +166,7 @@ const indicatorStyle = computed(() => {
 })
 
 /** 基础 Tab 覆盖的注册分组 */
-const BASIC_GROUPS: ComponentGroup[] = ['basic', 'pipeline', 'electrical', 'chart']
+const BASIC_GROUPS: ComponentGroup[] = ['basic', 'general', 'pipeline', 'electrical', 'chart']
 /** 行业 Tab 覆盖的注册分组 */
 const INDUSTRY_GROUPS: ComponentGroup[] = ['coal', 'power', 'chemical', 'water']
 
@@ -202,6 +204,7 @@ const tabGroups = computed(() => {
 
 const groupNames: Record<string, string> = {
   basic: '基础组件',
+  general: '通用设备',
   pipeline: '管道组件',
   electrical: '电气组件',
   coal: '煤矿组件',

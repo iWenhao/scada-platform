@@ -1,0 +1,33 @@
+{
+  "_readme": [
+    "subUnit 素材清单：记录每个组件 type 与外部素材文件的对应关系，供",
+    "scripts/import-subunit-assets.mjs 生成图标文件使用，同时充当溯源记录。",
+    "src 为相对「素材根目录」的 posix 路径；name/w/h 取自源产品组件面板的显示名与默认尺寸。",
+    "新增系统时在 systems 下追加一项，再执行 --emit <系统键名>。"
+  ],
+  "systems": {
+    "general": {
+      "label": "通用设备",
+      "sourceDir": "equip",
+      "outFile": "src/industrial/general/icons.generated.ts",
+      "exportName": "generalIcons",
+      "metaExportName": "generalMeta",
+      "metaTypeName": "GeneralIconMeta",
+      "entries": [
+        { "key": "gen_pump1", "src": "equip/common00.svg", "name": "泵1", "w": 102, "h": 50 },
+        { "key": "gen_pump2", "src": "equip/common01.svg", "name": "泵2", "w": 100, "h": 60 },
+        { "key": "gen_oil_pump", "src": "equip/common02.svg", "name": "油泵", "w": 72, "h": 56 },
+        { "key": "gen_solenoid_valve", "src": "equip/common03.svg", "name": "电磁阀", "w": 102, "h": 54 },
+        { "key": "gen_fan", "src": "equip/common04.svg", "name": "风机", "w": 80, "h": 56 },
+        { "key": "gen_blast_door", "src": "equip/common05.svg", "name": "防爆门", "w": 56, "h": 60 },
+        { "key": "gen_filter_tank", "src": "equip/common06.svg", "name": "过滤容器", "w": 46, "h": 84 },
+        { "key": "gen_agitator", "src": "equip/common07.svg", "name": "搅拌器", "w": 28, "h": 109 },
+        { "key": "gen_oil_drum", "src": "equip/common08.svg", "name": "油桶", "w": 40, "h": 82 },
+        { "key": "gen_dome_cam", "src": "equip/common09.svg", "name": "球机", "w": 48, "h": 62 },
+        { "key": "gen_water_bucket", "src": "equip/common10.svg", "name": "水桶", "w": 40, "h": 80 },
+        { "key": "gen_plc1", "src": "equip/common11.svg", "name": "PLC", "w": 80, "h": 64 },
+        { "key": "gen_plc2", "src": "equip/common12.svg", "name": "PLC2", "w": 80, "h": 64 }
+      ]
+    }
+  }
+}

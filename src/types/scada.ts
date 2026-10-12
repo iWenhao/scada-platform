@@ -1,6 +1,7 @@
 /** 组件分组 */
 export type ComponentGroup =
   | 'basic'
+  | 'general'
   | 'pipeline'
   | 'electrical'
   | 'coal'
