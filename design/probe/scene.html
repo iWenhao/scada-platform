@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>3D 场景集成核对</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 14px;
+        background: #0b1220;
+        color: #dce8ee;
+        font: 13px/1.6 "Microsoft YaHei", sans-serif;
+      }
+      h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      p.lead {
+        margin: 0 0 12px;
+        color: rgba(220, 232, 238, 0.7);
+      }
+      #scene {
+        width: 1200px;
+        height: 700px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(120, 160, 180, 0.25);
+        border-radius: 8px;
+      }
+      #picked {
+        margin-top: 10px;
+        font-family: Consolas, monospace;
+        color: #b8fff0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>3D 场景集成核对（真实 use3DScene + sceneSync + deviceModels + WebGL）</h1>
+    <p class="lead">
+      采煤机（运行·转）／掘进机（停机）／皮带机 ×2／精煤仓 A（运行）／精煤仓 B（高煤位）／原煤仓／给料泵+电机／电动闸阀（未建模·保底体块），三条管线按两端设备高度锚定。
+    </p>
+    <div id="scene"></div>
+    <div id="picked">拾取回调 0 次</div>
+    <script src="./scene-bundle.js"></script>
+  </body>
+</html>

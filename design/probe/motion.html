@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>运转动效核对</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #0b1220;
+        color: #dce8ee;
+        font: 13px/1.6 Consolas, "Courier New", monospace;
+      }
+      h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      p.lead {
+        margin: 0 0 14px;
+        color: rgba(220, 232, 238, 0.7);
+      }
+      #stage {
+        background: #0b1220;
+        background-image:
+          linear-gradient(rgba(120, 160, 180, 0.09) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(120, 160, 180, 0.09) 1px, transparent 1px);
+        background-size: 20px 20px;
+        display: inline-block;
+        border: 1px solid rgba(120, 160, 180, 0.2);
+      }
+      #geo {
+        margin-top: 16px;
+        padding: 12px;
+        white-space: pre;
+        border: 1px solid rgba(120, 160, 180, 0.25);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        color: #b9d6cf;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>运转动效核对（真实模块 + Konva 实际绘制）</h1>
+    <p class="lead">
+      虚线框 = 图形区 contain 矩形；粉色点 = 旋转中心。第三行是皮带，比较虚线相对带面的位置；第四行是停机色（角度 0），应与改造前的整张图标完全一致。
+    </p>
+    <div id="stage"></div>
+    <pre id="geo">(计算中…)</pre>
+    <script src="./motion-bundle.js"></script>
+  </body>
+</html>

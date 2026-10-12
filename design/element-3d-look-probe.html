@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>立体观感设备图 · 状态变色与部件联动验证</title>
+<style>
+  :root{
+    --canvas:#0b1220; --panel:#111c2e; --line:#1f3244; --text:#e8eef7; --hint:#8296ad;
+    --run:#00d4aa; --overload:#ffa502; --stop:#666666; --idle:#8fe6d3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px 32px 60px;background:var(--canvas);color:var(--text);
+       font:400 14px/1.7 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  h1{font-size:19px;font-weight:600;margin:0 0 6px}
+  h2{font-size:15px;font-weight:600;margin:34px 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .lead{color:var(--hint);max-width:900px;margin:0 0 4px}
+  .lead b{color:var(--text);font-weight:600}
+  code{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:#9fd6ff;
+       background:rgba(159,214,255,.08);padding:1px 5px;border-radius:4px}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0;
+       padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  .bar label{color:var(--hint);font-size:12.5px}
+  button{cursor:pointer;font:inherit;font-size:13px;padding:6px 14px;border-radius:6px;
+         border:1px solid var(--line);background:#16243a;color:var(--text)}
+  button.on{border-color:var(--run);background:rgba(0,212,170,.14);color:var(--run)}
+  input[type=range]{width:190px;accent-color:var(--run)}
+  .val{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;color:var(--run);min-width:150px}
+  .stage{position:relative;background:#0d1524;border:1px solid var(--line);border-radius:10px;
+         padding:26px;overflow:hidden}
+  .grid{position:absolute;inset:0;
+        background-image:linear-gradient(to right,rgba(31,50,68,.75) 1px,transparent 1px),
+                         linear-gradient(to bottom,rgba(31,50,68,.75) 1px,transparent 1px);
+        background-size:20px 20px;opacity:.55;pointer-events:none}
+  .slot{position:relative;height:190px}
+  .body{display:block;position:absolute}
+  .rotor,.belt{position:absolute;left:0;top:0}
+  .row{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px}
+  .card{flex:1 1 168px;min-width:168px;background:var(--panel);border:1px solid var(--line);
+        border-radius:8px;padding:10px}
+  .card .cap{font-size:12px;color:var(--hint);margin-bottom:2px}
+  .card .num{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--text);opacity:.8}
+  .card .box{position:relative;height:104px;margin-top:6px}
+  .tag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;
+       border:1px solid var(--line);color:var(--hint)}
+  .tag.ok{border-color:rgba(0,212,170,.5);color:var(--run)}
+  .tag.warn{border-color:rgba(255,165,2,.5);color:var(--overload)}
+  details{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+  summary{cursor:pointer;font-size:13px;color:var(--hint)}
+  pre{margin:10px 0 0;max-height:230px;overflow:auto;font-family:ui-monospace,Consolas,monospace;
+      font-size:12px;line-height:1.6;color:#bcd2e8;white-space:pre-wrap;word-break:break-all}
+  .note{font-size:12.5px;color:var(--hint);margin-top:10px}
+  .note b{color:var(--overload);font-weight:600}
+</style>
+</head>
+<body>
+<h1>立体观感设备图 · 状态变色与部件联动验证</h1>
+<p class="lead">
+  验证一件事：<b>「立体观感」不需要 Three.js，也不需要元素背后的色块</b>——把明暗做进 SVG 图标内部即可。
+  立体感完全由 <code>currentColor</code> + 不同 <code>fill-opacity</code> 分层表达，因此
+  现有单色替换管线（<code>svg.split('currentColor').join(color)</code>）原样生效：<b>状态变色自动覆盖机身与可动件</b>。
+</p>
+
+<div class="bar">
+  <label>状态</label>
+  <button data-state="run">割煤中</button>
+  <button data-state="overload">截割过载</button>
+  <button data-state="stop">停机</button>
+  <button data-state="idle">未绑定</button>
+  <label style="margin-left:12px">驱动值 speed</label>
+  <input id="speed" type="range" min="0" max="15" step="0.5" value="4">
+  <span class="val" id="readout"></span>
+</div>
+
+<h2>一、主舞台：状态与转速联动</h2>
+<p class="lead">机身与截齿共用一个状态色通道；截齿是独立节点，绕各自滚筒圆心旋转，速率由驱动值决定。</p>
+<div class="stage" style="margin-top:12px">
+  <div class="grid"></div>
+  <div class="slot" id="stage"></div>
+</div>
+
+<h2>二、状态变色：同一图标，四种状态</h2>
+<p class="lead">四张图来自同一个 SVG 字符串，仅替换颜色后重新光栅化并缓存（键 <code>type|color</code>）——与生产实现一致。</p>
+<div class="row" id="states"></div>
+
+<h2>三、部件联动：停机 / 中速 / 满载</h2>
+<p class="lead">右下角数值是换算后的角速度。<code>clamp(degPerUnit×speed, 110, 400)</code> 的上下限是防频闪护栏：转速过高会被显示器采样成静止或倒转。</p>
+<div class="row" id="speeds"></div>
+
+<h2>四、部件级独立变色：机身与刀头各持一色</h2>
+<p class="lead">
+  独立控色的粒度 = <b>拆分粒度</b>。位图路线下，能单独控色的范围正是「被拆成独立 <code>&lt;img&gt;</code> 的范围」——与可动件用的是同一套机制。
+  下面三张卡片的机身与刀头走<b>不同颜色通道</b>，且刀头仍按各自的速率转动。
+</p>
+<div class="row" id="parts"></div>
+
+<h2>五、皮带联动（输送机）</h2>
+<p class="lead">实体带面无法用位图局部平移，改用推进 <code>dashoffset</code> 的竖线标记表达输送方向与带速——与管道流动同一手法。</p>
+<div class="stage" style="margin-top:12px">
+  <div class="grid"></div>
+  <div class="slot" id="beltStage"></div>
+</div>
+
+<h2>六、单色替换证明</h2>
+<details>
+  <summary>展开查看替换后的 SVG（当前状态色）</summary>
+  <pre id="proof"></pre>
+</details>
+<p class="note">
+  <b>注意两处约束：</b>① 颜色通道只有一条，立体感必须靠透明度分层，引入第二种固定色会与状态变色打架；
+  ② 可动件必须从主图标里挖掉、单独成片段，否则会出现「静止齿 + 转动齿」重影，改图形时两处要同步。
+</p>
+
+<h2>七、观感对照：分档透明度 vs 插画级绘制</h2>
+<p class="lead">
+  同一题材（等轴测地台 + 两座储罐 + 一段管道），只换绘制技法。
+  <b>左</b>是上面几节用的「分档透明度」——三块平色，读作拼色块；
+  <b>右</b>改用<b>连续渐变 + 接触阴影 + 等轴测地面网格 + 统一光源</b>：柱面沿横向走
+  「亮带 → 压暗 → 边缘补光」，罐底加接触暗影，地面网格提供体积参照。
+  两边颜色都仍走 <code>currentColor</code>，状态变色照旧生效（含渐变的 <code>stop-color</code>）。
+</p>
+<div class="row" id="quality"></div>
+
+<h2>八、摊平成本：面基图元 + 光照后处理器</h2>
+<p class="lead">
+  插画级的成本卡在「明暗要逐台手调」。这一节把<b>光照层自动化</b>：
+  作者只给每个面标一个朝向（<code>data-face="top|front|side|cap"</code>），<b>不写任何颜色与透明度</b>；
+  后处理器按统一光方向展开连续渐变，并把接触阴影、管道高光按统一样式注入。
+  状态色仍走 <code>currentColor</code>，所以这套自动化不影响变色与拆件动效。
+  <b>左</b>是作者的原始输入（只有轮廓），<b>中/右</b>是后处理器输出。
+</p>
+<div class="row" id="baked"></div>
+
+<script>
+const PALETTE = { run:'#00d4aa', overload:'#ffa502', stop:'#666666', idle:'#8fe6d3' };
+
+/* ---------- 采煤机：立体观感图标（等轴测明暗分层，深度向量 (6,-5)） ---------- */
+/* 全部颜色走 currentColor，明暗靠 fill-opacity：0.05 暗面 / 0.10 正面 / 0.18~0.22 受光面 */
+const SHEARER_ICON = `
+<g stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <ellipse cx="50" cy="88" rx="42" ry="3" fill="currentColor" stroke="none" fill-opacity="0.05"/>
+
+  <polygon points="20,76 80,76 86,71 26,71" fill="currentColor" stroke="none" fill-opacity="0.18"/>
+  <rect x="20" y="76" width="60" height="10" fill="currentColor" stroke="none" fill-opacity="0.10"/>
+  <polygon points="80,76 86,71 86,81 80,86" fill="currentColor" stroke="none" fill-opacity="0.05"/>
+
+  <polygon points="30,46 70,46 76,41 36,41" fill="currentColor" stroke="none" fill-opacity="0.22"/>
+  <rect x="30" y="46" width="40" height="30" fill="currentColor" stroke="none" fill-opacity="0.10"/>
+  <polygon points="70,46 76,41 76,71 70,76" fill="currentColor" stroke="none" fill-opacity="0.05"/>
+
+  <circle cx="20" cy="60" r="13" fill="currentColor" stroke="none" fill-opacity="0.08"/>
+  <path d="M20 47 A13 13 0 0 1 33 60 L20 60 Z" fill="currentColor" stroke="none" fill-opacity="0.20"/>
+  <circle cx="80" cy="60" r="13" fill="currentColor" stroke="none" fill-opacity="0.08"/>
+  <path d="M80 47 A13 13 0 0 1 93 60 L80 60 Z" fill="currentColor" stroke="none" fill-opacity="0.20"/>
+
+  <polygon points="20,76 80,76 86,71 26,71"/>
+  <rect x="20" y="76" width="60" height="10"/>
+  <line x1="80" y1="76" x2="80" y2="86"/>
+  <polygon points="30,46 70,46 76,41 36,41"/>
+  <rect x="30" y="46" width="40" height="30"/>
+  <line x1="70" y1="46" x2="70" y2="76"/>
+  <circle cx="20" cy="60" r="13"/>
+  <circle cx="20" cy="60" r="8.5"/>
+  <circle cx="80" cy="60" r="13"/>
+  <circle cx="80" cy="60" r="8.5"/>
+</g>`;
+
+/* 图标内容包围盒：生产环境由 iconBounds.getIconBounds() 测量，此处按设计值写死 */
+const SHEARER_BBOX = { x: 5.7, y: 39.7, w: 88.6, h: 52.5 };
+
+/* 截齿：从主图标挖出来的可动件片段，与主图标同一用户坐标系（与 motion.rotors 一一对应） */
+const SHEARER_ROTORS = [
+  { cx: 20, cy: 60, box: { x: 7.63, y: 47.63, w: 24.74, h: 24.74 }, svg: `
+<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+  <line x1="29.19" y1="50.81" x2="32.37" y2="47.63"/>
+  <line x1="10.81" y1="50.81" x2="7.63" y2="47.63"/>
+  <line x1="10.81" y1="69.19" x2="7.63" y2="72.37"/>
+  <line x1="29.19" y1="69.19" x2="32.37" y2="72.37"/>
+</g>` },
+  { cx: 80, cy: 60, box: { x: 67.63, y: 47.63, w: 24.74, h: 24.74 }, svg: `
+<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+  <line x1="89.19" y1="50.81" x2="92.37" y2="47.63"/>
+  <line x1="70.81" y1="50.81" x2="67.63" y2="47.63"/>
+  <line x1="70.81" y1="69.19" x2="67.63" y2="72.37"/>
+  <line x1="89.19" y1="69.19" x2="92.37" y2="72.37"/>
+</g>` },
+];
+
+/* ---------- 输送机：立体观感图标 + 带面流动标记 ---------- */
+const CONVEYOR_ICON = `
+<g stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+  <polygon points="16,58 84,58 90,53 22,53" fill="currentColor" stroke="none" fill-opacity="0.20"/>
+  <polygon points="16,58 84,58 84,66 16,66" fill="currentColor" stroke="none" fill-opacity="0.10"/>
+  <polygon points="84,58 90,53 90,61 84,66" fill="currentColor" stroke="none" fill-opacity="0.05"/>
+
+  <polygon points="16,58 84,58 90,53 22,53"/>
+  <polyline points="16,58 16,66 84,66 84,58"/>
+  <line x1="22" y1="53" x2="90" y2="53"/>
+  <line x1="28" y1="66" x2="28" y2="86"/>
+  <line x1="72" y1="66" x2="72" y2="86"/>
+  <line x1="22" y1="86" x2="34" y2="86"/>
+  <line x1="66" y1="86" x2="78" y2="86"/>
+  <ellipse cx="50" cy="88" rx="38" ry="2.6" fill="currentColor" stroke="none" fill-opacity="0.05"/>
+</g>`;
+
+const CONVEYOR_BBOX = { x: 14.7, y: 51.7, w: 76.6, h: 37.6 };
+/* 与 ConveyorDefinition 的 belts 同口径：x1/x2 为带面两端，y 为标记高度，bandHeight 为带厚 */
+const CONVEYOR_BELT = { x1: 20, x2: 80, y: 62, bandHeight: 10, direction: 1 };
+
+/* ---------- 与生产实现同构的最小复刻 ---------- */
+const rasterCache = new Map();
+/** 单色替换 + 光栅化：与 core/canvas/iconImage.ts 完全同一手法 */
+function raster(svg, color, key) {
+  const cacheKey = key + '|' + color;
+  if (rasterCache.has(cacheKey)) return rasterCache.get(cacheKey);
+  const full = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' + svg + '</svg>';
+  const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(full.split('currentColor').join(color));
+  rasterCache.set(cacheKey, url);
+  return url;
+}
+
+/** contain 适配：把图标包围盒放进元素矩形（对应 elementLayout.fitIconRect） */
+function fitContain(box, bw, bh) {
+  const s = Math.min(bw / box.w, bh / box.h);
+  const w = box.w * s, h = box.h * s;
+  return { x: (bw - w) / 2, y: (bh - h) / 2, w, h, scale: s };
+}
+
+/** 由图标包围盒与元素矩形构造坐标映射（对应 elementMotion.makeIconFrame） */
+function makeFrame(bbox, rect, scale) {
+  return {
+    scale,
+    mapX: ux => rect.x + (ux - bbox.x) * scale,
+    mapY: uy => rect.y + (uy - bbox.y) * scale,
+  };
+}
+
+/** 旋转件摆放（对应 elementMotion.placeRotor，只换成 DOM 表述） */
+function placeRotor(frame, box, cx, cy) {
+  const left = frame.mapX(box.x), top = frame.mapY(box.y);
+  const centerX = frame.mapX(cx), centerY = frame.mapY(cy);
+  return { left, top, w: box.w * frame.scale, h: box.h * frame.scale,
+           originX: centerX - left, originY: centerY - top };
+}
+
+/** 角速度/流速换算，含防频闪护栏（对应 elementMotion.resolveMotionTiming） */
+const ROTOR_DEG_PER_UNIT = 70, ROTOR_MIN = 110, ROTOR_MAX = 400;
+const BELT_PX_PER_UNIT = 26, BELT_MIN = 30, BELT_MAX = 120;
+const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+function timing(speed) {
+  const s = Math.max(0, Number(speed) || 0);
+  if (!(s > 0)) return { degPerSec: 0, pxPerSec: 0 };
+  return {
+    degPerSec: clamp(ROTOR_DEG_PER_UNIT * s, ROTOR_MIN, ROTOR_MAX),
+    pxPerSec: clamp(BELT_PX_PER_UNIT * s, BELT_MIN, BELT_MAX),
+  };
+}
+
+/** 带面流动标记（对应 elementMotion.buildBeltConfig） */
+function beltMarkup(frame, belt, color, offsetPx) {
+  const x1 = frame.mapX(Math.min(belt.x1, belt.x2));
+  const x2 = frame.mapX(Math.max(belt.x1, belt.x2));
+  const y = frame.mapY(belt.y);
+  const band = Math.max(belt.bandHeight, 1) * frame.scale;
+  const sw = clamp(band * 0.62, 3, 40);
+  const dash = clamp(band * 0.2, 1.5, 12) + ' ' + clamp(band * 0.36, 2, 18);
+  const dir = belt.direction === -1 ? -1 : 1;
+  return '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y +
+         '" stroke="' + color + '" stroke-width="' + sw + '" stroke-dasharray="' + dash +
+         '" stroke-dashoffset="' + (-dir * offsetPx) + '" stroke-linecap="butt" opacity="0.9"/>';
+}
+
+/* ---------- 元素构建：机身 img + 可动件节点 ---------- */
+function buildElement(host, opts) {
+  const box = { w: opts.w, h: opts.h };
+  const rect = fitContain(opts.bbox, box.w, box.h);
+  const frame = makeFrame(opts.bbox, rect, rect.scale);
+  host.innerHTML = '';
+  host.style.width = box.w + 'px';
+  host.style.height = box.h + 'px';
+  host.style.position = 'relative';
+  host.style.margin = '0 auto';
+
+  /* 机身与每个可动件可各自持色：不给覆盖值时统一跟随 opts.color（整机同色） */
+  const bodyColor = opts.bodyColor || opts.color;
+  const rotorColorOf = i => (opts.rotorColors && opts.rotorColors[i]) || opts.color;
+
+  const body = document.createElement('img');
+  body.className = 'body';
+  body.src = raster(opts.icon, bodyColor, opts.type);
+  body.width = Math.round(rect.w);
+  body.height = Math.round(rect.h);
+  body.style.position = 'absolute';
+  body.style.left = rect.x + 'px';
+  body.style.top = rect.y + 'px';
+  host.appendChild(body);
+
+  const rotors = [];
+  (opts.rotors || []).forEach((r, i) => {
+    const p = placeRotor(frame, r.box, r.cx, r.cy);
+    const img = document.createElement('img');
+    img.className = 'rotor';
+    img.src = raster(r.svg, rotorColorOf(i), opts.type + '#rotor' + i);
+    img.style.left = p.left + 'px';
+    img.style.top = p.top + 'px';
+    img.style.width = p.w + 'px';
+    img.style.height = p.h + 'px';
+    img.style.transformOrigin = p.originX + 'px ' + p.originY + 'px';
+    img.style.transform = 'rotate(0deg)';
+    host.appendChild(img);
+    rotors.push(img);
+  });
+
+  let belt = null;
+  if (opts.belt) {
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('class', 'belt');
+    svg.setAttribute('viewBox', '0 0 ' + box.w + ' ' + box.h);
+    svg.setAttribute('width', box.w);
+    svg.setAttribute('height', box.h);
+    host.appendChild(svg);
+    belt = { svg, frame: frame, def: opts.belt, color: bodyColor };
+  }
+
+  return { body, rotors, belt, frame, rect };
+}
+
+/* ---------- 主舞台：单例动画循环 ---------- */
+const stage = document.getElementById('stage');
+const beltStage = document.getElementById('beltStage');
+let state = 'run';
+let speed = 4;
+let angle = 0, beltOffset = 0, lastAt = 0;
+
+const main = buildElement(stage, {
+  type: 'shearer', icon: SHEARER_ICON, bbox: SHEARER_BBOX,
+  rotors: SHEARER_ROTORS, w: 330, h: 200, color: PALETTE[state],
+});
+const conv = buildElement(beltStage, {
+  type: 'conveyor', icon: CONVEYOR_ICON, bbox: CONVEYOR_BBOX,
+  belt: CONVEYOR_BELT, w: 330, h: 200, color: PALETTE[state],
+});
+
+function readout() {
+  const t = timing(speed);
+  document.getElementById('readout').textContent =
+    'speed ' + speed.toFixed(1) + ' → ' + t.degPerSec.toFixed(0) + ' °/s · ' +
+    t.pxPerSec.toFixed(0) + ' px/s' + (t.degPerSec === 0 ? '（停转）' : '');
+}
+
+function loop(time) {
+  const dt = lastAt ? Math.min((time - lastAt) / 1000, 0.064) : 0;
+  lastAt = time;
+  const t = timing(speed);
+  if (dt > 0) {
+    angle += t.degPerSec * dt;
+    beltOffset += t.pxPerSec * dt;
+    main.rotors.forEach((img, i) => {
+      const dir = SHEARER_ROTORS[i].direction === -1 ? -1 : 1;
+      img.style.transform = 'rotate(' + (dir * angle).toFixed(2) + 'deg)';
+    });
+    if (conv.belt) {
+      conv.belt.svg.innerHTML = beltMarkup(conv.belt.frame, conv.belt.def, conv.belt.color, beltOffset);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+function applyColor() {
+  const color = PALETTE[state];
+  main.body.src = raster(SHEARER_ICON, color, 'shearer');
+  main.rotors.forEach((img, i) => { img.src = raster(SHEARER_ROTORS[i].svg, color, 'shearer#rotor' + i); });
+  conv.body.src = raster(CONVEYOR_ICON, color, 'conveyor');
+  if (conv.belt) conv.belt.color = color;
+  document.getElementById('proof').textContent =
+    raster(SHEARER_ICON, color, 'shearer').slice(0, 900) + '\n…（data URL 中 currentColor 已全部替换为 ' + color + '）';
+}
+
+document.querySelectorAll('[data-state]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state = btn.dataset.state;
+    document.querySelectorAll('[data-state]').forEach(b => b.classList.toggle('on', b === btn));
+    applyColor();
+  });
+});
+document.getElementById('speed').addEventListener('input', e => {
+  speed = Number(e.target.value);
+  readout();
+});
+
+/* ---------- 状态并排：同一 SVG 字符串，四种颜色 ---------- */
+const STATES = [
+  { key: 'run', label: '割煤中', tag: 'ok', note: 'speed > 0.1' },
+  { key: 'overload', label: '截割过载', tag: 'warn', note: 'load > 90' },
+  { key: 'stop', label: '停机', tag: '', note: 'speed = 0' },
+  { key: 'idle', label: '未绑定数据源', tag: '', note: '默认色' },
+];
+const statesRow = document.getElementById('states');
+STATES.forEach(s => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<div class="cap"><span class="tag ' + s.tag + '">' + s.label +
+    '</span> ' + s.note + '</div><div class="num">' + PALETTE[s.key] + '</div><div class="box"></div>';
+  statesRow.appendChild(card);
+  buildElement(card.querySelector('.box'), {
+    type: 'shearer', icon: SHEARER_ICON, bbox: SHEARER_BBOX,
+    rotors: SHEARER_ROTORS, w: 148, h: 104, color: PALETTE[s.key],
+  });
+});
+
+/* ---------- 转速并排：同一图，三种驱动值 ---------- */
+const SPEEDS = [
+  { v: 0, label: '停机', note: '速度为 0 就不动，不靠下限硬撑出转动' },
+  { v: 5, label: '中速', note: '70 × 5 = 350 °/s' },
+  { v: 15, label: '满载', note: '70 × 15 = 1050 → 被 400 °/s 上限削平' },
+];
+const speedsRow = document.getElementById('speeds');
+const spinCards = [];
+SPEEDS.forEach(s => {
+  const t = timing(s.v);
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<div class="cap"><span class="tag">' + s.label + '</span> speed ' + s.v +
+    '</div><div class="num">' + t.degPerSec.toFixed(0) + ' °/s</div><div class="box"></div>' +
+    '<div class="cap" style="margin-top:4px">' + s.note + '</div>';
+  speedsRow.appendChild(card);
+  const el = buildElement(card.querySelector('.box'), {
+    type: 'shearer', icon: SHEARER_ICON, bbox: SHEARER_BBOX,
+    rotors: SHEARER_ROTORS, w: 148, h: 104, color: PALETTE.run,
+  });
+  spinCards.push({ el, degPerSec: t.degPerSec });
+});
+
+/* 并排卡片各自独立累积角度：验证同一实现可多实例共存 */
+let smallAngle = 0;
+function loopSmall(time) {
+  const dt = time - (loopSmall.last || time);
+  loopSmall.last = time;
+  if (dt > 0) {
+    smallAngle += dt / 1000;
+    spinCards.forEach(c => {
+      c.el.rotors.forEach((img, i) => {
+        const dir = SHEARER_ROTORS[i].direction === -1 ? -1 : 1;
+        img.style.transform = 'rotate(' + (dir * c.degPerSec * smallAngle).toFixed(2) + 'deg)';
+      });
+    });
+  }
+  requestAnimationFrame(loopSmall);
+}
+
+/* ---------- 部件级独立变色：机身与可动件各持一色 ---------- */
+const PARTS = [
+  { label: '机身跟随状态 · 刀头独立报红', tag: 'warn', deg: 280,
+    body: '#00d4aa', rotors: ['#ff4757', '#ff4757'],
+    note: '机身 #00d4aa / 刀头 #ff4757（该部件过载）' },
+  { label: '仅刀头变色 · 机身保持默认', tag: '', deg: 160,
+    body: '#8fe6d3', rotors: ['#ffa502', '#ffa502'],
+    note: '机身 #8fe6d3 / 刀头 #ffa502（预警）' },
+  { label: '整机同色（对照）', tag: '', deg: 0,
+    body: '#666666', rotors: ['#666666', '#666666'],
+    note: '速度为 0：转动与颜色一起停' },
+];
+const partsRow = document.getElementById('parts');
+PARTS.forEach(p => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<div class="cap"><span class="tag ' + p.tag + '">' + p.label +
+    '</span></div><div class="num">' + p.deg + ' °/s</div><div class="box"></div>' +
+    '<div class="cap" style="margin-top:4px">' + p.note + '</div>';
+  partsRow.appendChild(card);
+  const el = buildElement(card.querySelector('.box'), {
+    type: 'shearer', icon: SHEARER_ICON, bbox: SHEARER_BBOX,
+    rotors: SHEARER_ROTORS, w: 148, h: 104,
+    bodyColor: p.body, rotorColors: p.rotors,
+  });
+  spinCards.push({ el, degPerSec: p.deg });
+});
+
+/* ---------- 观感对照：同一题材，两种绘制技法 ---------- */
+const TANK_BBOX = { x: 7.5, y: 22.5, w: 85, h: 66 };
+
+/* 旧技法（上几节所用）：分档透明度。只有三块平色与细描边，没有接触阴影、没有环境 */
+const TANKS_FLAT = `
+<g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+  <polygon points="50,46 92,67 50,88 8,67" fill="currentColor" fill-opacity="0.05" stroke-opacity="0.18"/>
+  <line x1="24" y1="40" x2="56" y2="56" stroke-width="4"/>
+  <rect x="24" y="28" width="20" height="32" fill="currentColor" fill-opacity="0.10"/>
+  <path d="M24 60 A10 5 0 0 0 44 60"/>
+  <ellipse cx="34" cy="28" rx="10" ry="5" fill="currentColor" fill-opacity="0.22"/>
+  <rect x="56" y="44" width="20" height="26" fill="currentColor" fill-opacity="0.10"/>
+  <path d="M56 70 A10 5 0 0 0 76 70"/>
+  <ellipse cx="66" cy="44" rx="10" ry="5" fill="currentColor" fill-opacity="0.22"/>
+</g>`;
+
+/* 新技法：连续渐变 + 接触阴影 + 等轴测地面网格 + 统一光源方向。
+   渐变 stop 用 currentColor + stop-opacity，因此替换后仍随状态色整体变化。
+   defs 必须写在这段片段内部——每个片段是独立光栅化的，引用外部 defs 会失效。 */
+const TANKS_RICH = `
+<defs>
+  <linearGradient id="cylBody" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="currentColor" stop-opacity="0.92"/>
+    <stop offset="0.16" stop-color="currentColor" stop-opacity="1"/>
+    <stop offset="0.48" stop-color="currentColor" stop-opacity="0.52"/>
+    <stop offset="0.8" stop-color="currentColor" stop-opacity="0.26"/>
+    <stop offset="1" stop-color="currentColor" stop-opacity="0.46"/>
+  </linearGradient>
+  <radialGradient id="cylTop" cx="0.34" cy="0.28" r="0.78">
+    <stop offset="0" stop-color="currentColor" stop-opacity="1"/>
+    <stop offset="0.55" stop-color="currentColor" stop-opacity="0.86"/>
+    <stop offset="1" stop-color="currentColor" stop-opacity="0.58"/>
+  </radialGradient>
+</defs>
+<g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round">
+  <polygon points="50,46 92,67 50,88 8,67" fill="currentColor" fill-opacity="0.05" stroke-opacity="0.22"/>
+  <g stroke-opacity="0.09" stroke-width="0.5">
+    <line x1="39.5" y1="51.25" x2="81.5" y2="72.25"/>
+    <line x1="29" y1="56.5" x2="71" y2="77.5"/>
+    <line x1="18.5" y1="61.75" x2="60.5" y2="82.75"/>
+    <line x1="60.5" y1="51.25" x2="18.5" y2="72.25"/>
+    <line x1="71" y1="56.5" x2="29" y2="77.5"/>
+    <line x1="81.5" y1="61.75" x2="39.5" y2="82.75"/>
+  </g>
+  <ellipse cx="34" cy="61" rx="12" ry="5.5" fill="#000000" fill-opacity="0.42" stroke="none"/>
+  <ellipse cx="66" cy="71" rx="12" ry="5.5" fill="#000000" fill-opacity="0.42" stroke="none"/>
+  <line x1="24" y1="40" x2="56" y2="56" stroke-opacity="0.85" stroke-width="4.6" stroke-linecap="round"/>
+  <line x1="24" y1="38.4" x2="56" y2="54.4" stroke-opacity="1" stroke-width="1.3" stroke-linecap="round"/>
+  <path d="M24 28 L24 60 A10 5 0 0 0 44 60 L44 28 Z" fill="url(#cylBody)" stroke-opacity="0.45"/>
+  <ellipse cx="34" cy="28" rx="10" ry="5" fill="url(#cylTop)" stroke-opacity="0.45"/>
+  <path d="M56 44 L56 70 A10 5 0 0 0 76 70 L76 44 Z" fill="url(#cylBody)" stroke-opacity="0.45"/>
+  <ellipse cx="66" cy="44" rx="10" ry="5" fill="url(#cylTop)" stroke-opacity="0.45"/>
+</g>`;
+
+const QUALITY = [
+  { label: '分档透明度（旧技法）', tag: '', icon: TANKS_FLAT, type: 'tanksFlat',
+    note: '三块平色 + 细描边，无接触阴影' },
+  { label: '插画级绘制（新技法）', tag: 'ok', icon: TANKS_RICH, type: 'tanksRich',
+    note: '连续渐变 + 接触阴影 + 地面网格' },
+  { label: '新技法 · 换状态色', tag: 'warn', icon: TANKS_RICH, type: 'tanksRich',
+    note: '渐变随状态色整体变化', color: PALETTE.overload },
+];
+const qualityRow = document.getElementById('quality');
+QUALITY.forEach(q => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<div class="cap"><span class="tag ' + q.tag + '">' + q.label +
+    '</span></div><div class="box" style="height:118px"></div>' +
+    '<div class="cap" style="margin-top:4px">' + q.note + '</div>';
+  qualityRow.appendChild(card);
+  buildElement(card.querySelector('.box'), {
+    type: q.type, icon: q.icon, bbox: TANK_BBOX, w: 148, h: 118,
+    color: q.color || PALETTE.run,
+  });
+});
+
+/* ---------- 面基图元：作者只标朝向，明暗与阴影由后处理器展开 ---------- */
+/* 作者视角：没有 fill、没有 fill-opacity、没有渐变，只有几何与朝向标注 */
+const FACE_TANKS = `
+<g stroke="currentColor" stroke-width="1.2" stroke-linejoin="round">
+  <polygon points="50,46 92,67 50,88 8,67" data-face="ground"/>
+  <g stroke-opacity="0.09" stroke-width="0.5" fill="none">
+    <line x1="39.5" y1="51.25" x2="81.5" y2="72.25"/>
+    <line x1="29" y1="56.5" x2="71" y2="77.5"/>
+    <line x1="18.5" y1="61.75" x2="60.5" y2="82.75"/>
+    <line x1="60.5" y1="51.25" x2="18.5" y2="72.25"/>
+    <line x1="71" y1="56.5" x2="29" y2="77.5"/>
+    <line x1="81.5" y1="61.75" x2="39.5" y2="82.75"/>
+  </g>
+  <ellipse cx="34" cy="61" rx="12" ry="5.5" data-shadow="1"/>
+  <ellipse cx="66" cy="71" rx="12" ry="5.5" data-shadow="1"/>
+  <line x1="24" y1="40" x2="56" y2="56" data-pipe="base"/>
+  <line x1="24" y1="38.4" x2="56" y2="54.4" data-pipe="hi"/>
+  <path d="M24 28 L24 60 A10 5 0 0 0 44 60 L44 28 Z" data-face="front"/>
+  <ellipse cx="34" cy="28" rx="10" ry="5" data-face="cap"/>
+  <path d="M56 44 L56 70 A10 5 0 0 0 76 70 L76 44 Z" data-face="front"/>
+  <ellipse cx="66" cy="44" rx="10" ry="5" data-face="cap"/>
+</g>`;
+
+/* 光照 token：一处定义，全图元复用。改这里 = 改全局光感 */
+const FACE_STYLE = {
+  top: { kind: 'linear', a: 0.9, b: 0.62, x1: 0, y1: 0, x2: 0, y2: 1 },
+  front: { kind: 'linear', a: 0.72, b: 0.4, x1: 0, y1: 0, x2: 1, y2: 0 },
+  side: { kind: 'linear', a: 0.4, b: 0.18, x1: 0, y1: 0, x2: 1, y2: 0 },
+  cap: { kind: 'radial', a: 1, b: 0.5 },
+};
+
+/** 后处理器：data-face 展开为按光方向的连续渐变，阴影与管道样式统一注入 */
+function bakeLighting(fragment) {
+  const defs = Object.entries(FACE_STYLE).map(([k, s]) => {
+    const stops =
+      '<stop offset="0" stop-color="currentColor" stop-opacity="' + s.a.toFixed(2) + '"/>' +
+      '<stop offset="1" stop-color="currentColor" stop-opacity="' + s.b.toFixed(2) + '"/>';
+    return s.kind === 'radial'
+      ? '<radialGradient id="lt-' + k + '" cx="0.34" cy="0.28" r="0.8">' + stops + '</radialGradient>'
+      : '<linearGradient id="lt-' + k + '" x1="' + s.x1 + '" y1="' + s.y1 + '" x2="' + s.x2 +
+        '" y2="' + s.y2 + '">' + stops + '</linearGradient>';
+  }).join('');
+  const body = fragment
+    .replace(/\sdata-face="(top|front|side|cap)"/g, (_, k) => ' fill="url(#lt-' + k + ')" stroke-opacity="0.45"')
+    .replace(/\sdata-face="ground"/g, ' fill="currentColor" fill-opacity="0.05" stroke-opacity="0.22"')
+    .replace(/\sdata-shadow="1"/g, ' fill="#000000" fill-opacity="0.42" stroke="none"')
+    .replace(/\sdata-pipe="base"/g, ' stroke="currentColor" stroke-opacity="0.85" stroke-width="4.6" stroke-linecap="round"')
+    .replace(/\sdata-pipe="hi"/g, ' stroke="currentColor" stroke-opacity="1" stroke-width="1.3" stroke-linecap="round"');
+  return '<defs>' + defs + '</defs>' + body;
+}
+const FACE_TANKS_BAKED = bakeLighting(FACE_TANKS);
+
+const BAKED = [
+  { label: '作者原始输入', tag: '', type: 'faceRaw', icon: FACE_TANKS,
+    note: '只有几何与朝向，无任何颜色' },
+  { label: '后处理器输出', tag: 'ok', type: 'faceBaked', icon: FACE_TANKS_BAKED,
+    note: '自动明暗 + 自动阴影样式' },
+  { label: '输出 · 换状态色', tag: 'warn', type: 'faceBaked', icon: FACE_TANKS_BAKED,
+    note: '换色不需要重调光照', color: PALETTE.overload },
+];
+const bakedRow = document.getElementById('baked');
+BAKED.forEach(b => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<div class="cap"><span class="tag ' + b.tag + '">' + b.label +
+    '</span></div><div class="box" style="height:118px"></div>' +
+    '<div class="cap" style="margin-top:4px">' + b.note + '</div>';
+  bakedRow.appendChild(card);
+  buildElement(card.querySelector('.box'), {
+    type: b.type, icon: b.icon, bbox: TANK_BBOX, w: 148, h: 118,
+    color: b.color || PALETTE.run,
+  });
+});
+
+document.querySelector('[data-state="run"]').classList.add('on');
+readout();
+applyColor();
+requestAnimationFrame(loop);
+requestAnimationFrame(loopSmall);
+</script>
+</body>
+</html>

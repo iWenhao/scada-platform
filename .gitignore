@@ -34,3 +34,7 @@ server/data/
 
 # 浏览器自动化本地缓存
 .playwright-cli/
+
+# 设计沙箱的构建产物：esbuild 输出，每个都内嵌一份 src 模块快照，
+# 且 scene/models 两份各自重复打包了 three.js；一改 src 即过期，故只留源文件（design/ 下的 html 与入口 .ts）
+design/probe/*bundle.js

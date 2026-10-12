@@ -1,0 +1,246 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>画布元素形态 · 真实模块核对</title>
+<style>
+  body { margin: 0; background: #0d1219; color: #dce8ee; font: 13px/1.6 "Microsoft YaHei", monospace; }
+  h2 { font-size: 15px; margin: 22px 16px 8px; color: #8fe6d3; font-weight: 600; }
+  .hint { margin: 0 16px 10px; color: #8b98a8; font-size: 12px; }
+  pre { margin: 0 16px 20px; padding: 12px 14px; background: #131a24; border: 1px solid #1f2a38; border-radius: 6px; overflow-x: auto; font-size: 12px; line-height: 1.7; }
+  .grid { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 16px 24px; }
+  .cell { }
+  .cap { font-size: 11px; color: #8b98a8; margin-bottom: 4px; }
+  .box {
+    position: relative;
+    background-color: #0f1620;
+    background-image:
+      linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    background-size: 20px 20px;
+    outline: 1px dashed rgba(0, 212, 170, .28);
+  }
+  .box img { position: absolute; }
+  .box .txt { position: absolute; width: 100%; text-align: center; white-space: nowrap; overflow: hidden; }
+  .box .name { color: #dce8ee; text-shadow: 0 0 4px rgba(4,8,16,.92); }
+  .box .val { color: #8fe6d3; text-shadow: 0 0 4px rgba(4,8,16,.92); }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 11px; margin-left: 6px; }
+  .before { background: rgba(255,255,255,.08); color: #9fb0c0; }
+  .after { background: rgba(0,212,170,.16); color: #8fe6d3; }
+</style>
+<body>
+<h2>一、几何核对（真实 iconBounds + elementLayout 模块）</h2>
+<p class="hint">「现状」按改造前的算法复算：纯图形模式 labelH=0、图标按 100×100 方形等比、内容在方形框内按原始 viewBox 占比缩小；「改后」为真实模块输出。</p>
+<pre id="geo">running</pre>
+
+<h2>二、外观对照 <span class="badge before">左：现状</span><span class="badge after">右：改后（纯图形）</span></h2>
+<p class="hint">同一元素尺寸、同一状态色，虚线为元素边界（真实画布上不可见）。改后图形按内容长宽比铺满图形区。</p>
+<div class="grid" id="grid"></div>
+
+<h2>三、显示名称与实时值时的分区（改后）</h2>
+<p class="hint">开启名称/数值后，两块信息区按元素高度自适应，图形区仍占主体。</p>
+<div class="grid" id="grid2"></div>
+
+<script src="./bundle.js"></script>
+<script>
+const COLOR = '#8fe6d3';
+
+function dropSize(w, h) {
+  return { width: Math.round(Math.max(w * 1.6, 110)), height: Math.round(Math.max(h * 1.6, 80)) };
+}
+function svgUrl(svg, color) {
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.split('currentColor').join(color));
+}
+
+/** 改造前算法：纯图形模式（新拖入元素 showName/showValue 均 false） */
+function legacyGeom(def, size) {
+  const labelH = 0;                     // isPureShapeMode -> 0
+  const boxW = Math.max(size.width - 12, 4);
+  const boxH = Math.max(size.height - labelH - 10, 4);
+  const scale = Math.min(boxW / 100, boxH / 100);
+  const side = 100 * scale;             // 图标框（正方形）
+  // SVG viewBox 100x100 -> 源图 150x150 -> 方形框，内容尺寸 = 框 × 原始占比
+  const contentW = side * (def._bb.w / 100);
+  const contentH = side * (def._bb.h / 100);
+  return { side, contentW, contentH, x: (size.width - side) / 2, y: 4 };
+}
+
+const CASES = [
+  ['采煤机', WB.ShearerDefinition, 26.4, 5.2],
+  ['掘进机', WB.RoadheaderDefinition, 26.4, 5.2],
+  ['刮板机', WB.ConveyorDefinition, 26.4, 5.2],
+  ['汽轮机', WB.TurbineDefinition, 26.4, 5.2],
+  ['锅炉', WB.BoilerDefinition, 26.4, 5.2],
+  ['阀门', WB.ValveDefinition, 26.4, 5.2],
+  ['泵', WB.PumpDefinition, 26.4, 5.2],
+  ['储罐', WB.TankDefinition, 26.4, 5.2],
+  ['电机', WB.MotorDefinition, 26.4, 5.2],
+  ['沉淀池', WB.SedimentTankDefinition, 26.4, 5.2],
+];
+
+// 预处理：测真实包围盒
+CASES.forEach(([, def]) => {
+  const b = WB.getIconBounds(def.icon);
+  def._bb = b ? { x: b.x, y: b.y, w: b.width, h: b.height, aspect: b.width / b.height } : null;
+  def._tight = WB.tightenIconSvg(def.icon);
+});
+
+const lines = [];
+lines.push('组件        元素尺寸    改造前:方框/可见图形      改后:图形(宽高比)        提升');
+lines.push('─'.repeat(96));
+const rows = [];
+CASES.forEach(([label, def]) => {
+  const size = dropSize(def.defaultWidth, def.defaultHeight);
+  const before = legacyGeom(def, size);
+  const layoutFree = WB.computeElementLayout({
+    width: size.width, height: size.height,
+    wantName: false, wantValue: false,
+  });
+  let after;
+  if (def._bb && def._bb.aspect > 0) {
+    const a = def._bb.aspect;
+    if (layoutFree.contentWidth / layoutFree.contentHeight > a) {
+      after = { w: layoutFree.contentHeight * a, h: layoutFree.contentHeight };
+    } else {
+      after = { w: layoutFree.contentWidth, h: layoutFree.contentWidth / a };
+    }
+  } else {
+    after = { w: 0, h: 0 };
+  }
+  const beforeArea = before.contentW * before.contentH;
+  const afterArea = after.w * after.h;
+  const ratio = beforeArea > 0 ? afterArea / beforeArea : NaN;
+  lines.push(
+    label.padEnd(10) +
+    `${size.width}×${size.height}`.padEnd(12) +
+    `${Math.round(before.side)}px框 / ${before.contentW.toFixed(0)}×${before.contentH.toFixed(0)}`.padEnd(26) +
+    `${after.w.toFixed(0)}×${after.h.toFixed(0)} (${def._bb ? def._bb.aspect.toFixed(2) : '-'})`.padEnd(24) +
+    (Number.isFinite(ratio) ? ratio.toFixed(2) + '×' : '-')
+  );
+  rows.push({ label, def, size, before, after });
+});
+
+// 缩放序列：采煤机
+lines.push('');
+lines.push('缩放序列（采煤机，纯图形）：');
+lines.push('倍率    元素尺寸     改造前可见图形      改后图形');
+[1.0, 0.8, 0.6, 0.45].forEach(k => {
+  const def = WB.ShearerDefinition;
+  const base = dropSize(def.defaultWidth, def.defaultHeight);
+  const size = { width: Math.round(base.width * k), height: Math.round(base.height * k) };
+  const before = legacyGeom(def, size);
+  const layout = WB.computeElementLayout({ width: size.width, height: size.height, wantName: false, wantValue: false });
+  const a = def._bb.aspect;
+  const after = layout.contentWidth / layout.contentHeight > a
+    ? { w: layout.contentHeight * a, h: layout.contentHeight }
+    : { w: layout.contentWidth, h: layout.contentWidth / a };
+  lines.push(
+    `${k.toFixed(2)}×`.padEnd(8) +
+    `${size.width}×${size.height}`.padEnd(13) +
+    `${before.contentW.toFixed(0)}×${before.contentH.toFixed(0)}`.padEnd(20) +
+    `${after.w.toFixed(0)}×${after.h.toFixed(0)}`
+  );
+});
+
+// 信息区开启时的降级
+lines.push('');
+lines.push('开启名称+数值时的分区（改后，按元素高度降级）：');
+lines.push('元素尺寸      名称区  数值区  图形区  名称/数值');
+[[176, 96], [140, 76], [106, 58], [90, 50], [70, 40], [60, 34]].forEach(([w, h]) => {
+  const l = WB.computeElementLayout({ width: w, height: h, wantName: true, wantValue: true });
+  lines.push(
+    `${w}×${h}`.padEnd(14) +
+    `${l.nameHeight.toFixed(1)}`.padEnd(8) +
+    `${l.valueHeight.toFixed(1)}`.padEnd(8) +
+    `${l.contentHeight.toFixed(1)}`.padEnd(8) +
+    `${l.showName ? '名称 ' : ''}${l.showValue ? '数值' : ''}`
+  );
+});
+
+document.getElementById('geo').textContent = lines.join('\n');
+
+// 视觉渲染
+function renderCell(host, label, def, size, mode) {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  const cap = document.createElement('div');
+  cap.className = 'cap';
+  cap.textContent = `${label} · ${size.width}×${size.height}`;
+  cell.appendChild(cap);
+
+  const box = document.createElement('div');
+  box.className = 'box';
+  box.style.width = size.width + 'px';
+  box.style.height = size.height + 'px';
+
+  const layout = WB.computeElementLayout({
+    width: size.width, height: size.height,
+    wantName: mode === 'info', wantValue: mode === 'info',
+    isDisplay: def.type === 'display',
+  });
+
+  if (mode === 'before') {
+    const g = legacyGeom(def, size);
+    const img = new Image();
+    img.src = svgUrl(def.icon, COLOR);        // 未收紧，复刻改造前
+    img.style.left = g.x + 'px';
+    img.style.top = g.y + 'px';
+    img.style.width = g.side + 'px';
+    img.style.height = g.side + 'px';
+    box.appendChild(img);
+  } else {
+    if (def.icon && def.type !== 'display') {
+      const a = def._bb.aspect;
+      let w, h;
+      if (layout.contentWidth / layout.contentHeight > a) {
+        h = layout.contentHeight; w = h * a;
+      } else {
+        w = layout.contentWidth; h = w / a;
+      }
+      const img = new Image();
+      img.src = svgUrl(def._tight, COLOR);    // 真实 tighten
+      img.style.left = (layout.contentX + (layout.contentWidth - w) / 2) + 'px';
+      img.style.top = (layout.contentY + (layout.contentHeight - h) / 2) + 'px';
+      img.style.width = w + 'px';
+      img.style.height = h + 'px';
+      box.appendChild(img);
+    }
+    if (layout.showValue) {
+      const t = document.createElement('div');
+      t.className = 'txt val';
+      t.style.top = layout.valueY + 'px';
+      t.style.fontSize = layout.valueFontSize + 'px';
+      t.textContent = def.type === 'display' ? '1.1 kV' : 'speed: 1.1';
+      if (def.type === 'display') {
+        t.style.top = layout.displayY + 'px';
+        t.style.fontSize = layout.displayFontSize + 'px';
+        t.style.fontWeight = 'bold';
+      }
+      box.appendChild(t);
+    }
+    if (layout.showName) {
+      const t = document.createElement('div');
+      t.className = 'txt name';
+      t.style.top = layout.nameY + 'px';
+      t.style.fontSize = layout.nameFontSize + 'px';
+      t.textContent = def.name;
+      box.appendChild(t);
+    }
+  }
+  cell.appendChild(box);
+  host.appendChild(cell);
+}
+
+const g1 = document.getElementById('grid');
+rows.forEach(r => {
+  renderCell(g1, r.label, r.def, r.size, 'before');
+  renderCell(g1, r.label, r.def, r.size, 'after');
+});
+
+const g2 = document.getElementById('grid2');
+[WB.ShearerDefinition, WB.TurbineDefinition, WB.TankDefinition, WB.MotorDefinition, WB.DisplayDefinition].forEach(def => {
+  const size = dropSize(def.defaultWidth, def.defaultHeight);
+  renderCell(g2, def.name, def, size, 'info');
+});
+
+document.title = 'done';
+</script>
+</body>

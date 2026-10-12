@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCADA 画布元素形态 · 设计稿 v2（纯图形方向）</title>
+<style>
+  :root{
+    --bg:#12121f; --panel:#1a1a2e; --canvas:#1e1e1e;
+    --line:#333; --accent:#00d4aa;
+    --run:#00d4aa; --stop:#ff4757; --warn:#ffa502; --off:#666666; --idle:#8fe6d3;
+    --text:#e0e0e0; --muted:#a0a0a0; --hint:#6b6b76;
+    --halo:0 0 3px rgba(0,0,0,.95), 0 0 6px rgba(0,0,0,.75);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:13px/1.6 "Microsoft YaHei","PingFang SC",-apple-system,sans-serif}
+  header{padding:28px 32px 18px;border-bottom:1px solid var(--line)}
+  header h1{margin:0 0 6px;font-size:19px;font-weight:600}
+  header p{margin:0;color:var(--muted);font-size:12.5px}
+  header .chip{display:inline-block;margin-top:10px;padding:3px 9px;border-radius:20px;
+    background:rgba(0,212,170,.12);border:1px solid rgba(0,212,170,.4);color:#7fe4cb;font-size:11.5px}
+  .toolbar{position:sticky;top:0;z-index:9;display:flex;flex-wrap:wrap;gap:18px;align-items:center;
+    padding:12px 32px;background:rgba(18,18,31,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .group{display:flex;align-items:center;gap:6px}
+  .group>span.lbl{color:var(--hint);font-size:11.5px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{appearance:none;border:0;background:transparent;color:var(--muted);
+    padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:rgba(0,212,170,.16);color:var(--accent)}
+  .seg button:hover{color:var(--text)}
+  input[type=range]{width:110px;accent-color:var(--accent)}
+  main{padding:0 32px 80px;max-width:1500px}
+  section{padding:30px 0;border-bottom:1px solid rgba(51,51,51,.6)}
+  h2{font-size:14.5px;font-weight:600;margin:0 0 4px}
+  h2 small{font-weight:400;color:var(--hint);font-size:12px;margin-left:8px}
+  .lead{color:var(--muted);font-size:12.5px;margin:0 0 20px;max-width:920px}
+  .canvas{border-radius:12px;border:1px solid var(--line);padding:26px;background-color:var(--canvas);
+    background-image:
+      repeating-linear-gradient(to right,rgba(42,42,42,.85) 0 1px,transparent 1px 20px),
+      repeating-linear-gradient(to bottom,rgba(42,42,42,.85) 0 1px,transparent 1px 20px),
+      repeating-linear-gradient(to right,rgba(51,51,51,.7) 0 1px,transparent 1px 100px),
+      repeating-linear-gradient(to bottom,rgba(51,51,51,.7) 0 1px,transparent 1px 100px)}
+  .row{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+  .slot{position:relative;flex:0 0 auto}
+  .slot .cap{position:absolute;left:0;top:-18px;white-space:nowrap;font-size:11px;color:var(--hint)}
+  .pair{display:flex;flex-direction:column;gap:14px;padding:16px 18px;border-radius:10px;
+    background:rgba(26,26,46,.5);border:1px solid var(--line)}
+  .pair .tag{font-size:11.5px}
+  .tag.bad{color:#ff8f8f}.tag.good{color:var(--accent)}
+  .el{position:relative;width:100%;height:100%}
+  .el .shadow{position:absolute;left:2px;top:3px;width:100%;height:100%;background:rgba(0,0,0,.28);border-radius:10px}
+  .el .card{position:absolute;inset:0;border-radius:10px}
+  .el .icon{position:absolute;display:block}
+  .el .glow{position:absolute;left:4px;top:4px;border-radius:8px;background:rgba(255,255,255,.1)}
+  .el .namebar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;white-space:nowrap;font-size:11px}
+  .el .pill{position:absolute;display:flex;align-items:center;justify-content:center;white-space:nowrap;font-size:10px}
+  .el .pname{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:11px;
+    color:#dbe6ec;text-shadow:var(--halo);white-space:nowrap;overflow:hidden}
+  .el .pval{position:absolute;right:0;top:0;text-align:right;font-size:11px;color:currentColor;
+    text-shadow:var(--halo);white-space:nowrap}
+  .el .bigval{position:absolute;left:0;right:0;text-align:center;font-weight:600;color:currentColor;
+    font-family:Consolas,monospace;text-shadow:var(--halo)}
+  .el .side25{position:absolute;border-radius:4px}
+  .el .shadow25{position:absolute;border-radius:50%;background:rgba(0,0,0,.28)}
+  .el .selbox{position:absolute;border:2px solid var(--accent);border-radius:2px}
+  .el .anchor{position:absolute;width:8px;height:8px;background:#1a1a2e;border:2px solid var(--accent);border-radius:2px}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:18px;font-size:11.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:6px}
+  th,td{text-align:left;padding:8px 12px;border-bottom:1px solid rgba(51,51,51,.7);vertical-align:top}
+  th{color:var(--hint);font-weight:500;font-size:11.5px}
+  code{background:rgba(0,212,170,.09);color:#9fe8d6;padding:1px 5px;border-radius:4px;font-family:Consolas,monospace;font-size:12px}
+  ol.notes{margin:0;padding-left:20px;color:var(--muted);font-size:12.5px}
+  ol.notes li{margin-bottom:7px}
+  ol.notes b{color:var(--text);font-weight:500}
+  .q{background:rgba(255,165,2,.08);border:1px solid rgba(255,165,2,.35);border-radius:10px;
+    padding:12px 16px;margin-top:18px;font-size:12.5px;color:#edcd9a}
+  .q b{color:#ffc45f;font-weight:500}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SCADA 画布元素形态 · 设计稿 v2</h1>
+  <p>方向已定为「纯图形」：画布上只呈现设备本身，不加背景色、不加描边，状态只反映在设备自身的线色上。本稿据此重写，v1 里的底色与描边方案已移除。</p>
+  <span class="chip">静态设计稿，未改动源码，未提交仓库</span>
+</header>
+
+<div class="toolbar">
+  <div class="group">
+    <span class="lbl">图标适配</span>
+    <div class="seg" data-key="adapt">
+      <button data-val="square">正方形等比（现状）</button>
+      <button data-val="aspect" class="on">按长宽比适配</button>
+    </div>
+  </div>
+  <div class="group">
+    <span class="lbl">名称</span>
+    <div class="seg" data-key="name"><button data-val="0" class="on">关</button><button data-val="1">开</button></div>
+  </div>
+  <div class="group">
+    <span class="lbl">数值</span>
+    <div class="seg" data-key="value"><button data-val="0" class="on">关</button><button data-val="1">开</button></div>
+  </div>
+  <div class="group">
+    <span class="lbl">视图</span>
+    <div class="seg" data-key="view"><button data-val="2d" class="on">2D</button><button data-val="25d">2.5D</button></div>
+  </div>
+  <div class="group">
+    <span class="lbl">元素缩放</span>
+    <input type="range" id="scale" min="60" max="160" value="100" step="5">
+    <span id="scaleOut" style="color:var(--accent);font-size:12px;width:42px">1.0×</span>
+  </div>
+</div>
+
+<main>
+
+<section>
+  <h2>一、落地形态对照<small>固定对照，不受开关影响</small></h2>
+  <p class="lead">现状是「卡片 + 图标」两层叠在一起：有投影、有描边、底部还有一条填充名称条。建议是「只有设备」——图标按设备自身的长宽比铺满元素区，状态只落在图标线色上。</p>
+  <div class="canvas"><div class="row" id="baseline"></div></div>
+</section>
+
+<section>
+  <h2>二、组件矩阵<small>受上方开关影响</small></h2>
+  <p class="lead">正方形等比适配只对方形符号友好。横向设备（采煤机、掘进机、汽轮机）的实际图形只剩框内一小块并且沉在下方；纵向与方形设备受影响较小。这是「按长宽比适配」要解决的核心问题，与背景、描边无关。</p>
+  <div class="canvas"><div class="row" id="matrix"></div></div>
+  <div class="legend">
+    <span><i style="background:var(--run)"></i>运行 / 开启 / 正常</span>
+    <span><i style="background:var(--stop)"></i>停止 / 关闭 / 低液位</span>
+    <span><i style="background:var(--warn)"></i>警告 / 过载</span>
+    <span><i style="background:var(--off)"></i>未知 / 停机</span>
+    <span><i style="background:var(--idle)"></i>无状态规则（默认色）</span>
+  </div>
+</section>
+
+<section>
+  <h2>三、状态表达<small>只改设备线色</small></h2>
+  <p class="lead">同一台泵，三种状态，除线色外不做任何其他处理。需要留意的代价：画面设备密集时，停机与运行之间的差异只靠颜色，色觉差异人群或远距离观察会吃力。可在不引入背景与外框的前提下考虑的补充手段只有两类——线宽微调、或报警态闪烁。两者都属于「颜色之外」的通道，要不要上由你定。</p>
+  <div class="canvas"><div class="row" id="states"></div></div>
+</section>
+
+<section>
+  <h2>四、名称与数值<small>素文本，去掉底框</small></h2>
+  <p class="lead">「不要背景色」这条同样适用于文字：现状的名称条是一块 rgba(8,12,24,.72) 的填充条、数值是一个带底色的胶囊，都属于元素上的背景色。建议改为素文本，靠文字外发光（text-shadow）保证在网格上的可读性，而不是靠填充块。</p>
+  <div class="canvas"><div class="row" id="texts"></div></div>
+</section>
+
+<section>
+  <h2>五、缩放、2.5D 与选中</h2>
+  <p class="lead">缩放：分区高度按元素缩放并设上下限，图形可用高度不足时自动撤数值、再撤名称，空间优先给设备本身。选中：已确认 ScadaCanvas.vue:92-96 的变换器绑定的是选中节点，选中框与锚点由变换器绘制，与元素描边无关，因此去掉描边不会丢选中反馈。</p>
+  <div class="canvas"><div class="row" id="views"></div></div>
+  <div class="q">
+    <b>待你决定：2.5D 是否保留。</b>2.5D 的立体感来自「侧面填充 + 顶面高光 + 地面投影」，其中 depthSideConfig 会在设备后面铺一块 shade(color,-0.35) 的实心矩形——那本质就是背景色块，与本次方向冲突。若严格执行「无背景色」，2.5D 需要弱化或停用；若 2.5D 是画面基调的一部分，则需给它开一个例外。
+  </div>
+</section>
+
+<section>
+  <h2>六、落地映射</h2>
+  <table>
+    <tr><th style="width:26%">改动</th><th style="width:40%">代码落点</th><th>说明</th></tr>
+    <tr>
+      <td>图标按长宽比适配<br><span style="color:var(--hint)">核心修复</span></td>
+      <td>新增 <code>iconBounds.ts</code> 测量并缓存 SVG 内容包围盒；<code>getIconImageConfig</code> 改为对可用区做 contain 适配</td>
+      <td><b>不必改动 <code>src/industrial/**</code> 的组件定义。</b>用离屏 SVG 的 <code>getBBox()</code> 一次性测量各组件图形边界并缓存，避免给几十个定义逐个补字段</td>
+    </tr>
+    <tr>
+      <td>删除卡片渲染</td>
+      <td><code>elementChrome.ts</code> 移除 <code>bodyShadowConfig</code> / <code>bodyFillConfig</code> / <code>bodyTopGlowConfig</code>；<code>CanvasElements.vue</code> 删掉对应 <code>v-rect</code></td>
+      <td><code>isPureShapeMode</code> / <code>hasIntrinsicGraphic</code> 随之失去意义，可一并清理；<code>isNameShown</code> / <code>isValueShown</code> 仍需要</td>
+    </tr>
+    <tr>
+      <td>名称/数值改素文本</td>
+      <td><code>labelBarConfig</code> 的填充矩形删除、只留 <code>labelTextConfig</code>；<code>valuePillConfig</code> 删除、只留文字配置</td>
+      <td>文字加外发光保证网格上的对比度；<code>PreviewStage.vue</code> 共用同一套配置，需同步</td>
+    </tr>
+    <tr>
+      <td>布局分区随缩放并降级</td>
+      <td>抽出纯函数模块（建议名 <code>elementLayout.ts</code>），替掉 <code>getLabelHeight</code> 的固定 16/26 与散落的 +4/+12</td>
+      <td>配单测覆盖分区高度与降级判定</td>
+    </tr>
+    <tr>
+      <td>数值显示图元去重影</td>
+      <td><code>getIconImageConfig</code> 对 <code>type === 'display'</code> 返回 null</td>
+      <td>现状是内建 "8.8" 图标与实时数值大字重叠渲染，纯图形方案下只保留实时值</td>
+    </tr>
+    <tr>
+      <td>顺带修正</td>
+      <td><code>useElementVisuals.ts:34</code> 注释写「中性灰」，实际是 <code>#8fe6d3</code></td>
+      <td>注释与实现对齐，无行为变更</td>
+    </tr>
+  </table>
+  <ol class="notes" style="margin-top:18px">
+    <li><b>范围比 v1 小得多。</b>去掉背景与描边这条决定，直接取消了 v1 里「底色 / 状态多通道」整块工作，剩下的都是渲染层的几何与清理：不动数据结构、不动 <code>industrial/**</code>、不动属性面板。</li>
+    <li><b>名称默认仍关闭</b>，与现状一致（<code>useCanvasDrop.ts:59-60</code>）。第四节可随时打开看效果；某个画面需要位号时，在属性面板按元素开启即可。</li>
+    <li><b>「第三次出现必须抽公共模块」同样适用</b>：图标适配与分区高度会被编辑器与预览 2D 复用，必须单一来源，不能各写一份。</li>
+  </ol>
+</section>
+
+</main>
+
+<script>
+const RUN='#00d4aa', STOP='#ff4757', WARN='#ffa502', OFF='#666666', IDLE='#8fe6d3';
+
+const COMPS=[
+  { key:'shearer', label:'采煤机', w:110, h:60, color:RUN, bbox:[6,46,88,34], value:'42.5 t/h', name:'1# 采煤机',
+    g:'<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="80" x2="94" y2="80"/><rect x="38" y="46" width="24" height="26"/><circle cx="20" cy="60" r="13"/><circle cx="80" cy="60" r="13"/><line x1="33" y1="55" x2="38" y2="55"/><line x1="62" y1="55" x2="67" y2="55"/><line x1="11" y1="50" x2="7" y2="46"/><line x1="29" y1="50" x2="33" y2="46"/><line x1="11" y1="70" x2="7" y2="74"/><line x1="29" y1="70" x2="33" y2="74"/><line x1="71" y1="50" x2="67" y2="46"/><line x1="89" y1="50" x2="93" y2="46"/><line x1="71" y1="70" x2="67" y2="74"/><line x1="89" y1="70" x2="93" y2="74"/></g>' },
+  { key:'roadheader', label:'掘进机', w:100, h:60, color:RUN, bbox:[1,20,86,60], value:'1.8 m/min', name:'1# 掘进机',
+    g:'<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="40" y="64" width="46" height="16" rx="8"/><circle cx="53" cy="72" r="4"/><circle cx="74" cy="72" r="4"/><rect x="44" y="42" width="34" height="22"/><line x1="44" y1="52" x2="23" y2="38"/><circle cx="16" cy="33" r="11"/><line x1="9" y1="25" x2="5" y2="21"/><line x1="23" y1="24" x2="27" y2="20"/><line x1="6" y1="33" x2="1" y2="33"/><line x1="24" y1="41" x2="28" y2="44"/></g>' },
+  { key:'turbine', label:'汽轮机', w:110, h:55, color:RUN, bbox:[8,35,84,30], value:'3000 r/min', name:'1# 汽轮机',
+    g:'<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="20,35 80,35 70,65 30,65"/><line x1="30" y1="35" x2="30" y2="65"/><line x1="40" y1="35" x2="40" y2="65"/><line x1="50" y1="35" x2="50" y2="65"/><line x1="60" y1="35" x2="60" y2="65"/><line x1="8" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="92" y2="50"/></g>' },
+  { key:'valve', label:'阀门', w:60, h:90, color:RUN, bbox:[17,5,66,74], value:'开度 75%', name:'1# 闸阀',
+    g:'<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 22 L50 50 L18 78 Z" fill="currentColor" fill-opacity="0.12"/><path d="M82 22 L50 50 L82 78 Z" fill="currentColor" fill-opacity="0.12"/><path d="M50 50 V18"/><circle cx="50" cy="13" r="7.5"/><path d="M42.5 13 H57.5"/><circle cx="50" cy="50" r="3.2" fill="currentColor" stroke="none" opacity="0.85"/></g>' },
+  { key:'tank', label:'储罐', w:80, h:100, color:WARN, bbox:[22,15,56,82], value:'液位 86%', name:'1# 储罐',
+    g:'<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="50" cy="24" rx="28" ry="9" fill="currentColor" fill-opacity="0.08"/><path d="M22 24 V72"/><path d="M78 24 V72"/><ellipse cx="50" cy="72" rx="28" ry="9" fill="currentColor" fill-opacity="0.12"/><path d="M24 58 H76" stroke-dasharray="4 3" opacity="0.45"/><path d="M50 81 V92"/><rect x="44" y="92" width="12" height="5" rx="1.5" fill="currentColor" fill-opacity="0.2"/></g>' },
+  { key:'pump', label:'泵', w:80, h:80, color:RUN, bbox:[18,21,63,60], value:'1480 r/min', name:'1# 给水泵',
+    g:'<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="52" cy="52" r="28" fill="currentColor" fill-opacity="0.1"/><path d="M52 52 C42 42 38 36 48 32 C58 30 64 38 52 52 Z" fill="currentColor" fill-opacity="0.35" stroke="currentColor" stroke-width="2"/><path d="M52 52 C62 42 66 36 56 32" stroke="currentColor" stroke-width="2" opacity="0.55"/><path d="M18 52 H42"/><path d="M36 47 L42 52 L36 57"/><path d="M52 22 V40"/><path d="M47 27 L52 21 L57 27"/><circle cx="52" cy="52" r="3" fill="currentColor" stroke="none"/></g>' },
+  { key:'motor', label:'电机', w:80, h:70, color:RUN, bbox:[25,15,70,55], value:'62.4 A', name:'1# 电机',
+    g:'<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="25" y="30" width="50" height="40" rx="5"/><line x1="75" y1="50" x2="90" y2="50"/><circle cx="90" cy="50" r="5"/><rect x="35" y="20" width="20" height="10"/><line x1="40" y1="20" x2="40" y2="15"/><line x1="50" y1="20" x2="50" y2="15"/><line x1="45" y1="20" x2="45" y2="15"/><text x="50" y="55" text-anchor="middle" font-size="14" font-weight="bold" fill="currentColor">M</text></g>' },
+  { key:'sediment', label:'沉淀池', w:85, h:80, color:RUN, bbox:[14,35,72,49], value:'浊度 12', name:'1# 沉淀池',
+    g:'<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20,35 L20,60 Q20,80 50,84 Q80,80 80,60 L80,35"/><line x1="14" y1="35" x2="86" y2="35"/><line x1="22" y1="50" x2="78" y2="50" stroke-dasharray="5,3" opacity="0.6"/><line x1="50" y1="35" x2="50" y2="68"/><line x1="34" y1="68" x2="66" y2="68"/></g>' },
+  { key:'display', label:'数值显示', w:120, h:50, color:IDLE, bbox:[10,30,80,40], value:'1.1 km', name:'皮带里程', display:true,
+    g:'<g fill="none" stroke="currentColor" stroke-width="3"><rect x="10" y="30" width="80" height="40" rx="4"/><text x="50" y="58" text-anchor="middle" font-size="24" font-family="monospace" fill="currentColor" stroke="none">8.8</text></g>' }
+];
+
+const S={ adapt:'aspect', name:false, value:false, view:'2d', scale:1 };
+
+function rgba(hex,a){
+  const c=hex.replace('#',''); const n=parseInt(c.length===3?c.split('').map(x=>x+x).join(''):c,16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+}
+function shade(hex,amount){
+  const n=parseInt(hex.replace('#',''),16);
+  const f=v=>Math.max(0,Math.min(255,Math.round(v*(1+amount))));
+  return '#'+[f((n>>16)&255),f((n>>8)&255),f(n&255)].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function dropSize(c){ return { w:Math.round(Math.max(c.w*1.6,110)), h:Math.round(Math.max(c.h*1.6,80)) }; }
+
+/* 现状几何：复刻 getLabelHeight + getIconImageConfig 的正方形等比（含卡片、填充名称条、数值胶囊） */
+function legacyGeom(c,s,W,H){
+  const pure = !s.name && !s.value;
+  const labelH = pure ? 0 : (c.display ? 16 : (s.value ? 26 : 16));
+  const boxW = Math.max(W-12,4), boxH = Math.max(H-labelH-10,4);
+  const side = Math.min(boxW/100, boxH/100)*100;
+  return { side, ix:(W-side)/2, iy:4+(boxH-side)/2, labelH, pure };
+}
+/* 建议几何：分区高度随元素缩放（带上下限），空间不足自动降级给图形让位 */
+function aspectGeom(c,s,W,H){
+  const pad=6;
+  const clamp=function(v,a,b){ return Math.max(a,Math.min(b,v)); };
+  let showName=s.name, showValue=s.value;
+  if(H<34){ showName=false; showValue=false; }
+  if(H<46){ showValue=false; }
+  let top = showValue ? clamp(Math.round(H*0.24),14,22) : 0;
+  let bottom = showName ? clamp(Math.round(H*0.2),14,18) : 0;
+  let areaH = H-top-bottom-pad*2;
+  if(areaH<16 && showValue){ showValue=false; top=0; areaH=H-bottom-pad*2; }
+  if(areaH<16 && showName){ showName=false; bottom=0; areaH=H-pad*2; }
+  const areaW = Math.max(W-pad*2,4); areaH = Math.max(areaH,4);
+  const [bx,by,bw,bh]=c.bbox;
+  const k = Math.min(areaW/bw, areaH/bh);
+  const iw = bw*k, ih = bh*k;
+  return { iw, ih, ix:pad+(areaW-iw)/2, iy:top+pad+(areaH-ih)/2, top, bottom, showName, showValue };
+}
+
+function elementHTML(c,s,W,H,selected){
+  const color = c.color;
+  const out=[];
+  const depth = Math.min(10, Math.max(5, W*0.06));
+
+  if(s.view==='25d'){
+    out.push('<div class="shadow25" style="left:'+(depth*0.35)+'px;top:'+((H+depth*0.45)-8)+'px;width:'+(W+8)+'px;height:16px"></div>');
+    out.push('<div class="side25" style="left:'+(depth*0.55)+'px;top:'+(depth*0.55)+'px;width:'+W+'px;height:'+H+'px;background:'+shade(color,-0.35)+';opacity:.95"></div>');
+  }
+
+  if(s.adapt==='square'){
+    const G = legacyGeom(c,s,W,H);
+    if(!G.pure){
+      out.push('<div class="shadow"></div>');
+      out.push('<div class="card" style="border:1px solid '+color+'"></div>');
+    }
+    out.push('<svg class="icon" viewBox="0 0 100 100" width="'+G.side+'" height="'+G.side+'" style="left:'+G.ix+'px;top:'+G.iy+'px" xmlns="http://www.w3.org/2000/svg">'+c.g+'</svg>');
+    if(s.view==='25d') out.push('<div class="glow" style="width:'+Math.max(W-8,1)+'px;height:'+Math.min(8,H*0.18)+'px"></div>');
+    if(!G.pure){
+      if(c.display){
+        out.push('<div class="bigval" style="font-size:'+Math.max(11,Math.min(18,H*0.2))+'px;top:'+((H-G.labelH)/2-9)+'px">'+c.value+'</div>');
+      } else if(s.value){
+        const pw = Math.min(W-8, Math.max(36,('流量:'+c.value).length*8+14));
+        out.push('<div class="pill" style="left:'+((W-pw)/2)+'px;top:6px;width:'+pw+'px;height:18px;border-radius:9px;background:'+rgba(RUN,.12)+';border:1px solid '+rgba(RUN,.35)+';color:#8fe6d3">'+c.value+'</div>');
+      }
+      if(s.name){
+        out.push('<div class="namebar" style="height:'+G.labelH+'px;border-radius:0 0 10px 10px;background:rgba(8,12,24,.72);color:#dce8ee">'+c.name+'</div>');
+      }
+    }
+  } else {
+    const G = aspectGeom(c,s,W,H);
+    const skipIcon = c.display && G.showValue;
+    if(!skipIcon){
+      out.push('<svg class="icon" viewBox="'+c.bbox.join(' ')+'" width="'+G.iw+'" height="'+G.ih+'" style="left:'+G.ix+'px;top:'+G.iy+'px" xmlns="http://www.w3.org/2000/svg">'+c.g+'</svg>');
+    }
+    if(s.view==='25d') out.push('<div class="glow" style="width:'+Math.max(W-8,1)+'px;height:'+Math.min(8,H*0.18)+'px"></div>');
+    if(G.showValue){
+      if(c.display){
+        out.push('<div class="bigval" style="font-size:'+Math.max(12,Math.min(20,H*0.26))+'px;top:'+(G.top+(H-G.top-G.bottom)/2-11)+'px">'+c.value+'</div>');
+      } else {
+        out.push('<div class="pval" style="height:'+G.top+'px;line-height:'+G.top+'px">'+c.value+'</div>');
+      }
+    }
+    if(G.showName){
+      out.push('<div class="pname" style="height:'+G.bottom+'px;line-height:'+G.bottom+'px">'+c.name+'</div>');
+    }
+  }
+
+  if(selected){
+    out.push('<div class="selbox" style="inset:-3px"></div>');
+    [[-7,-7],[W/2-4,-7],[W-1,-7],[-7,H/2-4],[W-1,H/2-4],[-7,H-1],[W/2-4,H-1],[W-1,H-1]].forEach(function(p){
+      out.push('<div class="anchor" style="left:'+p[0]+'px;top:'+p[1]+'px"></div>');
+    });
+  }
+  return '<div class="el" style="color:'+color+'">'+out.join('')+'</div>';
+}
+
+function slotHTML(c,s,caption,selected){
+  const d = dropSize(c);
+  const W = Math.round(d.w*s.scale), H = Math.round(d.h*s.scale);
+  const cap = caption!==undefined ? caption : (c.label+'  '+d.w+'×'+d.h);
+  return '<div class="slot" style="width:'+W+'px;height:'+H+'px;margin-top:22px">'
+       +   '<span class="cap">'+cap+'</span>'
+       +   elementHTML(c,s,W,H,selected)
+       + '</div>';
+}
+function pick(k){ return COMPS.filter(function(x){return x.key===k})[0]; }
+
+function render(){
+  const b=document.getElementById('baseline'); b.innerHTML='';
+  ['shearer','turbine','valve','tank'].forEach(function(k){
+    const c=pick(k);
+    const cur=Object.assign({},S,{adapt:'square',name:true,value:true,view:'2d',scale:1});
+    const rec=Object.assign({},S,{adapt:'aspect',name:true,value:true,view:'2d',scale:1});
+    b.insertAdjacentHTML('beforeend','<div class="pair"><span class="tag bad">现状 · 卡片 + 名称填充条</span>'+slotHTML(c,cur)+'</div>'
+      + '<div class="pair"><span class="tag good">建议 · 只有设备</span>'+slotHTML(c,rec)+'</div>');
+  });
+
+  const m=document.getElementById('matrix'); m.innerHTML='';
+  COMPS.forEach(function(c){ m.insertAdjacentHTML('beforeend', slotHTML(c,S)); });
+
+  const st=document.getElementById('states'); st.innerHTML='';
+  const pump=pick('pump');
+  [['运行',RUN],['停机',OFF],['过载报警',WARN]].forEach(function(p){
+    const c=Object.assign({},pump,{color:p[1],name:'1# 给水泵',
+      value:p[0]==='停机'?'0 r/min':(p[0]==='过载报警'?'92.4 A':'1480 r/min')});
+    const s=Object.assign({},S,{adapt:'aspect',name:true,value:true,view:'2d',scale:1});
+    st.insertAdjacentHTML('beforeend','<div class="pair"><span class="tag good">'+p[0]+'</span>'+slotHTML(c,s,'除线色外不做任何处理')+'</div>');
+  });
+
+  const tx=document.getElementById('texts'); tx.innerHTML='';
+  const sh=pick('shearer');
+  tx.insertAdjacentHTML('beforeend','<div class="pair"><span class="tag good">只有设备</span>'+slotHTML(sh,Object.assign({},S,{name:false,value:false,scale:1}))+'</div>');
+  tx.insertAdjacentHTML('beforeend','<div class="pair"><span class="tag good">+ 位号（素文本）</span>'+slotHTML(sh,Object.assign({},S,{name:true,value:false,scale:1}))+'</div>');
+  tx.insertAdjacentHTML('beforeend','<div class="pair"><span class="tag good">+ 位号 + 数值</span>'+slotHTML(sh,Object.assign({},S,{name:true,value:true,scale:1}))+'</div>');
+
+  const v=document.getElementById('views'); v.innerHTML='';
+  [['shearer','2.5D',false],['shearer','选中态',true],['tank','2.5D',false],['tank','选中态',true]].forEach(function(t){
+    const c=pick(t[0]);
+    const s=Object.assign({},S,{adapt:'aspect',name:true,value:false,view:t[1]==='2.5D'?'25d':'2d',scale:1});
+    v.insertAdjacentHTML('beforeend','<div class="pair"><span class="tag '+(t[1]==='2.5D'?'bad">2.5D（侧面填充＝底色块）':'good">选中（变换器绘制，与描边无关）')+'</span>'+slotHTML(c,s,undefined,t[2])+'</div>');
+  });
+  [0.6,0.8].forEach(function(sc){
+    const s=Object.assign({},S,{name:true,value:true,scale:sc});
+    v.insertAdjacentHTML('beforeend','<div class="pair"><span class="tag good">缩放 '+(sc*100)+'%</span>'+slotHTML(pick('shearer'),s)+'</div>');
+  });
+}
+
+document.querySelectorAll('.seg').forEach(function(seg){
+  seg.addEventListener('click',function(ev){
+    const btn=ev.target.closest('button'); if(!btn) return;
+    seg.querySelectorAll('button').forEach(function(b){ b.classList.remove('on'); });
+    btn.classList.add('on');
+    const key=seg.dataset.key;
+    if(key==='name'||key==='value'){ S[key]=btn.dataset.val==='1'; }
+    else { S[key]=btn.dataset.val; }
+    render();
+  });
+});
+document.getElementById('scale').addEventListener('input',function(ev){
+  S.scale=Number(ev.target.value)/100;
+  document.getElementById('scaleOut').textContent=S.scale.toFixed(1)+'×';
+  render();
+});
+render();
+</script>
+</body>
+</html>

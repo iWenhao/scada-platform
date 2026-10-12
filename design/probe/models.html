@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>3D 设备模型核对</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #0b1220;
+        color: #dce8ee;
+        font: 13px/1.6 "Microsoft YaHei", sans-serif;
+      }
+      h1 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+      p.lead {
+        margin: 0 0 14px;
+        color: rgba(220, 232, 238, 0.7);
+      }
+      #grid {
+        display: grid;
+        grid-template-columns: repeat(3, 420px);
+        gap: 14px;
+      }
+      .card {
+        border: 1px solid rgba(120, 160, 180, 0.25);
+        border-radius: 8px;
+        overflow: hidden;
+        background: #0b1220;
+      }
+      .card img {
+        display: block;
+      }
+      .cap {
+        padding: 6px 10px 8px;
+        border-top: 1px solid rgba(120, 160, 180, 0.18);
+      }
+      .cap b {
+        font-weight: 600;
+        color: #b8fff0;
+      }
+      .cap span {
+        display: block;
+        color: rgba(220, 232, 238, 0.6);
+        font-size: 12px;
+        font-family: Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>3D 设备模型核对（真实 assemblies / deviceModels + 真实 WebGL）</h1>
+    <p class="lead">
+      前 6 张是默认的 elevation 口径（元素宽=设备宽、元素高=设备高，3D 轮廓与 2D 符号同视角）；中间 4 张是 plan 口径对照；最后 2 张是未建模组件的保底体块。
+    </p>
+    <div id="grid"></div>
+    <script src="./models-bundle.js"></script>
+  </body>
+</html>
