@@ -13,6 +13,7 @@ export type ComponentGroup =
   | 'wash'
   | 'thermal'
   | 'chart'
+  | 'deco'
   | 'custom'
 
 /**

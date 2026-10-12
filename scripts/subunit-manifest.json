@@ -220,6 +220,28 @@
         { "key": "coal_drive_head", "src": "tab2/zongcai/real/机头部.svg", "name": "机头部", "w": 191, "h": 202 },
         { "key": "coal_drive_tail", "src": "tab2/zongcai/real/机尾部.svg", "name": "机尾部", "w": 118, "h": 88 }
       ]
+    },
+    "deco": {
+      "label": "装饰组件",
+      "group": "deco",
+      "sourceDir": "desc",
+      "outFile": "src/industrial/deco/icons.generated.ts",
+      "exportName": "decoIcons",
+      "metaExportName": "decoMeta",
+      "metaTypeName": "DecoIconMeta",
+      "_note": "装饰组件 + 箭头。源配置里箭头列在「基础组件」下，但它与装饰同属贴图类素材，故并入本组。导航/横管/竖管三项源文件是 PNG（_desc00.png 118KB、hg.png、sg.png），未纳入——PNG 需另行托管，且横管/竖管的 src 在源配置里都错指到 _desc09.svg",
+      "entries": [
+        { "key": "deco_arrow", "src": "base_arrow.svg", "name": "箭头", "w": 83, "h": 46 },
+        { "key": "deco_button", "src": "desc/real/_desc01.svg", "name": "按钮", "w": 80, "h": 27 },
+        { "key": "deco_bg_1", "src": "desc/real/_desc02.svg", "name": "背景一", "w": 188, "h": 187 },
+        { "key": "deco_bg_2", "src": "desc/real/_desc03.svg", "name": "背景2", "w": 197, "h": 187 },
+        { "key": "deco_title_1", "src": "desc/real/_desc04.svg", "name": "标题一", "w": 138, "h": 24 },
+        { "key": "deco_title_2", "src": "desc/real/_desc05.svg", "name": "标题二", "w": 115, "h": 20 },
+        { "key": "deco_straight", "src": "desc/real/_desc06.svg", "name": "直通", "w": 22, "h": 10 },
+        { "key": "deco_elbow", "src": "desc/real/_desc07.svg", "name": "弯通", "w": 20, "h": 20 },
+        { "key": "deco_tee", "src": "desc/real/_desc08.svg", "name": "三通", "w": 31, "h": 20 },
+        { "key": "deco_cross", "src": "desc/real/_desc09.svg", "name": "四通", "w": 31, "h": 30 }
+      ]
     }
   }
 }

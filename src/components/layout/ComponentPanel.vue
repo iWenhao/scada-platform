@@ -128,6 +128,7 @@ import { transportComponents } from '@/industrial/transport'
 import { ventilationComponents } from '@/industrial/ventilation'
 import { washComponents } from '@/industrial/wash'
 import { thermalComponents } from '@/industrial/thermal'
+import { decoComponents } from '@/industrial/deco'
 import { chartComponents } from '@/industrial/chart'
 import { loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
 import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/templateLibrary'
@@ -148,6 +149,7 @@ registerComponents([
   ...ventilationComponents,
   ...washComponents,
   ...thermalComponents,
+  ...decoComponents,
   ...chartComponents,
 ])
 
@@ -174,7 +176,7 @@ const indicatorStyle = computed(() => {
 })
 
 /** 基础 Tab 覆盖的注册分组 */
-const BASIC_GROUPS: ComponentGroup[] = ['basic', 'general', 'pipeline', 'electrical', 'chart']
+const BASIC_GROUPS: ComponentGroup[] = ['basic', 'general', 'pipeline', 'electrical', 'deco', 'chart']
 /** 行业 Tab 覆盖的注册分组 */
 const INDUSTRY_GROUPS: ComponentGroup[] = [
   'coal',
@@ -233,6 +235,7 @@ const groupNames: Record<string, string> = {
   chemical: '化工组件',
   water: '水处理组件',
   chart: '图表组件',
+  deco: '装饰组件',
   custom: '自定义组件',
 }
 

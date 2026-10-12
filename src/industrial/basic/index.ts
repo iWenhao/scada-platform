@@ -1,5 +1,6 @@
 import type { ComponentDefinition } from '@/types/scada'
 import { ImageDefinition } from './image'
+import { basicShapeComponents } from './shapes'
 
 export const ValveDefinition: ComponentDefinition = {
   type: 'valve',
@@ -316,4 +317,7 @@ export const basicComponents: ComponentDefinition[] = [
   SetpointDefinition,
   DisplayDefinition,
   ImageDefinition,
+  // 基础图形 7 个：矩形/圆/三角/横线/竖线/虚横线/虚竖线（源产品只给了 PNG 缩略图，
+  // 这里手绘成 currentColor 线条稿，理由见 shapes.ts 头部注释）
+  ...basicShapeComponents,
 ]
