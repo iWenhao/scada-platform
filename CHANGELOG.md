@@ -19,6 +19,13 @@
 
 ### 修复
 
+- 修复导入的组件在左侧组件库里显示大小失控：同一批设备有的撑爆格子、有的只剩一条细缝
+  - 根因是**图元根标签带着源文件的固有像素尺寸**。组件库把 `ComponentDefinition.icon` 用 `v-html` 直接注入一个 30×30 的格子（`ComponentPanel.vue` 的 `.component-icon`），手写图元一律只写 `viewBox`、不带宽高，SVG 便按容器缩放；而素材文件的根标签是 `width="937px" height="367px"`（主通风风道）、`width="610px" height="232px"`（采煤机）、`width="28px" height="36px"`（火）这类原尺寸值，注入后各按自己的大小渲染，30×30 的格子自然失控。**批次一用 `icon/` 缩略图时全是 40×40，所以没暴露；批次二改取 `real/` 原始比例后集中爆发**
+  - 修法两路并举：① 导入时去掉根 `<svg>` 的 `width`/`height`（规范化第 4 步，新增 `stripIntrinsicSize()`），只留 `viewBox`——这是根因修复，121 个图元已全部重新生成；② 在 `component-panel.scss` 补 `.component-icon svg { width: 100%; height: 100% }` 作为兜底，将来任何图标再带固有尺寸也不会撑爆格子
+  - 去掉固有尺寸是安全的，已逐项确认消费方：画布渲染走 `iconBounds.buildTightSvg()`（它本来就会先清掉再按内容包围盒重写 viewBox/width/height）；`getIconBounds()` / `elementMotion.iconFrameOf()` 用 `getBBox()`，与宽高属性无关；核对页自己实现了同一套收紧逻辑
+  - `validateSvg()` 新增两条自检（根标签不得残留 width/height），**加上当天就抓到一次真实回归**：初版实现用 `^<svg` 锚定行首，而去掉 XML 声明后字符串开头残留 `\r\n`，锚点全部失效——121 个图元一个都没剥掉。已改为匹配第一个 `<svg>` 标签（这些素材没有嵌套 `<svg>`）
+  - 实测：`npx vitest run` 48 文件 / 408 用例全通过；`pnpm build`（vue-tsc + vite build）通过；ESLint 对改动文件 0 error 0 warning；121 个根标签逐一核对无 `width`/`height`、`viewBox` 全部保留
+
 - 修复设备图标首次渲染不显示：拖入画布后图形为空，要等下一次无关重绘（例如再拖一个元素）才补画出来
   - 根因在 `useElementVisuals` 的 `iconVersion`：`getIconImage` 是**异步解码**的，首次求值必然拿不到 `image` 而返回 `null`（`v-image` 节点压根没创建），设计意图是 `onLoad` 回调递增 `iconVersion` 触发重绘。但这个 ref **只写不读**——全库检索只有定义与两处写入，没有任何读取点，也不在 composable 的返回对象里。Vue 的渲染依赖是在「渲染期间读 ref」时登记的，只写不读等于没写，于是「解码完成 → 重画」这条信号发到了一个没人订阅的 ref 上
   - 不是本次新增组件引入的问题：链路是共享的，所有设备图元的**首帧**都受影响；只是小图标（几百字节）常在本次渲染结束前就已 `complete`，而被导入的图元要按 512px 长边光栅化、解码更慢，窗口期大到肉眼必然看到

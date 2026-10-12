@@ -7,12 +7,14 @@
  * 产品导出的（Sketch 风格：带 XML 声明、`<title>`、`id`、隐形整幅底矩形、统一主题色
  * `#57A9FB`），直接内联会有三个问题：颜色不随状态变、隐形底矩形污染包围盒测量、体积偏大。
  *
- * 规范化四步：
+ * 规范化五步：
  *   1. 去掉 XML 声明 / `<title>` / `<desc>` / `id` / `version` / `xmlns:xlink`——渲染无用；
  *   2. 去掉「带 opacity 但无任何可见 fill/stroke」的整幅底矩形——它不可见，却会进入
  *      `getBBox()`，让 buildTightSvg 拿到整幅方形包围盒，内容收紧整体失效；
  *   3. 主题色 → `currentColor`——不替换则状态变色对它无效（会恒定显示素材自带的蓝色）；
- *   4. 压成单行，减小内联体积。
+ *   4. 去掉根 `<svg>` 上的固有 `width`/`height`——素材按原大小渲染会把组件库 30×30 的
+ *      格子撑爆（详见 stripIntrinsicSize 的注释）；
+ *   5. 压成单行，减小内联体积。
  *
  * 刻意不处理 `transform`：素材里成对出现的 `translate(-x,-y)` / `translate(x,y)` 互相
  * 抵消，而残留偏移会被 `getBBox()` 正确计入并由 buildTightSvg 重写进 viewBox——手工清
@@ -75,6 +77,30 @@ export function stripInvisiblePlates(svg) {
     })
 }
 
+/**
+ * 去掉根 `<svg>` 上的固有像素尺寸（width/height），只留 viewBox。
+ *
+ * 为什么必须去：组件库是把 `ComponentDefinition.icon` 用 `v-html` 直接注入一个
+ * 30×30 的格子里（见 ComponentPanel.vue）。手写图元一律只有 `viewBox`、不带宽高，
+ * SVG 便按容器缩放；而素材文件的根标签带着源文件的固有尺寸（`width="937px"
+ * height="367px"`、`width="28px" height="36px"` 等），注入后各按自己的大小渲染，
+ * 30×30 的格子立刻失控——这是「导入组件在左侧库显示大小不一」的根因。
+ *
+ * 去掉是安全的：其余消费方都不看这两个属性——
+ * - 画布渲染走 `iconBounds.buildTightSvg()`，它本来就会先清掉再按内容包围盒重写；
+ * - `getIconBounds()` / `iconFrameOf()` 用 getBBox()，与宽高属性无关；
+ * - 核对页自己实现了同一套收紧逻辑。
+ */
+export function stripIntrinsicSize(svg) {
+  // 不能锚定 ^：去掉 XML 声明后字符串开头会残留 \r\n，行首锚点直接失效
+  //（实测 121 个图元一个都没剥掉，而 v-html 照旧按固有尺寸渲染）。
+  // 取第一个 <svg> 标签即根标签——这些素材里没有嵌套 <svg>。
+  const m = svg.match(/<svg\b[^>]*>/i)
+  if (!m) return svg
+  const open = m[0].replace(/\s+width="[^"]*"/i, '').replace(/\s+height="[^"]*"/i, '')
+  return open === m[0] ? svg : svg.replace(m[0], open)
+}
+
 /** 规范化单个素材 SVG（见文件头注释的四步） */
 export function normalizeSvg(raw) {
   let s = raw
@@ -85,6 +111,7 @@ export function normalizeSvg(raw) {
   s = s.replace(/\s+version="[^"]*"/g, '')
   s = s.replace(/\s+xmlns:xlink="[^"]*"/g, '')
   s = stripInvisiblePlates(s)
+  s = stripIntrinsicSize(s)
   s = s.split(THEME_COLOR).join('currentColor')
   return s.replace(/\s+/g, ' ').replace(/\s+</g, '<').replace(/>\s+/g, '>').trim()
 }
@@ -102,6 +129,9 @@ export function validateSvg(svg, raw = '') {
     issues.push(`rect tags unbalanced open=${open} close=${close} self=${selfClosed}`)
   }
   if (/<style/i.test(svg)) issues.push('contains <style> (may override recoloring)')
+  const root = svg.match(/<svg\b[^>]*>/i)?.[0] ?? ''
+  if (/\swidth="/i.test(root)) issues.push('root <svg> still carries width')
+  if (/\sheight="/i.test(root)) issues.push('root <svg> still carries height')
   return issues
 }
 
