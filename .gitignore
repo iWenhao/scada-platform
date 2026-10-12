@@ -32,6 +32,9 @@ server/data/
 .tmp-*
 *.log
 
+# Windows 下 bash 的 `> nul` 会生成一个名为 nul 的真实文件，而不是丢弃输出
+nul
+
 # 浏览器自动化本地缓存
 .playwright-cli/
 
