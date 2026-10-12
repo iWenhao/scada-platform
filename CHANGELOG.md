@@ -8,6 +8,15 @@
 
 ## [Unreleased]
 
+### 功能
+
+- 日期 / 时间挂件支持显示格式预设：日期时间组合、24/12 小时制、月日 + 农历（10 项预设）
+  - 动因：`date` 写死 `YYYY-MM-DD`、`clock` 写死 `HH:mm:ss`，单行「日期 + 时间」只能放两个组件并排手调对齐；12 小时制（英文界面）与「月日 + 农历」（班次/节庆大屏）无解。**刻意做成一个 `format` 预设下拉而非 8 个显示字段开关**——开关组合出 256 种状态、大量无意义，工业组态软件（组态王/MCGS/WinCC）的通行做法是格式预设
+  - 新增 `src/industrial/widget/format.ts`：预设枚举（id 写进工程数据，只增不改）+ `formatDateTime()`（12 小时制强制带上午/下午标识，否则 07:15 与 19:15 无法区分）+ `nextTickDelay()`（走针频率按最小显示单位对齐：秒级 1s、分级对齐分钟跳变、日级最多 30s 补刷一次——原先 `date` 组件每秒重算纯属浪费）+ 非法 id 回退缺省（旧工程无 `format` 字段自动回落原行为，兼容零迁移）
+  - 农历用**自实现数据表**而非 `Intl`：ICU 农历输出文案随版本漂移，small-icu 环境会静默回退成公历不报错。`src/utils/lunarTable.ts`（1900–2100，201 项，由一次性脚本从 Node 内置 ICU 离线导出后固化，运行时零依赖；脚本用完已删）+ `src/utils/lunar.ts` 换算（闰月/大小月/冬月腊月写法），越界返回空由调用方回退公历
+  - `WidgetElement.vue`：`clockText` 接入格式化函数；固定 `setInterval(1000)` 改为按 `nextTickDelay` 的 `setTimeout` 链，`format` 切换立即重排；长格式加 `white-space: nowrap` 防换行撑乱布局
+  - 实测：新增 `lunar.test.ts` 9 用例（含 1900–2100 约 1200 个抽样日与 ICU 中文日历逐日比对、闰月年/边界/越界）与 `format.test.ts` 10 用例全通过；`vue-tsc --noEmit` 与 `pnpm build` 通过
+
 ### 优化
 
 - 移除画布设备下方的接触阴影（阀门 / 泵 / 储罐 / 沉淀池 / 电机，共 5 处）

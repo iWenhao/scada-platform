@@ -96,9 +96,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
 import type { ComponentInstance } from '@/types/scada'
+import { formatDateTime, nextTickDelay, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT } from './format'
 
 /**
  * HTML 挂件层：图表之外的那些需要 DOM 的组件（进度条/报表/网格图/表格/
@@ -291,13 +292,12 @@ const filteredRows = computed(() => {
 const now = ref(new Date())
 let timer: number | null = null
 
-const clockText = computed(() => {
-  const d = now.value
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return type.value === 'date'
-    ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-    : `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-})
+/** 格式缺省值与组件语义对应：日期组件缺省只显示日期，时间组件缺省只显示时刻 */
+const formatId = computed(() =>
+  prop('format', type.value === 'date' ? DEFAULT_DATE_FORMAT : DEFAULT_CLOCK_FORMAT),
+)
+
+const clockText = computed(() => formatDateTime(now.value, formatId.value))
 
 const clockStyle = computed(() => ({
   fontSize: `${num(prop('fontSize', 24), 24) * z.value}px`,
@@ -308,6 +308,8 @@ const clockStyle = computed(() => ({
   justifyContent: 'center',
   height: '100%',
   letterSpacing: `${1 * z.value}px`,
+  // 长格式（日期时间/带农历）超出默认宽度时裁剪而不是换行，画面布局不被撑乱
+  whiteSpace: 'nowrap',
 }))
 
 /* ---------- 视频 / 网页 / 超文本 ---------- */
@@ -333,18 +335,33 @@ function formatValue(v: unknown): string {
   return d > 0 ? n.toFixed(d) : String(Math.round(n))
 }
 
+/** 按格式的最小显示单位对齐下一次刷新：秒级 1s、分级到分钟跳变、日级最多 30s 补刷 */
+function scheduleTick() {
+  timer = window.setTimeout(() => {
+    now.value = new Date()
+    scheduleTick()
+  }, nextTickDelay(formatId.value, now.value))
+}
+
+function stopTick() {
+  if (timer !== null) window.clearTimeout(timer)
+  timer = null
+}
+
 onMounted(() => {
   // 日期/时间才需要走针；其余组件起定时器纯属浪费
   if (type.value !== 'date' && type.value !== 'clock') return
-  timer = window.setInterval(() => {
-    now.value = new Date()
-  }, 1000)
+  scheduleTick()
 })
 
-onUnmounted(() => {
-  if (timer !== null) window.clearInterval(timer)
-  timer = null
+// 格式切换后旧的对齐点可能不再是合适的刷新节奏，立即重排
+watch(formatId, () => {
+  if (timer === null) return
+  stopTick()
+  scheduleTick()
 })
+
+onUnmounted(stopTick)
 </script>
 
 <style scoped lang="scss">

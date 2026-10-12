@@ -1,4 +1,5 @@
 import type { ComponentDefinition, PropertyDefinition } from '@/types/scada'
+import { CLOCK_FORMAT_OPTIONS, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT } from './format'
 
 /**
  * HTML 挂件类组件定义：进度条 / 报表 / 网格图 / 表格 / 日期 / 时间 /
@@ -141,7 +142,17 @@ export const DateDefinition = widgetDef(
   ),
   180,
   70,
-  [fontSizeProp(24)],
+  [
+    fontSizeProp(24),
+    {
+      key: 'format',
+      label: '显示格式',
+      type: 'select',
+      default: DEFAULT_DATE_FORMAT,
+      options: CLOCK_FORMAT_OPTIONS,
+      group: '显示',
+    },
+  ],
 )
 
 export const ClockDefinition = widgetDef(
@@ -151,7 +162,17 @@ export const ClockDefinition = widgetDef(
   svg('<circle cx="50" cy="50" r="34" /><line x1="50" y1="50" x2="50" y2="28" /><line x1="50" y1="50" x2="66" y2="58" />'),
   180,
   70,
-  [fontSizeProp(24)],
+  [
+    fontSizeProp(24),
+    {
+      key: 'format',
+      label: '显示格式',
+      type: 'select',
+      default: DEFAULT_CLOCK_FORMAT,
+      options: CLOCK_FORMAT_OPTIONS,
+      group: '显示',
+    },
+  ],
 )
 
 export const VideoDefinition = widgetDef(
