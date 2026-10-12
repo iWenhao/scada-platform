@@ -22,6 +22,9 @@ import { createServer } from 'node:http'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+// 启动横幅：与前端（浏览器控制台 / pnpm dev 终端）共用同一份布局，本文件只提供后端自身的信息。
+// 注意：这让 server/ 依赖仓库根的 shared/ 目录，分发时要连 shared 一起带上，不能只拷 server/。
+import { buildBannerModel, renderAnsi, renderPlain, supportsColor } from '../shared/consoleBanner.mjs'
 import { createAuthStore, roleAtLeast } from './auth.mjs'
 import {
   loadNotifyConfig,
@@ -364,14 +367,41 @@ const server = createServer(async (req, res) => {
 
 await auth.init()
 
-server.listen(PORT, () => {
+/**
+ * 打印启动横幅：标明这是「存储后端」，与 `pnpm dev` 的前端横幅区分开——
+ * 两者可能同机并行开两个终端，靠副标题「· 后端」与提示符 node@ 就能一眼分辨。
+ * 上色规则见 shared/consoleBanner.mjs 的 supportsColor（传统 conhost 会把 ANSI 当正文，故降级无色）。
+ */
+function printStartupBanner() {
   const authMode = AUTH_TOKEN ? '会话登录 + 服务主密钥' : '会话登录（无主密钥）'
-  // 启动横幅：与 Vite dev server 的终端横幅同款样式，便于区分两个进程的输出
-  const line = '─'.repeat(56)
-  console.log(`\n${line}\n  ${pkg.name} v${pkg.version} · 存储后端\n${line}`)
-  console.log(
-    `[scada-server] 已启动: http://localhost:${PORT} (数据目录 ${DATA_DIR}, CORS ${CORS_ORIGIN === '*' ? '*' : CORS_ORIGIN}, ${authMode}, 体积上限 ${MAX_BODY_BYTES}B, 历史保留 ${RETENTION_DAYS} 天)`
-  )
+  // 数据目录显示相对 server/ 的路径：绝对路径带用户目录太长会挤爆横幅；
+  // 若数据目录在 server/ 之外（自定义 DATA_DIR），就直接显示相对路径，不再补 server/ 前缀
+  const relDataDir = path.relative(__dirname, DATA_DIR) || '.'
+  const dataDir = relDataDir.startsWith('..') ? relDataDir : `server/${relDataDir}`
+  const pad = (label) => label.padEnd(10, ' ')
+  const model = buildBannerModel({
+    title: pkg.name,
+    subtitle: '零依赖键值存储服务 · 后端 Backend',
+    version: pkg.version,
+    details: [
+      `${pad('Role:')}存储 API · 前端界面请另开 pnpm dev`,
+      `${pad('Listen:')}http://localhost:${PORT}`,
+      `${pad('Data:')}${dataDir} (JSON)`,
+      `${pad('CORS:')}${CORS_ORIGIN === '*' ? '*' : CORS_ORIGIN}`,
+      `${pad('Body:')}${(MAX_BODY_BYTES / 1024 / 1024).toFixed(0)} MB`,
+      `${pad('History:')}${RETENTION_DAYS} 天`,
+      `${pad('Auth:')}${authMode}`,
+      `${pad('Health:')}GET /api/health`,
+    ],
+    prompt: 'node',
+  })
+  console.log(`\n${supportsColor() ? renderAnsi(model) : renderPlain(model)}\n`)
+}
+
+server.listen(PORT, () => {
+  printStartupBanner()
+  // 配置细节已进横幅，这里只留一行启动确认，便于 grep 与日志采集
+  console.log(`[scada-server] 已启动: http://localhost:${PORT}`)
   cleanupExpiredShards(HISTORY_DIR, RETENTION_DAYS).catch(e => console.warn('[scada-server] 历史清理失败', e))
   setInterval(() => {
     cleanupExpiredShards(HISTORY_DIR, RETENTION_DAYS).catch(e => console.warn('[scada-server] 历史清理失败', e))

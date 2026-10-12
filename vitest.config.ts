@@ -7,8 +7,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    // examples/ 下的测试用于校验示例工程文件的结构没和实现漂移
-    include: ['src/**/*.{test,spec}.{js,ts}', 'examples/**/*.test.ts'],
+    // examples/ 下的测试用于校验示例工程文件的结构没和实现漂移；
+    // shared/ 是前后端共用的纯逻辑模块（启动横幅），单测与被测文件同目录
+    include: ['src/**/*.{test,spec}.{js,ts}', 'shared/**/*.{test,spec}.{js,ts}', 'examples/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
