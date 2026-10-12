@@ -18,7 +18,6 @@ import {
  */
 export interface ProjectPersistenceState {
   projectName: Ref<string>
-  projectDescription: Ref<string>
   lastSaveTime: Ref<number | null>
   hasUnsavedChanges: Ref<boolean>
 }

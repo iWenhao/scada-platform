@@ -6,6 +6,12 @@ import { useProjectStore } from '@/stores/projectStore'
 interface HistoryState {
   elements: any[]
   connections: any[]
+  /**
+   * 与内容对应的序列化串，只用于「与栈顶比内容是否相同」。
+   * 存下来是为了避免每次保存都把栈顶再 stringify 一遍——原来一次 saveState
+   * 要跑两轮全量序列化（栈顶一次、新状态一次），元素上千时这一笔不便宜。
+   */
+  json: string
 }
 
 // 模块级共享状态：编辑器内所有调用方共享同一份历史栈
@@ -46,10 +52,11 @@ export function useHistory() {
    * 序列化当前画布状态
    */
   function serializeState(): HistoryState {
-    return {
+    const state = {
       elements: deepClone(canvasStore.elements),
       connections: deepClone(connectionStore.connections),
     }
+    return { ...state, json: JSON.stringify(state) }
   }
 
   /**
@@ -58,8 +65,7 @@ export function useHistory() {
   function saveState() {
     const state = serializeState()
     const top = historyStack.value[currentIndex.value]
-    if (top &&
-        JSON.stringify(top) === JSON.stringify(state)) {
+    if (top && top.json === state.json) {
       return
     }
 

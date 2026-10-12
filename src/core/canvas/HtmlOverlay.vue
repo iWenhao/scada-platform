@@ -34,22 +34,10 @@ import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
+// overlay 类型清单的唯一来源：Konva 侧的 useElementVisuals 也用它判断是否画图标，
+// 两边必须同一份，否则新增 DOM 组件时会出现「图标重影」或「元素不显示」
+import { CHART_TYPES, WIDGET_TYPES } from '@/core/canvas/overlayTypes'
 import type { ComponentInstance } from '@/types/scada'
-
-/** ECharts 渲染的图表类型 */
-const CHART_TYPES = ['chart-trend', 'chart-bar', 'chart-pie', 'chart-radar']
-/** 普通 DOM 挂件类型（见 widget/WidgetElement.vue） */
-const WIDGET_TYPES = [
-  'progress-bar',
-  'report-table',
-  'grid-chart',
-  'filter-table',
-  'date',
-  'clock',
-  'video',
-  'iframe',
-  'super-text',
-]
 
 defineProps<{
   /** 运行端（预览页）为 true：挂件内部禁用输入类交互 */

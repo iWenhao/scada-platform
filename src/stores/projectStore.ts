@@ -123,7 +123,7 @@ export const useProjectStore = defineStore('project', () => {
   // 正式保存 / 发布 / 加载 / 导入 / 自动草稿：都只是「工程数据 ↔ 存储」的往返，
   // 拆到 projectPersistence.ts，靠注入的 state 与三个数据动作拿到所需依赖
   const persistence = createProjectPersistence({
-    state: { projectName, projectDescription, lastSaveTime, hasUnsavedChanges },
+    state: { projectName, lastSaveTime, hasUnsavedChanges },
     buildProjectData,
     applyProjectData,
     applyLoadedProject,

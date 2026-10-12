@@ -1,102 +1,102 @@
 <template>
   <v-layer>
-    <template v-for="element in elements" :key="element.id">
+    <template v-for="item in renderItems" :key="item.element.id">
       <v-group
         :config="{
-          id: element.id,
-          x: element.x,
-          y: element.y,
-          width: element.width,
-          height: element.height,
-          rotation: element.rotation,
-          visible: isLayerVisible(element.layerId),
-          draggable: !isLayerLocked(element.layerId) && !element.locked && activeTool !== 'connect',
+          id: item.element.id,
+          x: item.element.x,
+          y: item.element.y,
+          width: item.element.width,
+          height: item.element.height,
+          rotation: item.element.rotation,
+          visible: isLayerVisible(item.element.layerId),
+          draggable: !isLayerLocked(item.element.layerId) && !item.element.locked && activeTool !== 'connect',
           dragBoundFunc: snapToGrid ? gridSnapFunc : undefined,
         }"
-        @click="emit('element-click', element, $event)"
-        @contextmenu="emit('element-contextmenu', element, $event)"
-        @mouseenter="emit('hover', element.id)"
+        @click="emit('element-click', item.element, $event)"
+        @contextmenu="emit('element-contextmenu', item.element, $event)"
+        @mouseenter="emit('hover', item.element.id)"
         @mouseleave="emit('hover', null)"
-        @dragstart="emit('drag-start', element, $event)"
-        @dragmove="emit('drag-move', element, $event)"
-        @dragend="emit('drag-end', element, $event)"
-        @transformend="emit('transform-end', element.id)"
+        @dragstart="emit('drag-start', item.element, $event)"
+        @dragmove="emit('drag-move', item.element, $event)"
+        @dragend="emit('drag-end', item.element, $event)"
+        @transformend="emit('transform-end', item.element.id)"
       >
         <!-- 命中层（不可见，保证可选中/拖拽/缩放/右键） -->
         <v-rect
-          :config="hitAreaConfig(element)"
-          @click="emit('element-click', element, $event)"
-          @contextmenu="emit('element-contextmenu', element, $event)"
+          :config="item.hit"
+          @click="emit('element-click', item.element, $event)"
+          @contextmenu="emit('element-contextmenu', item.element, $event)"
         />
 
         <!-- 设备图形：立体感由图标内部的面基图元 + 光照承担（faceLighting），
              不在元素背后铺背景色块 -->
         <v-image
-          v-if="getIconImageConfig(element)"
-          :config="getIconImageConfig(element)"
+          v-if="item.icon"
+          :config="item.icon"
         />
         <v-image
-          v-if="getUserImageConfig(element)"
-          :config="getUserImageConfig(element)"
+          v-if="item.userImage"
+          :config="item.userImage"
         />
         <!-- 运转动效：可动件独立渲染（整张位图无法局部旋转），静止设备不订阅帧回调 -->
         <ElementMotion
-          v-if="getElementMotion(element)"
-          :element="element"
-          :layout="getElementLayout(element)"
-          :color="getIconStrokeColor(element)"
+          v-if="item.motion"
+          :element="item.element"
+          :layout="item.layout"
+          :color="item.stroke"
           :view-mode="viewMode"
-          :state="getElementMotion(element)"
+          :state="item.motion"
         />
         <!-- 管道：原生管身图形 + 流动虚线（图标方案画不出任意长度的管段） -->
-        <template v-if="element.type === 'pipe'">
+        <template v-if="item.element.type === 'pipe'">
           <v-line
-            v-for="(cfg, i) in pipeBodyConfigs(element, getElementColor(element), getLabelHeight(element))"
+            v-for="(cfg, i) in item.pipeBodies"
             :key="`pipe-body-${i}`"
             :config="cfg"
           />
           <PipeFlowLine
-            :element="element"
-            :color="getElementColor(element)"
-            :label-height="getLabelHeight(element)"
-            :flowing="isPipeFlowing(element)"
+            :element="item.element"
+            :color="item.color"
+            :label-height="item.labelHeight"
+            :flowing="item.flowing"
           />
         </template>
 
         <!-- 纯文本图元：内容/字号/加粗/对齐由属性面板配置，颜色随元素状态 -->
         <v-text
-          v-if="element.type === 'text'"
-          :config="plainTextConfig(element, textContent(element), getElementColor(element))"
+          v-if="item.element.type === 'text'"
+          :config="plainTextConfig(item.element, item.text, item.color)"
         />
 
         <!-- 名称：素文本（无底条） -->
         <v-text
-          v-if="getElementLayout(element).showName"
-          :config="labelTextConfig(element, getElementLayout(element))"
+          v-if="item.layout.showName"
+          :config="labelTextConfig(item.element, item.layout)"
         />
 
         <!-- 数值显示图元：数值即图形，居中大字 -->
         <v-text
-          v-if="isDisplayElement(element) && getElementLayout(element).showValue"
+          v-if="item.display && item.layout.showValue"
           :config="
             displayTextConfig(
-              element,
-              getElementLayout(element),
-              getDisplayValueText(element),
-              getElementColor(element),
+              item.element,
+              item.layout,
+              item.displayText,
+              item.color,
             )
           "
         />
         <!-- 实时值：素文本（无胶囊底色） -->
         <v-text
-          v-else-if="getElementLayout(element).showValue && getElementValueText(element)"
-          :config="valueTextConfig(element, getElementLayout(element), getElementValueText(element))"
+          v-else-if="item.layout.showValue && item.valueText"
+          :config="valueTextConfig(item.element, item.layout, item.valueText)"
         />
 
         <!-- 连线端口 -->
         <template v-if="activeTool === 'connect'">
           <v-circle
-            v-for="port in getElementPorts(element)"
+            v-for="port in item.ports"
             :key="port.id"
             :config="{
               x: port.x,
@@ -106,7 +106,7 @@
               stroke: '#00d4aa',
               strokeWidth: 2,
             }"
-            @mousedown="emit('port-down', element.id, port.position)"
+            @mousedown="emit('port-down', item.element.id, port.position)"
           />
         </template>
       </v-group>
@@ -115,6 +115,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ComponentInstance, ViewMode } from '@/types/scada'
 import {
   hitAreaConfig,
@@ -190,6 +191,69 @@ function textContent(element: ComponentInstance): string {
   const text = typeof raw === 'string' ? raw : String(raw ?? '')
   return text.length > 0 ? text : '文本'
 }
+
+/**
+ * 每个元素的渲染数据预计算。
+ *
+ * 原来模板里同一项要重复求值多次——`getElementLayout` 一处就出现 7 次、
+ * `getElementColor` 4 次、`getIconImageConfig` / `getElementMotion` 各 2 次，
+ * 而 Konva 每帧重绘都会重跑整个渲染函数，元素一多就是几十倍的重复调用。
+ * 这里按元素各算一次，模板直接读字段。
+ *
+ * 条件分支刻意保持与模板一致：管道配置只对 pipe 算、端口只在连线工具下算，
+ * 否则「省掉重复调用」会变成「给所有元素多算一堆用不上的东西」，反而更慢。
+ */
+const renderItems = computed(() => props.elements.map((element) => {
+  const layout = getElementLayout(element)
+  const display = isDisplayElement(element)
+  const item = {
+    element,
+    hit: hitAreaConfig(element),
+    icon: getIconImageConfig(element),
+    userImage: getUserImageConfig(element),
+    motion: getElementMotion(element),
+    layout,
+    display,
+    stroke: '',
+    color: '',
+    labelHeight: 0,
+    text: '',
+    valueText: '',
+    displayText: '',
+    pipeBodies: [] as any[],
+    flowing: false,
+    ports: [] as Array<{ id: string; x: number; y: number; position: string }>,
+  }
+
+  // 运转动效：可动件才需要描边色
+  if (item.motion) item.stroke = getIconStrokeColor(element)
+
+  if (element.type === 'pipe') {
+    item.color = getElementColor(element)
+    item.labelHeight = getLabelHeight(element)
+    item.pipeBodies = pipeBodyConfigs(element, item.color, item.labelHeight)
+    item.flowing = isPipeFlowing(element)
+  }
+
+  if (element.type === 'text') {
+    if (!item.color) item.color = getElementColor(element)
+    item.text = textContent(element)
+  }
+
+  // 数值显示图元：数值即图形；其余元素走素文本实时值
+  if (display && layout.showValue) {
+    if (!item.color) item.color = getElementColor(element)
+    item.displayText = getDisplayValueText(element)
+  } else if (layout.showValue) {
+    item.valueText = getElementValueText(element)
+  }
+
+  if (props.activeTool === 'connect') {
+    item.ports = getElementPorts(element)
+  }
+
+  return item
+}))
 
 void props.gridSnapFunc
 </script>

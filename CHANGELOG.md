@@ -21,6 +21,18 @@
 
 ### 安全
 
+- 修复存储键无长度校验：`kv` 的 key 直接拼进文件名，超长键会让 fs 抛 `ENAMETOOLONG`，在客户端看就是一条没头没尾的 500
+  - 新增 `lib/kv.mjs` 的 `keyError()`（上限按 `encodeURIComponent` **之后**的长度算，200），由 `routes/storage.mjs` 的三处与 `routes/history.mjs` 的两处统一调用，非法键提前返 400
+  - ⚠️ 为什么必须按编码后长度算：中文编码后膨胀到 9 倍（`泵` → `%E6%B3%B5`），只看原始长度挡不住——实测「泵」×30 原始 30 字符看着正常，编码后 270 字符照样能把文件名撑爆。这一条单独写了用例
+  - 实测：9 条用例（正常键读写、超长键读/写/删、中文超长键、空键、历史查询与写入的超长键）全通过
+
+- 〔评估，未改代码〕`v-html` 的 XSS 面：全库 4 处 `v-html` 里只有 **`WidgetElement.vue:94` 的 super-text 值得处置**
+  - 其余三处（组件库图标 ×2、自定义组件预览 ×1）渲染的都是用户自己填进本工程的 SVG，属于自我 XSS，危害可忽略
+  - super-text 的 `properties.html` 随工程保存，而首页有「导入 JSON」入口（`dashboard/index.vue` → `projectStore.importProject`）——**导入他人工程即可让其 HTML 在受害者浏览器里执行**，是真实的跨用户路径
+  - 危害评级**中等，非高危**：会话 token 只存在模块变量里（`auth/session.ts`），不落 localStorage，XSS 拿不到 Bearer，也就无法冒用身份调 API；能做的是页面篡改、读本地工程数据、对外外传
+  - 放大项：若部署时设置了 `VITE_API_TOKEN`，它是 `import.meta.env` 构建期注入、**打包进 JS 的**，XSS 一旦执行就能拿到服务主密钥，此时升级为高危
+  - 建议方案：引入 DOMPurify 对 `richHtml` 消毒（顺带覆盖自定义组件 SVG），成本一个依赖 + 两三处调用；更彻底的是用 sandbox iframe 渲染，但缩放与样式要重做。**本轮只评估未实施**，等你定
+
 - 修复服务端一处 SSRF：`sendHttp()` 直接 `fetch` 用户在配置页填的通道 URL，无 scheme 限制、无目标限制、无超时——填 `http://169.254.169.254/latest/meta-data/` 就能借服务器身份读云元数据，填内网地址则能打到原本不可达的服务
   - 现在发请求前先过 `checkUrlAllowed()`：只放行 `http/https`；字面量 IP 按段比对拦掉私有 / 回环 / 链路本地 / 组播 / 保留段（`169.254`、`10/8`、`172.16/12`、`192.168/16`、`127/8` 等）；域名先 `dns.lookup` 再逐个判解析结果，否则 `localhost` 之类能绕过字面量检查；`AbortSignal.timeout()` 限时（默认 10s）；`redirect: 'manual'` ——**校验的是初始 URL，跟随 302 等于给白名单开后门**
   - 内网 webhook 是工业现场的正当用法，故留显式开关 `NOTIFY_ALLOW_PRIVATE=1`，默认 0
@@ -43,6 +55,25 @@
 - `package.json` 的 `lint` 由 `eslint src` 改为 `eslint src server shared scripts`：配置里本就覆盖 `**/*.mjs`，但脚本只跑 `src`，等于服务端与脚本长期既不 lint 也不被类型检查（tsconfig 的 include 同样不含它们）。实测这三个目录当前 0 error 0 warning
 
 ### 重构
+
+### 构建
+
+- 服务端终于有类型检查了：新增 `tsconfig.server.json`（`allowJs` + `checkJs`，覆盖 `server/**` 与 `shared/**`）
+  - 此前 `tsconfig.json` 的 include 只含 `src/`，服务端既不在类型检查范围内、lint 也在本次之前没覆盖到（lint 上一轮才补上）。为此安装了 `@types/node@^24`（与本机 Node 24 对齐，不用默认的 26）
+  - 刻意**不开 strict**：服务端是渐进补上的检查，一上来开 strict 会报出上百条既有问题、把真正的错误淹掉。strict 留作后续单独一轮
+  - 首次启用报出 7 条真实问题，已全部修掉：`BLOCKED_V4` 缺元素类型标注（`32 - bits` 把 string 当数字）、`checkUrlAllowed` 的 `@returns` 写成非 Promise、机器人返回体按 `unknown` 访问字段、`readBody` 给 Error 挂 `status` 无类型、`writeFileAtomic` 的 encoding 应为 `BufferEncoding`
+  - 新增 `pnpm typecheck:server`；`tsconfig.node.json` 顺带补上漏掉的 `vitest.config.ts`。AGENTS.md 的「验证节奏」表加了一行：改 `server/**` 或 `shared/**` 必须加跑这条
+
+### 优化
+
+- 画布元素渲染：同一项在模板里重复求值（`getElementLayout` 一处出现 7 次、`getElementColor` 4 次、`getIconImageConfig` / `getElementMotion` 各 2 次），而 Konva 每帧重绘都会重跑整个渲染函数
+  - 改为 `renderItems` computed 按元素预计算一次，模板直接读字段。**条件分支刻意保留**：管道配置只对 pipe 算、端口只在连线工具下算、取色只在文本/数值/管道分支算——否则「省掉重复调用」会变成「给所有元素多算一堆用不上的东西」，反而更慢
+  - 新增 `CanvasElements.test.ts`（10 个用例）：① 每个元素每项只求值一次（spy 计数）；② 多元素时按元素各算一次；③ 按需计算——普通设备不碰只有管道/文本才用到的项；④ 端口只在连线工具下算；⑤ 结构断言——普通设备两段文本、文本图元三段、管道挂 `PipeFlowLine`、有动效的设备挂 `ElementMotion`。**这些断言能抓住回归**：spy 统计的是 visuals 函数本身被调用的次数，谁调用都一样计数
+  - ⚠️ 浏览器真机验证没跑通：`agent-browser` 首次 `open` 卡住 11 分钟无输出（按 skill 约定 fail-fast 不再重试），`playwright` 本机也没装。已改用组件级结构断言兜底，**建议手动打开编辑器扫一眼画布**
+- `useHistory.saveState()` 少一轮全量序列化：原来每次保存要跑两次 `JSON.stringify`（栈顶一次、新状态一次）。改为栈里存下 `json` 串，比较用字符串，一次保存只序列化一轮
+- `canvasStore` 的 `selectedElement` / `selectedElements` 用 `Set` 查选中：原来是「每个元素 × 每个选中 id」的 `includes` 线性查找（O(n·m)），这两个 computed 都在渲染热路径上
+- 拖拽对齐不再每帧重建参考数组：`useElementDrag` 的 `onDragMove` 每帧都 `filter+map` 一遍全量元素。拖拽期间元素集合不会变，改为开拖时构建一次快照（`alignOthers`），结束时清空；拿不到快照时当帧现算，行为不变
+- 评估后**不改**的两项：`alarmStore` 循环内的 `activeMap` 整体浅拷贝确有多余，但报警条数通常只有几十，O(k·n) 里 k 极小，收益微乎其微，不值得为此重构三处循环；`ComponentPanel` 的 67 条存量缩进 warning 属格式类，与本次无关
 
 - `src/stores/projectStore.ts` 拆出持久化动作（原 415 行 → 292 行）
   - 它是全库最后一个越过 400 门槛的文件（此前两轮都因「既有欠账、非本次引入」被记下未拆）

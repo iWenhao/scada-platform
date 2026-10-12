@@ -28,14 +28,21 @@ export const useCanvasStore = defineStore('canvas', () => {
     height: canvasConfig.value.height,
   }))
 
+  /**
+   * 选中 id 集合。
+   * 这两个 computed 在渲染热路径上求值，原来是「每个元素 × 每个选中 id」的
+   * `includes` 线性查找（O(n·m)）；元素上千、框选一片时代价就显出来了。
+   */
+  const selectedIdSet = computed(() => new Set(selectedIds.value))
+
   // 主选中元素（多选时为第一个，属性面板展示用）
   const selectedElement = computed(() =>
-    elements.value.find(el => selectedIds.value.includes(el.id))
+    elements.value.find(el => selectedIdSet.value.has(el.id))
   )
 
   // 全部选中元素
   const selectedElements = computed(() =>
-    elements.value.filter(el => selectedIds.value.includes(el.id))
+    elements.value.filter(el => selectedIdSet.value.has(el.id))
   )
   
   // 更新画布配置

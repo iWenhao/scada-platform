@@ -34,6 +34,22 @@ export function useElementDrag(options: {
     return { x: cx * zoom + offsetX, y: cy * zoom + offsetY }
   }
 
+  /** 对齐参考框：除被拖元素外的所有元素的位置尺寸 */
+  function buildAlignOthers(element: ComponentInstance) {
+    return canvasStore.elements
+      .filter(el => el.id !== element.id)
+      .map(o => ({ x: o.x, y: o.y, width: o.width, height: o.height }))
+  }
+
+  /**
+   * 拖拽期间的对齐参考元素快照。
+   *
+   * 拖拽过程中元素集合不会变，但 mousemove 每帧都会 filter+map 重建一次全量数组
+   * （上千元素时每帧几千次迭代，且后面还要对这批元素算对齐）——没必要，开拖时算一次就够。
+   * 只有单选才需要参考线（多选时下面那条分支不计算对齐），多选就不构建。
+   */
+  let alignOthers: ReturnType<typeof buildAlignOthers> | null = null
+
   function onDragStart(element: ComponentInstance, e: any) {
     if (!canvasStore.selectedIds.includes(element.id)) {
       canvasStore.selectElement(element.id)
@@ -47,6 +63,8 @@ export function useElementDrag(options: {
         return node ? { node, x: node.x(), y: node.y() } : null
       })
       .filter((entry): entry is { node: any; x: number; y: number } => entry !== null)
+
+    alignOthers = canvasStore.selectedIds.length <= 1 ? buildAlignOthers(element) : null
   }
 
   // 拖动中：多选整体位移 + 对齐吸附（仅单选时计算参考线）
@@ -60,9 +78,8 @@ export function useElementDrag(options: {
     }
 
     if (canvasStore.selectedIds.length <= 1) {
-      const others = canvasStore.elements
-        .filter(el => el.id !== element.id)
-        .map(o => ({ x: o.x, y: o.y, width: o.width, height: o.height }))
+      // 正常路径复用开拖时的快照；拿不到（未走 onDragStart）就当帧现算，行为不变
+      const others = alignOthers ?? buildAlignOthers(element)
 
       const result = computeAlignment(
         { x: node.x(), y: node.y(), width: element.width, height: element.height },
@@ -93,6 +110,7 @@ export function useElementDrag(options: {
       recalcElementConnections(id)
     }
     alignGuides.value = []
+    alignOthers = null
     saveState()
   }
 
