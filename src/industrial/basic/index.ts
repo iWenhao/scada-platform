@@ -7,7 +7,6 @@ export const ValveDefinition: ComponentDefinition = {
   group: 'basic',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="50" cy="79" rx="30" ry="6" data-shadow="1"/>
       <path d="M50 50 V18"/>
       <path d="M18 22 L50 50 L18 78 Z" data-face="front"/>
       <path d="M82 22 L50 50 L82 78 Z" data-face="side"/>
@@ -81,7 +80,6 @@ export const PumpDefinition: ComponentDefinition = {
   group: 'basic',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="52" cy="78" rx="32" ry="7" data-shadow="1"/>
       <path d="M16 52 H42" data-pipe="base"/>
       <path d="M16 50.5 H42" data-pipe="hi"/>
       <path d="M52 20 V42" data-pipe="base"/>
@@ -144,7 +142,6 @@ export const TankDefinition: ComponentDefinition = {
   group: 'basic',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="50" cy="74" rx="33" ry="7" data-shadow="1"/>
       <path d="M22 24 A28 9 0 0 0 78 24 L78 72 A28 9 0 0 1 22 72 Z" data-face="front"/>
       <ellipse cx="50" cy="24" rx="28" ry="9" data-face="cap"/>
       <path d="M24 58 H76" stroke-dasharray="4 3" stroke-opacity="0.5"/>

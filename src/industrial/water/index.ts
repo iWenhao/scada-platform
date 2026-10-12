@@ -7,7 +7,6 @@ export const SedimentTankDefinition: ComponentDefinition = {
   group: 'water',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="50" cy="80" rx="34" ry="7" data-shadow="1"/>
       <path d="M20 35 A30 8 0 0 0 80 35 L80 60 Q80 78 50 82 Q20 78 20 60 Z" data-face="front"/>
       <ellipse cx="50" cy="35" rx="30" ry="8" data-face="cap"/>
       <path d="M22 52 H78" stroke-dasharray="5 3" stroke-opacity="0.5"/>

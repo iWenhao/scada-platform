@@ -8,6 +8,15 @@
 
 ## [Unreleased]
 
+### 优化
+
+- 移除画布设备下方的接触阴影（阀门 / 泵 / 储罐 / 沉淀池 / 电机，共 5 处）
+  - 那条阴影不是 2.5D 渲染层的产物，而是图标源码里作者画的 `<ellipse ... data-shadow="1"/>`，由 `faceLighting.expandResources()` 统一展开为 `SHADOW`（`fill="#000000" fill-opacity="0.42"`）；位置与尺寸按图元各自写死，所以各设备下方的椭圆并不相同。`bakeLighting()` 与 `flattenFaces()` 都走同一处理，2D 下同一条阴影也在（规范原话「投影是落地而非受光」）
+  - **必须连椭圆一起删，不能只把 `SHADOW` 调透明**：`iconBounds.measure()` 用 `getBBox()` 测内容包围盒，椭圆即使画不出来也仍被计入，`tightenIconSvg()` 收紧后的 viewBox 继续包含阴影带，元素内图形仍按「含阴影」的矩形 contain（表现是设备本体偏上、底部空一截），布局偏差会原样保留
+  - 删除后包围盒底部回收约 6~7 用户单位（阀门由 y≈85 收到 y≈78），viewBox 随之重新收紧，设备在元素内略微放大并落到图形区底部
+  - 标注机制保留（`faceLighting.ts` 的 `SHADOW` 常量与展开规则不改），规范 §4.1 表格对应条目已标注「当前无图元使用」——与 `data-ground` 现状一致（定义在、无图元使用）；将来某台设备需要落地感，加回一行椭圆即可
+  - 实测：改动为 3 文件 5 行删除（行尾保持纯 CRLF），`npx vitest run` 47 文件 / 405 用例全通过，`pnpm build`（vue-tsc + vite build）通过
+
 ### 修复
 
 - 行数检查脚本 `scripts/check-long-files.ps1` 一直在少算行数，已改为精确计数并内置 `src/industrial/**` 例外
