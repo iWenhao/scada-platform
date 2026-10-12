@@ -71,6 +71,13 @@
 - 冗余/重复代码专项清理（对外行为不变，全量测试通过）：删除死代码——前端平行账号体系 `src/auth/userLibrary.ts`/`password.ts`（鉴权早已走服务端，只保留登录页用的种子账号常量 `seedUsers.ts`）、三个 store 无人调用的 `toJSON()`、DataSourceManager 与 deviceStore 重复维护的数据快照及 `getData/getDeviceData/getLastError` 死方法、无引用的浮动工具条 FloatingActions 组件与 composable；预览页渲染与编辑器统一口径——图表 overlay 直接复用 `ChartOverlay` 组件、实时值胶囊改用 `elementChrome` 共享配置（修复同一图元在编辑器与预览数值位置不一致）、删除复制粘贴的重复图标绘制；WebSocket/OpcUa 网关适配器抽公共基类 `BaseWebSocketAdapter`（连接生命周期/重连/断开下沉，子类只留握手与解析）；连接状态→文案/Tag 类型/指示灯映射抽取 `src/status/connection.ts` 供首页/预览头部/数据源对话框/点位表四处共用；复制/删除选中元素收敛到 `useEditClipboard` 共享实现（右键菜单复用）；实体 ID 生成统一 `src/utils/id.ts` 工厂（时间戳+随机后缀，杜绝同毫秒批量创建撞 ID）；server 端 JSONL 读写抽 `lib/jsonl.mjs`（审计与通知日志共用，截断策略各自保留）、钉钉/企微机器人发送合并、headers 归一化与 HTTP 发送抽 `notify/common.mjs` 共用、清理文件拆分遗留的错位注释
 - 删除 `dashboard.scss` 中重复且从未生效的 `.user-chip`：该文件经 `import` 全局引入（非 scoped），选择器权重低于 `UserChip.vue` 自身 scoped 规则，其 `padding`/`border-radius`/`font-size` 等声明实际从未生效——首页看到的药丸形圆角与间距都来自组件本身（改这段的人会白排查很久），只有 hover 背景真正漏了出来；且与 `toolbar.scss` 那份逐字重复近九成，属误导性死代码。删除后 hover 底色按原值（`var(--bg-tertiary)`）收进 `UserChip.vue` 作单一来源，视觉零变化；`toolbar.scss` 那份因需覆盖紧凑形态（`padding: 4px 8px`、圆角 4px）且是 scoped 不外泄，予以保留
 
+### 构建
+
+- 提交信息收紧为「标题 ≤ 30 字符 + 细节入 CHANGELOG」，并加 `scripts/hooks/commit-msg` 钩子机械拦截（超长或未知前缀直接拒绝提交，`git commit --no-verify` 可临时绕过）
+  - 起因：原约定只规定「一句话说明」，既没有长度上限、也没有「正文」这个位置，细节（理由 / 文件清单 / 指标 / 边界情况）被一路堆进标题——实测最近 30 条提交标题中位数约 150 字符、最长 1033 字符，且 30 条**全部没有正文**，`git log --oneline` 已不可读
+  - 校验逻辑在 `scripts/commit-msg-check.mjs`（纯函数 + 13 个单测）：标题长度按「字符」计（一个汉字算 1），而 shell 的 `${#var}` / `wc -c` 在 UTF-8 下按字节算会把中文标题算成 3 倍，故钩子脚本只负责定位与转发
+  - 启用（每个克隆执行一次）：`git config core.hooksPath scripts/hooks`；`vitest.config.ts` 的 `include` 相应补上 `scripts/**`（原只收 `src/**`、`shared/**` 与 `examples/**`）
+
 ## [0.0.4-261002] - 261002
 
 ### 修复
