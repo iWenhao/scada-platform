@@ -61,6 +61,7 @@ const REQUEST_TIMEOUT_MS = Number(process.env.NOTIFY_TIMEOUT_MS) > 0
   : 10000
 
 /** 需要拦住的 IPv4 段：未指定 / 私有 / 回环 / 链路本地 / 组播 / 保留 */
+/** @type {Array<[string, number]>} 基址 + 前缀位数 */
 const BLOCKED_V4 = [
   ['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8],
   ['169.254.0.0', 16], ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.168.0.0', 16],
@@ -101,7 +102,7 @@ function isBlockedV6(ip) {
 
 /**
  * 校验 URL 是否可以作为发送目标。
- * @returns {{ ok: boolean, error?: string }}
+ * @returns {Promise<{ ok: boolean, error?: string }>}
  */
 export async function checkUrlAllowed(rawUrl) {
   let url

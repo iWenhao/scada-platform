@@ -10,6 +10,8 @@ async function postMarkdownBot(url, payload) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   })
+  // 各家机器人返回体结构不统一，这里只关心 errcode / errmsg 两个字段，按任意对象处理
+  /** @type {any} */
   const body = await res.json().catch(() => ({}))
   if (!res.ok || (body.errcode !== undefined && body.errcode !== 0)) {
     return { ok: false, error: body.errmsg || `HTTP ${res.status}` }

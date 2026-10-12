@@ -9,6 +9,7 @@ import {
   readValue,
   writeValue,
   removeValue,
+  keyError,
   GLOBAL_SCOPE,
   SITE_BRANDING_KEY,
 } from '../lib/kv.mjs'
@@ -26,8 +27,10 @@ export async function handleStorage(ctx) {
 
   if (url.pathname === '/api/storage/get' && req.method === 'GET') {
     const key = url.searchParams.get('key')
-    if (!key) {
-      ok(res, req, 400, { error: 'missing key' })
+    // 一并挡住超长键：不拦的话 fs 会抛 ENAMETOOLONG，客户端只看到一条无意义的 500
+    const bad = keyError(key)
+    if (bad) {
+      ok(res, req, 400, { error: bad })
       return true
     }
     ok(res, req, 200, { value: await readValue(dataDir, key, scope) })
@@ -40,8 +43,10 @@ export async function handleStorage(ctx) {
       return true
     }
     const key = url.searchParams.get('key')
-    if (!key) {
-      ok(res, req, 400, { error: 'missing key' })
+    // 一并挡住超长键：不拦的话 fs 会抛 ENAMETOOLONG，客户端只看到一条无意义的 500
+    const bad = keyError(key)
+    if (bad) {
+      ok(res, req, 400, { error: bad })
       return true
     }
     await writeValue(dataDir, key, scope, await readBody(req, maxBodyBytes))
@@ -55,8 +60,10 @@ export async function handleStorage(ctx) {
       return true
     }
     const key = url.searchParams.get('key')
-    if (!key) {
-      ok(res, req, 400, { error: 'missing key' })
+    // 一并挡住超长键：不拦的话 fs 会抛 ENAMETOOLONG，客户端只看到一条无意义的 500
+    const bad = keyError(key)
+    if (bad) {
+      ok(res, req, 400, { error: bad })
       return true
     }
     await removeValue(dataDir, key, scope)

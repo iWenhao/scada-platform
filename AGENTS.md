@@ -215,6 +215,7 @@ pnpm lint               # ESLint
 | 改动情形 | 该跑什么 | 为什么 |
 | --- | --- | --- |
 | 迭代中（还没改完） | 只跑刚动的那个测试文件 | 全量慢，且中途失败多为半成品状态，噪声大于信息 |
+| 改了 `server/**` 或 `shared/**` | 加跑 `pnpm typecheck:server`（`tsc -p tsconfig.server.json`） | 前端那套 `vue-tsc` 的 include 只覆盖 `src/`，服务端 `.mjs` 不在其中；这条是服务端唯一的类型检查入口，不跑等于服务端改动零类型把关 |
 | 跨模块重构 / 改了类型签名与导出 | 加跑 `vue-tsc --noEmit` | 跨文件重构的错误类型检查最灵（`Record` 缺键、接口字段漏传这类单测看不出来） |
 | 准备提交或交付 | 全量 `vitest run` + `vue-tsc --noEmit` + `pnpm build` + `scripts/check-long-files.ps1` | 项目底线，不可跳过。`pnpm build` 覆盖类型检查看不见的静态资源与分包问题；行数检查单测与类型检查都抓不到 |
 | 引入新文件或改动文件较多 | 加跑**改动文件**的 `eslint` | 全量 eslint 会被仓库既有 `.vue` 报警（`vue/html-indent`、`no-mutating-props` 等）淹没，信号被稀释 |

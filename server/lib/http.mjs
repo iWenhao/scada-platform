@@ -53,6 +53,8 @@ export async function readBody(req, limit) {
   for await (const chunk of req) {
     size += chunk.length
     if (size > limit) {
+      // status 由路由层读取后作为响应码；标准 Error 上没有这个字段，靠类型断言补上
+      /** @type {Error & { status?: number }} */
       const err = new Error('payload too large')
       err.status = 413
       throw err

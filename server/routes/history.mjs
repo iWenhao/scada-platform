@@ -4,6 +4,7 @@
 import { readBody, requireRole } from '../lib/http.mjs'
 import { roleAtLeast } from '../auth.mjs'
 import { appendSamples, querySamples } from '../lib/history.mjs'
+import { keyError } from '../lib/kv.mjs'
 
 /**
  * @returns {Promise<boolean>} 已响应为 true，未匹配为 false
@@ -24,6 +25,12 @@ export async function handleHistory(ctx) {
     let written = 0
     for (const [key, samples] of Object.entries(payload)) {
       if (!Array.isArray(samples)) continue
+      // 历史按 key 落分片文件，超长 key 同样会让 fs 抛 ENAMETOOLONG
+      const bad = keyError(key)
+      if (bad) {
+        ok(res, req, 400, { error: `invalid history key: ${bad}` })
+        return true
+      }
       written += await appendSamples(historyDir, String(key), samples)
     }
     ok(res, req, 200, { ok: true, written })
@@ -35,8 +42,9 @@ export async function handleHistory(ctx) {
   // 避免旧版前端/手工调用因多带参数被拒绝。
   if (url.pathname === '/api/history/query' && req.method === 'GET') {
     const key = url.searchParams.get('key')
-    if (!key) {
-      ok(res, req, 400, { error: 'missing key' })
+    const bad = keyError(key)
+    if (bad) {
+      ok(res, req, 400, { error: bad })
       return true
     }
     const now = Date.now()

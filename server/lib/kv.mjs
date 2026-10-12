@@ -26,6 +26,28 @@ export const GLOBAL_SCOPE = 'u/global/'
 /** 站点品牌存储键（部署级全局设置），与前端 src/stores/brandingStore.ts 保持一致 */
 export const SITE_BRANDING_KEY = 'site:branding'
 
+/**
+ * 键名长度上限（按 `encodeURIComponent` 之后的长度算）。
+ *
+ * 只看原始长度挡不住长文件名：中文等字符编码后会膨胀到 9 倍（`泵` → `%E6%B3%B5`）。
+ * 超长键会让 fs 抛 `ENAMETOOLONG`，在路由层就是一条 500——而这是客户端传错参数导致的，
+ * 应当是 400。这里提前拦掉。
+ */
+export const MAX_KEY_LENGTH = 200
+
+/**
+ * 键名是否可用。不可用返回英文错误文案（路由层直接作为 `error` 返回），可用返回 null。
+ */
+export function keyError(key) {
+  const k = String(key ?? '')
+  if (!k) return 'missing key'
+  if (k.includes('\0')) return 'invalid key'
+  if (encodeURIComponent(k).length > MAX_KEY_LENGTH) {
+    return `key too long (max ${MAX_KEY_LENGTH} after encoding)`
+  }
+  return null
+}
+
 /** 键名 → 安全文件路径（含用户命名空间） */
 export function fileFor(dataDir, key, scope) {
   return path.join(dataDir, scope, encodeURIComponent(key) + '.json')

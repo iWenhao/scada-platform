@@ -22,7 +22,7 @@ function tmpPathFor(filePath) {
 /**
  * @param {string} filePath
  * @param {string|Buffer} data
- * @param {string} [encoding]
+ * @param {BufferEncoding} [encoding]
  */
 export async function writeFileAtomic(filePath, data, encoding = 'utf8') {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
