@@ -19,7 +19,11 @@
 
 ### 修复
 
-- 行数检查脚本 `scripts/check-long-files.ps1` 一直在少算行数，已改为精确计数并内置 `src/industrial/**` 例外
+- 宽屏（≥1700px）下删除 / 复制 / 粘贴没有任何可见工具栏入口——修窄屏折行时（`16924109`）把三个编辑按钮从顶部**直接删除**而非挪位，而它们的替代落点「更多」菜单在宽屏恰好被 `display: none` 隐藏（`toolbar.scss` 的 `min-width: 1700px` 规则），宽屏用户只剩快捷键 / 右键菜单 / 属性面板可用
+  - 修复：复制/粘贴加回撤销/重做按钮组（配置数组 `editActions` + v-for，disabled 条件与「更多」菜单项一致），样式类 `edit-action` 与「更多」菜单**互斥显示**——≥1700px 平铺、低于该宽度隐藏并走「更多」菜单，复用 `toolbar-secondary` 已确立的断点模式，不加剧 1200px 级窗口的宽度压力
+  - 删除按钮按用户反馈（使用频率高）**常显不收纳**：所有宽度下都在撤销/重做旁显示，disabled 条件为未选中元素且未选中连线；同时恢复随 `16924109` 一起丢失的悬停红色效果（`.btn-delete` hover/focus 淡红底 + 红边红字，:active 加深为 40% 混合；`ToolIcon` 走 `stroke="currentColor"`，`color` 变红即图标跟随，无需对 svg 特判）
+  - 行数门槛自查：删除按钮直接写三段重复模板会把 `Toolbar.vue` 顶到 412 行（超 400），重构为配置数组 + v-for 后 399 行
+  - 行数检查脚本 `scripts/check-long-files.ps1` 一直在少算行数，已改为精确计数并内置 `src/industrial/**` 例外
   - 根因是用了 `(Get-Content | Measure-Object -Line).Lines`：该 cmdlet **不计空行**，对纯 LF 文件漏得更多——2026-10-13 实测同一批文件少算 3~25 行（`src/core/canvas/faceLighting.ts` 报 85、实际 110；`src/core/canvas/iconImage.ts` 报 31、实际 40）。本仓库行尾本就混用（`industrial/**` 是 CRLF、新写的画布文件是 LF），两种都会失真
   - 后果不是数字难看而是**守卫失效**：全量精确重扫时真实超限 3 个文件，脚本只报出 1 个——被漏掉的是 `src/stores/projectStore.ts`（实际 415，脚本读 369）与 `server/index.mjs`（实际 409，脚本读 374）。两者都是既有欠账、非本次改动引入，故本次只修脚本、不顺手拆它们（另行处理）
   - 计数改用 `[System.IO.File]::ReadAllLines().Count`，与行尾风格无关；已在 6 个文件上与真实换行符数逐一比对（CRLF 与 LF 两类各含），另 3 个文件与 `wc -l` 交叉核对，数值完全一致

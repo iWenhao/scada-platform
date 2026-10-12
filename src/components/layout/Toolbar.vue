@@ -93,6 +93,18 @@
             <ToolIcon name="redo" />
           </el-button>
         </el-tooltip>
+
+        <!-- 复制/粘贴与「更多」菜单互斥：宽屏平铺、窄屏收进「更多」（见 toolbar.scss）；删除是高频操作，常显不收纳 -->
+        <el-tooltip v-for="action in editActions" :key="action.command" :content="action.tip" placement="bottom">
+          <el-button class="edit-action" :disabled="!action.enabled()" @click="action.run()">
+            <ToolIcon :name="action.icon" />
+          </el-button>
+        </el-tooltip>
+        <el-tooltip content="删除选中 (Delete)" placement="bottom">
+          <el-button class="btn-delete" :disabled="!canvasStore.selectedIds.length && !connectionStore.selectedConnectionId" @click="handleDelete">
+            <ToolIcon name="delete" />
+          </el-button>
+        </el-tooltip>
       </el-button-group>
 
       <el-divider direction="vertical" />
@@ -325,6 +337,12 @@ function handleMoreCommand(cmd: string) {
 }
 
 const { handleCopy, handlePaste, handleDelete } = useEditClipboard()
+
+/** 复制/粘贴按钮：与「更多」菜单里的同名项一一对应，disabled 条件保持一致；删除按钮单独常显 */
+const editActions = [
+  { command: 'copy', icon: 'copy', tip: '复制 (Ctrl+C)', enabled: () => canvasStore.selectedIds.length > 0, run: handleCopy },
+  { command: 'paste', icon: 'paste', tip: '粘贴 (Ctrl+V)', enabled: () => canvasStore.clipboard.length > 0, run: handlePaste },
+]
 const {
   handleRename,
   goHome,

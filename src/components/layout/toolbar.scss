@@ -136,6 +136,19 @@
   }
 }
 
+/* 编辑操作（复制/粘贴/删除）与「更多」菜单互斥：≥1700px 平铺在
+   撤销/重做旁，低于该宽度隐藏、走「更多」菜单（与其中的菜单项
+   disabled 条件一致），避免 1200px 级窗口放不下。 */
+.edit-action {
+  display: inline-flex;
+}
+
+@media (max-width: 1699px) {
+  .edit-action {
+    display: none;
+  }
+}
+
 @media (min-width: 1700px) {
   .toolbar-more {
     display: none;
@@ -216,6 +229,21 @@
       color: #fff;
     }
   }
+}
+
+/* 删除按钮悬停/按下变红（危险语义）——ToolIcon 走 currentColor，
+   color 变红即图标跟随，无需对 svg 再特判 */
+:deep(.el-button.btn-delete:hover:not(.is-disabled)),
+:deep(.el-button.btn-delete:focus:not(.is-disabled)) {
+  background-color: color-mix(in srgb, var(--accent-danger) 22%, var(--bg-primary)) !important;
+  border-color: var(--accent-danger) !important;
+  color: var(--accent-danger) !important;
+}
+
+:deep(.el-button.btn-delete:active:not(.is-disabled)) {
+  background-color: color-mix(in srgb, var(--accent-danger) 40%, var(--bg-primary)) !important;
+  border-color: var(--accent-danger) !important;
+  color: var(--accent-danger) !important;
 }
 
 :deep(.el-divider--vertical) {
