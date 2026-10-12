@@ -40,17 +40,6 @@
 
     <!-- 右：状态条 -->
     <div class="hud-right">
-      <button
-        class="hud-btn"
-        type="button"
-        :class="{ on: view3d }"
-        :title="view3d ? '切回 2D 平面视图' : '切换到 3D 立体视图'"
-        @click="emit('toggle-3d')"
-      >
-        <span class="btn-ico">🧊</span>
-        <span>{{ view3d ? '3D 视图' : '2D 视图' }}</span>
-      </button>
-
       <div class="stat-chip" :class="connClass">
         <span class="dot" />
         <span>{{ connText }}</span>
@@ -134,8 +123,6 @@ const props = defineProps<{
   lastUpdateTime: string
   canGoBack: boolean
   autoRotate?: boolean
-  /** 是否处于 3D 视图（由预览页持有并同步到 URL，便于分享/书签） */
-  view3d?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -146,7 +133,6 @@ const emit = defineEmits<{
   'open-audit': []
   'toggle-rotate': []
   fullscreen: []
-  'toggle-3d': []
 }>()
 
 const alarmOpen = ref(false)

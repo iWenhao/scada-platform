@@ -4,6 +4,7 @@ import { normalizeAlarmDef } from '@/types/alarm'
 import type { DataSourceConfig } from '@/datasource/types'
 import type { WritePolicy } from '@/types/tag'
 import type { ScadaPage } from '@/types/page'
+import type { ViewMode } from '@/types/scada'
 import { createTagId, createPageId } from '@/utils/id'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
@@ -58,6 +59,7 @@ export interface ProjectExtras {
   alarmDefs: AlarmDefinition[]
   tagTable: TagDef[]
   writePolicy: WritePolicy
+  viewMode: ViewMode
 }
 
 /**
@@ -79,5 +81,7 @@ export function normalizeProjectExtras(projectData: Record<string, any>): Projec
       projectData.writePolicy === 'warn' || projectData.writePolicy === 'deny'
         ? projectData.writePolicy
         : 'allow',
+    // 旧工程没有 viewMode 字段，回落 2d 平面；坏值一律按 2d 处理
+    viewMode: projectData.viewMode === '25d' ? '25d' : '2d',
   }
 }

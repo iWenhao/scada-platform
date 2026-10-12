@@ -23,7 +23,7 @@ export function useElementVisuals(options: {
 }) {
   const { deviceStore, layerStore } = options
 
-  // 获取元素状态颜色（求值逻辑与 3D 场景共用，见 elementStatus.ts）
+  // 获取元素状态颜色（求值逻辑抽为纯函数，编辑器与预览页共用，见 elementStatus.ts）
   function getElementColor(element: ComponentInstance): string {
     return evaluateElementColor(
       element.statusRules,

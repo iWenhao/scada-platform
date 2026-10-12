@@ -6,7 +6,7 @@ export const DEFAULT_ELEMENT_COLOR = '#8fe6d3'
 
 /**
  * 按状态规则求元素颜色：优先级最高（数字最小）的命中规则决定颜色。
- * 编辑器画布、预览 2D 与预览 3D 共用同一口径，保证不同视图下状态观感一致。
+ * 编辑器画布与预览页共用同一口径，保证不同渲染风格下状态观感一致。
  */
 export function evaluateElementColor(
   statusRules: StatusRule[],

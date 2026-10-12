@@ -11,7 +11,6 @@
       :last-update-time="lastUpdateTime"
       :can-go-back="navStack.canBack"
       :auto-rotate="autoRotate"
-      :view3d="view3d"
       @back="backToEditor"
       @nav-back="goBackPage"
       @switch-page="switchPage"
@@ -19,12 +18,10 @@
       @open-audit="showAuditLog = true"
       @toggle-rotate="toggleAutoRotate"
       @fullscreen="toggleFullscreen"
-      @toggle-3d="toggleView3d"
     />
 
-    <!-- 2D/3D 互斥渲染：切走即卸载，释放 GPU 资源；设备数据在页面级持续更新 -->
-    <Preview3DStage v-if="view3d" @element-click="handleElementClick" />
-    <PreviewStage v-else @element-click="handleElementClick" />
+    <!-- 渲染风格（2D / 2.5D）是工程级设置，由编辑器确定；运行端只读呈现，不提供切换入口 -->
+    <PreviewStage @element-click="handleElementClick" />
 
     <TrendChartDialog
       v-model="showTrendDialog"
@@ -39,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useDeviceStore } from '@/stores/deviceStore'
@@ -53,8 +50,6 @@ import AuditLogDialog from '@/components/dialogs/AuditLogDialog.vue'
 import WriteValueDialog from './WriteValueDialog.vue'
 import PreviewHeader from './PreviewHeader.vue'
 import PreviewStage from './PreviewStage.vue'
-// 3D 舞台经异步组件边界引入：three 及其场景代码只在切到 3D 时才下载
-const Preview3DStage = defineAsyncComponent(() => import('./Preview3DStage.vue'))
 import { useWriteValue } from './useWriteValue'
 import { NAV_BACK, PageNavStack } from '@/core/canvas/pageNav'
 import type { ComponentInstance } from '@/types/scada'
@@ -75,20 +70,6 @@ const navStack = new PageNavStack()
 const showAuditLog = ref(false)
 const autoRotate = ref(false)
 let rotateTimer: number | null = null
-
-/** 3D 视图开关：初始化读 ?view=3d，切换时同步回 URL，便于分享/刷新保持视图 */
-const view3d = ref((route.query.view as string) === '3d')
-
-function toggleView3d() {
-  view3d.value = !view3d.value
-  const query: Record<string, string> = {}
-  for (const [key, value] of Object.entries(route.query)) {
-    if (typeof value === 'string') query[key] = value
-  }
-  if (view3d.value) query.view = '3d'
-  else delete query.view
-  router.replace({ query })
-}
 
 function toggleAutoRotate() {
   autoRotate.value = !autoRotate.value

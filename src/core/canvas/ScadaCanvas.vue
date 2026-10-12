@@ -74,7 +74,7 @@
         :selected-ids="canvasStore.selectedIds"
         :active-tool="uiStore.activeTool"
         :snap-to-grid="!!canvasStore.canvasConfig.snapToGrid"
-        :view-mode="uiStore.viewMode"
+        :view-mode="projectStore.viewMode"
         :visuals="visuals"
         :grid-snap-func="gridSnapFunc"
         @element-click="onElementClick"

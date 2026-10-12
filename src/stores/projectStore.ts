@@ -6,6 +6,7 @@ import type { DataSourceConfig } from '@/datasource/types'
 import type { AlarmDefinition } from '@/types/alarm'
 import type { ScadaPage } from '@/types/page'
 import type { TagDef, WritePolicy } from '@/types/tag'
+import type { ViewMode } from '@/types/scada'
 import { migrateLegacyToPages, normalizeProjectExtras } from './projectLoad'
 import {
   projectKey,
@@ -46,6 +47,14 @@ export const useProjectStore = defineStore('project', () => {
   // 未登记点位的写值策略：allow 放行（默认，兼容旧行为）/ warn 提示后允许 / deny 禁止
   const writePolicy = ref<WritePolicy>('allow')
 
+  /**
+   * 画布元素渲染风格（2d 平面 / 25d 立体感）。
+   *
+   * 属于工程级显示设置，随工程持久化——「编辑页确定以 2.5D 展示」这个意图必须
+   * 跟着工程走到运行端，否则刷新/分享出去的预览页会丢失展示风格。运行端只读。
+   */
+  const viewMode = ref<ViewMode>('2d')
+
   /** 存储键命名与键级操作集中在 projectStorage.ts（便于独立单测） */
 
   /**
@@ -77,6 +86,7 @@ export const useProjectStore = defineStore('project', () => {
       alarmDefs: alarmDefs.value,
       tagTable: tagTable.value,
       writePolicy: writePolicy.value,
+      viewMode: viewMode.value,
     }
   }
 
@@ -100,6 +110,7 @@ export const useProjectStore = defineStore('project', () => {
     alarmDefs.value = extras.alarmDefs
     tagTable.value = extras.tagTable
     writePolicy.value = extras.writePolicy
+    viewMode.value = extras.viewMode
   }
 
   /**
@@ -337,6 +348,16 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   /**
+   * 设置画布渲染风格（编辑器侧唯一的切换入口）。
+   * 属于工程内容变更，标记脏状态——否则改了风格不保存，运行端读到的仍是旧的。
+   */
+  function setViewMode(mode: ViewMode) {
+    if (viewMode.value === mode) return
+    viewMode.value = mode
+    hasUnsavedChanges.value = true
+  }
+
+  /**
    * 重置项目
    */
   function resetProject() {
@@ -348,6 +369,7 @@ export const useProjectStore = defineStore('project', () => {
     alarmDefs.value = []
     writePolicy.value = 'allow'
     tagTable.value = []
+    viewMode.value = '2d'
 
     // 新建项目必须连同画布内容一起清空：残留的旧元素/连线会让人以为还在编辑上一个工程，
     // 一保存就把原工程覆盖掉了。多画面下重置为单张「主页」。
@@ -364,7 +386,9 @@ export const useProjectStore = defineStore('project', () => {
     alarmDefs,
     tagTable,
     writePolicy,
+    viewMode,
     setWritePolicy,
+    setViewMode,
     setAlarmDefs,
     setTagTable,
     saveProject,

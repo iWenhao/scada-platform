@@ -41,8 +41,8 @@
 ### 修复
 
 - 登录页与预览页头部在亮色主题下仍是暗色皮肤：这两页样式当初按暗色写死（`login.scss` 与 `preview-header.scss` 各零处主题变量），切到亮色时全站变亮、唯独登录页背景仍是 `#0b1020`、预览 HUD 仍是 `rgba(12,18,36,0.96)`，观感像「切换失效」。现把这两处色值抽成 `variables.scss` 里成对的 `--login-*` / `--hud-*` 变量并补亮色取值（浅底深字，品牌青退化为强调色），页面样式改为消费变量；登录页的光晕、网格、扫描线在亮色下同步减弱，避免淡背景上糊出脏色
-- 构建：vite rollupOptions manualChunks 拆分 vendor / 3D chunk，降低首屏产物体积
-- 亮色主题下画布背景仍是黑色：画布底色与网格色是工程级配置，默认值按暗色主题写死（`#1e1e1e` / `#2a2a2a`）且随工程持久化，编辑器/预览把它渲染成内联样式后优先级高于主题变量，切到亮色时全站变亮唯独画布留在近黑的旧底色。现默认值改为空串 =「未自定义，跟随主题」——编辑器与预览的画布底色、网格颜色随亮暗主题自动切换（CSS 变量 `--bg-canvas` / `--grid-color`）；加载工程时把等于旧暗色默认值的记录迁移为空串（`normalizeCanvasConfig`，编辑器/预览装载入口共用，幂等），用户显式选过的其它颜色原样保留；画布配置对话框两个取色器增加「留空跟随亮暗主题」提示，清除取色即恢复跟随主题（清除产生的 null 统一归一为空串）。示例工程与 3D 演示种子脚本同步改为跟随主题
+- 构建：vite rollupOptions manualChunks 拆分 vendor chunk（element-plus / konva / vue 各自成块），降低首屏产物体积
+- 亮色主题下画布背景仍是黑色：画布底色与网格色是工程级配置，默认值按暗色主题写死（`#1e1e1e` / `#2a2a2a`）且随工程持久化，编辑器/预览把它渲染成内联样式后优先级高于主题变量，切到亮色时全站变亮唯独画布留在近黑的旧底色。现默认值改为空串 =「未自定义，跟随主题」——编辑器与预览的画布底色、网格颜色随亮暗主题自动切换（CSS 变量 `--bg-canvas` / `--grid-color`）；加载工程时把等于旧暗色默认值的记录迁移为空串（`normalizeCanvasConfig`，编辑器/预览装载入口共用，幂等），用户显式选过的其它颜色原样保留；画布配置对话框两个取色器增加「留空跟随亮暗主题」提示，清除取色即恢复跟随主题（清除产生的 null 统一归一为空串）。示例工程同步改为跟随主题
 - 编辑器工具栏窄屏「按钮掉下来」：Element Plus 2.14 把水平按钮组改成了 `inline-block + float:left` 的老式实现，窗口不够宽时 flex 挤压按钮组、浮动按钮像文字一样折行，堆成两三行并溢出 52px 工具栏压到标签栏。现将按钮组统一恢复为 `inline-flex` 布局（组内永不折行）；窄于 1700px 进入紧凑模式——次要操作（复制/粘贴/删除、主题切换、画布配置、导入导出）收进「⋯ 更多」下拉菜单，发布/保存/预览只留图标（名称经 tooltip 悬停可见），用户胶囊只留首字头像（全名与角色经 title 悬停可见），项目名超长省略号截断，极窄窗口横向滚动兜底，工具栏在任意宽度下保持单行
 - 用户胶囊角色显示丢失：`el-dropdown` 会向触发元素透传 `role="button"` 属性，`UserChip` 恰好声明了同名 `role` prop 而被覆盖（Vue 将透传属性匹配到同名 prop），导致首页与编辑器的用户头像配色失效、角色徽标不显示、悬停提示里角色一律是「用户」。prop 更名 `userRole` 规避与 HTML `role` 属性的冲突，头像按角色着色（admin 红 / engineer 橙 / operator 青 / viewer 蓝）与角色徽标恢复正常
 - 历史查询服务端窗口聚合缺失：前端趋势图长跨度（24h/7天）已按 `agg/window` 请求服务端聚合，但 `GET /api/history/query` 直接忽略该参数、全量回传原始点（7天1秒采样约60万点），服务端全文件解析排序、前端再抽稀，慢且费内存。现 `querySamples` 支持 `agg=min/avg/max + windowMs`——边读边按窗口（epoch 对齐）归约，内存只保留窗口数；仍超 `maxPoints` 时再均匀抽稀兜底；非法参数回落普通查询不报错，旧前端兼容
@@ -50,12 +50,12 @@
 
 ### 功能
 
-- 亮/暗主题切换入口全站接入：原先只有编辑器工具栏能切主题，首页、预览页、登录页都没有入口——用户从首页进来想切亮色，必须先随便打开一个工程进编辑器。现抽取 `ThemeToggle` 组件（默认渲染 Element Plus 图标按钮，预览 HUD 与登录页经作用域插槽复用同一套语义）接入三处：首页顶栏（圆形按钮，与系统设置胶囊同高并列）、预览页 HUD 右侧（emoji 风格，与同排的 3D/报警/锁定按钮一致）、登录页右上角浮动玻璃圆钮；编辑器工具栏原按钮与窄屏「更多」菜单项一并改用它，图标（表示当前主题）、提示文案（表示点击后的目标）与切换动作收敛到 `useThemeToggle` 单一来源，不再各处各写一份三元表达式
+- 亮/暗主题切换入口全站接入：原先只有编辑器工具栏能切主题，首页、预览页、登录页都没有入口——用户从首页进来想切亮色，必须先随便打开一个工程进编辑器。现抽取 `ThemeToggle` 组件（默认渲染 Element Plus 图标按钮，预览 HUD 与登录页经作用域插槽复用同一套语义）接入三处：首页顶栏（圆形按钮，与系统设置胶囊同高并列）、预览页 HUD 右侧（emoji 风格，与同排的报警/锁定按钮一致）、登录页右上角浮动玻璃圆钮；编辑器工具栏原按钮与窄屏「更多」菜单项一并改用它，图标（表示当前主题）、提示文案（表示点击后的目标）与切换动作收敛到 `useThemeToggle` 单一来源，不再各处各写一份三元表达式
 
 - 元素叠放次序调整：编辑器右键组件新增「上移一层 / 下移一层」，可精细调整同画布内元素的前后遮挡关系（如把标注提到最上、把背景图压到最下）；已在最顶层/最底层时对应菜单项置灰；操作计入撤销栈（z 序实现为 `canvasStore.moveElementForward/Backward` 并配单测）
 - 站点品牌自定义：首页「系统设置 → 站点品牌」（仅管理员）可修改平台名称 / 副标题 / 图标（位图自动居中裁剪缩放为 256×256 PNG、SVG 原样保留），保存后浏览器标签页标题与 favicon 全站即时生效，登录页 / 编辑器 / 预览页同步展示，同一套代码无需重新构建即可部署为「A组态」「B组态」。远程模式新增公开 `GET /api/branding`（未登录可读，数据落 `u/global/` 全局命名空间不随用户隔离）与仅 admin 可写的 `PUT /api/branding`；本地回落模式走存储抽象全局键 `site:branding`（不参与用户命名空间），配置损坏时自动回落默认品牌
 - 启动横幅：`pnpm dev` 与 `pnpm server` 启动时终端打印项目名称 + 版本分隔线横幅（Vite 经 `startupBannerPlugin`，存储后端在 listen 回调输出）；前端加载后浏览器控制台同样打印「项目名 + 版本」徽标，名称/版本由 `vite.config.ts` 的 `define` 从 `package.json` 注入（`__APP_NAME__` / `__APP_VERSION__`），单一来源不重复维护
-- 预览页新增 2D/3D 视图切换：头部「2D 视图 / 3D 视图」按钮一键切换，状态同步到 URL（`?view=3d` 可直达、分享、刷新保持）。3D 场景按画布坐标把组件映射为立体体块（罐/风机为立式圆柱、泵/电机为卧式圆柱、管道贴地矮体，其余组件按画布占位挤出体块回落），含地面网格、投影、轨道相机（左键旋转/右键平移/滚轮缩放）与「重置视角 / 俯视」按钮；状态着色与实时数值标签与 2D 画布同口径（状态求值抽取为 `elementStatus.ts` 共用），点击元素同样触发跳转/写值/趋势；元素按需增量更新（几何按参数指纹复用，逐秒只刷颜色与文案）。three 相关代码（`src/core/scene3d/` + `Preview3DStage.vue`）经异步组件边界懒加载为独立 chunk，2D 使用者不增加包体积；`scripts/seed-demo3d.mjs` 可灌入 3D 演示工程
+- 元素渲染风格（2D 平面 / 2.5D 立体感）升为**工程级设置**：切换入口唯一落在编辑器工具栏，改动随工程保存与发布，运行端（预览页）只读跟随、不提供切换按钮——原先是会话级偏好（`uiStore.viewMode`），刷新或把预览链接分享出去后展示风格会丢失，且预览头部还有个 2D/3D 切换按钮，运行期可被随意改掉，「编辑所见 = 运行所见」无法保证
 
 ### 优化
 
@@ -69,7 +69,8 @@
 
 - `dashboard.scss` 先拆分再加功能：该文件原 533 行已超 AGENTS.md 的 500 行阈值，本次新增顶栏主题按钮样式前，先把项目卡片与缩略图相关样式（`.project-grid`、`.project-card`、`.thumb*`、`.node`、`.pipe`、`.card-*`、`.ghost-*`、`.demo-btn`、`.rename-input`）整体搬到新建的 `project-card.scss`，由首页一并 `import` 保持全局作用域（这些 class 被 `ProjectCard.vue` 与首页幽灵卡片共用，不能收进组件 scoped）。拆分后 343 + 221 行，样式零改动
 - 冗余/重复代码专项清理（对外行为不变，全量测试通过）：删除死代码——前端平行账号体系 `src/auth/userLibrary.ts`/`password.ts`（鉴权早已走服务端，只保留登录页用的种子账号常量 `seedUsers.ts`）、三个 store 无人调用的 `toJSON()`、DataSourceManager 与 deviceStore 重复维护的数据快照及 `getData/getDeviceData/getLastError` 死方法、无引用的浮动工具条 FloatingActions 组件与 composable；预览页渲染与编辑器统一口径——图表 overlay 直接复用 `ChartOverlay` 组件、实时值胶囊改用 `elementChrome` 共享配置（修复同一图元在编辑器与预览数值位置不一致）、删除复制粘贴的重复图标绘制；WebSocket/OpcUa 网关适配器抽公共基类 `BaseWebSocketAdapter`（连接生命周期/重连/断开下沉，子类只留握手与解析）；连接状态→文案/Tag 类型/指示灯映射抽取 `src/status/connection.ts` 供首页/预览头部/数据源对话框/点位表四处共用；复制/删除选中元素收敛到 `useEditClipboard` 共享实现（右键菜单复用）；实体 ID 生成统一 `src/utils/id.ts` 工厂（时间戳+随机后缀，杜绝同毫秒批量创建撞 ID）；server 端 JSONL 读写抽 `lib/jsonl.mjs`（审计与通知日志共用，截断策略各自保留）、钉钉/企微机器人发送合并、headers 归一化与 HTTP 发送抽 `notify/common.mjs` 共用、清理文件拆分遗留的错位注释
-- 删除 `dashboard.scss` 中重复且从未生效的 `.user-chip`：该文件经 `import` 全局引入（非 scoped），选择器权重低于 `UserChip.vue` 自身 scoped 规则，其 `padding`/`border-radius`/`font-size` 等声明实际从未生效——首页看到的药丸形圆角与间距都来自组件本身（改这段的人会白排查很久），只有 hover 背景真正漏了出来；且与 `toolbar.scss` 那份逐字重复近九成，属误导性死代码。删除后 hover 底色按原值（`var(--bg-tertiary)`）收进 `UserChip.vue` 作单一来源，视觉零变化；`toolbar.scss` 那份因需覆盖紧凑形态（`padding: 4px 8px`、圆角 4px）且是 scoped 不外泄，予以保留
+- 删除 `dashboard.scss` 中重复且从未生效的 `.user-chip`：该文件经 `import` 全局引入（非 scoped），选择器权重低于 `UserChip.vue` 自身 scoped 规则，其 `padding`/`border-radius`/`font-size` 等声明实际从未生效——首页看到的药丸形圆角与间距都来自组件本身（改这段的人会白排查很久），只有 hover 背景真正漏了出来；且与 `toolbar.scss` 那份逐字重复近九成，属误导性死代码。删除后 hover 底色按原值（`var(--bg-tertiary)`）收进 `UserChip.vue` 作单一来源，视觉零变化；`toolbar.scss` 那份因需覆盖紧凑模式（`padding: 4px 8px`、圆角 4px）且是 scoped 不外泄，予以保留
+- 移除 Three.js 实时 3D 预览，立体观感统一由 2.5D 承担：`docs/2.5D_ILLUSTRATION_GUIDE.md` 的判据本就把投影/侧面/高光这类**运行期不变化**的立体感划归 2D/2.5D（唯一入口是 `src/core/canvas/depthLayers.ts` 的三层配置），真 3D 只在需要转视角、真实前后遮挡、任意剖切、漫游巡检时才成立，而本项目的实际诉求不含这几项——实时渲染器是纯增重。删除 `src/core/scene3d/`（含 `use3DScene` / `sceneSync` / `deviceModels` / `assemblies` 及全部单测）、`src/views/preview/Preview3DStage.vue`、`scripts/seed-demo3d.mjs`、`ComponentDefinition.model3d` 字段、`vite.config.ts` 的 `chunk-3d` 分包规则与 `three` / `@types/three` 依赖；预览页移除 2D/3D 切换按钮与 `?view=3d` URL 状态。同时把编辑器画布与预览页共用的状态着色注释口径改为「编辑器 / 预览 2D 共用」，不再提及已不存在的 3D 视图
 
 ### 构建
 

@@ -77,7 +77,6 @@ export default defineConfig({
           if (id.includes('node_modules/element-plus')) return 'vendor-element'
           if (id.includes('node_modules/konva')) return 'vendor-konva'
           if (id.includes('node_modules/vue')) return 'vendor-vue'
-          if (id.includes('Preview3DStage') || id.includes('scene3d')) return 'chunk-3d'
           return undefined
         },
       },

@@ -24,16 +24,16 @@
           >
             <v-rect :config="hitAreaConfig(element)" />
             <v-ellipse
-              v-if="depthShadowConfig(element, uiStore.viewMode === '25d')"
-              :config="depthShadowConfig(element, uiStore.viewMode === '25d')!"
+              v-if="depthShadowConfig(element, is25d)"
+              :config="depthShadowConfig(element, is25d)!"
             />
             <v-rect
-              v-if="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')"
-              :config="depthSideConfig(element, getElementColor(element), uiStore.viewMode === '25d')!"
+              v-if="depthSideConfig(element, getElementColor(element), is25d)"
+              :config="depthSideConfig(element, getElementColor(element), is25d)!"
             />
             <v-rect
-              v-if="depthHighlightConfig(element, uiStore.viewMode === '25d')"
-              :config="depthHighlightConfig(element, uiStore.viewMode === '25d')!"
+              v-if="depthHighlightConfig(element, is25d)"
+              :config="depthHighlightConfig(element, is25d)!"
             />
             <!-- 设备图形：只有线稿，无卡片底色/描边（与编辑器一致） -->
             <v-image
@@ -114,7 +114,7 @@ import {
   displayTextConfig,
 } from '@/core/canvas/elementChrome'
 import { depthShadowConfig, depthSideConfig, depthHighlightConfig } from '@/core/canvas/depthLayers'
-import { useUiStore } from '@/stores/uiStore'
+import { useProjectStore } from '@/stores/projectStore'
 import ConnectionLine from '@/core/connection/ConnectionLine.vue'
 import ChartOverlay from '@/core/canvas/ChartOverlay.vue'
 import type { ComponentInstance } from '@/types/scada'
@@ -124,10 +124,16 @@ const emit = defineEmits<{
 }>()
 
 const canvasStore = useCanvasStore()
-const uiStore = useUiStore()
+const projectStore = useProjectStore()
 const connectionStore = useConnectionStore()
 const deviceStore = useDeviceStore()
 const layerStore = useLayerStore()
+
+/**
+ * 渲染风格由编辑器确定的工程级设置驱动（只读跟随）。
+ * 运行端不提供切换入口，保证「编辑所见 = 运行所见」。
+ */
+const is25d = computed(() => projectStore.viewMode === '25d')
 
 /** 画布配置 → CSS 网格变量（与编辑器共用） */
 const canvasGridStyle = computed(() => {

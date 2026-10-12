@@ -199,4 +199,4 @@ pnpm lint               # ESLint
   - 右键菜单：对 `.konvajs-content` 合成 `contextmenu` 事件（坐标 = 容器 rect + 元素中心）
   - 拖入：合成 `dragover`/`drop` DragEvent
   - 被遮挡的按钮：可在页面内程序化 `el.click()`
-  - 元素坐标可查 `examples/demo-project.json`；灌 3D 演示工程用 `scripts/seed-demo3d.mjs`（admin/admin123 登录换 token）
+  - 元素坐标可查 `examples/demo-project.json`；种子账号见 `server/auth.mjs`（登录 `/api/auth/login` 换 token 后即可访问 `/api/storage/*`）
