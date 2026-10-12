@@ -4,6 +4,7 @@
  */
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
+import { writeFileAtomic } from './atomicWrite.mjs'
 
 /**
  * 当前请求的存储命名空间。
@@ -21,6 +22,9 @@ export function scopeOf(authn) {
  * 前端按固定键名显式读写（与前端 SITE_BRANDING_KEY 保持一致的命名约定）。
  */
 export const GLOBAL_SCOPE = 'u/global/'
+
+/** 站点品牌存储键（部署级全局设置），与前端 src/stores/brandingStore.ts 保持一致 */
+export const SITE_BRANDING_KEY = 'site:branding'
 
 /** 键名 → 安全文件路径（含用户命名空间） */
 export function fileFor(dataDir, key, scope) {
@@ -56,8 +60,7 @@ export async function readValue(dataDir, key, scope) {
 }
 
 export async function writeValue(dataDir, key, scope, value) {
-  await fs.mkdir(scopeDir(dataDir, scope), { recursive: true })
-  await fs.writeFile(fileFor(dataDir, key, scope), value, 'utf8')
+  await writeFileAtomic(fileFor(dataDir, key, scope), value, 'utf8')
 }
 
 export async function removeValue(dataDir, key, scope) {

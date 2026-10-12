@@ -5,6 +5,7 @@
  */
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
+import { writeFileAtomic } from './atomicWrite.mjs'
 
 /**
  * 读取 JSONL 文件的最近 limit 条记录（新→旧）。
@@ -40,7 +41,7 @@ export async function appendJsonl(filePath, entry, { cap = 0 } = {}) {
       const text = await fs.readFile(filePath, 'utf8')
       const rows = text.split('\n').filter(Boolean)
       if (rows.length > cap) {
-        await fs.writeFile(filePath, rows.slice(-cap).join('\n') + '\n', 'utf8')
+        await writeFileAtomic(filePath, rows.slice(-cap).join('\n') + '\n', 'utf8')
       }
     } catch {
       // 截断失败不影响追加结果，下条记录写入时会再尝试

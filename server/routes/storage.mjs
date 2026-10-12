@@ -1,0 +1,80 @@
+/**
+ * 键值存储路由（按用户隔离）+ 站点品牌写入。
+ * 品牌读取在 routes/public.mjs（未鉴权也要能读）。
+ */
+import { readBody, requireRole } from '../lib/http.mjs'
+import { roleAtLeast } from '../auth.mjs'
+import {
+  listKeys,
+  readValue,
+  writeValue,
+  removeValue,
+  GLOBAL_SCOPE,
+  SITE_BRANDING_KEY,
+} from '../lib/kv.mjs'
+
+/**
+ * @returns {Promise<boolean>} 已响应为 true，未匹配为 false
+ */
+export async function handleStorage(ctx) {
+  const { req, res, url, ok, authn, dataDir, scope, maxBodyBytes } = ctx
+
+  if ((url.pathname === '/api/keys' || url.pathname === '/api/storage/keys') && req.method === 'GET') {
+    ok(res, req, 200, { keys: await listKeys(dataDir, scope) })
+    return true
+  }
+
+  if (url.pathname === '/api/storage/get' && req.method === 'GET') {
+    const key = url.searchParams.get('key')
+    if (!key) {
+      ok(res, req, 400, { error: 'missing key' })
+      return true
+    }
+    ok(res, req, 200, { value: await readValue(dataDir, key, scope) })
+    return true
+  }
+
+  if (url.pathname === '/api/storage/set' && req.method === 'PUT') {
+    if (!requireRole(authn, 'engineer', roleAtLeast)) {
+      ok(res, req, 403, { error: 'forbidden' })
+      return true
+    }
+    const key = url.searchParams.get('key')
+    if (!key) {
+      ok(res, req, 400, { error: 'missing key' })
+      return true
+    }
+    await writeValue(dataDir, key, scope, await readBody(req, maxBodyBytes))
+    ok(res, req, 200, { ok: true })
+    return true
+  }
+
+  if (url.pathname === '/api/storage/remove' && req.method === 'DELETE') {
+    if (!requireRole(authn, 'engineer', roleAtLeast)) {
+      ok(res, req, 403, { error: 'forbidden' })
+      return true
+    }
+    const key = url.searchParams.get('key')
+    if (!key) {
+      ok(res, req, 400, { error: 'missing key' })
+      return true
+    }
+    await removeValue(dataDir, key, scope)
+    ok(res, req, 200, { ok: true })
+    return true
+  }
+
+  // 站点品牌写入影响整个部署，权限提高到 admin（普通 KV 键 engineer 即可写）。
+  // 品牌负载含图标 data URL（前端已缩放为 256×256 PNG），512KB 上限足够。
+  if (url.pathname === '/api/branding' && req.method === 'PUT') {
+    if (!requireRole(authn, 'admin', roleAtLeast)) {
+      ok(res, req, 403, { error: 'forbidden' })
+      return true
+    }
+    await writeValue(dataDir, SITE_BRANDING_KEY, GLOBAL_SCOPE, await readBody(req, 512 * 1024))
+    ok(res, req, 200, { ok: true })
+    return true
+  }
+
+  return false
+}

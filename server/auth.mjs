@@ -14,6 +14,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { scryptSync, randomBytes, timingSafeEqual, randomUUID } from 'node:crypto'
+import { writeFileAtomic } from './lib/atomicWrite.mjs'
 
 /** 角色等级：数字越大权限越高（与前端 types/auth.ts 保持一致） */
 export const ROLE_RANK = {
@@ -91,10 +92,12 @@ export function createAuthStore(dataDir) {
   /** 会话有效期：12 小时 */
   const SESSION_TTL_MS = 12 * 3600 * 1000
 
-  /** 把用户列表写入 _users.json */
+  /**
+   * 把用户列表写入 _users.json。
+   * 走原子写：这个文件损坏等于全站无法登录，不能留下半截内容。
+   */
   async function persistUsers() {
-    await fs.mkdir(dataDir, { recursive: true })
-    await fs.writeFile(usersFile, JSON.stringify(users, null, 2), 'utf8')
+    await writeFileAtomic(usersFile, JSON.stringify(users, null, 2), 'utf8')
   }
 
   /**
@@ -103,8 +106,7 @@ export function createAuthStore(dataDir) {
    */
   async function persistSessions() {
     try {
-      await fs.mkdir(dataDir, { recursive: true })
-      await fs.writeFile(
+      await writeFileAtomic(
         sessionsFile,
         JSON.stringify([...sessions.entries()].map(([token, s]) => ({ token, ...s }))),
         'utf8',
@@ -138,24 +140,30 @@ export function createAuthStore(dataDir) {
       users = []
     }
 
-    // 种子账号：仅在用户表为空时写入，便于首次部署开箱可用
+    // 种子账号：仅在用户表为空时写入，便于首次部署开箱可用。
+    // 初始口令随机生成——写死 admin123 这类弱口令等于对外部署时留了默认凭据，
+    //  scanners 和爆破脚本都认这套。需要固定口令时用 SEED_PASSWORD 显式指定。
     if (users.length === 0) {
+      const seedPassword = (process.env.SEED_PASSWORD || '').trim() || randomBytes(9).toString('base64url')
       const seeds = [
-        ['admin', '管理员', 'admin', 'admin123'],
-        ['engineer', '工程师', 'engineer', 'engineer123'],
-        ['operator', '操作员', 'operator', 'operator123'],
-        ['viewer', '观察员', 'viewer', 'viewer123'],
+        ['admin', '管理员', 'admin'],
+        ['engineer', '工程师', 'engineer'],
+        ['operator', '操作员', 'operator'],
+        ['viewer', '观察员', 'viewer'],
       ]
-      users = seeds.map(([username, displayName, role, password], i) => ({
+      users = seeds.map(([username, displayName, role], i) => ({
         id: `usr_seed_${i}`,
         username,
         displayName,
         role,
-        passwordHash: hashPassword(password),
+        passwordHash: hashPassword(seedPassword),
         createdAt: Date.now(),
       }))
       await persistUsers()
-      console.log('[scada-server] 已创建种子账号 admin/engineer/operator/viewer（请尽快改口令）')
+      console.log('[scada-server] 已创建种子账号（首次运行，四个账号共用同一初始口令）')
+      console.log(`[scada-server]   用户名: ${seeds.map(s => s[0]).join(' / ')}`)
+      console.log(`[scada-server]   初始口令: ${seedPassword}`)
+      console.log('[scada-server]   口令只以 scrypt 哈希落盘、不再回显，请登录后立即修改')
     }
 
     // 恢复会话文件（只认未过期的）
@@ -176,13 +184,60 @@ export function createAuthStore(dataDir) {
   }
 
   /**
+   * 登录失败限流。
+   *
+   * 登录接口不区分「用户名不存在」与「口令错误」，但不限次数的话仍可无限试。
+   * 两个维度各记一份：按用户名（挡针对某账号的定向爆破）、按来源（挡同一来源撞不同账号），
+   * 任一维度超限就拒绝。计数只存内存，重启即清零——对本服务的体量足够，
+   * 也避免把失败记录写进数据目录。
+   */
+  const LOGIN_MAX_FAILS = 5
+  const LOGIN_LOCK_MS = 5 * 60 * 1000
+  const loginFails = new Map() // key -> { count, until }
+
+  function loginLocked(keys) {
+    const now = Date.now()
+    for (const key of keys) {
+      const rec = loginFails.get(key)
+      if (rec && rec.until > now) return true
+    }
+    return false
+  }
+
+  function noteLoginFail(keys) {
+    const now = Date.now()
+    for (const key of keys) {
+      const rec = loginFails.get(key)
+      // 只在「曾经锁定且锁已过期」时清零，否则早期失败会永久压住该账号。
+      // 注意 until=0 表示从未锁定，不能参与这个判断——否则每次失败都会把计数重置回 1，
+      // 永远攒不到阈值，限流形同虚设。
+      const count = rec && rec.until > 0 && rec.until <= now ? 0 : (rec?.count || 0)
+      loginFails.set(key, {
+        count: count + 1,
+        until: count + 1 >= LOGIN_MAX_FAILS ? now + LOGIN_LOCK_MS : 0,
+      })
+    }
+  }
+
+  /**
    * 登录。成功签发随机 token；失败返回 null（不区分用户名/口令错误，避免枚举）。
+   * 连续失败超过阈值后锁定一段时间，此时即使口令正确也拒绝。
+   * @param {string} username
+   * @param {string} password
+   * @param {string} [clientKey] 来源标识（由路由层传 IP），与用户名一起作为限流维度
    * @returns {Promise<{ token: string, expiresAt: number, user: object } | null>}
    */
-  async function login(username, password) {
+  async function login(username, password, clientKey = '') {
     pruneSessions()
+    const keys = [`u:${username}`, `i:${clientKey || '-'}`]
+    if (loginLocked(keys)) return null
+
     const user = users.find(u => u.username === username)
-    if (!user || !verifyPassword(password, user.passwordHash)) return null
+    if (!user || !verifyPassword(password, user.passwordHash)) {
+      noteLoginFail(keys)
+      return null
+    }
+    loginFails.delete(`u:${username}`)
 
     const token = randomBytes(24).toString('hex')
     const expiresAt = Date.now() + SESSION_TTL_MS

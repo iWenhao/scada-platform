@@ -11,6 +11,8 @@ services:
       dockerfile: Dockerfile.server
     environment:
       PORT: 5174
+      # 容器内必须监听全网卡，否则宿主机访问不到（默认 127.0.0.1 只认容器内）
+      HOST: 0.0.0.0
       DATA_DIR: /data
       HISTORY_RETENTION_DAYS: 30
       # 同域反代（默认用法）不需要跨域；若前端在别的域名，改成该站点

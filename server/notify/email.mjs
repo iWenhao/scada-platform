@@ -2,6 +2,14 @@ import net from 'node:net'
 import tls from 'node:tls'
 import { renderTemplate } from './common.mjs'
 
+/**
+ * 是否校验 SMTP 服务器证书，默认校验。
+ * 关掉（rejectUnauthorized: false）意味着 STARTTLS/隐式 TLS 都可能被中间人接管，
+ * 而 AUTH LOGIN 送的是 base64 明文账号口令——一被接管凭据就直接泄漏。
+ * 现场确有自签证书邮件服务器时，用 SMTP_REJECT_UNAUTHORIZED=0 显式放行。
+ */
+const REJECT_UNAUTHORIZED = process.env.SMTP_REJECT_UNAUTHORIZED !== '0'
+
 export function smtpSend({ host, port, secure, user, pass, from, to, subject, text }) {
   return new Promise((resolve) => {
     const recipients = String(to || '')
@@ -65,11 +73,11 @@ export function smtpSend({ host, port, secure, user, pass, from, to, subject, te
       // STARTTLS 握手后再次 EHLO
       if (step === 90 && code === 220) {
         const plain = socket
-        socket = tls.connect({
-          socket: plain,
-          servername: host,
-          rejectUnauthorized: false,
-        }, () => {
+      socket = tls.connect({
+        socket: plain,
+        servername: host,
+        rejectUnauthorized: REJECT_UNAUTHORIZED,
+      }, () => {
           reply('EHLO scada-platform')
         })
         socket.on('data', onData)
@@ -155,7 +163,7 @@ export function smtpSend({ host, port, secure, user, pass, from, to, subject, te
         host,
         port: Number(port) || 465,
         servername: host,
-        rejectUnauthorized: false,
+        rejectUnauthorized: REJECT_UNAUTHORIZED,
       })
     } else {
       socket = net.connect({ host, port: Number(port) || 25 })

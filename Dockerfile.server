@@ -2,11 +2,16 @@
 FROM node:20-alpine
 WORKDIR /app
 
-# 只需要 server/ 目录，不依赖前端构建产物
+# 只需要 server/ 目录，不依赖前端构建产物。
+# shared/ 与 package.json 必须一起带上：server/index.mjs 会 import ../shared/consoleBanner.mjs，
+# 并读 ../package.json 取启动横幅的名称与版本——缺任一都会让模块加载阶段 ENOENT。
 COPY server/ ./server/
+COPY shared/ ./shared/
+COPY package.json ./package.json
 
 ENV NODE_ENV=production \
     PORT=5174 \
+    HOST=0.0.0.0 \
     DATA_DIR=/data \
     HISTORY_RETENTION_DAYS=30
 
