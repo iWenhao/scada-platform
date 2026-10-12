@@ -19,6 +19,13 @@
 
 ### 修复
 
+- 修复设备图标首次渲染不显示：拖入画布后图形为空，要等下一次无关重绘（例如再拖一个元素）才补画出来
+  - 根因在 `useElementVisuals` 的 `iconVersion`：`getIconImage` 是**异步解码**的，首次求值必然拿不到 `image` 而返回 `null`（`v-image` 节点压根没创建），设计意图是 `onLoad` 回调递增 `iconVersion` 触发重绘。但这个 ref **只写不读**——全库检索只有定义与两处写入，没有任何读取点，也不在 composable 的返回对象里。Vue 的渲染依赖是在「渲染期间读 ref」时登记的，只写不读等于没写，于是「解码完成 → 重画」这条信号发到了一个没人订阅的 ref 上
+  - 不是本次新增组件引入的问题：链路是共享的，所有设备图元的**首帧**都受影响；只是小图标（几百字节）常在本次渲染结束前就已 `complete`，而被导入的图元要按 512px 长边光栅化、解码更慢，窗口期大到肉眼必然看到
+  - 修法对齐同目录 `ElementMotion.vue` 的既有手法（`rotors` computed 里的 `void imageVersion.value`）：在 `getIconImageConfig` 与 `getUserImageConfig` 各读一次，把调用方（`CanvasElements` / `PreviewStage` 的渲染）登记为依赖方；同时把 `iconVersion` 加进 composable 返回对象，避免它再次悄悄死掉
+  - 新增 `src/core/canvas/useElementVisuals.test.ts`：用假 `Image`（微任务模拟「本帧之后才就绪」）断言 ① `getIconImageConfig` / `getUserImageConfig` 订阅 `iconVersion`（包进同步 `watchEffect`，递增后必须重跑）；② 位图就绪后返回非 null 且宽高为正的可绘配置。**已验证该测试能抓住回归**——临时撤掉订阅读取后，第 ① 条断言如期失败
+  - 实测：`npx vitest run` 47 文件 / 386 用例全通过；`pnpm build`（vue-tsc + vite build）通过；`eslint` 对两个改动文件 0 error 0 warning
+
 - 宽屏（≥1700px）下删除 / 复制 / 粘贴没有任何可见工具栏入口——修窄屏折行时（`16924109`）把三个编辑按钮从顶部**直接删除**而非挪位，而它们的替代落点「更多」菜单在宽屏恰好被 `display: none` 隐藏（`toolbar.scss` 的 `min-width: 1700px` 规则），宽屏用户只剩快捷键 / 右键菜单 / 属性面板可用
   - 修复：复制/粘贴加回撤销/重做按钮组（配置数组 `editActions` + v-for，disabled 条件与「更多」菜单项一致），样式类 `edit-action` 与「更多」菜单**互斥显示**——≥1700px 平铺、低于该宽度隐藏并走「更多」菜单，复用 `toolbar-secondary` 已确立的断点模式，不加剧 1200px 级窗口的宽度压力
   - 删除按钮按用户反馈（使用频率高）**常显不收纳**：所有宽度下都在撤销/重做旁显示，disabled 条件为未选中元素且未选中连线；同时恢复随 `16924109` 一起丢失的悬停红色效果（`.btn-delete` hover/focus 淡红底 + 红边红字，:active 加深为 40% 混合；`ToolIcon` 走 `stroke="currentColor"`，`color` 变红即图标跟随，无需对 svg 特判）

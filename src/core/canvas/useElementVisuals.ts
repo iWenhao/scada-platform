@@ -144,7 +144,18 @@ export function useElementVisuals(options: {
     return getElementLayout(element).nameHeight
   }
 
-  // 图标加载完成后递增以触发画布重绘
+  /**
+   * 图标加载完成后递增以触发画布重绘。
+   *
+   * ⚠️ 这个 ref **必须被读一次才会生效**：Vue 只在渲染期间读到的 ref 上登记依赖，
+   * 只写不读等于没写。因此 getIconImageConfig / getUserImageConfig 里各读一次
+   * （`void iconVersion.value`），把调用方（CanvasElements / PreviewStage 的渲染）
+   * 登记为依赖方，onLoad 回调再递增才会重跑、把 v-image 补上。
+   *
+   * 曾在这里踩过：iconVersion 一度只写不读，导致首次拖入的设备一律不显示，
+   * 要等下一次无关重绘（例如再拖一个元素）才补画出来。对照同目录
+   * ElementMotion.vue 的 rotors computed——同一手法，改的时候别只改一边。
+   */
   const iconVersion = ref(0)
 
   /**
@@ -156,6 +167,9 @@ export function useElementVisuals(options: {
    * 测量不可用（非浏览器环境）时回退方形缩放，行为与改造前一致。
    */
   function getIconImageConfig(element: ComponentInstance) {
+    // 订阅图标解码完成信号（见 iconVersion 注释）：位图是异步的，首次求值必然
+    // 拿不到 image 而返回 null，必须靠这个依赖在 onLoad 后重跑一次
+    void iconVersion.value
     // 图片组件由用户图整块渲染，不再叠默认图标
     if (element.type === 'image' && element.properties?.imageUrl) return null
     // 管道用原生管身图形绘制（见 pipeFlow.ts）：图标方案画不出任意长度的管段
@@ -233,6 +247,8 @@ export function useElementVisuals(options: {
 
   /** 图片组件：用户配置的 URL/data:URL 整块渲染 */
   function getUserImageConfig(element: ComponentInstance) {
+    // 同上：用户图同样是异步加载，首次求值返回 null，靠这个依赖重跑补画
+    void iconVersion.value
     if (element.type !== 'image') return null
     const url = String(element.properties?.imageUrl || '')
     if (!url) return null
@@ -292,5 +308,7 @@ export function useElementVisuals(options: {
     isLayerLocked,
     isLayerVisible,
     getElementPorts,
+    // 导出以便调用方（画布 / 预览）显式依赖它；组件内部已自行订阅
+    iconVersion,
   }
 }
