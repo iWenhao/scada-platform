@@ -19,6 +19,16 @@ const maxHistory = 50
 // 不能被当成用户改动，否则一进页面就显示「未保存」
 let baselineEstablished = false
 
+/**
+ * 深拷贝。元素与连线都是纯数据（无函数、无 Date/Map 等），走 JSON 一轮即可。
+ * 存栈与出栈都必须过这一层：store 侧存在就地改写（connectionStore 直接赋 `conn.points`、
+ * pageStore 直接 `delete el.navigateTo`），若历史与 store 共享同一批对象引用，
+ * 后续编辑会穿透回栈里已存的状态，撤销拿到的是被改过的内容。
+ */
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value))
+}
+
 // 是否可以撤销
 const canUndo = computed(() => currentIndex.value > 0)
 
@@ -37,8 +47,8 @@ export function useHistory() {
    */
   function serializeState(): HistoryState {
     return {
-      elements: JSON.parse(JSON.stringify(canvasStore.elements)),
-      connections: JSON.parse(JSON.stringify(connectionStore.connections)),
+      elements: deepClone(canvasStore.elements),
+      connections: deepClone(connectionStore.connections),
     }
   }
 
@@ -104,14 +114,14 @@ export function useHistory() {
     canvasStore.clearCanvas()
     connectionStore.connections = []
 
-    // 恢复元素
+    // 恢复元素（克隆：栈里的快照对象要原样留着供二次撤销/重做使用）
     state.elements.forEach((element: any) => {
-      canvasStore.addElement(element)
+      canvasStore.addElement(deepClone(element))
     })
 
     // 恢复连线
     state.connections.forEach((connection: any) => {
-      connectionStore.connections.push(connection)
+      connectionStore.connections.push(deepClone(connection))
     })
   }
 

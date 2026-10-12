@@ -91,7 +91,7 @@
       :form="editing"
       :editing-index="editingIndex"
       :devices="deviceStore.availableDevices"
-      @confirm="commitEdit"
+      @confirm="commitEdit($event)"
     />
 
 
@@ -207,23 +207,23 @@ function editTag(row: TagDef, index: number) {
   editVisible.value = true
 }
 
-function commitEdit() {
-  if (!editing.value) return
-  if (!editing.value.deviceId?.trim() || !editing.value.name?.trim()) {
+/** 收到的是编辑对话框提交回来的草稿，不再回读父级持有的 editing */
+function commitEdit(draft: TagDef) {
+  if (!draft.deviceId?.trim() || !draft.name?.trim()) {
     ElMessage.warning('设备 ID 与变量名必填')
     return
   }
   const next = [...tags.value]
   if (editingIndex.value >= 0) {
-    next[editingIndex.value] = { ...editing.value }
+    next[editingIndex.value] = { ...draft }
   } else {
     const idx = next.findIndex(
-      t => t.deviceId === editing.value!.deviceId && t.name === editing.value!.name,
+      t => t.deviceId === draft.deviceId && t.name === draft.name,
     )
     if (idx >= 0) {
-      next[idx] = { ...editing.value, id: next[idx].id }
+      next[idx] = { ...draft, id: next[idx].id }
     } else {
-      next.push({ ...editing.value })
+      next.push({ ...draft })
     }
   }
   tags.value = next

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { usePageStore } from './pageStore'
-import { getStorage } from '@/storage'
 import type { DataSourceConfig } from '@/datasource/types'
 import type { AlarmDefinition } from '@/types/alarm'
 import type { ScadaPage } from '@/types/page'
@@ -9,17 +8,12 @@ import type { TagDef, WritePolicy } from '@/types/tag'
 import type { ViewMode } from '@/types/scada'
 import { migrateLegacyToPages, normalizeProjectExtras } from './projectLoad'
 import {
-  projectKey,
-  draftKey,
-  publishedKey,
   isProjectTaken,
   renameProjectKeys,
   listSavedProjects,
   deleteProjectKeys,
-  removePublishedSnapshot,
-  hasPublishedSnapshot,
-  getPublishedSnapshotAt,
 } from './projectStorage'
+import { createProjectPersistence } from './projectPersistence'
 
 export const useProjectStore = defineStore('project', () => {
   // 项目名称
@@ -113,45 +107,6 @@ export const useProjectStore = defineStore('project', () => {
     viewMode.value = extras.viewMode
   }
 
-  /**
-   * 保存项目到存储
-   */
-  async function saveProject(name?: string) {
-    if (name) {
-      projectName.value = name
-    }
-
-    const json = JSON.stringify(buildProjectData())
-    await getStorage().set(projectKey(projectName.value), json)
-
-    // 已正式落盘，自动草稿不再需要
-    await clearDraft()
-
-    lastSaveTime.value = Date.now()
-    hasUnsavedChanges.value = false
-
-    return true
-  }
-
-  /**
-   * 发布当前工程：把工作副本快照为发布版。
-   * 发布后编辑草稿不影响预览，直到再次发布。
-   */
-  async function publishProject(name?: string): Promise<boolean> {
-    if (name) projectName.value = name
-    const data = {
-      ...buildProjectData(),
-      publishedAt: Date.now(),
-    }
-    await getStorage().set(publishedKey(projectName.value), JSON.stringify(data))
-    return true
-  }
-
-  // 取消发布 / 查询发布版：纯存储操作，直接复用 projectStorage 的实现（对外名保持不变）
-  const unpublishProject = removePublishedSnapshot
-  const hasPublished = hasPublishedSnapshot
-  const getPublishedAt = getPublishedSnapshotAt
-
   /** 应用已解析的工程数据并复位脏状态（加载草稿/发布版/导入三条路径共用） */
   function applyLoadedProject(
     projectData: Record<string, any>,
@@ -165,68 +120,29 @@ export const useProjectStore = defineStore('project', () => {
     hasUnsavedChanges.value = false
   }
 
-  /**
-   * 加载发布版供预览；无发布版时回落草稿（保证运行端始终有画面可看）。
-   */
-  async function loadPublishedProject(name: string): Promise<boolean> {
-    const raw = await getStorage().get(publishedKey(name))
-    if (!raw) {
-      return loadProject(name)
-    }
-    try {
-      const projectData = JSON.parse(raw)
-      applyLoadedProject(
-        projectData,
-        name,
-        projectData.publishedAt || projectData.timestamp || null,
-      )
-      return true
-    } catch (e) {
-      console.error('Failed to load published project:', e)
-      return loadProject(name)
-    }
-  }
-
-  /**
-   * 从存储加载项目
-   */
-  async function loadProject(name: string): Promise<boolean> {
-    const json = await getStorage().get(projectKey(name))
-    if (!json) {
-      console.error(`Project not found: ${name}`)
-      return false
-    }
-
-    try {
-      const projectData = JSON.parse(json)
-      applyLoadedProject(projectData, name, projectData.timestamp)
-      return true
-    } catch (e) {
-      console.error('Failed to load project:', e)
-      return false
-    }
-  }
-
-  /**
-   * 导出项目为JSON文件
-   */
-  function exportProject(): string {
-    return JSON.stringify(buildProjectData(), null, 2)
-  }
-
-  /**
-   * 从JSON文件导入项目
-   */
-  function importProject(json: string): boolean {
-    try {
-      const projectData = JSON.parse(json)
-      applyLoadedProject(projectData, '导入的项目', projectData.timestamp)
-      return true
-    } catch (e) {
-      console.error('Failed to import project:', e)
-      return false
-    }
-  }
+  // 正式保存 / 发布 / 加载 / 导入 / 自动草稿：都只是「工程数据 ↔ 存储」的往返，
+  // 拆到 projectPersistence.ts，靠注入的 state 与三个数据动作拿到所需依赖
+  const persistence = createProjectPersistence({
+    state: { projectName, projectDescription, lastSaveTime, hasUnsavedChanges },
+    buildProjectData,
+    applyProjectData,
+    applyLoadedProject,
+  })
+  const {
+    saveProject,
+    publishProject,
+    unpublishProject,
+    hasPublished,
+    getPublishedAt,
+    loadPublishedProject,
+    loadProject,
+    exportProject,
+    importProject,
+    saveDraft,
+    hasDraft,
+    restoreDraft,
+    clearDraft,
+  } = persistence
 
   /**
    * 重命名当前项目：未保存过的仅改名称并标记未保存；
@@ -273,46 +189,6 @@ export const useProjectStore = defineStore('project', () => {
    */
   function markDirty() {
     hasUnsavedChanges.value = true
-  }
-
-  /**
-   * 自动保存草稿。用独立前缀，不会被工程列表误当成正式项目。
-   */
-  async function saveDraft() {
-    await getStorage().set(draftKey(projectName.value), JSON.stringify(buildProjectData()))
-  }
-
-  /**
-   * 当前工程是否存在草稿
-   */
-  async function hasDraft(): Promise<boolean> {
-    return (await getStorage().get(draftKey(projectName.value))) !== null
-  }
-
-  /**
-   * 从草稿恢复。恢复的内容尚未写回正式工程，所以仍然标记为未保存。
-   */
-  async function restoreDraft(): Promise<boolean> {
-    const json = await getStorage().get(draftKey(projectName.value))
-    if (!json) return false
-
-    try {
-      const projectData = JSON.parse(json)
-      applyProjectData(projectData)
-      lastSaveTime.value = null
-      hasUnsavedChanges.value = true
-      return true
-    } catch (e) {
-      console.error('Failed to restore draft:', e)
-      return false
-    }
-  }
-
-  /**
-   * 丢弃草稿
-   */
-  async function clearDraft() {
-    await getStorage().remove(draftKey(projectName.value))
   }
 
   /**

@@ -84,6 +84,17 @@ export const useDeviceStore = defineStore('device', () => {
     }, 1000)
   }
 
+  /**
+   * 停掉质量时钟。
+   * 时钟一旦启动就是每秒递增 `dataTick`，而 `qualityOf` / `commLost` 都读它，
+   * 断连或重置后继续跑会让整幅画布每秒空转重算——必须显式停掉。
+   */
+  function stopClock() {
+    if (clockTimer === null) return
+    window.clearInterval(clockTimer)
+    clockTimer = null
+  }
+
   /** 当前点位质量（随时间退化，依赖质量时钟刷新） */
   function qualityOf(deviceId: string, variable: string): Quality {
     void dataTick.value
@@ -241,6 +252,7 @@ export const useDeviceStore = defineStore('device', () => {
   function disconnect() {
     dataSourceManager.disconnect()
     connectionStatus.value = 'disconnected'
+    stopClock()
   }
 
   /** 由数据源配置注入陈旧/通信超时阈值（毫秒），缺省用默认值 */
@@ -259,6 +271,8 @@ export const useDeviceStore = defineStore('device', () => {
     historyData.value = {}
     lastUpdateTime.value = 0
     variableMeta.value = {}
+    // 点位元数据已清空，质量判定已无依据，时钟随之停止（下次收到数据由 ensureClock 重启）
+    stopClock()
   }
 
   return {

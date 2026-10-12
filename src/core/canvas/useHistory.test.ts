@@ -59,6 +59,28 @@ describe('useHistory', () => {
     expect(canvasStore.elements).toHaveLength(2)
   })
 
+  it('撤销恢复出的对象不应与历史快照共享引用：就地改写不污染历史栈', () => {
+    canvasStore.addElement(makeElement('el_1'))
+    history.saveState() // 快照0：x = 0
+
+    canvasStore.elements[0].x = 50
+    history.saveState() // 快照1：x = 50
+
+    history.undo()
+    expect(canvasStore.elements[0].x).toBe(0)
+
+    // 模拟 store 侧的就地改写：connectionStore 直接赋 `conn.points`、
+    // pageStore 直接 `delete el.navigateTo`。若 restoreState 交出去的是快照对象本身，
+    // 这一步会把栈里已存的快照0 一并改掉，第二次撤销拿到的就不是原始内容了。
+    canvasStore.elements[0].x = 777
+
+    history.redo() // 快照1
+    expect(canvasStore.elements[0].x).toBe(50)
+
+    history.undo() // 再回快照0，必须是原始值而非被就地改过的 777
+    expect(canvasStore.elements[0].x).toBe(0)
+  })
+
   it('内容未变化时重复保存不应产生冗余快照', () => {
     history.saveState()
     canvasStore.addElement(makeElement('el_1'))

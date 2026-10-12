@@ -19,6 +19,54 @@
 
 ### 修复
 
+### 安全
+
+- 修复服务端一处 SSRF：`sendHttp()` 直接 `fetch` 用户在配置页填的通道 URL，无 scheme 限制、无目标限制、无超时——填 `http://169.254.169.254/latest/meta-data/` 就能借服务器身份读云元数据，填内网地址则能打到原本不可达的服务
+  - 现在发请求前先过 `checkUrlAllowed()`：只放行 `http/https`；字面量 IP 按段比对拦掉私有 / 回环 / 链路本地 / 组播 / 保留段（`169.254`、`10/8`、`172.16/12`、`192.168/16`、`127/8` 等）；域名先 `dns.lookup` 再逐个判解析结果，否则 `localhost` 之类能绕过字面量检查；`AbortSignal.timeout()` 限时（默认 10s）；`redirect: 'manual'` ——**校验的是初始 URL，跟随 302 等于给白名单开后门**
+  - 内网 webhook 是工业现场的正当用法，故留显式开关 `NOTIFY_ALLOW_PRIVATE=1`，默认 0
+  - ⚠️ 实测时抓到一个自己写的漏洞：`URL` 会把 `::ffff:127.0.0.1` **规范化成 `::ffff:7f00:1`**，只认点分形式的正则整条失配，IPv4 映射地址可以长驱直入。已把两种写法都接上（`server/notify/common.mjs` 的 `isBlockedV6`），并补了 `::ffff:a00:1`（10.0.0.1）等用例
+  - 实测：14 条用例（云元数据 / 回环 / 三个私有段 / IPv6 回环与唯一本地 / 三种 IPv4 映射 / 非 http 协议 / 非法 URL / 公网 IP）全部符合预期。唯一一条「公网域名」在本机解析到 `198.18.1.253`（保留段）被拦——是沙箱 DNS 劫持，逻辑本身正确
+- 修复数据文件非原子写：`kv.mjs` / `jsonl.mjs` / `auth.mjs` / `notify/common.mjs` 都是 `writeFile` 直写或「读全文→截断重写」，进程被杀或并发写会留下半截内容。**`_users.json` 损坏等于全站无法登录**，而故障现场看起来只是「JSON 解析失败」
+  - 新增 `server/lib/atomicWrite.mjs`（写同目录临时文件后 `rename`；临时名以点号开头，不会被只认 `.json` 的 `listKeys()` 枚举出来），四处写入点改走它。临时文件写入失败会清残留
+- 修复种子账号写死弱口令：首次运行会建 `admin/admin123`、`engineer/engineer123` 等，仅打印一句「请尽快改口令」——对外部署就是默认凭据
+  - 改为**随机生成**（`randomBytes(9).toString('base64url')`）并打印在启动日志里，四个账号共用；需要固定口令时用 `SEED_PASSWORD` 显式指定。已有用户表的部署不受影响（种子只在表为空时写入）
+- 修复登录无限流：`/api/auth/login` 连续失败无计数，配合上一条的弱口令可暴力枚举
+  - `auth.login()` 增加第三参 `clientKey`（路由层传 `req.socket.remoteAddress`），按**用户名**与**来源**两个维度各记一份——前者挡针对单账号的定向爆破，后者挡同一来源撞不同账号，任一超限即拒绝。5 次失败锁 5 分钟，锁过期后重新计数
+  - ⚠️ 第一版实现有个让限流完全失效的错：`rec.until <= now` 对「从未锁定」的记录（`until = 0`）恒为真，于是每次失败都把计数重置回 1，永远攒不到阈值。已改为只在 `until > 0 && until <= now`（曾锁定且已过期）时清零。**实测确认**：连错 5 次后再用正确口令返回 401
+- 修复 `/api/notify/send` 缺角色门禁：相邻路由都有 `requireRole`，唯独这条只过了 `authenticateRequest`，任意 `viewer` 可向全部已启用通道外发任意 `title` / `message`。对齐 `/api/notify/test` 补 `engineer` 级校验
+- 修复监听默认绑全网卡：`server.listen(PORT)` 未指定地址，叠加 `CORS_ORIGIN` 默认 `*`，局域网可直接明文读写账号表与工程数据
+  - 新增 `HOST` 环境变量，**默认 `127.0.0.1`**；容器必须对外暴露，故 `Dockerfile.server` 与 `docker-compose.yml` 显式设 `HOST=0.0.0.0`。CORS 默认仍是 `*`（本地前后端分端口要用），但监听非回环时启动横幅后补一行警告
+- 修复错误信息回显内部绝对路径：路由 `catch` 直接把 `e.message` 返回客户端，fs 错误形如 `ENOENT ... open 'D:\...\server\data\u\usr_x\k.json'`。改为 5xx 只回 `internal error`、详情进服务端日志；4xx 保留 `message`
+- 修复两处 SMTP 关掉了证书校验：`notify/email.mjs` 的 STARTTLS 与隐式 TLS 都是 `rejectUnauthorized: false`，而 AUTH LOGIN 送的是 base64 明文账号口令，中间人接管即可截获。改为默认校验，自签证书场景用 `SMTP_REJECT_UNAUTHORIZED=0` 显式放行
+- 补两个进程崩溃点：`server.listen` 未挂 `error` 监听（端口占用直接未捕获异常退出）；顶层 `await auth.init()` 及路由内异步操作无 `unhandledRejection` 兜底。两者都补上并给出可读报错
+- 新增环境变量：`HOST`、`SEED_PASSWORD`、`NOTIFY_ALLOW_PRIVATE`、`NOTIFY_TIMEOUT_MS`、`SMTP_REJECT_UNAUTHORIZED`，`.env.example` 同步
+- `package.json` 的 `lint` 由 `eslint src` 改为 `eslint src server shared scripts`：配置里本就覆盖 `**/*.mjs`，但脚本只跑 `src`，等于服务端与脚本长期既不 lint 也不被类型检查（tsconfig 的 include 同样不含它们）。实测这三个目录当前 0 error 0 warning
+
+### 重构
+
+- `src/stores/projectStore.ts` 拆出持久化动作（原 415 行 → 292 行）
+  - 它是全库最后一个越过 400 门槛的文件（此前两轮都因「既有欠账、非本次引入」被记下未拆）
+  - 拆走的是「工程数据 ↔ 存储」的往返：正式保存 / 发布 / 取消发布 / 加载 / 发布版加载 / 导入导出 / 自动草稿，共 12 个动作进新文件 `src/stores/projectPersistence.ts`（198 行）。`projectStore` 只留工程状态、数据组装与应用、重命名、setter、重置
+  - 依赖靠注入而非反向 import：新文件导出 `createProjectPersistence({ state, buildProjectData, applyProjectData, applyLoadedProject })`，`state` 里的 4 个 ref 是传引用共享，不是拷贝；不 import store，故无循环依赖
+  - 对外 API 一字未改：store 的 return 仍是原来那一组名字，只是来源改成解构 `persistence`
+
+- `server/index.mjs` 拆为按域分组的路由模块（原 446 行 → 195 行）
+  - 上一轮的安全修复让它从 409 涨到 446，已明显越过 400 门槛且是本次改动的核心文件，故一并拆掉
+  - 拆到 `server/routes/`：`public.mjs`（health / 品牌读取 / 登录，**必须在鉴权前分发**）、`auth.mjs`、`notify.mjs`、`audit.mjs`、`storage.mjs`、`history.mjs`，每个导出 `handle(ctx) → boolean`（已响应返回 true）。`index.mjs` 只留配置装载、上下文组装、分发表与启动逻辑
+  - `SITE_BRANDING_KEY` 从 `index.mjs` 移到 `lib/kv.mjs`，与 `GLOBAL_SCOPE` 同处，避免路由模块互相 import
+  - 分发顺序与原单体实现保持一致（账号 → 通知 → 审计 → 存储 → 历史）；`scope` / `historyDir` 提前到分发前计算，两者都是纯函数无副作用
+  - 实测：26 条接口冒烟（含 viewer 角色应 403 的四条门禁、未鉴权 401、404、非法 JSON 400、键值读写往返、历史写入后查回）全通过
+
+- 修复 `TagEditDialog.vue` 直接改 prop（唯一的 9 条 ESLint error）：表单 `v-model` 绑到父组件传进来的 `form` 对象属性上，等于就地改父级状态（`vue/no-mutating-props`），父组件也无法判断用户改了什么
+  - 改为对话框内持有草稿副本：`props.form` 引用变化时复制一份，编辑只动本地，确定时 `emit('confirm', draft)` 把整份草稿交回父级；父级 `commitEdit(draft)` 不再回读自己持有的 `editing`
+  - 依赖「父级每次打开对话框都新建对象」这一点（新增走字面量、编辑走 `JSON.parse(JSON.stringify(row))`），故引用变化可靠，不会把上一次的编辑残留带进下一次
+  - 实测：`npm run lint` 由 **9 errors / 468 warnings** 变为 **0 errors / 468 warnings**（warnings 全是存量格式类，与本次无关）；`vue-tsc` 与 422 个用例全通过
+
+- 修复撤销/重做会被就地改写污染：`restoreState()` 把历史快照里的对象**按引用**塞回 store（`canvasStore.addElement` 只是 `elements.push`），而 store 侧存在就地改写（`connectionStore` 直接赋 `conn.points`、`pageStore` 直接 `delete el.navigateTo`）。一旦撤销恢复出的元素被后续编辑改写，栈里已存的快照会跟着变，第二次撤销拿到的就不是原始内容了。修法是 restore 时先克隆——`serializeState()` 本来就深拷贝，出栈这一侧漏了
+  - 新增 `useHistory.test.ts` 回归用例：撤销后就地改 `x`，再 redo / undo 一轮，断言回到的是原始值。撤掉克隆后该用例如期失败（`expected 777 to be +0`）
+- 修复质量时钟永不停止：`deviceStore` 的 `clockTimer` 只在 `ensureClock()` 里 `setInterval`，`disconnect()` / `reset()` 都没 `clearInterval`。一旦收过数据就每秒 `dataTick++` 直到关页，而 `qualityOf` / `commLost` 都读 `dataTick`，断连或重置后整幅画布仍在每秒空转重算。新增 `stopClock()`，在两个出口各自调用（下次收到数据由 `ensureClock` 重启）
+- 修复 `/api/notify/send` 缺角色门禁：相邻路由都有 `requireRole`，唯独这条只过了 `authenticateRequest`，任意 `viewer` 可向全部已启用通道外发任意 `title` / `message`。对齐 `/api/notify/test` 补 `engineer` 级校验
+- 修复 `Dockerfile.server` 构建出的镜像必然启动失败：只 `COPY server/`，而 `server/index.mjs` 要 `import ../shared/consoleBanner.mjs` 并读 `../package.json` 取启动横幅的名称与版本，容器内两者都不存在、模块加载即 ENOENT（该文件自己的注释已写明「不能只拷 server/」，Dockerfile 没跟上）。补齐 `shared/` 与 `package.json` 两行 COPY
 - 修复导入的组件在左侧组件库里显示大小失控：同一批设备有的撑爆格子、有的只剩一条细缝
   - 根因是**图元根标签带着源文件的固有像素尺寸**。组件库把 `ComponentDefinition.icon` 用 `v-html` 直接注入一个 30×30 的格子（`ComponentPanel.vue` 的 `.component-icon`），手写图元一律只写 `viewBox`、不带宽高，SVG 便按容器缩放；而素材文件的根标签是 `width="937px" height="367px"`（主通风风道）、`width="610px" height="232px"`（采煤机）、`width="28px" height="36px"`（火）这类原尺寸值，注入后各按自己的大小渲染，30×30 的格子自然失控。**批次一用 `icon/` 缩略图时全是 40×40，所以没暴露；批次二改取 `real/` 原始比例后集中爆发**
   - 修法两路并举：① 导入时去掉根 `<svg>` 的 `width`/`height`（规范化第 4 步，新增 `stripIntrinsicSize()`），只留 `viewBox`——这是根因修复，121 个图元已全部重新生成；② 在 `component-panel.scss` 补 `.component-icon svg { width: 100%; height: 100% }` 作为兜底，将来任何图标再带固有尺寸也不会撑爆格子
