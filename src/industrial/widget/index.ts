@@ -1,5 +1,5 @@
 import type { ComponentDefinition, PropertyDefinition } from '@/types/scada'
-import { CLOCK_FORMAT_OPTIONS, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT } from './format'
+import { CLOCK_FORMAT_OPTIONS, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT, TEMPLATE_MAX_LENGTH } from './format'
 
 /**
  * HTML 挂件类组件定义：进度条 / 报表 / 网格图 / 表格 / 日期 / 时间 /
@@ -58,13 +58,19 @@ const fontSizeProp = (d = 12) => ({
 
 /**
  * 自定义格式模板（date / clock 共用）：非空时优先于「显示格式」预设。
- * 占位符见 format.ts 的 TOKEN_RE 注释；留空表示只用预设。
+ * 占位符与限制的最终解释在 format.ts（TOKEN_RE / TEMPLATE_MAX_LENGTH）。
  */
-const customFormatProp = () => ({
+const customFormatProp = (): PropertyDefinition => ({
   key: 'customFormat',
   label: '自定义模板',
-  type: 'string' as const,
+  type: 'string',
   default: '',
+  placeholder: '如：YYYY年MM月DD日 HH:mm:ss EEEE',
+  maxLength: TEMPLATE_MAX_LENGTH,
+  hint:
+    '留空时使用「显示格式」预设。可用占位符：YYYY 年 · MM 月 · DD 日 · HH 时(24小时) · ' +
+    'hh 时(12小时，配 A 上午/下午) · mm 分 · ss 秒 · EEEE 星期几 · EEE 周几 · ' +
+    'L 农历月日 · LL 干支年+农历月日；其余字符按原样显示。',
   group: '显示',
 })
 

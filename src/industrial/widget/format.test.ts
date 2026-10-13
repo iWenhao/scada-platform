@@ -39,9 +39,11 @@ describe('formatDateTime', () => {
   it('农历预设输出月日中文写法', () => {
     expect(formatDateTime(at(), 'lunar')).toBe('九月初四')
     expect(formatDateTime(at(), 'md-lunar')).toBe('10-13 九月初四')
+    expect(formatDateTime(at(), 'md-cn-week-lunar')).toBe('10月13日 周二 丙午年 九月初四')
   })
 
   it('带星期与中文年月日带时刻的预设', () => {
+    expect(formatDateTime(at(), 'ymd-week')).toBe('2026-10-13 星期二')
     expect(formatDateTime(at(), 'ymd-hms-week')).toBe('2026-10-13 07:15:10 星期二')
     expect(formatDateTime(at(), 'ymd-cn-hms')).toBe('2026年10月13日 07:15:10')
   })
@@ -85,6 +87,12 @@ describe('formatCustom 自定义模板', () => {
   it('空模板返回空串，由调用方回落预设', () => {
     expect(formatCustom(at(), '')).toBe('')
     expect(formatCustom(at(), '   ')).toBe('')
+  })
+
+  it('换行与制表符被剔除，超长模板截断到 64 字符', () => {
+    expect(formatCustom(at(), 'YYYY-MM-DD\nEE\tEE')).toBe('2026-10-13星期二')
+    expect(formatCustom(at(), 'x'.repeat(200)).length).toBe(64)
+    expect(formatCustom(at(), 'YYYYMMDD' + 'x'.repeat(200)).startsWith('20261013')).toBe(true)
   })
 
   it('未知占位符按字面输出（如 MM 拆写为 M M 不解析）', () => {

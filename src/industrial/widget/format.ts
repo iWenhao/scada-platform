@@ -14,6 +14,7 @@ import { lunarMonthDayText, lunarYearGanZhi, toLunar } from '@/utils/lunar'
 export type ClockFormatId =
   | 'ymd'
   | 'ymd-cn'
+  | 'ymd-week'
   | 'ymd-hms'
   | 'ymd-hms-week'
   | 'ymd-cn-hms'
@@ -24,6 +25,7 @@ export type ClockFormatId =
   | 'hm-12'
   | 'md-lunar'
   | 'lunar'
+  | 'md-cn-week-lunar'
 
 /** 日期组件的默认格式 */
 export const DEFAULT_DATE_FORMAT: ClockFormatId = 'ymd'
@@ -33,6 +35,7 @@ export const DEFAULT_CLOCK_FORMAT: ClockFormatId = 'hms'
 const FORMAT_IDS: readonly string[] = [
   'ymd',
   'ymd-cn',
+  'ymd-week',
   'ymd-hms',
   'ymd-hms-week',
   'ymd-cn-hms',
@@ -43,6 +46,7 @@ const FORMAT_IDS: readonly string[] = [
   'hm-12',
   'md-lunar',
   'lunar',
+  'md-cn-week-lunar',
 ]
 
 export function isClockFormatId(v: unknown): v is ClockFormatId {
@@ -56,6 +60,7 @@ export function isClockFormatId(v: unknown): v is ClockFormatId {
 export const CLOCK_FORMAT_OPTIONS: Array<{ label: string; value: ClockFormatId }> = [
   { label: '2026-10-13', value: 'ymd' },
   { label: '2026年10月13日', value: 'ymd-cn' },
+  { label: '2026-10-13 星期二', value: 'ymd-week' },
   { label: '2026-10-13 07:15:10', value: 'ymd-hms' },
   { label: '2026-10-13 07:15:10 星期二', value: 'ymd-hms-week' },
   { label: '2026年10月13日 07:15:10', value: 'ymd-cn-hms' },
@@ -66,6 +71,7 @@ export const CLOCK_FORMAT_OPTIONS: Array<{ label: string; value: ClockFormatId }
   { label: '上午 07:15', value: 'hm-12' },
   { label: '10-13 九月初四', value: 'md-lunar' },
   { label: '九月初四', value: 'lunar' },
+  { label: '10月13日 周二 丙午年 九月初四', value: 'md-cn-week-lunar' },
 ]
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -101,6 +107,8 @@ export function formatDateTime(d: Date, id: unknown, fallback: unknown = DEFAULT
       return `${year}-${month}-${day}`
     case 'ymd-cn':
       return `${year}年${d.getMonth() + 1}月${d.getDate()}日`
+    case 'ymd-week':
+      return `${year}-${month}-${day} ${weekdayFull}`
     case 'ymd-hms':
       return `${year}-${month}-${day} ${pad(hour24)}:${minute}:${second}`
     case 'ymd-hms-week':
@@ -121,6 +129,11 @@ export function formatDateTime(d: Date, id: unknown, fallback: unknown = DEFAULT
       return lunar ? `${month}-${day} ${lunar}` : `${month}-${day}`
     case 'lunar':
       return lunar || `${month}-${day}`
+    case 'md-cn-week-lunar': {
+      const l = toLunar(d)
+      const lunarPart = l ? `${lunarYearGanZhi(l.year)}年 ${lunarMonthDayText(d)}` : `${month}-${day}`
+      return `${d.getMonth() + 1}月${d.getDate()}日 ${WEEKDAY_SHORT[d.getDay()]} ${lunarPart}`
+    }
     default:
       return ''
   }
@@ -135,6 +148,14 @@ export function formatDateTime(d: Date, id: unknown, fallback: unknown = DEFAULT
  * 农历越界（1900 前 / 2100 后）回退为公历对应字段。
  */
 const TOKEN_RE = /YYYY|MM|DD|HH|hh|mm|ss|EEEE|EEE|LL|L|A/g
+
+/** 模板长度上限：与属性面板的 maxLength 同值，这里兜底旧数据与手改 JSON */
+export const TEMPLATE_MAX_LENGTH = 64
+
+/** 模板防御性规整：去换行/制表（单行显示不允许折行）、trim、限长 */
+function normalizeTemplate(template: string): string {
+  return template.replace(/[\r\n\t]/g, '').trim().slice(0, TEMPLATE_MAX_LENGTH)
+}
 
 function renderToken(d: Date, tok: string): string {
   switch (tok) {
@@ -174,7 +195,7 @@ function renderToken(d: Date, tok: string): string {
 
 /** 按自定义模板格式化；模板为空时返回空串，由调用方回落到预设格式 */
 export function formatCustom(d: Date, template: string): string {
-  const t = template.trim()
+  const t = normalizeTemplate(template)
   if (!t) return ''
   return t.replace(TOKEN_RE, tok => renderToken(d, tok))
 }
@@ -195,7 +216,7 @@ function clampDelay(delay: number): number {
  * 返回值下限 50ms，防止传入 Timeout 时被当成 0 立即触发。
  */
 export function nextTickDelay(id: unknown, now: Date, customTemplate = ''): number {
-  const t = customTemplate.trim()
+  const t = normalizeTemplate(customTemplate)
   if (t) {
     if (t.includes('ss')) return clampDelay(SEC - now.getMilliseconds())
     if (/(HH|hh|mm)/.test(t)) {

@@ -143,6 +143,12 @@ export interface PropertyDefinition {
   max?: number
   step?: number
   group?: string
+  /** string 输入框的占位提示（示例值优先于格式说明，更容易照着写） */
+  placeholder?: string
+  /** string 输入框的最大长度；设置后同时显示字数统计 */
+  maxLength?: number
+  /** 控件下方的辅助说明（占位符清单、取值口径等） */
+  hint?: string
 }
 
 /** 报警级别：决定该状态是否计入报警面板 */

@@ -58,6 +58,9 @@
           v-if="prop.type === 'string'"
           v-model="properties[prop.key]"
           size="small"
+          :placeholder="prop.placeholder"
+          :maxlength="prop.maxLength"
+          :show-word-limit="!!prop.maxLength"
           @change="handlePropertyChange"
         />
         <el-input-number
@@ -101,6 +104,8 @@
           :step="prop.step"
           @change="handlePropertyChange"
         />
+
+        <div v-if="prop.hint" class="property-hint">{{ prop.hint }}</div>
       </div>
     </div>
   </div>
@@ -191,6 +196,14 @@ function handlePropertyChange() {
   font-size: 12px;
   color: var(--text-secondary);
   margin-bottom: 4px;
+}
+
+.property-hint {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-top: 4px;
+  word-break: break-all;
 }
 
 .property-row {
