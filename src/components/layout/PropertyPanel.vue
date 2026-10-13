@@ -25,7 +25,7 @@
             @change="(v: any) => updateElement({ showName: !!v })"
           />
         </div>
-        <div class="property-item">
+        <div class="property-item" v-if="caps.valueLabel">
           <div class="property-label">显示实时数值</div>
           <el-switch
             :model-value="isValueShown(selectedElement)"
@@ -34,7 +34,7 @@
         </div>
       </div>
 
-      <div class="property-section">
+      <div class="property-section" v-if="caps.statusRules">
         <div class="section-title">状态规则</div>
         <el-button size="small" @click="showStatusRuleDialog = true">
           配置状态规则
@@ -72,6 +72,7 @@ import StatusRuleDialog from '@/components/dialogs/StatusRuleDialog.vue'
 import ConnectionProperties from './property/ConnectionProperties.vue'
 import ElementGeometry from './property/ElementGeometry.vue'
 import ElementBinding from './property/ElementBinding.vue'
+import { getElementCapabilities } from '@/industrial/registry'
 import { isNameShown, isValueShown } from '@/core/canvas/elementChrome'
 import type { ComponentInstance, StatusRule } from '@/types/scada'
 import type { ConnectionStyle, ConnectionType } from '@/types/connection'
@@ -88,6 +89,16 @@ const selectedConnection = computed(() =>
 )
 
 const showStatusRuleDialog = ref(false)
+
+/**
+ * 选中组件支持的通用能力（属性面板据此裁剪分段）。
+ *
+ * 通用能力统一挂在 ComponentInstance 上，换来一套与 type 无关的元素模型，
+ * 但并非每个类型都消费得了——例如日期/时间只读本地时钟，给它「数据绑定」只会
+ * 让人误以为能把外部变量喂进去；overlay 组件没有状态色的输出通道，
+ * 「状态规则」配了也看不见。裁剪开关写在组件定义里（ComponentDefinition.capabilities）。
+ */
+const caps = computed(() => getElementCapabilities(selectedElement.value?.type ?? ''))
 
 function updateElement(patch: Partial<ComponentInstance>) {
   if (!selectedElement.value) return

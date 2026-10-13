@@ -81,6 +81,31 @@ export interface ComponentMotion {
   belts?: MotionBelt[]
 }
 
+/**
+ * 属性面板里「通用能力」分段的可见性开关。
+ *
+ * `ComponentInstance` 是扁平的单一接口——导航、绑定、状态规则对所有元素一视同仁，
+ * 换来的是一套统一的渲染/交互/序列化管线。代价是属性面板会给某些类型暴露它根本
+ * 消费不了的能力，典型两例：
+ * - 日期/时间的时间文本只取本地时钟（`WidgetElement.vue`），配了数据绑定也只是
+ *   在元素顶部多一行别处的值，并不会让外部变量驱动这个显示；
+ * - overlay 类组件由 DOM 呈现、Konva 不再画线，`getElementColor` 对它没有输出
+ *   通道，配状态规则等于配了个看不见的东西。
+ *
+ * capabilities **只在 UI 层裁剪**：不动实例数据、不改运行时行为，旧工程照常渲染。
+ * 全字段缺省 true——既有上百个设备定义无需逐个标注，只有要关的才显式写。
+ */
+export interface ElementCapabilities {
+  /** 画面导航（点击跳转其他画面） */
+  navigate?: boolean
+  /** 数据绑定（数据源设备 + 绑定变量列表） */
+  dataBinding?: boolean
+  /** 状态规则（决定元素状态色） */
+  statusRules?: boolean
+  /** 「显示实时数值」开关（依赖数据绑定，无绑定时本就无效果） */
+  valueLabel?: boolean
+}
+
 export interface ComponentDefinition {
   type: string
   name: string
@@ -94,6 +119,8 @@ export interface ComponentDefinition {
   properties: PropertyDefinition[]
   /** 运转动效（可选）：仅有可动件的设备需要声明 */
   motion?: ComponentMotion
+  /** 属性面板的能力裁剪开关（仅 UI 层生效，缺省视为全部支持） */
+  capabilities?: ElementCapabilities
 }
 
 /** 组件实例（画布中使用） */

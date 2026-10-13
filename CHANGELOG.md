@@ -35,6 +35,15 @@
 
 ### 优化
 
+- 属性面板按组件能力裁剪：挂件不再显示自己消费不了的数据绑定 / 状态规则 / 实时数值
+  - 动因：`ComponentInstance` 是扁平单一接口，导航、绑定、状态规则对所有元素一视同仁（换来一套统一的渲染/交互/序列化管线），但属性面板此前没有按 type 裁剪，于是给「时间」这种组件也配齐了四项通用能力，其中三项它根本消费不了
+  - 改前逐项追链路核实：① 画面导航对所有元素生效（`preview/index.vue` 的 `handleElementClick` 先判 `navigateTo`），保留；② 数据绑定在 date / clock 上属于**误导**——时间文本是 `new Date()` 本地时钟驱动（`WidgetElement.vue`），绑了也只会在元素顶部多一行别处的值，并不会驱动这个显示；③ 状态规则在全部 9 个挂件上**空转**——overlay 类型 Konva 不再画线，而 `getElementColor` 的使用面只有管道 / 文本 / 数值图元三类，挂件没有状态色的输出通道；④ 「显示实时数值」依赖绑定值，无绑定时布局本就不给它高度
+  - 新增 `ElementCapabilities` 与 `ComponentDefinition.capabilities?`，**只在 UI 层裁剪：不动实例数据、不改运行时行为**，旧工程照常渲染。全字段缺省 true，既有上百个设备定义不必逐个标注；`registry.ts` 导出 `getElementCapabilities(type)` 负责缺省补全，并让未注册类型（自定义图元尚未加载）按全部支持处理，避免在报错边缘把面板裁空
+  - 9 个挂件分两类标注：数据驱动型（进度条 / 报表 / 网格图 / 表格）保留数据绑定、关状态规则；本地驱动型（日期 / 时间 / 视频 / 网页 / 超文本）关数据绑定 + 实时数值 + 状态规则
+  - 顺带删掉挂件定义里冗余的 `properties.name`：它与顶层 `element.name` 并存，但全仓无任何读取方，面板会据此渲染出第二个「名称」输入框，改它不产生任何效果
+  - 未处理：Konva 侧画的名称条 / 实时值仍会被 overlay 的 DOM 层叠在下面（overlay 占满元素矩形、z-index 5），是否可见取决于挂件自身铺没铺背景——不是「必然无效」，故本轮不动。4 个 ECharts 图表类型（`CHART_TYPES`）与挂件同为 overlay，结论同样适用，本轮未纳入
+  - 实测：`vue-tsc --noEmit` 与 `vite build` 通过；全量 **51 文件 / 461 用例**通过（verbose 那次沙箱 EPERM 掐掉 2 个文件，`testResults` 逐文件比对磁盘清单后才凑齐，数字以完整运行为准）
+
 - 移除画布设备下方的接触阴影（阀门 / 泵 / 储罐 / 沉淀池 / 电机，共 5 处）
   - 那条阴影不是 2.5D 渲染层的产物，而是图标源码里作者画的 `<ellipse ... data-shadow="1"/>`，由 `faceLighting.expandResources()` 统一展开为 `SHADOW`（`fill="#000000" fill-opacity="0.42"`）；位置与尺寸按图元各自写死，所以各设备下方的椭圆并不相同。`bakeLighting()` 与 `flattenFaces()` 都走同一处理，2D 下同一条阴影也在（规范原话「投影是落地而非受光」）
   - **必须连椭圆一起删，不能只把 `SHADOW` 调透明**：`iconBounds.measure()` 用 `getBBox()` 测内容包围盒，椭圆即使画不出来也仍被计入，`tightenIconSvg()` 收紧后的 viewBox 继续包含阴影带，元素内图形仍按「含阴影」的矩形 contain（表现是设备本体偏上、底部空一截），布局偏差会原样保留

@@ -1,4 +1,4 @@
-import type { ComponentDefinition, ComponentGroup } from '@/types/scada'
+import type { ComponentDefinition, ComponentGroup, ElementCapabilities } from '@/types/scada'
 
 /** 组件注册表 */
 const componentRegistry = new Map<string, ComponentDefinition>()
@@ -21,6 +21,22 @@ export function registerComponents(components: ComponentDefinition[]) {
 /** 获取组件定义 */
 export function getComponentDefinition(type: string): ComponentDefinition | undefined {
   return componentRegistry.get(type)
+}
+
+/**
+ * 取组件的属性面板能力开关（缺省补全为 true）。
+ *
+ * 属性面板用它决定哪些通用分段该显示——未注册的类型（例如自定义图元尚未加载）
+ * 按全部支持处理，避免在报错边缘把面板裁空。
+ */
+export function getElementCapabilities(type: string): Required<ElementCapabilities> {
+  const c = componentRegistry.get(type)?.capabilities ?? {}
+  return {
+    navigate: c.navigate !== false,
+    dataBinding: c.dataBinding !== false,
+    statusRules: c.statusRules !== false,
+    valueLabel: c.valueLabel !== false,
+  }
 }
 
 /** 获取所有组件 */

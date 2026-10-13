@@ -1,8 +1,8 @@
 <template>
   <div>
-    <!-- 画面导航 -->
-    <div class="property-section">
-      <div class="section-title">画面导航</div>
+  <!-- 画面导航 -->
+  <div v-if="caps.navigate" class="property-section">
+    <div class="section-title">画面导航</div>
       <div class="property-item">
         <div class="property-label">点击跳转</div>
         <el-select
@@ -24,9 +24,9 @@
       </div>
     </div>
 
-    <!-- 数据绑定 -->
-    <div class="property-section">
-      <div class="section-title">数据绑定</div>
+  <!-- 数据绑定 -->
+  <div v-if="caps.dataBinding" class="property-section">
+    <div class="section-title">数据绑定</div>
 
       <div class="property-item">
         <div class="property-label">数据源设备</div>
@@ -79,6 +79,7 @@ import { ref, computed, watch } from 'vue'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { usePageStore } from '@/stores/pageStore'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
+import { getElementCapabilities } from '@/industrial/registry'
 import { NAV_BACK } from '@/core/canvas/pageNav'
 import type { ComponentInstance } from '@/types/scada'
 
@@ -92,6 +93,9 @@ const emit = defineEmits<{
 
 const deviceStore = useDeviceStore()
 const pageStore = usePageStore()
+
+/** 该组件类型是否支持这两项能力（定义里关掉的就不显示，避免配了不生效） */
+const caps = computed(() => getElementCapabilities(props.element.type))
 
 /** 画面导航候选：排除当前页，避免“跳到自己” */
 const pageOptions = computed(() =>

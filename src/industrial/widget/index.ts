@@ -1,4 +1,4 @@
-import type { ComponentDefinition, PropertyDefinition } from '@/types/scada'
+import type { ComponentDefinition, ElementCapabilities, PropertyDefinition } from '@/types/scada'
 import { CLOCK_FORMAT_OPTIONS, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT, TEMPLATE_MAX_LENGTH } from './format'
 
 /**
@@ -15,6 +15,19 @@ import { CLOCK_FORMAT_OPTIONS, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT, TEMPLA
  * 「文字」不在这里——它是 Konva 原生 Text 渲染，定义见 basic/text.ts。
  */
 
+/**
+ * 数据驱动型挂件的能力开关：保留数据绑定（它真的影响显示内容），
+ * 关掉状态规则——挂件由 DOM 呈现、Konva 不再画线，状态色没有输出通道。
+ */
+const DATA_DRIVEN_CAPS: ElementCapabilities = { statusRules: false }
+
+/**
+ * 本地驱动型挂件的能力开关：显示内容与数据源无关（本地时钟 / 静态地址 / 写死的 HTML），
+ * 配数据绑定既不会改变呈现，又容易让人误以为能把外部变量喂进来。
+ * 「显示实时数值」依赖绑定值，无绑定时布局本就不给高度，一并关掉。
+ */
+const LOCAL_ONLY_CAPS: ElementCapabilities = { dataBinding: false, valueLabel: false, statusRules: false }
+
 /** 定义工厂：9 个挂件的属性结构高度重复，集中收拢避免逐份抄写 */
 function widgetDef(
   type: string,
@@ -24,7 +37,10 @@ function widgetDef(
   defaultWidth: number,
   defaultHeight: number,
   properties: PropertyDefinition[],
-  defaultConfig: Record<string, unknown> = {},
+  options: {
+    defaultConfig?: Record<string, unknown>
+    capabilities?: ElementCapabilities
+  } = {},
 ): ComponentDefinition {
   return {
     type,
@@ -33,12 +49,11 @@ function widgetDef(
     icon,
     defaultWidth,
     defaultHeight,
-    defaultConfig,
-    // 挂件没有工况语义：不配 statusRules（避免按颜色兜底推断出报警），
-    // 数据绑定由用户在属性面板按需添加
+    defaultConfig: options.defaultConfig ?? {},
     statusRules: [],
     dataBindings: [],
-    properties: [{ key: 'name', label: '名称', type: 'string', default: name, group: '基本' }, ...properties],
+    properties,
+    capabilities: options.capabilities,
   }
 }
 
@@ -85,6 +100,7 @@ export const ProgressBarDefinition = widgetDef(
     fontSizeProp(12),
     { key: 'decimals', label: '小数位', type: 'number', default: 0, min: 0, max: 3, group: '显示' },
   ],
+  { capabilities: DATA_DRIVEN_CAPS },
 )
 
 export const ReportTableDefinition = widgetDef(
@@ -114,6 +130,7 @@ export const ReportTableDefinition = widgetDef(
       { label: '右', value: 'right' },
     ], group: '表格' },
   ],
+  { capabilities: DATA_DRIVEN_CAPS },
 )
 
 export const GridChartDefinition = widgetDef(
@@ -132,6 +149,7 @@ export const GridChartDefinition = widgetDef(
     { key: 'alarmAbove', label: '报警阈值（大于）', type: 'number', default: 0, min: 0, group: '显示' },
     { key: 'decimals', label: '小数位', type: 'number', default: 1, min: 0, max: 3, group: '显示' },
   ],
+  { capabilities: DATA_DRIVEN_CAPS },
 )
 
 export const FilterTableDefinition = widgetDef(
@@ -149,6 +167,7 @@ export const FilterTableDefinition = widgetDef(
     { key: 'alarmAbove', label: '报警阈值（大于）', type: 'number', default: 0, min: 0, group: '表格' },
     { key: 'decimals', label: '小数位', type: 'number', default: 1, min: 0, max: 3, group: '表格' },
   ],
+  { capabilities: DATA_DRIVEN_CAPS },
 )
 
 export const DateDefinition = widgetDef(
@@ -172,6 +191,7 @@ export const DateDefinition = widgetDef(
     },
     customFormatProp(),
   ],
+  { capabilities: LOCAL_ONLY_CAPS },
 )
 
 export const ClockDefinition = widgetDef(
@@ -193,6 +213,7 @@ export const ClockDefinition = widgetDef(
     },
     customFormatProp(),
   ],
+  { capabilities: LOCAL_ONLY_CAPS },
 )
 
 export const VideoDefinition = widgetDef(
@@ -209,6 +230,7 @@ export const VideoDefinition = widgetDef(
     { key: 'muted', label: '静音', type: 'boolean', default: false, group: '媒体' },
     { key: 'autoplay', label: '自动播放', type: 'boolean', default: false, group: '媒体' },
   ],
+  { capabilities: LOCAL_ONLY_CAPS },
 )
 
 export const IframeDefinition = widgetDef(
@@ -219,6 +241,7 @@ export const IframeDefinition = widgetDef(
   320,
   240,
   [{ key: 'url', label: '网页地址', type: 'string', default: '', group: '媒体' }],
+  { capabilities: LOCAL_ONLY_CAPS },
 )
 
 export const SuperTextDefinition = widgetDef(
@@ -238,6 +261,7 @@ export const SuperTextDefinition = widgetDef(
       group: '内容',
     },
   ],
+  { capabilities: LOCAL_ONLY_CAPS },
 )
 
 export const widgetComponents: ComponentDefinition[] = [
