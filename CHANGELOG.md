@@ -312,7 +312,7 @@
 
 - Element Plus 改为按需引入：移除 main.ts 的全量 `app.use(ElementPlus)`、全量 CSS 与全量图标注册，交还 unplugin 的 ElementPlusResolver 接管——此前「按需配置」被全量引入抵消，组件样式与 294 个图标全部无条件进包
   - 动因：`vite.config.ts` 配了 `unplugin-auto-import` + `unplugin-vue-components` 的按需 resolver，而 `main.ts` 同时全量 `app.use` + `import 'element-plus/dist/index.css'` + 遍历注册全部图标，按需配置形同虚设
-  - 图标从全量 294 个收敛到实际用到的 22 个（模板标签 + 右键菜单 `:is` 字符串引用，逐个扫描核对）；`ElMessage` / `ElMessageBox` 等 API 样式由 auto-import resolver 按需注入；官方暗色变量 `dark/css-vars.css` 保留（teleport 弹层/表格行转暗依赖它）
+  - 图标从全量 294 个收敛到实际用到的 22 个（模板标签 + 右键菜单 `:is` 字符串引用，逐个扫描核对）；官方暗色变量 `dark/css-vars.css` 保留（teleport 弹层/表格行转暗依赖它）。~~`ElMessage` / `ElMessageBox` 样式由 auto-import resolver 按需注入~~——此判断有误，见下方「修复」：resolver 不处理显式 import，编程式组件样式须在 main.ts 手动补引
   - 实测：`pnpm build`（含 vue-tsc）通过；产物对比——`vendor-element` JS 1072 KB → 930 KB（-13%）、CSS 363 KB → 165 KB（-55%），合计约 -340 KB
 
 - 项目列表加载骨架屏与配置弹窗按需加载：首页项目网格从远程存储取数期间渲染 3 张脉冲占位卡片（此前先闪空态再出现卡片）；首页 6 个配置弹窗与工具栏 2 个弹窗改 `defineAsyncComponent` + `v-if` 打开才挂载，不再打进首屏 chunk
@@ -320,6 +320,9 @@
 - 滚轮缩放与拖拽对齐参考线写入按帧合帧：触控板滚轮每帧可触发多次 wheel，原先每次事件都写 store 触发整树更新，现合并到每帧一次（一帧内多个事件只生效最后一个，缩放不再按事件数爆发）；拖拽中 `alignGuides` 的响应式写回同样 rAF 合并，吸附调整（node 位置）保持同步，拖拽手感不变；组件卸载时取消挂起的 rAF
 
 ### 修复
+
+- 恢复草稿等 `ElMessageBox` / `ElMessage` 弹层样式破损：按需引入改造后这些编程式组件（显式 `import { ElMessage } from 'element-plus'` 后函数调用，非模板 `<el-xxx>` 标签）的样式无人注入——auto-import resolver 只对「未显式 import、靠它补进来的符号」注样式，显式 import 的 16 个文件全部漏掉，弹出的是无样式裸 DOM（恢复草稿弹窗文字发暗、按钮裸奔）。`main.ts` 全局补引 `message` / `message-box` 两个样式入口（其 css 链自带 base/input/button/overlay 依赖），覆盖全部调用点
+  - 实测：`pnpm build`（含 vue-tsc）通过；暗色主题下恢复草稿弹窗样式正常
 
 - 缩略图与标尺跟随主题切换：MiniMap / CanvasRuler 是 Canvas 2D 绘制、原先调色板硬编码暗色（`#10141f`、`#151a28` 等），亮色主题下视觉破损。新增 `src/composables/useThemeCssVars.ts`（`readThemeVar` 读变量 + `useThemeTick` 经 MutationObserver 监听 `data-theme`），配色抽进 variables.scss 双主题变量（`--minimap-*` / `--ruler-*`），主题切换即重绘；顺带修复 MiniMap 的 ResizeObserver 未在卸载时断开
   - 实测：新增 `useThemeCssVars.test.ts` 3 用例（变量读取 / 缺失回退 / tick 递增与观察器断开）

@@ -10,6 +10,11 @@ import VueKonva from 'vue-konva'
 // ElementPlusResolver 按需注入，不再全量 app.use + 全量 CSS（两份并存时按需配置失效）。
 // 官方暗色变量仍须保留: html.dark 时所有组件(含 teleport 弹层/表格行)整体转暗
 import 'element-plus/theme-chalk/dark/css-vars.css'
+// 编程式组件(函数调用而非 <el-xxx> 标签)resolver 不识别，样式须手动补——
+// 否则 ElMessageBox/ElMessage 弹出的是无样式裸 DOM(恢复草稿弹窗踩过坑)。
+// 在此全局引入一次，覆盖全仓 16 处调用点；新增编程式组件(如 ElNotification)照此补充。
+import 'element-plus/es/components/message/style/css'
+import 'element-plus/es/components/message-box/style/css'
 import './styles/index.scss'
 import App from './App.vue'
 import router from './router'
