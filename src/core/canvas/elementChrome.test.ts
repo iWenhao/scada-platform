@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { isNameShown, isValueShown, plainTextConfig } from './elementChrome'
+import { isNameShown, isValueShown, plainTextConfig, commandButtonConfig } from './elementChrome'
+import type { ElementLayout } from './elementLayout'
 import type { ComponentInstance } from '@/types/scada'
 
 function makeElement(extra: Partial<ComponentInstance> = {}): ComponentInstance {
@@ -102,5 +103,82 @@ describe('plainTextConfig（纯文本图元）', () => {
     const c = cfg({}, { width: 320, height: 90 })
     expect(c.width).toBe(320)
     expect(c.height).toBe(90)
+  })
+})
+
+describe('commandButtonConfig（操作按钮图元）', () => {
+  // 按钮关掉了名称条与实时值，图形区即整个元素
+  const layout: ElementLayout = {
+    pad: 4,
+    nameHeight: 0,
+    valueHeight: 0,
+    showName: false,
+    showValue: false,
+    contentX: 4,
+    contentY: 4,
+    contentWidth: 92,
+    contentHeight: 32,
+    nameFontSize: 0,
+    nameY: 0,
+    valueFontSize: 0,
+    valueY: 0,
+    displayFontSize: 14,
+    displayY: 10,
+  }
+
+  const cfg = (properties: Record<string, unknown>) =>
+    commandButtonConfig(
+      makeElement({ type: 'command-button', properties }),
+      layout,
+      '#00d4aa',
+    )
+
+  it('按钮面取属性里的文字，未配置时给占位而不是空白', () => {
+    expect(cfg({ label: '启动' }).text.text).toBe('启动')
+    expect(cfg({}).text.text).toBe('按钮')
+  })
+
+  it('未指定强调色时，描边与文字走元素状态色', () => {
+    const c = cfg({ label: '启动' })
+    expect(c.body.stroke).toBe('#00d4aa')
+    expect(c.text.fill).toBe('#00d4aa')
+  })
+
+  it('指定强调色后覆盖状态色（红停绿开这类固定配色）', () => {
+    const c = cfg({ label: '停止', accent: '#e24b4a' })
+    expect(c.body.stroke).toBe('#e24b4a')
+    expect(c.text.fill).toBe('#e24b4a')
+  })
+
+  it('字号夹在 10~48，非数字回落默认 14', () => {
+    expect(cfg({ fontSize: 999 }).text.fontSize).toBe(48)
+    expect(cfg({ fontSize: 2 }).text.fontSize).toBe(10)
+    expect(cfg({ fontSize: 'abc' }).text.fontSize).toBe(14)
+  })
+
+  it('按下态只换填充，形状与位置不变（避免视觉上跳一下）', () => {
+    const el = makeElement({ type: 'command-button', properties: { label: '启动' } })
+    const normal = commandButtonConfig(el, layout, '#00d4aa')
+    const pressed = commandButtonConfig(el, layout, '#00d4aa', true)
+    expect(pressed.body.fill).not.toBe(normal.body.fill)
+    expect(pressed.body.width).toBe(normal.body.width)
+    expect(pressed.body.x).toBe(normal.body.x)
+    expect(pressed.text.text).toBe(normal.text.text)
+  })
+
+  it('文字居中且不参与命中，按钮本体可点', () => {
+    const c = cfg({ label: '启动' })
+    expect(c.text.align).toBe('center')
+    expect(c.text.verticalAlign).toBe('middle')
+    expect(c.text.listening).toBe(false)
+    expect(c.body.listening).toBe(true)
+  })
+
+  it('按钮占据整个图形区，不留名称/数值分区', () => {
+    const c = cfg({ label: '启动' })
+    expect(c.body.x).toBe(layout.contentX)
+    expect(c.body.y).toBe(layout.contentY)
+    expect(c.body.width).toBe(layout.contentWidth)
+    expect(c.body.height).toBe(layout.contentHeight)
   })
 })

@@ -200,6 +200,8 @@ export function useElementVisuals(options: {
     if (element.type === 'pipe') return null
     // 数值显示图元由实时数值大字承担，不叠内建图标（原先两者重叠成重影）
     if (isDisplayElement(element)) return null
+    // 操作按钮由原生圆角矩形 + 指令文字绘制，图标只是组件面板里的缩略图
+    if (element.type === 'command-button') return null
     // 纯文本与 HTML overlay 类元素同理：图形另有承载，不再叠内建图标
     if (element.type === 'text' || isOverlayElement(element)) return null
     const def = getComponentDefinition(element.type)

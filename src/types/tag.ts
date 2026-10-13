@@ -118,6 +118,34 @@ export function checkWriteAllowed(
   return null
 }
 
+/**
+ * 把字符串形式的目标值按点位类型转成实际下发值；无法解析返回 null。
+ *
+ * 供操作按钮使用：按钮的下发值在属性面板里只能存字符串，而现场点位有
+ * number / string / boolean 三种类型，下发前必须转到位，否则开关量会收到一个
+ * 字符串 "1"、被 checkWriteAllowed 以「请选择开或关」挡回来。
+ *
+ * 布尔量的写法刻意放宽（1/true/on/yes/开/启动 都算真）：启停是最典型的按钮用法，
+ * 让人为了一个开关量去查「这里该填 1 还是 true」没有意义——那是机器该迁就人的地方。
+ */
+export function coerceTagValue(
+  raw: string,
+  dataType: TagDef['dataType'],
+): number | string | boolean | null {
+  const text = raw.trim()
+  if (dataType === 'boolean') {
+    const v = text.toLowerCase()
+    if (['1', 'true', 'on', 'yes', 'y', '开', '启动'].includes(v)) return true
+    if (['0', 'false', 'off', 'no', 'n', '关', '停止'].includes(v)) return false
+    return null
+  }
+  if (dataType === 'number') {
+    const num = Number(text)
+    return Number.isNaN(num) ? null : num
+  }
+  return text === '' ? null : text
+}
+
 /** CSV 表头（导入/导出共用） */
 export const TAG_CSV_HEADERS = [
   'deviceId',

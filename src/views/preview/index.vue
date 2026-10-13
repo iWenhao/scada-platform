@@ -62,7 +62,7 @@ const alarmStore = useAlarmStore()
 const uiStore = useUiStore()
 const pageStore = usePageStore()
 const { clearHistory } = useHistory()
-const { promptWriteValue } = useWriteValue()
+const { promptWriteValue, writePresetValue } = useWriteValue()
 
 /** 画面导航栈：元素跳转 / 上一画面按钮共用 */
 const navStack = new PageNavStack()
@@ -148,6 +148,12 @@ function handleElementClick(element: ComponentInstance) {
 
   if (element.type === 'setpoint') {
     promptWriteValue(element)
+    return
+  }
+
+  // 操作按钮：下发值已写在属性里，跳过输入对话框直接提交
+  if (element.type === 'command-button') {
+    writePresetValue(element)
     return
   }
 

@@ -7,6 +7,7 @@ import {
   findTag,
   checkWriteAllowed,
   checkUnregisteredPolicy,
+  coerceTagValue,
   collectConditionVariables,
   computeImportSummary,
   type TagDef,
@@ -227,5 +228,42 @@ describe('computeImportSummary', () => {
     expect(summary.added).toHaveLength(0)
     expect(summary.updated).toBe(0)
     expect(summary.unchanged).toBe(1)
+  })
+})
+
+describe('coerceTagValue（按钮预置下发值 → 点位类型）', () => {
+  it('布尔量放宽写法：1/TRUE/on/yes/启动 为真，0/off/关 为假', () => {
+    expect(coerceTagValue('1', 'boolean')).toBe(true)
+    expect(coerceTagValue('TRUE', 'boolean')).toBe(true)
+    expect(coerceTagValue('on', 'boolean')).toBe(true)
+    expect(coerceTagValue('yes', 'boolean')).toBe(true)
+    expect(coerceTagValue('启动', 'boolean')).toBe(true)
+    expect(coerceTagValue('0', 'boolean')).toBe(false)
+    expect(coerceTagValue('off', 'boolean')).toBe(false)
+    expect(coerceTagValue('关', 'boolean')).toBe(false)
+  })
+
+  it('布尔量无法识别时返回 null，不猜测为 false', () => {
+    // 猜 false 等于把「启动」按钮变成「停止」，宁可拒绝并提示检查配置
+    expect(coerceTagValue('2', 'boolean')).toBeNull()
+    expect(coerceTagValue('abc', 'boolean')).toBeNull()
+  })
+
+  it('数值量转数字，支持小数与负号', () => {
+    expect(coerceTagValue('50', 'number')).toBe(50)
+    expect(coerceTagValue('-3.5', 'number')).toBe(-3.5)
+    expect(coerceTagValue('abc', 'number')).toBeNull()
+  })
+
+  it('字符串量去空白后原样下发，空串按无法解析处理', () => {
+    expect(coerceTagValue(' start ', 'string')).toBe('start')
+    expect(coerceTagValue('   ', 'string')).toBeNull()
+  })
+
+  it('转换结果能通过同类型点表的写值校验（开关量不会收到字符串被挡回）', () => {
+    const tag: TagDef = { ...sample, dataType: 'boolean' }
+    const v = coerceTagValue('1', 'boolean') as boolean
+    expect(v).toBe(true)
+    expect(checkWriteAllowed(tag, v)).toBeNull()
   })
 })

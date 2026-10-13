@@ -246,6 +246,88 @@ export const SetpointDefinition: ComponentDefinition = {
   ],
 }
 
+/**
+ * 操作按钮：下发值在配置期写死，运行期点一下即走写值链路（角色 / 写值锁 /
+ * 点表策略 / 量程 / 二次确认 / 审计，与「设定值」同一套关卡）。
+ *
+ * 与「设定值」的分工——设定值每次点击都要在弹窗里输数值，适合需要频繁调整的
+ * 连续量（目标温度、频率给定）；按钮把下发值固化在属性里，适合启停 / 复位 /
+ * 模式切换这类离散指令。
+ *
+ * 能力裁剪三条：
+ * - navigate 关：点击语义已被写值占用。若同时允许跳转，两者只能靠优先级硬判，
+ *   配了导航的按钮就成了哑的，不如在面板上不给入口；
+ * - nameLabel / valueLabel 关：按钮面上已经写着指令名，再补名称条或实时值
+ *   是重复信息，且会挤掉按钮本体高度。
+ */
+export const CommandButtonDefinition: ComponentDefinition = {
+  type: 'command-button',
+  name: '操作按钮',
+  group: 'basic',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+      <rect x="8" y="32" width="84" height="36" rx="9" />
+      <line x1="32" y1="50" x2="68" y2="50" />
+    </g>
+  </svg>`,
+  defaultWidth: 100,
+  defaultHeight: 40,
+  defaultConfig: {
+    label: '启动',
+    writeValue: '1',
+    confirm: true,
+    fontSize: 14,
+    accent: '',
+  },
+  // 写值目标同「设定值」：没有预置绑定，由使用者在属性面板绑定设备与变量
+  statusRules: [],
+  dataBindings: [],
+  capabilities: { navigate: false, nameLabel: false, valueLabel: false },
+  properties: [
+    {
+      key: 'label',
+      label: '按钮文字',
+      type: 'string',
+      default: '启动',
+      maxLength: 20,
+      group: '基本',
+    },
+    {
+      key: 'fontSize',
+      label: '字号',
+      type: 'number',
+      default: 14,
+      min: 10,
+      max: 48,
+      group: '基本',
+    },
+    {
+      key: 'accent',
+      label: '强调色',
+      type: 'color',
+      default: '',
+      group: '基本',
+      hint: '留空时描边与文字跟随元素状态色；需要「红停绿开」这类固定配色时在此指定。',
+    },
+    {
+      key: 'writeValue',
+      label: '下发值',
+      type: 'string',
+      default: '1',
+      group: '指令',
+      placeholder: '如：1 / true / start',
+      hint: '按点表的数据类型自动转换：布尔量认 1/true/on/yes，数值量转数字，其余按字符串下发。',
+    },
+    {
+      key: 'confirm',
+      label: '下发前二次确认',
+      type: 'boolean',
+      default: true,
+      group: '指令',
+    },
+  ],
+}
+
 export const DisplayDefinition: ComponentDefinition = {
   type: 'display',
   name: '数值显示',
@@ -315,6 +397,7 @@ export const basicComponents: ComponentDefinition[] = [
   PumpDefinition,
   TankDefinition,
   SetpointDefinition,
+  CommandButtonDefinition,
   DisplayDefinition,
   ImageDefinition,
   // 基础图形 7 个：矩形/圆/三角/横线/竖线/虚横线/虚竖线（源产品只给了 PNG 缩略图，

@@ -73,6 +73,88 @@ export function plainTextConfig(
   }
 }
 
+/** 操作按钮的 Konva 配置（矩形本体 + 指令文字） */
+export interface CommandButtonConfig {
+  body: {
+    x: number
+    y: number
+    width: number
+    height: number
+    fill: string
+    stroke: string
+    strokeWidth: number
+    cornerRadius: number
+    listening: boolean
+  }
+  text: {
+    text: string
+    fontSize: number
+    fontFamily: string
+    fill: string
+    x: number
+    y: number
+    width: number
+    height: number
+    align: 'center'
+    verticalAlign: 'middle'
+    ellipsis: boolean
+    listening: boolean
+  }
+}
+
+/** 按钮常态 / 按下态填充：中性半透明灰，避免与状态色抢语义 */
+const BUTTON_FILL = 'rgba(126,140,158,0.22)'
+const BUTTON_FILL_PRESSED = 'rgba(126,140,158,0.5)'
+
+/**
+ * 操作按钮图元（`command-button` 类型）：圆角矩形 + 居中指令文字。
+ *
+ * 为什么它是「有填充」的例外——画布是纯图形形态，设备不铺底色、靠线条表达；
+ * 但按钮必须让人一眼看出「这里可以按」，没有可点击的实体形状就等于一个隐形
+ * 热点。填充刻意用中性半透明灰，深浅两种画布底色上都能浮出来，颜色语义仍然
+ * 交给描边与文字，与「状态色是唯一状态表达通道」保持一致。
+ */
+export function commandButtonConfig(
+  element: ComponentInstance,
+  layout: ElementLayout,
+  color: string,
+  pressed = false,
+): CommandButtonConfig {
+  const props = element.properties ?? {}
+  const fontSize = Math.min(Math.max(Number(props.fontSize) || 14, 10), 48)
+  const raw = props.label
+  const label = typeof raw === 'string' && raw.length > 0 ? raw : '按钮'
+  // 强调色为空时跟随状态色，与其余图元同一套变色口径
+  const accent = typeof props.accent === 'string' && props.accent ? props.accent : color
+  return {
+    body: {
+      x: layout.contentX,
+      y: layout.contentY,
+      width: layout.contentWidth,
+      height: layout.contentHeight,
+      fill: pressed ? BUTTON_FILL_PRESSED : BUTTON_FILL,
+      stroke: accent,
+      strokeWidth: 2,
+      cornerRadius: 6,
+      listening: true,
+    },
+    text: {
+      text: label,
+      fontSize,
+      fontFamily: 'system-ui, "Segoe UI", "Microsoft YaHei", sans-serif',
+      fill: accent,
+      x: layout.contentX,
+      y: layout.contentY,
+      width: layout.contentWidth,
+      height: layout.contentHeight,
+      align: 'center' as const,
+      verticalAlign: 'middle' as const,
+      ellipsis: true,
+      listening: false,
+    },
+  }
+}
+
 /**
  * 文本外发光：画面上没有底条承托文字，用深色光晕保证名称/数值压在图形或网格上
  * 依然可读（Konva 的 Text 不支持 CSS text-shadow，用 shadow* 系列实现）。

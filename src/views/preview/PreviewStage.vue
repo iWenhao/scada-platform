@@ -55,6 +55,13 @@
                 :flowing="isPipeFlowing(element)"
               />
             </template>
+            <!-- 操作按钮：与编辑器共用同一节点组件（按下态与指令文字一致） -->
+            <CommandButtonNode
+              v-if="element.type === 'command-button'"
+              :element="element"
+              :layout="getElementLayout(element)"
+              :color="getElementColor(element)"
+            />
             <!-- 名称：素文本（无底条，与编辑器一致） -->
             <v-text
               v-if="getElementLayout(element).showName"
@@ -96,6 +103,7 @@ import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
 import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
 import ElementMotion from '@/core/canvas/ElementMotion.vue'
+import CommandButtonNode from '@/core/canvas/CommandButtonNode.vue'
 import {
   hitAreaConfig,
   labelTextConfig,

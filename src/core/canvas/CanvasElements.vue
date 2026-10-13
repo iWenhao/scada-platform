@@ -63,6 +63,14 @@
           />
         </template>
 
+        <!-- 操作按钮：原生圆角矩形 + 可配置指令文字（图标是整张位图，画不出文字） -->
+        <CommandButtonNode
+          v-if="item.button"
+          :element="item.element"
+          :layout="item.layout"
+          :color="item.color"
+        />
+
         <!-- 纯文本图元：内容/字号/加粗/对齐由属性面板配置，颜色随元素状态 -->
         <v-text
           v-if="item.element.type === 'text'"
@@ -128,6 +136,7 @@ import type { ElementLayout } from '@/core/canvas/elementLayout'
 import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
 import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
 import ElementMotion from '@/core/canvas/ElementMotion.vue'
+import CommandButtonNode from '@/core/canvas/CommandButtonNode.vue'
 
 type Visuals = {
   getElementColor: (e: ComponentInstance) => string
@@ -220,6 +229,7 @@ const renderItems = computed(() => props.elements.map((element) => {
     text: '',
     valueText: '',
     displayText: '',
+    button: false,
     pipeBodies: [] as any[],
     flowing: false,
     ports: [] as Array<{ id: string; x: number; y: number; position: string }>,
@@ -238,6 +248,11 @@ const renderItems = computed(() => props.elements.map((element) => {
   if (element.type === 'text') {
     if (!item.color) item.color = getElementColor(element)
     item.text = textContent(element)
+  }
+
+  if (element.type === 'command-button') {
+    if (!item.color) item.color = getElementColor(element)
+    item.button = true
   }
 
   // 数值显示图元：数值即图形；其余元素走素文本实时值
