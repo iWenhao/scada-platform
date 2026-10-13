@@ -315,6 +315,8 @@
   - 图标从全量 294 个收敛到实际用到的 22 个（模板标签 + 右键菜单 `:is` 字符串引用，逐个扫描核对）；`ElMessage` / `ElMessageBox` 等 API 样式由 auto-import resolver 按需注入；官方暗色变量 `dark/css-vars.css` 保留（teleport 弹层/表格行转暗依赖它）
   - 实测：`pnpm build`（含 vue-tsc）通过；产物对比——`vendor-element` JS 1072 KB → 930 KB（-13%）、CSS 363 KB → 165 KB（-55%），合计约 -340 KB
 
+- 项目列表加载骨架屏与配置弹窗按需加载：首页项目网格从远程存储取数期间渲染 3 张脉冲占位卡片（此前先闪空态再出现卡片）；首页 6 个配置弹窗与工具栏 2 个弹窗改 `defineAsyncComponent` + `v-if` 打开才挂载，不再打进首屏 chunk
+
 ### 修复
 
 - 缩略图与标尺跟随主题切换：MiniMap / CanvasRuler 是 Canvas 2D 绘制、原先调色板硬编码暗色（`#10141f`、`#151a28` 等），亮色主题下视觉破损。新增 `src/composables/useThemeCssVars.ts`（`readThemeVar` 读变量 + `useThemeTick` 经 MutationObserver 监听 `data-theme`），配色抽进 variables.scss 双主题变量（`--minimap-*` / `--ruler-*`），主题切换即重绘；顺带修复 MiniMap 的 ResizeObserver 未在卸载时断开

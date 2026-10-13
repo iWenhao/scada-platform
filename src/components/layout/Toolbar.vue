@@ -256,14 +256,14 @@
       </el-dropdown>
     </div>
 
-    <!-- 对话框 -->
-    <CanvasConfigDialog v-model="showCanvasConfig" />
-    <UserManageDialog v-model="showUserManage" />
+    <!-- 对话框：懒加载 + 打开才挂载，不进首屏 chunk -->
+    <CanvasConfigDialog v-if="showCanvasConfig" v-model="showCanvasConfig" />
+    <UserManageDialog v-if="showUserManage" v-model="showUserManage" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, defineAsyncComponent } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -273,8 +273,9 @@ import ToolIcon from './ToolIcon.vue'
 import UserChip from '@/components/common/UserChip.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import { useThemeToggle } from '@/composables/useThemeToggle'
-import CanvasConfigDialog from '@/components/dialogs/CanvasConfigDialog.vue'
-import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
+// 对话框按需加载：不随编辑器首屏 chunk 下发，首次打开时才拉取
+const CanvasConfigDialog = defineAsyncComponent(() => import('@/components/dialogs/CanvasConfigDialog.vue'))
+const UserManageDialog = defineAsyncComponent(() => import('@/components/dialogs/UserManageDialog.vue'))
 import { useEditClipboard } from '@/core/canvas/useEditClipboard'
 import { useProjectActions } from './toolbar/useProjectActions'
 import { useToolbarShortcuts } from './toolbar/useToolbarShortcuts'

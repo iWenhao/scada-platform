@@ -51,35 +51,45 @@
         <span class="section-sub">按修改时间排序</span>
       </div>
 
-      <div v-if="recentProjects.length" class="project-grid">
-        <ProjectCard
-          v-for="row in recentProjects"
-          :key="row.name"
-          :project="row"
-          :editing="editingName === row.name"
-          :model-value="editingValue"
-          @update:model-value="editingValue = $event"
-          @open="loadProject(row.name)"
-          @preview="previewProject(row.name)"
-          @publish="publishProject(row.name)"
-          @unpublish="unpublishProject(row.name)"
-          @config="(k) => openProjectConfig(row.name, k)"
-          @more="(c) => handleCardCommand(c, row.name)"
-          @start-rename="startRename(row.name)"
-          @confirm-rename="confirmRename(row.name)"
-          @cancel-rename="cancelRename"
-        />
-        <div class="project-card ghost" @click="goToEditor">
-          <div class="ghost-center">
-            <div class="ghost-plus">＋</div>
-            <div class="ghost-title">新建工程</div>
-            <div class="ghost-sub">从空白开始组态</div>
-            <el-button size="small" type="primary" plain class="demo-btn" @click.stop="importDemo">
-              导入示例 Demo
-            </el-button>
-          </div>
+      <div v-if="loadingProjects" class="project-grid" aria-label="正在加载项目列表">
+        <div v-for="i in 3" :key="i" class="project-card skeleton-card" aria-hidden="true">
+          <div class="sk sk-thumb" />
+          <div class="sk sk-line" />
+          <div class="sk sk-line short" />
         </div>
       </div>
+
+      <template v-else-if="recentProjects.length">
+        <div class="project-grid">
+          <ProjectCard
+            v-for="row in recentProjects"
+            :key="row.name"
+            :project="row"
+            :editing="editingName === row.name"
+            :model-value="editingValue"
+            @update:model-value="editingValue = $event"
+            @open="loadProject(row.name)"
+            @preview="previewProject(row.name)"
+            @publish="publishProject(row.name)"
+            @unpublish="unpublishProject(row.name)"
+            @config="(k) => openProjectConfig(row.name, k)"
+            @more="(c) => handleCardCommand(c, row.name)"
+            @start-rename="startRename(row.name)"
+            @confirm-rename="confirmRename(row.name)"
+            @cancel-rename="cancelRename"
+          />
+          <div class="project-card ghost" @click="goToEditor">
+            <div class="ghost-center">
+              <div class="ghost-plus">＋</div>
+              <div class="ghost-title">新建工程</div>
+              <div class="ghost-sub">从空白开始组态</div>
+              <el-button size="small" type="primary" plain class="demo-btn" @click.stop="importDemo">
+                导入示例 Demo
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </template>
 
       <div v-else class="empty-state">
         <div class="ghost-plus lg">＋</div>
@@ -97,12 +107,13 @@
       </div>
     </div>
 
-    <NotifyConfigDialog v-model="showNotifyConfig" />
-    <UserManageDialog v-model="showUserManage" />
-    <DataSourceDialog v-model="showDataSource" />
-    <AlarmConfigDialog v-model="showAlarmConfig" />
-    <TagTableDialog v-model="showTagTable" />
-    <BrandingDialog v-model="showBranding" />
+    <!-- 对话框：懒加载 + 打开才挂载，不进首页 chunk -->
+    <NotifyConfigDialog v-if="showNotifyConfig" v-model="showNotifyConfig" />
+    <UserManageDialog v-if="showUserManage" v-model="showUserManage" />
+    <DataSourceDialog v-if="showDataSource" v-model="showDataSource" />
+    <AlarmConfigDialog v-if="showAlarmConfig" v-model="showAlarmConfig" />
+    <TagTableDialog v-if="showTagTable" v-model="showTagTable" />
+    <BrandingDialog v-if="showBranding" v-model="showBranding" />
 
     <el-dialog v-model="showOpenDialog" title="打开项目" width="420px">
       <div class="open-project-list">
@@ -124,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '@/stores/projectStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -133,12 +144,13 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { getStorage } from '@/storage'
 import { connectionStatusView } from '@/status/connection'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import NotifyConfigDialog from '@/components/dialogs/NotifyConfigDialog.vue'
-import UserManageDialog from '@/components/dialogs/UserManageDialog.vue'
-import DataSourceDialog from '@/components/dialogs/DataSourceDialog.vue'
-import AlarmConfigDialog from '@/components/dialogs/AlarmConfigDialog.vue'
-import TagTableDialog from '@/components/dialogs/TagTableDialog.vue'
-import BrandingDialog from '@/components/dialogs/BrandingDialog.vue'
+// 配置类对话框按需加载：不随首页 chunk 下发，首次打开时才拉取
+const NotifyConfigDialog = defineAsyncComponent(() => import('@/components/dialogs/NotifyConfigDialog.vue'))
+const UserManageDialog = defineAsyncComponent(() => import('@/components/dialogs/UserManageDialog.vue'))
+const DataSourceDialog = defineAsyncComponent(() => import('@/components/dialogs/DataSourceDialog.vue'))
+const AlarmConfigDialog = defineAsyncComponent(() => import('@/components/dialogs/AlarmConfigDialog.vue'))
+const TagTableDialog = defineAsyncComponent(() => import('@/components/dialogs/TagTableDialog.vue'))
+const BrandingDialog = defineAsyncComponent(() => import('@/components/dialogs/BrandingDialog.vue'))
 import TopNav from './TopNav.vue'
 import ProjectCard from './ProjectCard.vue'
 import type { ProjectRow } from './types'
@@ -154,6 +166,8 @@ const alarmStore = useAlarmStore()
 const deviceStore = useDeviceStore()
 
 const recentProjects = ref<ProjectRow[]>([])
+/** 项目列表加载中（远程存储时避免先闪空态再出现卡片） */
+const loadingProjects = ref(true)
 const showOpenDialog = ref(false)
 const showNotifyConfig = ref(false)
 const showUserManage = ref(false)
@@ -234,37 +248,42 @@ onMounted(() => {
 })
 
 async function loadRecentProjects() {
-  const names = await projectStore.getSavedProjects()
-  const rows = await Promise.all(
-    names.map(async name => {
-      try {
-        const raw = await getStorage().get(`scada_project_${name}`)
-        const data = raw ? JSON.parse(raw) : null
-        const publishedAt = await projectStore.getPublishedAt(name)
-        const pageCount = Array.isArray(data?.pages) ? data.pages.length : 1
-        const thumb = await getStorage().get(thumbKey(name))
-        return {
-          name,
-          lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
-          publishedAt,
-          pageCount,
-          timestamp: data?.timestamp || 0,
-          thumbnail: thumb || null,
+  loadingProjects.value = true
+  try {
+    const names = await projectStore.getSavedProjects()
+    const rows = await Promise.all(
+      names.map(async name => {
+        try {
+          const raw = await getStorage().get(`scada_project_${name}`)
+          const data = raw ? JSON.parse(raw) : null
+          const publishedAt = await projectStore.getPublishedAt(name)
+          const pageCount = Array.isArray(data?.pages) ? data.pages.length : 1
+          const thumb = await getStorage().get(thumbKey(name))
+          return {
+            name,
+            lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
+            publishedAt,
+            pageCount,
+            timestamp: data?.timestamp || 0,
+            thumbnail: thumb || null,
+          }
+        } catch {
+          return {
+            name,
+            lastModified: '未知',
+            publishedAt: null,
+            pageCount: 1,
+            timestamp: 0,
+            thumbnail: null,
+          }
         }
-      } catch {
-        return {
-          name,
-          lastModified: '未知',
-          publishedAt: null,
-          pageCount: 1,
-          timestamp: 0,
-          thumbnail: null,
-        }
-      }
-    }),
-  )
-  rows.sort((a, b) => b.timestamp - a.timestamp)
-  recentProjects.value = rows
+      }),
+    )
+    rows.sort((a, b) => b.timestamp - a.timestamp)
+    recentProjects.value = rows
+  } finally {
+    loadingProjects.value = false
+  }
 }
 
 async function publishProject(name: string) {
