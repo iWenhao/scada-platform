@@ -35,6 +35,7 @@ export function getElementCapabilities(type: string): Required<ElementCapabiliti
     navigate: c.navigate !== false,
     dataBinding: c.dataBinding !== false,
     statusRules: c.statusRules !== false,
+    nameLabel: c.nameLabel !== false,
     valueLabel: c.valueLabel !== false,
   }
 }

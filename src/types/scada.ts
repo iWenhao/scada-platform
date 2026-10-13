@@ -92,7 +92,9 @@ export interface ComponentMotion {
  * - overlay 类组件由 DOM 呈现、Konva 不再画线，`getElementColor` 对它没有输出
  *   通道，配状态规则等于配了个看不见的东西。
  *
- * capabilities **只在 UI 层裁剪**：不动实例数据、不改运行时行为，旧工程照常渲染。
+ * capabilities **同时约束 UI 与运行时**：面板不给出该项入口，渲染层也不再产出
+ * 该项效果。只裁 UI 是不够的——旧数据里已经打开的开关会变成「面板上找不到、却
+ * 仍在生效」的死角，用户再也关不掉。
  * 全字段缺省 true——既有上百个设备定义无需逐个标注，只有要关的才显式写。
  */
 export interface ElementCapabilities {
@@ -102,6 +104,8 @@ export interface ElementCapabilities {
   dataBinding?: boolean
   /** 状态规则（决定元素状态色） */
   statusRules?: boolean
+  /** 底部名称条（文字内容是 element.name，缺省即组件类型名） */
+  nameLabel?: boolean
   /** 「显示实时数值」开关（依赖数据绑定，无绑定时本就无效果） */
   valueLabel?: boolean
 }

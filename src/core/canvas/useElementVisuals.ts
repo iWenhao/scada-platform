@@ -4,7 +4,7 @@ import type { useLayerStore } from '@/stores/layerStore'
 import { getIconImage } from './iconImage'
 import { DEFAULT_ELEMENT_COLOR, evaluateElementColor } from './elementStatus'
 import { loadUserImage, fitRect } from './userImage'
-import { getComponentDefinition } from '@/industrial/registry'
+import { getComponentDefinition, getElementCapabilities } from '@/industrial/registry'
 import { isNameShown, isValueShown } from './elementChrome'
 import { computeElementLayout, fitIconRect, type ElementLayout } from './elementLayout'
 import { tightenIconSvg, getIconAspect } from './iconBounds'
@@ -125,6 +125,18 @@ export function useElementVisuals(options: {
   }
 
   /**
+   * 名称条要同时满足两个条件：用户打开了开关，且该组件类型支持名称条。
+   *
+   * 定义里关掉 `nameLabel` 的类型（如 HTML 挂件——内容已经写着「07:15:08」，
+   * 再在下面补一行「时间」不增加信息）即便 `showName` 为 true 也不画：
+   * 面板上已经没有这个开关，只裁 UI 的话旧数据会变成「找不到开关却仍有标签」，
+   * 用户再也关不掉。
+   */
+  function wantsNameLabel(element: ComponentInstance): boolean {
+    return isNameShown(element) && getElementCapabilities(element.type).nameLabel
+  }
+
+  /**
    * 元素内部分区（顶部数值区 / 中部图形区 / 底部名称区）。
    * 具体规则见 elementLayout.ts——信息区高度按比例自适应，空间不足时按
    * 「先撤数值、再撤名称」降级，保证设备图形永远有位置。
@@ -135,7 +147,7 @@ export function useElementVisuals(options: {
       width: element.width,
       height: element.height,
       isDisplay,
-      wantName: isNameShown(element),
+      wantName: wantsNameLabel(element),
       wantValue: isValueShown(element) && (isDisplay || !!getElementValueText(element)),
     })
   }

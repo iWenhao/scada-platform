@@ -35,6 +35,14 @@
 
 ### 优化
 
+- 名称条也按组件能力裁剪：挂件不再显示「时间」这类自明标签
+  - 动因：新建元素默认 `showName: false`（`useCanvasDrop.ts`），名称条要手动打开才出现；一旦打开，时间组件下方就多一行「时间」，而正上方已经是 `07:15:08`——不增加任何信息。名称内容是 `element.name`，缺省即组件类型名，9 个挂件无一例外
+  - **口径修正**：上一条把 capabilities 定为「只在 UI 层裁剪」，本条发现那样会留下死角——面板上的开关没了，旧数据里 `showName: true` 的挂件却仍在画标签，用户再也关不掉。故改为**UI 与运行时共同遵守**：`useElementVisuals` 新增 `wantsNameLabel()`，除 `isNameShown()` 外再校验 `capabilities.nameLabel`；`elementChrome` 保持纯函数不动
+  - `valueLabel` 不需要同样处理：无绑定时 `getElementValueText()` 恒返回空串，`computeElementLayout` 本就不给它高度，屏蔽是自动发生的——这也是它只裁 UI 就够的原因
+  - 变更：`ElementCapabilities` 增 `nameLabel`；`DATA_DRIVEN_CAPS` / `LOCAL_ONLY_CAPS` 都关掉它；`PropertyPanel` 的「显示」区在两个开关都不支持时整区不渲染（否则会剩一个只剩标题的空区）
+  - 新增 `src/industrial/registry.test.ts`（6 用例）：缺省全开、未注册类型按全部支持（不把面板裁空）、显式关闭项逐字段核对，外加 9 个挂件的标注回归护栏——两条依据都不容易从代码表面看出来，以后新增挂件很容易漏标
+  - 实测：`vue-tsc --noEmit` 与 `vite build` 通过；全量 **52 文件 / 467 用例**通过（本轮沙箱掐掉 expression / tag 两个文件，用 json 报告与磁盘清单比对后补跑凑齐）
+
 - 属性面板按组件能力裁剪：挂件不再显示自己消费不了的数据绑定 / 状态规则 / 实时数值
   - 动因：`ComponentInstance` 是扁平单一接口，导航、绑定、状态规则对所有元素一视同仁（换来一套统一的渲染/交互/序列化管线），但属性面板此前没有按 type 裁剪，于是给「时间」这种组件也配齐了四项通用能力，其中三项它根本消费不了
   - 改前逐项追链路核实：① 画面导航对所有元素生效（`preview/index.vue` 的 `handleElementClick` 先判 `navigateTo`），保留；② 数据绑定在 date / clock 上属于**误导**——时间文本是 `new Date()` 本地时钟驱动（`WidgetElement.vue`），绑了也只会在元素顶部多一行别处的值，并不会驱动这个显示；③ 状态规则在全部 9 个挂件上**空转**——overlay 类型 Konva 不再画线，而 `getElementColor` 的使用面只有管道 / 文本 / 数值图元三类，挂件没有状态色的输出通道；④ 「显示实时数值」依赖绑定值，无绑定时布局本就不给它高度

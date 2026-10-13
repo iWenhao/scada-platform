@@ -16,9 +16,10 @@
       <ElementGeometry :element="selectedElement" @update="updateElement" />
       <ElementBinding :element="selectedElement" @update="updateElement" />
 
-      <div class="property-section">
+      <!-- 两个开关都不支持时整区不渲染，否则会剩一个只剩标题的空区 -->
+      <div class="property-section" v-if="caps.nameLabel || caps.valueLabel">
         <div class="section-title">显示</div>
-        <div class="property-item">
+        <div class="property-item" v-if="caps.nameLabel">
           <div class="property-label">显示名称</div>
           <el-switch
             :model-value="isNameShown(selectedElement)"

@@ -16,17 +16,24 @@ import { CLOCK_FORMAT_OPTIONS, DEFAULT_CLOCK_FORMAT, DEFAULT_DATE_FORMAT, TEMPLA
  */
 
 /**
- * 数据驱动型挂件的能力开关：保留数据绑定（它真的影响显示内容），
- * 关掉状态规则——挂件由 DOM 呈现、Konva 不再画线，状态色没有输出通道。
+ * 数据驱动型挂件的能力开关：保留数据绑定（它真的影响显示内容），关掉状态规则——
+ * 挂件由 DOM 呈现、Konva 不再画线，状态色没有输出通道。
+ * 名称条一律关掉：内容是 element.name，缺省即组件类型名，等于在已经写着
+ * 「07:15:08」「报表」的图形下面再补一行「时间」，不增加任何信息。
  */
-const DATA_DRIVEN_CAPS: ElementCapabilities = { statusRules: false }
+const DATA_DRIVEN_CAPS: ElementCapabilities = { statusRules: false, nameLabel: false }
 
 /**
  * 本地驱动型挂件的能力开关：显示内容与数据源无关（本地时钟 / 静态地址 / 写死的 HTML），
  * 配数据绑定既不会改变呈现，又容易让人误以为能把外部变量喂进来。
- * 「显示实时数值」依赖绑定值，无绑定时布局本就不给高度，一并关掉。
+ * 「显示实时数值」依赖绑定值，无绑定时布局本就不给高度；名称条理由同上，一并关掉。
  */
-const LOCAL_ONLY_CAPS: ElementCapabilities = { dataBinding: false, valueLabel: false, statusRules: false }
+const LOCAL_ONLY_CAPS: ElementCapabilities = {
+  dataBinding: false,
+  statusRules: false,
+  nameLabel: false,
+  valueLabel: false,
+}
 
 /** 定义工厂：9 个挂件的属性结构高度重复，集中收拢避免逐份抄写 */
 function widgetDef(
