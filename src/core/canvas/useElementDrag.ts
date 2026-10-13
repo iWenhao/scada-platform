@@ -19,6 +19,24 @@ export function useElementDrag(options: {
   // 对齐参考线（画布坐标 [x1,y1,x2,y2]）
   const alignGuides = ref<number[][]>([])
 
+  // 参考线的响应式写回合并到每帧一次：dragmove 每鼠标事件触发，逐次写回
+  // 会放大 Vue 更新压力；吸附调整（node.x/y）仍保持同步，拖拽手感不变
+  let pendingGuides: number[][] | null = null
+  let guidesFrame: number | null = null
+
+  function flushGuides() {
+    guidesFrame = null
+    if (pendingGuides !== null) {
+      alignGuides.value = pendingGuides
+      pendingGuides = null
+    }
+  }
+
+  function scheduleGuides(guides: number[][]) {
+    pendingGuides = guides
+    if (guidesFrame === null) guidesFrame = requestAnimationFrame(flushGuides)
+  }
+
   // 拖拽开始：未选中的元素单独选中；记录多选拖动的起始位置
   let dragStartPos: { x: number; y: number } | null = null
   let multiDragStarts: Array<{ node: any; x: number; y: number }> = []
@@ -89,7 +107,7 @@ export function useElementDrag(options: {
 
       if (result.x !== null) node.x(result.x)
       if (result.y !== null) node.y(result.y)
-      alignGuides.value = result.guides
+      scheduleGuides(result.guides)
     }
   }
 
@@ -109,6 +127,11 @@ export function useElementDrag(options: {
       })
       recalcElementConnections(id)
     }
+    if (guidesFrame !== null) {
+      cancelAnimationFrame(guidesFrame)
+      guidesFrame = null
+    }
+    pendingGuides = null
     alignGuides.value = []
     alignOthers = null
     saveState()

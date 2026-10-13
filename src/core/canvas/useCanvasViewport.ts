@@ -57,28 +57,44 @@ export function useCanvasViewport(options: {
     panning = false
   }
 
-  /** 滚轮缩放（以指针为中心） */
+  /** 滚轮缩放（以指针为中心）。触控板滚轮每帧可触发多次，store 写入合并到每帧一次 */
+  let wheelFrame: number | null = null
+  let wheelPending: { rawScale: number; pointer: { x: number; y: number } } | null = null
+
   function onWheel(e: any) {
     e.evt.preventDefault()
     const scaleBy = 1.1
     const stage = e.target.getStage()
-    const oldScale = stage.scaleX()
     const pointer = stage.getPointerPosition()
     if (!pointer) return
 
-    const rawScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy
-    canvasStore.setZoom(rawScale)
-    const newScale = canvasStore.zoom
-
-    // 保持指针下的画布点不动：pointer = point * scale + offset
-    const pointTo = {
-      x: (pointer.x - stage.x()) / oldScale,
-      y: (pointer.y - stage.y()) / oldScale,
+    const oldScale = stage.scaleX()
+    wheelPending = {
+      rawScale: e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy,
+      pointer,
     }
-    canvasStore.setOffset(
-      pointer.x - pointTo.x * newScale,
-      pointer.y - pointTo.y * newScale,
-    )
+    if (wheelFrame !== null) return
+    wheelFrame = requestAnimationFrame(() => {
+      wheelFrame = null
+      const p = wheelPending
+      wheelPending = null
+      if (!p) return
+
+      // 一帧内多个滚轮事件只生效最后一个，缩放不再按事件数爆发
+      const prevScale = canvasStore.zoom
+      canvasStore.setZoom(p.rawScale)
+      const newScale = canvasStore.zoom
+
+      // 保持指针下的画布点不动：pointer = point * scale + offset
+      const pointTo = {
+        x: (p.pointer.x - canvasStore.offset.x) / prevScale,
+        y: (p.pointer.y - canvasStore.offset.y) / prevScale,
+      }
+      canvasStore.setOffset(
+        p.pointer.x - pointTo.x * newScale,
+        p.pointer.y - pointTo.y * newScale,
+      )
+    })
   }
 
   /** 小地图导航：把画布坐标居中显示 */
@@ -105,6 +121,11 @@ export function useCanvasViewport(options: {
 
   onUnmounted(() => {
     containerObserver?.disconnect()
+    if (wheelFrame !== null) {
+      cancelAnimationFrame(wheelFrame)
+      wheelFrame = null
+      wheelPending = null
+    }
   })
 
   return {
