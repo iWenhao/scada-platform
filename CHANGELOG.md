@@ -61,6 +61,16 @@
 
 ### 修复
 
+- 属性面板不回显组件默认值：时间组件的「字号」「显示格式」此前是空的
+  - 现象：拖入时间组件后面板「字号」输入框为空，而画面按 24 渲染；「显示格式」下拉也空着，实际按 `DEFAULT_CLOCK_FORMAT` 渲染。**面板显示的值与实际生效的值对不上**，容易被读成「还没设置」
+  - 根因：`PropertyDefinition.default` **全仓没有任何消费方**（搜 `\.default\b` 唯一命中是无关的 `slots?.default?.()`）；新建元素的 `properties` 取自组件 `defaultConfig`，而 `widgetDef` 的 `defaultConfig` 是 `{}`——9 个挂件都没传初始配置，实例里根本没有 `fontSize` / `format` 键；`ElementGeometry` 直接 `v-model="properties[key]"`，`undefined` 就渲染成空白。渲染层另走 `prop(key, 默认值)` 兜底，两边口径就此分叉
+  - 设备类组件看不出这个问题，是因为它们各自在 `defaultConfig` 里写了初始值；挂件这批没写
+  - 修复：新增 `core/canvas/elementDefaults.ts` 的 `withPropertyDefaults(element, definition)`，`ElementGeometry` 打开元素时用它把缺失项补到**本地副本**——用户不动就不写回工程数据；改动任一项时 `handlePropertyChange` 才把整份落盘，届时默认值一并写入，无害
+  - 边界：只把 `undefined` / `null` 当缺失；**空串保留**（用户在输入框里主动清空是明确意图，不该被立刻填回），`false` / `0` 同样视为有效值
+  - 新增 `elementDefaults.test.ts` 6 用例：补默认值、不覆盖已有值、null 与空串的区分、false/0 不误判、不修改实例（返回副本）、未注册类型时原样兜底
+  - 未处理：实例里存着**非法值**时（如手改工程 JSON 把 `format` 写成不存在的 id），面板显示非法值而渲染层按 `formatDateTime` 的回退分支显示默认——两者仍不一致，属既有分歧，本轮只补「缺失」这一类
+  - 实测：`vue-tsc --noEmit` 与 `vite build` 通过；全量 **53 文件 / 473 用例**通过（沙箱掐掉 tag 一个文件，json 报告比对磁盘清单后补跑凑齐）
+
 ### 安全
 
 - 修复存储键无长度校验：`kv` 的 key 直接拼进文件名，超长键会让 fs 抛 `ENAMETOOLONG`，在客户端看就是一条没头没尾的 500

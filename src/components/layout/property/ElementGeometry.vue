@@ -115,6 +115,7 @@
 import { ref, watch, computed } from 'vue'
 import type { ComponentInstance } from '@/types/scada'
 import { getComponentDefinition } from '@/industrial/registry'
+import { withPropertyDefaults } from '@/core/canvas/elementDefaults'
 
 const props = defineProps<{
   element: ComponentInstance
@@ -143,7 +144,9 @@ watch(
     width.value = el.width
     height.value = el.height
     rotation.value = el.rotation
-    properties.value = { ...el.properties }
+    // 用定义里的 default 补齐缺失项：新建元素的 properties 来自 defaultConfig，
+    // 多半是空的，不补的话面板显示空而画面按默认值渲染（详见 elementDefaults.ts）
+    properties.value = withPropertyDefaults(el, componentDef.value)
   },
   { immediate: true, deep: true },
 )
