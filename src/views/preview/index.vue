@@ -1,37 +1,57 @@
 <template>
   <div class="preview-container">
-    <PreviewHeader
-      :project-name="projectStore.projectName"
-      :pages="pageStore.pages"
-      :active-page-id="pageStore.activePageId"
-      :write-locked="uiStore.writeLocked"
-      :unacked-count="alarmStore.unackedCount"
-      :active-alarm-count="alarmStore.activeCount"
-      :connection-status="deviceStore.connectionStatus"
-      :last-update-time="lastUpdateTime"
-      :can-go-back="navStack.canBack"
-      :auto-rotate="autoRotate"
-      @back="backToEditor"
-      @nav-back="goBackPage"
-      @switch-page="switchPage"
-      @toggle-write-lock="toggleWriteLock"
-      @open-audit="showAuditLog = true"
-      @toggle-rotate="toggleAutoRotate"
-      @fullscreen="toggleFullscreen"
-    />
+    <template v-if="loadState === 'ready'">
+      <PreviewHeader
+        :project-name="projectStore.projectName"
+        :pages="pageStore.pages"
+        :active-page-id="pageStore.activePageId"
+        :write-locked="uiStore.writeLocked"
+        :unacked-count="alarmStore.unackedCount"
+        :active-alarm-count="alarmStore.activeCount"
+        :connection-status="deviceStore.connectionStatus"
+        :last-update-time="lastUpdateTime"
+        :can-go-back="navStack.canBack"
+        :auto-rotate="autoRotate"
+        @back="backToEditor"
+        @nav-back="goBackPage"
+        @switch-page="switchPage"
+        @toggle-write-lock="toggleWriteLock"
+        @open-audit="showAuditLog = true"
+        @toggle-rotate="toggleAutoRotate"
+        @fullscreen="toggleFullscreen"
+      />
 
-    <!-- 渲染风格（2D / 2.5D）是工程级设置，由编辑器确定；运行端只读呈现，不提供切换入口 -->
-    <PreviewStage @element-click="handleElementClick" />
+      <!-- 渲染风格（2D / 2.5D）是工程级设置，由编辑器确定；运行端只读呈现，不提供切换入口 -->
+      <PreviewStage @element-click="handleElementClick" />
 
-    <TrendChartDialog
-      v-model="showTrendDialog"
-      :device-id="trendDeviceId"
-      :variable="trendVariable"
-    />
-    <AuditLogDialog v-model="showAuditLog" />
+      <TrendChartDialog
+        v-model="showTrendDialog"
+        :device-id="trendDeviceId"
+        :variable="trendVariable"
+      />
+      <AuditLogDialog v-model="showAuditLog" />
 
-    <!-- 写值输入：按点表类型切换数值/开关/文本 -->
-    <WriteValueDialog />
+      <!-- 写值输入：按点表类型切换数值/开关/文本 -->
+      <WriteValueDialog />
+    </template>
+
+    <!-- 加载中：存储是远程 API 时有明确等待态，不再白屏 -->
+    <div v-else-if="loadState === 'loading'" class="preview-status">
+      <div class="status-spinner" />
+      <p class="status-title">正在加载工程…</p>
+    </div>
+
+    <!-- 加载失败：原先只弹一条 Message 后停留在空白 HUD，无任何出路 -->
+    <div v-else class="preview-status">
+      <div class="status-icon">!</div>
+      <p class="status-title">未能加载工程「{{ failedTarget }}」</p>
+      <p class="status-sub">工程可能未保存 / 未发布，或存储服务暂时不可用</p>
+      <div class="status-actions">
+        <el-button type="primary" @click="retryLoad">重试</el-button>
+        <el-button @click="router.push('/')">返回首页</el-button>
+        <el-button @click="router.push('/editor')">返回编辑器</el-button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -179,7 +199,12 @@ function updateLastUpdateTime() {
 
 let updateInterval: number | null = null
 
-onMounted(async () => {
+/** 工程加载状态：loading 显示等待态，failed 显示错误占位页，ready 才挂载舞台 */
+const loadState = ref<'loading' | 'ready' | 'failed'>('loading')
+const failedTarget = ref('')
+
+async function loadPreviewProject() {
+  loadState.value = 'loading'
   // 支持 /preview?project=xxx 直接打开指定工程
   // 默认加载发布版（无发布版回落草稿）；?source=draft 可预览工作副本
   const target = (route.query.project as string) || projectStore.projectName
@@ -188,7 +213,8 @@ onMounted(async () => {
     ? await projectStore.loadProject(target)
     : await projectStore.loadPublishedProject(target)
   if (!ok) {
-    ElMessage.error(`未能加载工程「${target}」，请从编辑器重新进入预览`)
+    failedTarget.value = target
+    loadState.value = 'failed'
     return
   }
 
@@ -196,6 +222,15 @@ onMounted(async () => {
   if (startPage && startPage !== pageStore.activePageId) {
     switchPage(startPage)
   }
+  loadState.value = 'ready'
+}
+
+function retryLoad() {
+  void loadPreviewProject()
+}
+
+onMounted(async () => {
+  await loadPreviewProject()
 
   deviceStore.initDataSource(projectStore.dataSourceConfig)
   updateInterval = window.setInterval(updateLastUpdateTime, 1000)
@@ -224,5 +259,61 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
+}
+
+.preview-status {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.status-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.status-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.status-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.status-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-danger);
+  border: 2px solid var(--accent-danger);
+}
+
+.status-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--border-primary);
+  border-top-color: var(--accent-primary);
+  animation: preview-spin 0.8s linear infinite;
+}
+
+@keyframes preview-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -320,6 +320,8 @@
 - 缩略图与标尺跟随主题切换：MiniMap / CanvasRuler 是 Canvas 2D 绘制、原先调色板硬编码暗色（`#10141f`、`#151a28` 等），亮色主题下视觉破损。新增 `src/composables/useThemeCssVars.ts`（`readThemeVar` 读变量 + `useThemeTick` 经 MutationObserver 监听 `data-theme`），配色抽进 variables.scss 双主题变量（`--minimap-*` / `--ruler-*`），主题切换即重绘；顺带修复 MiniMap 的 ResizeObserver 未在卸载时断开
   - 实测：新增 `useThemeCssVars.test.ts` 3 用例（变量读取 / 缺失回退 / tick 递增与观察器断开）
 
+- 预览页加载失败不再死路：原先 `loadPublishedProject` 失败仅弹一条 ElMessage 后 return，页面停在空白 HUD 无任何出路。现分 `loading / ready / failed` 三态——加载中显示转圈等待（远程存储有明确等待态），失败渲染错误占位页（工程名 + 原因提示 + 重试 / 返回首页 / 返回编辑器），重试复用同一加载函数
+
 ### 安全
 
 ### 构建
