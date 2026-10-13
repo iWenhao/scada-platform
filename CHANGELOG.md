@@ -310,6 +310,11 @@
 
 ### 优化
 
+- Element Plus 改为按需引入：移除 main.ts 的全量 `app.use(ElementPlus)`、全量 CSS 与全量图标注册，交还 unplugin 的 ElementPlusResolver 接管——此前「按需配置」被全量引入抵消，组件样式与 294 个图标全部无条件进包
+  - 动因：`vite.config.ts` 配了 `unplugin-auto-import` + `unplugin-vue-components` 的按需 resolver，而 `main.ts` 同时全量 `app.use` + `import 'element-plus/dist/index.css'` + 遍历注册全部图标，按需配置形同虚设
+  - 图标从全量 294 个收敛到实际用到的 22 个（模板标签 + 右键菜单 `:is` 字符串引用，逐个扫描核对）；`ElMessage` / `ElMessageBox` 等 API 样式由 auto-import resolver 按需注入；官方暗色变量 `dark/css-vars.css` 保留（teleport 弹层/表格行转暗依赖它）
+  - 实测：`pnpm build`（含 vue-tsc）通过；产物对比——`vendor-element` JS 1072 KB → 930 KB（-13%）、CSS 363 KB → 165 KB（-55%），合计约 -340 KB
+
 ### 修复
 
 ### 安全

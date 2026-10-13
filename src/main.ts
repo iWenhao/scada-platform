@@ -1,10 +1,14 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import {
+  ArrowDown, Bottom, Box, Collection, Connection, CopyDocument, Delete, Download,
+  Edit, FolderOpened, Hide, Lock, MoreFilled, Plus, Refresh, Select, Setting,
+  Top, TrendCharts, Unlock, Upload, View,
+} from '@element-plus/icons-vue'
 import VueKonva from 'vue-konva'
-import 'element-plus/dist/index.css'
-// Element Plus 官方暗色变量: html.dark 时所有组件(含 teleport 弹层/表格行)整体转暗
+// Element Plus 组件本体与样式由 unplugin-vue-components/auto-import 的
+// ElementPlusResolver 按需注入，不再全量 app.use + 全量 CSS（两份并存时按需配置失效）。
+// 官方暗色变量仍须保留: html.dark 时所有组件(含 teleport 弹层/表格行)整体转暗
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import './styles/index.scss'
 import App from './App.vue'
@@ -25,14 +29,19 @@ applyTheme('dark')
 
 const app = createApp(App)
 
-// 注册Element Plus图标
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+// 只注册模板与右键菜单(:is 字符串)中实际用到的图标——
+// 全量注册会把 294 个图标全部打进 bundle；新增图标时在此补充
+const usedIcons = {
+  ArrowDown, Bottom, Box, Collection, Connection, CopyDocument, Delete, Download,
+  Edit, FolderOpened, Hide, Lock, MoreFilled, Plus, Refresh, Select, Setting,
+  Top, TrendCharts, Unlock, Upload, View,
+}
+for (const [key, component] of Object.entries(usedIcons)) {
   app.component(key, component)
 }
 
 app.use(createPinia())
 app.use(router)
-app.use(ElementPlus)
 app.use(VueKonva)
 
 // 本地回落模式按用户命名空间隔离（远程模式由服务端 scope 决定）
