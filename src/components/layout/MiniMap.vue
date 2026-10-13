@@ -7,6 +7,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import type { ComponentInstance } from '@/types/scada'
+import { readThemeVar, useThemeTick } from '@/composables/useThemeCssVars'
 
 const props = defineProps<{
   elements: ComponentInstance[]
@@ -51,18 +52,24 @@ function draw() {
   const ctx = el.getContext('2d')
   if (!ctx) return
 
+  // 调色板跟随主题（fallback 与暗色变量一致，保证变量缺失时行为不变）
+  const colorBg = readThemeVar('--minimap-bg', '#10141f')
+  const colorBorder = readThemeVar('--minimap-border', '#2a3244')
+  const colorElement = readThemeVar('--minimap-element', 'rgba(0, 212, 170, 0.45)')
+  const colorViewport = readThemeVar('--minimap-viewport', '#ff4bd8')
+
   computeScale()
   ctx.clearRect(0, 0, box.width, box.height)
 
   // 画布范围
-  ctx.fillStyle = '#10141f'
+  ctx.fillStyle = colorBg
   ctx.fillRect(letterX, letterY, props.canvasWidth * scale, props.canvasHeight * scale)
-  ctx.strokeStyle = '#2a3244'
+  ctx.strokeStyle = colorBorder
   ctx.strokeRect(letterX, letterY, props.canvasWidth * scale, props.canvasHeight * scale)
 
   // 元素
   for (const el2 of props.elements) {
-    ctx.fillStyle = 'rgba(0, 212, 170, 0.45)'
+    ctx.fillStyle = colorElement
     ctx.fillRect(
       letterX + el2.x * scale,
       letterY + el2.y * scale,
@@ -76,7 +83,7 @@ function draw() {
   const vy = letterY - (props.viewportY / props.zoom) * scale
   const vw = (props.viewportW / props.zoom) * scale
   const vh = (props.viewportH / props.zoom) * scale
-  ctx.strokeStyle = '#ff4bd8'
+  ctx.strokeStyle = colorViewport
   ctx.lineWidth = 1.5
   ctx.strokeRect(vx, vy, vw, vh)
   ctx.lineWidth = 1
@@ -96,6 +103,10 @@ watch(
   () => draw(),
   { deep: true },
 )
+
+// 主题切换后变量值变化，需要重取颜色重绘
+const themeTick = useThemeTick()
+watch(themeTick, () => draw())
 
 // 点击 / 拖动导航
 let dragging = false
@@ -127,18 +138,23 @@ function stopNavigate() {
   dragging = false
 }
 
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(() => {
   draw()
   window.addEventListener('mousemove', onMove)
   window.addEventListener('mouseup', stopNavigate)
   if (boxRef.value && 'ResizeObserver' in window) {
-    new ResizeObserver(() => draw()).observe(boxRef.value)
+    resizeObserver = new ResizeObserver(() => draw())
+    resizeObserver.observe(boxRef.value)
   }
 })
 
 onUnmounted(() => {
   window.removeEventListener('mousemove', onMove)
   window.removeEventListener('mouseup', stopNavigate)
+  resizeObserver?.disconnect()
+  resizeObserver = null
 })
 </script>
 
@@ -147,7 +163,7 @@ onUnmounted(() => {
   position: absolute;
   right: 12px;
   bottom: 34px;
-  background: rgba(10, 14, 26, 0.85);
+  background: var(--minimap-shell-bg, rgba(10, 14, 26, 0.85));
   border: 1px solid var(--border-primary);
   border-radius: 4px;
   padding: 4px;

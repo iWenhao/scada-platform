@@ -317,6 +317,9 @@
 
 ### 修复
 
+- 缩略图与标尺跟随主题切换：MiniMap / CanvasRuler 是 Canvas 2D 绘制、原先调色板硬编码暗色（`#10141f`、`#151a28` 等），亮色主题下视觉破损。新增 `src/composables/useThemeCssVars.ts`（`readThemeVar` 读变量 + `useThemeTick` 经 MutationObserver 监听 `data-theme`），配色抽进 variables.scss 双主题变量（`--minimap-*` / `--ruler-*`），主题切换即重绘；顺带修复 MiniMap 的 ResizeObserver 未在卸载时断开
+  - 实测：新增 `useThemeCssVars.test.ts` 3 用例（变量读取 / 缺失回退 / tick 递增与观察器断开）
+
 ### 安全
 
 ### 构建

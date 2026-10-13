@@ -4,6 +4,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { readThemeVar, useThemeTick } from '@/composables/useThemeCssVars'
 
 const props = defineProps<{
   /** horizontal: 顶部水平标尺; vertical: 左侧垂直标尺 */
@@ -38,7 +39,13 @@ function draw() {
   const ctx = el.getContext('2d')
   if (!ctx) return
 
-  ctx.fillStyle = '#151a28'
+  // 调色板跟随主题（fallback 与暗色变量一致，保证变量缺失时行为不变）
+  const colorBg = readThemeVar('--ruler-bg', '#151a28')
+  const colorTick = readThemeVar('--ruler-tick', '#3d4658')
+  const colorText = readThemeVar('--ruler-text', '#8892a6')
+  const colorEdge = readThemeVar('--ruler-edge', '#2a3244')
+
+  ctx.fillStyle = colorBg
   ctx.fillRect(0, 0, w, h)
 
   const thick = horizontal ? h : w
@@ -49,8 +56,8 @@ function draw() {
   const start = Math.max(0, -props.offset / props.zoom)
   const end = Math.min(props.canvasLength, (props.viewport - props.offset) / props.zoom)
 
-  ctx.strokeStyle = '#3d4658'
-  ctx.fillStyle = '#8892a6'
+  ctx.strokeStyle = colorTick
+  ctx.fillStyle = colorText
   ctx.font = '10px sans-serif'
   ctx.lineWidth = 1
 
@@ -78,7 +85,7 @@ function draw() {
   }
 
   // 边缘线
-  ctx.strokeStyle = '#2a3244'
+  ctx.strokeStyle = colorEdge
   ctx.beginPath()
   if (horizontal) {
     ctx.moveTo(0, thick - 0.5)
@@ -94,6 +101,10 @@ watch(
   () => [props.canvasLength, props.zoom, props.offset, props.viewport],
   () => draw(),
 )
+
+// 主题切换后变量值变化，需要重取颜色重绘
+const themeTick = useThemeTick()
+watch(themeTick, () => draw())
 
 onMounted(() => {
   draw()

@@ -250,10 +250,10 @@ const gridStyle = computed(() => ({
 }))
 
 const cellBoxStyle = (cell: { alarm: boolean }) => ({
-  border: `1px solid ${cell.alarm ? 'rgba(255,77,79,0.55)' : 'rgba(120,140,170,0.28)'}`,
+  border: `1px solid ${cell.alarm ? 'rgba(255,71,87,0.55)' : 'rgba(120,140,170,0.28)'}`,
   borderRadius: `${4 * z.value}px`,
   padding: `${4 * z.value}px ${6 * z.value}px`,
-  background: cell.alarm ? 'rgba(255,77,79,0.12)' : 'rgba(120,140,170,0.08)',
+  background: cell.alarm ? 'rgba(255,71,87,0.12)' : 'rgba(120,140,170,0.08)',
   display: 'flex',
   flexDirection: 'column' as const,
   gap: `${2 * z.value}px`,
@@ -263,7 +263,8 @@ const cellBoxStyle = (cell: { alarm: boolean }) => ({
 const valueStyle = (cell: { alarm: boolean }) => ({
   fontSize: `${num(prop('valueFontSize', 15), 15) * z.value}px`,
   fontWeight: 500,
-  color: cell.alarm ? '#ff4d4f' : 'inherit',
+  // 告警红与全局 --accent-danger 同源，避免 #ff4d4f / #ff4757 同义不同值
+  color: cell.alarm ? 'var(--accent-danger, #ff4757)' : 'inherit',
 })
 
 /* ---------- 表格（带搜索） ---------- */
@@ -413,7 +414,7 @@ onUnmounted(stopTick)
   }
 
   .wg-alarm {
-    color: #ff4d4f;
+    color: var(--accent-danger, #ff4757);
     font-weight: 500;
   }
 }
