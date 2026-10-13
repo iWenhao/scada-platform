@@ -106,6 +106,10 @@
         />
 
         <div v-if="prop.hint" class="property-hint">{{ prop.hint }}</div>
+        <!-- 取值不在可选项内（手改工程 JSON 或导入他方文件）：已按默认回显，明说原值 -->
+        <div v-if="notices[prop.key]" class="property-notice">
+          原值「{{ notices[prop.key].raw }}」不在可选项中，已按默认显示
+        </div>
       </div>
     </div>
   </div>
@@ -115,7 +119,7 @@
 import { ref, watch, computed } from 'vue'
 import type { ComponentInstance } from '@/types/scada'
 import { getComponentDefinition } from '@/industrial/registry'
-import { withPropertyDefaults } from '@/core/canvas/elementDefaults'
+import { normalizeProperties, type PropertyNotice } from '@/core/canvas/elementDefaults'
 
 const props = defineProps<{
   element: ComponentInstance
@@ -132,6 +136,8 @@ const width = ref(0)
 const height = ref(0)
 const rotation = ref(0)
 const properties = ref<Record<string, any>>({})
+/** 取值非法的属性（按 key 索引）：面板回显已按默认兜底，这里只负责提示 */
+const notices = ref<Record<string, PropertyNotice>>({})
 
 const componentDef = computed(() => getComponentDefinition(props.element.type) || null)
 
@@ -144,9 +150,12 @@ watch(
     width.value = el.width
     height.value = el.height
     rotation.value = el.rotation
-    // 用定义里的 default 补齐缺失项：新建元素的 properties 来自 defaultConfig，
-    // 多半是空的，不补的话面板显示空而画面按默认值渲染（详见 elementDefaults.ts）
-    properties.value = withPropertyDefaults(el, componentDef.value)
+    // 用定义的 default 补齐缺失项、按取值域修正非法项：新建元素的 properties
+    // 来自 defaultConfig（多半是空的），不修正的话面板显示空 / 显示原值而画面
+    // 按默认值渲染，两边对不上（详见 elementDefaults.ts）
+    const normalized = normalizeProperties(el, componentDef.value)
+    properties.value = normalized.values
+    notices.value = normalized.notices
   },
   { immediate: true, deep: true },
 )
@@ -205,6 +214,15 @@ function handlePropertyChange() {
   font-size: 11px;
   line-height: 1.5;
   color: var(--text-muted);
+  margin-top: 4px;
+  word-break: break-all;
+}
+
+/* 取值非法的告警提示：比 hint 醒目一档，用警示色而非中性灰 */
+.property-notice {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--el-color-warning, #e6a23c);
   margin-top: 4px;
   word-break: break-all;
 }

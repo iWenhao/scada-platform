@@ -69,6 +69,16 @@
 
 ### 修复
 
+- 枚举属性存了非法值时面板会提示，不再「面板显原值、画面画默认」
+  - 现象：工程 JSON 被手改、或由首页「导入 JSON」引入他方文件后，`format` 这类 select 属性可能存着不在 options 里的值（例如被写成 `2026-10-13` 这样的中文串）
+  - 现状安全但不一致：渲染层两道防线（`formatDateTime` 与 `nextTickDelay` 都先 `isClockFormatId` 校验、非法退回默认）保证不崩、时钟也不停摆，但面板显示原值、画面按默认渲染，用户无从察觉那份配置压根没生效
+  - 把上一条的 `withPropertyDefaults()` 扩为 `normalizeProperties(element, definition)`，返回 `{ values, notices }`：缺失补 default（属正常情况，不提示）；非法补 default 并记一条 notice。面板回显兜底值，控件下方显示警示色小字「原值「xxx」不在可选项中，已按默认显示」
+  - **不做静默回显**：手改配置的人需要知道自己写错了什么，只换值不提示等于骗他说那个格式已经生效
+  - 范围只覆盖 select（有取值域的类型）。数字的 min/max 故意不校验——`el-input-number` 交互时自带 clamp，而「字号 200」与「字号 24」的差别远小于提示噪音的代价；string 没有取值域，任何内容都不算非法
+  - 缺失与非法两条都只改面板的本地副本，实例数据不动；用户改动任一项时才整份落盘
+  - 用例扩到 10 条：原 6 条 + 非法回退并留提示 / 正常值不提示 / 数字越界不拦 / 字符串不算非法
+  - 实测：`vue-tsc --noEmit` 与 `vite build` 通过；全量 **53 文件 / 489 用例**通过（沙箱掐掉 StatusEngine 一个文件，json 报告与磁盘清单比对后补跑凑齐）
+
 - 属性面板不回显组件默认值：时间组件的「字号」「显示格式」此前是空的
   - 现象：拖入时间组件后面板「字号」输入框为空，而画面按 24 渲染；「显示格式」下拉也空着，实际按 `DEFAULT_CLOCK_FORMAT` 渲染。**面板显示的值与实际生效的值对不上**，容易被读成「还没设置」
   - 根因：`PropertyDefinition.default` **全仓没有任何消费方**（搜 `\.default\b` 唯一命中是无关的 `slots?.default?.()`）；新建元素的 `properties` 取自组件 `defaultConfig`，而 `widgetDef` 的 `defaultConfig` 是 `{}`——9 个挂件都没传初始配置，实例里根本没有 `fontSize` / `format` 键；`ElementGeometry` 直接 `v-model="properties[key]"`，`undefined` 就渲染成空白。渲染层另走 `prop(key, 默认值)` 兜底，两边口径就此分叉
