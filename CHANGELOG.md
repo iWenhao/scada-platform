@@ -322,6 +322,7 @@
   - 移除「自定义组件」Tab（用户要求）：设备模板与自定义图形不再常驻面板，改为**只经搜索触达**——搜索命中时以「自定义组件」小节附在结果末尾，卡片保留编辑 / 删除 / 拖拽；新建自定义组件后自动按名字展开搜索，组件立刻可见（否则新建完在面板里没有任何落脚点）
   - 结构（.vue 400 行门槛，当次拆完再提交）：注册块、分组清单与分组显示名从 `ComponentPanel.vue` 拆至 `src/industrial/panelRegistry.ts`；搜索逻辑在 `src/composables/useComponentSearch.ts`；最常使用数据在 `src/composables/useMostUsedComponents.ts`；计数持久化在 `src/industrial/usageLibrary.ts`。面板文件 341 → 349 行
   - 实测：新增 `usageLibrary.test.ts` 6 用例（累加 / 空 type / 坏数据过滤 / 数组与损坏 JSON 兜底）；全量 **55 文件 / 498 用例**零失败（json 报告与磁盘清单逐文件比对一致，无 Errors）；`pnpm build`（含 vue-tsc）通过
+  - 文档同步：README 组件库段落改为三 Tab + 头部搜索口径；USER_GUIDE 简介与编辑器表格「组件库」行重写，5.6 设备模板改「搜索框输入模板名」，7.8 自定义组件改为「搜索触达」口径，新增 5.9「组件库：搜索与最常使用」
 
 ### 优化
 
