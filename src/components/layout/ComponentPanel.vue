@@ -4,42 +4,54 @@
       <div class="panel-header">
         <span>组件库</span>
         <div class="header-actions">
-          <!-- 搜索：默认只显示图标，点击展开为输入框；收起即清除 -->
-          <div class="header-search" :class="{ open: searchVisible }">
-            <button
-              class="search-toggle"
-              type="button"
-              :title="searchVisible ? '收起搜索' : '搜索组件'"
-              :aria-label="searchVisible ? '收起搜索' : '搜索组件'"
-              @click="toggleSearch"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.5-3.5" />
-              </svg>
-            </button>
-            <input
-              v-if="searchVisible"
-              ref="searchInputRef"
-              v-model="searchQuery"
-              class="search-input"
-              type="text"
-              placeholder="搜索组件"
-              aria-label="搜索组件"
-              @keydown.esc="collapseSearch"
-            />
-            <button
-              v-if="searchVisible && searchQuery"
-              class="search-clear"
-              type="button"
-              title="清除搜索"
-              aria-label="清除搜索"
-              @click="clearSearch"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
+          <!-- 搜索：收起态为圆形图标按钮（与「+」同款）；展开后放大镜收入框内，点框内图标或 Esc 收起（收起即清除） -->
+          <div class="header-search">
+            <transition name="search-swap" mode="out-in" @after-enter="focusSearchInput">
+              <!-- 展开态：搜索盒，放大镜在框内（点击即收起） -->
+              <div v-if="searchVisible" key="box" class="search-box">
+                <button
+                  class="search-icon-btn"
+                  type="button"
+                  title="收起搜索"
+                  aria-label="收起搜索"
+                  @click="collapseSearch"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M20 20l-3.5-3.5" />
+                  </svg>
+                </button>
+                <input
+                  ref="searchInputRef"
+                  v-model="searchQuery"
+                  class="search-input"
+                  type="text"
+                  placeholder="搜索组件名称或分组"
+                  aria-label="搜索组件"
+                  @keydown.esc="collapseSearch"
+                />
+                <button
+                  v-if="searchQuery"
+                  class="search-clear"
+                  type="button"
+                  title="清除搜索"
+                  aria-label="清除搜索"
+                  @click="clearSearch"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
+              <!-- 收起态：圆形图标按钮（与「+」同款），点击展开 -->
+              <div v-else key="toggle" class="search-toggle-slot">
+                <el-tooltip content="搜索组件" placement="bottom">
+                  <el-button size="small" circle @click="toggleSearch">
+                    <el-icon><Search /></el-icon>
+                  </el-button>
+                </el-tooltip>
+              </div>
+            </transition>
           </div>
           <el-tooltip content="创建自定义组件" placement="bottom">
             <el-button size="small" circle @click="showCustomDialog = true">
@@ -231,13 +243,14 @@ const searchOpen = ref(false)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 const searchVisible = computed(() => searchOpen.value || searching.value)
 
+/** 展开搜索（收起由框内放大镜 / Esc 触发；收起即清除） */
 function toggleSearch() {
-  if (searchVisible.value) {
-    collapseSearch()
-  } else {
-    searchOpen.value = true
-    nextTick(() => searchInputRef.value?.focus())
-  }
+  searchOpen.value = true
+}
+
+/** 展开过渡结束后聚焦输入框 */
+function focusSearchInput() {
+  searchInputRef.value?.focus()
 }
 
 /** 收起即清除：避免输入框看不见了、过滤却还在生效 */

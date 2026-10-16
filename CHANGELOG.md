@@ -326,6 +326,13 @@
 
 ### 优化
 
+- 组件库搜索改为「圆形图标按钮 + 展开搜索盒」形态：图标按钮与「+」同款（el-button small circle + Search 图标），点击后搜索盒以宽度过渡展开，放大镜收入输入框内（原为独立图标按钮悬在输入框外，视觉脱节）；placeholder 恢复为初版口径「搜索组件名称或分组」
+  - 动因：用户反馈两点——① 放大镜图标跑到了搜索框外面；② 搜索按钮样式应与右侧「+」一致且有点击展开效果
+  - 匹配范围未动（组件名 / type / 分组显示名，大小写不敏感，设备模板按名称）——初版即是此口径，用户要求的「组件名、分组名、类型」已全覆盖，无逻辑改动
+  - 结构：`main.ts` 注册 Search 图标（与 Plus 同一处 usedIcons）；ComponentPanel.vue 头部搜索块重写——`<transition mode="out-in">` 做「圆形按钮 ↔ 搜索盒」交换（两者不同时在场，无布局重叠），展开动画为搜索盒 width 0→140px，`@after-enter` 聚焦输入框；框内放大镜为收起按钮（点击或 Esc 收起，收起即清除）；component-panel.scss 的 `.header-search` 块随之重写
+  - 文档同步：USER_GUIDE 5.9 收起交互描述改为「Esc 或点击框内放大镜」
+  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误且 ComponentPanel.vue 警告画像与改前逐规则一致（99=99：html-self-closing 5 / html-indent 91 / no-v-html 3，零新增）；vitest 全量 **55 文件 / 498 用例**零失败（首轮沙箱拦掉 expression / alarmStore 两文件，补跑 40 用例全过，逐文件与磁盘清单一致）；check-long-files 通过；四文件行尾 CRLF 无混杂
+
 - Element Plus 改为按需引入：移除 main.ts 的全量 `app.use(ElementPlus)`、全量 CSS 与全量图标注册，交还 unplugin 的 ElementPlusResolver 接管——此前「按需配置」被全量引入抵消，组件样式与 294 个图标全部无条件进包
   - 动因：`vite.config.ts` 配了 `unplugin-auto-import` + `unplugin-vue-components` 的按需 resolver，而 `main.ts` 同时全量 `app.use` + `import 'element-plus/dist/index.css'` + 遍历注册全部图标，按需配置形同虚设
   - 图标从全量 294 个收敛到实际用到的 22 个（模板标签 + 右键菜单 `:is` 字符串引用，逐个扫描核对）；官方暗色变量 `dark/css-vars.css` 保留（teleport 弹层/表格行转暗依赖它）。~~`ElMessage` / `ElMessageBox` 样式由 auto-import resolver 按需注入~~——此判断有误，见下方「修复」：resolver 不处理显式 import，编程式组件样式须在 main.ts 手动补引
