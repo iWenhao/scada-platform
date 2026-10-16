@@ -3,6 +3,7 @@ import { useDeviceStore } from '@/stores/deviceStore'
 import { useLayerStore } from '@/stores/layerStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import { createElementId } from '@/utils/id'
+import { recordComponentUsage } from '@/industrial/usageLibrary'
 import type { ComponentInstance } from '@/types/scada'
 
 type StageRef = { value: { getNode: () => any } | null }
@@ -65,6 +66,8 @@ export function useCanvasDrop(stageRef: StageRef) {
       }
       canvasStore.addElement(fromTemplate)
       saveState()
+      // 计入底层组件类型的使用次数（驱动「最常使用」）；写存储失败不影响落件
+      void recordComponentUsage(tpl.baseType).catch(() => {})
       return
     }
 
@@ -89,6 +92,8 @@ export function useCanvasDrop(stageRef: StageRef) {
     }
     canvasStore.addElement(newElement)
     saveState()
+    // 计入使用次数（驱动「最常使用」）；写存储失败不影响落件
+    void recordComponentUsage(data.type).catch(() => {})
   }
 
   return { onDrop }
