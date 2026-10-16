@@ -308,6 +308,13 @@
 
 ### 功能
 
+- 装饰组件新增「导航」标题栏（992×62）
+  - 动因：源产品组件库里唯一值得补的一项——蓝色科技风横幅（渐变底 + 中央装饰框 + 虚线，无文字，做大屏标题栏时用户自行叠文字组件）。此前未导入的原因记录在 manifest 的 deco _note：源文件是 PNG，而导入管线只认 SVG
+  - 导入脚本新增 PNG 通道：`.png` 素材读为 base64、包成 viewBox 取固有像素的 SVG `<image>`，与矢量图元共用同一条图标管线——styleIcon 对无 `data-face` 标注的内容原样放行（2D/2.5D 外观一致），getIconImage 只做 currentColor 字符串替换、data-URI 原样穿透；manifest 追加 `deco_nav`（src `desc/real/_desc00.png`，源图 1984×124 为 @2x，元素默认尺寸按源产品取 992×62）
+  - 代价如实记录：118KB PNG → 约 158KB base64 进包（dist 3.1M 的约 5%，gzip 后基本不缩）。只值得给这类无文字装饰横幅用；带文字的贴图仍应另行托管，勿走此通道
+  - 已知边界：导航与其他装饰组件一样带 state 三态契约，但 raster 颜色固有、不随状态变色——配状态规则不会有视觉变化
+  - 横管 / 竖管维持不导入：源配置里两项 src 都错指到 `_desc09.svg`（与四通同源），且本项目已有原生「管道」组件
+
 ### 优化
 
 - Element Plus 改为按需引入：移除 main.ts 的全量 `app.use(ElementPlus)`、全量 CSS 与全量图标注册，交还 unplugin 的 ElementPlusResolver 接管——此前「按需配置」被全量引入抵消，组件样式与 294 个图标全部无条件进包

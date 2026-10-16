@@ -1,5 +1,7 @@
 /**
- * 图元素材导入工具：把外部组态产品的 SVG 图元库规范化为本项目可用的图标字符串。
+ * 图元素材导入工具：把外部组态产品的图元库规范化为本项目可用的图标字符串。
+ * 矢量素材（.svg）走五步净化；位图素材（.png）包成 base64 data-URI 的 SVG <image>，
+ * 两类产物同为 SVG 字符串，共用同一条图标管线（styleIcon / getIconImage / buildTightSvg）。
  *
  * 为什么需要规范化：本项目图元的唯一形态是内联 SVG 字符串（`ComponentDefinition.icon`），
  * 颜色必须走 `currentColor`（渲染时由 core/canvas/iconImage.ts 做单色替换），viewBox 由
@@ -47,7 +49,8 @@ const GENERATED_HEADER = `/**
  * 源素材：外部组态产品的 subUnit 图元库，溯源记录见 scripts/subunit-manifest.json。
  * 图标形态为单色线条稿（stroke = currentColor），不含 \`data-face\` 标注，因此
  * core/canvas/faceLighting.ts 的 styleIcon() 会原样放行——2D 与 2.5D 下外观一致，
- * 与已迁移的面基图元共存。
+ * 与已迁移的面基图元共存。PNG 素材（如导航）以 base64 data-URI 内嵌为 SVG
+ * <image>，同样无 data-face 标注；其颜色是固有像素，不随 currentColor 变化。
  *
  * 重新生成：node scripts/import-subunit-assets.mjs --src <素材根目录> --emit <系统键名>
  */`
@@ -142,6 +145,34 @@ function escapeForTemplate(s) {
 
 function toCrlf(text) {
   return text.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n')
+}
+
+/**
+ * 读取素材源文件并归一为 SVG 文本；.png 包成 base64 data-URI 的 SVG <image>。
+ *
+ * 为什么 PNG 也走这条管线：图标管线的契约是「SVG 字符串」，URL 方案要改渲染层；
+ * 包成 data-URI 后 raster 与 vector 图元走同一条路，且 styleIcon 对无 data-face
+ * 标注的内容原样放行——2D / 2.5D 外观一致。代价是 PNG 体积的 4/3 进包，只值得
+ * 给「无文字、纯装饰」的横幅用；带文字的贴图仍建议另行托管。
+ *
+ * viewBox 与 <image> 尺寸取 PNG 固有像素（IHDR 固定偏移），元素默认尺寸仍由
+ * manifest 的 w/h 决定（源产品按显示尺寸配置，@2x 素材渲染时自动缩小）。
+ */
+function readSourceAsSvg(file) {
+  const buf = readFileSync(file)
+  if (!/\.png$/i.test(file)) return buf.toString('utf8')
+  const SIG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  if (buf.length < 24 || !buf.subarray(0, 8).equals(SIG)) {
+    throw new Error(`not a valid PNG: ${file}`)
+  }
+  const w = buf.readUInt32BE(16)
+  const h = buf.readUInt32BE(20)
+  if (!w || !h) throw new Error(`PNG has zero dimension: ${file}`)
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}">` +
+    `<image x="0" y="0" width="${w}" height="${h}" href="data:image/png;base64,${buf.toString('base64')}"/>` +
+    `</svg>`
+  )
 }
 
 function readManifest() {
@@ -253,7 +284,7 @@ function runEmit(srcRoot, sysKey) {
     for (const field of ['name', 'w', 'h']) {
       if (e[field] === undefined) problems.push(`${e.key}: manifest missing "${field}"`)
     }
-    const raw = readFileSync(file, 'utf8')
+    const raw = readSourceAsSvg(file)
     const svg = normalizeSvg(raw)
     const v = validateSvg(svg, raw)
     if (v.length) problems.push(`${e.key}: ${v.join('; ')}`)
@@ -298,7 +329,7 @@ function runPreview(srcRoot, sysKey, outPath) {
   const meta = {}
   const order = []
   for (const e of sys.entries) {
-    const raw = readFileSync(join(srcRoot, e.src), 'utf8')
+    const raw = readSourceAsSvg(join(srcRoot, e.src))
     icons[e.key] = normalizeSvg(raw)
     meta[e.key] = { name: e.name, width: e.w, height: e.h }
     order.push(e.key)

@@ -229,7 +229,7 @@
       "exportName": "decoIcons",
       "metaExportName": "decoMeta",
       "metaTypeName": "DecoIconMeta",
-      "_note": "装饰组件 + 箭头。源配置里箭头列在「基础组件」下，但它与装饰同属贴图类素材，故并入本组。导航/横管/竖管三项源文件是 PNG（_desc00.png 118KB、hg.png、sg.png），未纳入——PNG 需另行托管，且横管/竖管的 src 在源配置里都错指到 _desc09.svg",
+      "_note": "装饰组件 + 箭头 + 导航。源配置里箭头列在「基础组件」下，但它与装饰同属贴图类素材，故并入本组。导航源文件是 PNG（desc/real/_desc00.png，1984×124 的 @2x 图），由导入脚本包成 base64 data-URI 的 SVG <image>，与矢量图元共用图标管线；横管/竖管仍未纳入——src 在源配置里错指到 _desc09.svg（与四通同源），且本项目已有原生「管道」组件",
       "entries": [
         { "key": "deco_arrow", "src": "base_arrow.svg", "name": "箭头", "w": 83, "h": 46 },
         { "key": "deco_button", "src": "desc/real/_desc01.svg", "name": "按钮", "w": 80, "h": 27 },
@@ -240,7 +240,8 @@
         { "key": "deco_straight", "src": "desc/real/_desc06.svg", "name": "直通", "w": 22, "h": 10 },
         { "key": "deco_elbow", "src": "desc/real/_desc07.svg", "name": "弯通", "w": 20, "h": 20 },
         { "key": "deco_tee", "src": "desc/real/_desc08.svg", "name": "三通", "w": 31, "h": 20 },
-        { "key": "deco_cross", "src": "desc/real/_desc09.svg", "name": "四通", "w": 31, "h": 30 }
+        { "key": "deco_cross", "src": "desc/real/_desc09.svg", "name": "四通", "w": 31, "h": 30 },
+        { "key": "deco_nav", "src": "desc/real/_desc00.png", "name": "导航", "w": 992, "h": 62 }
       ]
     }
   }
