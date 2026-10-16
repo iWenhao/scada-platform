@@ -1,141 +1,5 @@
 import type { ComponentDefinition } from '@/types/scada'
 import { ImageDefinition } from './image'
-import { basicShapeComponents } from './shapes'
-
-export const ValveDefinition: ComponentDefinition = {
-  type: 'valve',
-  name: '阀门',
-  group: 'basic',
-  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M50 50 V18"/>
-      <path d="M18 22 L50 50 L18 78 Z" data-face="front"/>
-      <path d="M82 22 L50 50 L82 78 Z" data-face="side"/>
-      <circle cx="50" cy="13" r="7.5" data-face="cap"/>
-      <path d="M42.5 13 H57.5" stroke-opacity="0.7"/>
-      <circle cx="50" cy="50" r="3.2" fill="currentColor" stroke="none"/>
-    </g>
-  </svg>`,
-  defaultWidth: 60,
-  defaultHeight: 90,
-  defaultConfig: {
-    valveType: 'gate',
-    openDegree: 0,
-  },
-  statusRules: [
-    {
-      id: 'open',
-      name: '开启',
-      color: '#00d4aa',
-      condition: { type: 'compare', variable: 'openDegree', operator: '>', value: 0 },
-      priority: 1,
-    },
-    {
-      id: 'closed',
-      name: '关闭',
-      color: '#ff4757',
-      severity: 'normal',
-      condition: { type: 'compare', variable: 'openDegree', operator: '=', value: 0 },
-      priority: 2,
-    },
-  ],
-  dataBindings: [
-    { property: 'openDegree', variable: 'openDegree' },
-  ],
-  properties: [
-    {
-      key: 'name',
-      label: '名称',
-      type: 'string',
-      default: '阀门',
-      group: '基本',
-    },
-    {
-      key: 'valveType',
-      label: '阀门类型',
-      type: 'select',
-      default: 'gate',
-      options: [
-        { label: '闸阀', value: 'gate' },
-        { label: '球阀', value: 'ball' },
-        { label: '蝶阀', value: 'butterfly' },
-      ],
-      group: '基本',
-    },
-    {
-      key: 'openDegree',
-      label: '开度',
-      type: 'range',
-      default: 0,
-      min: 0,
-      max: 100,
-      step: 1,
-      group: '运行参数',
-    },
-  ],
-}
-
-export const PumpDefinition: ComponentDefinition = {
-  type: 'pump',
-  name: '泵',
-  group: 'basic',
-  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M16 52 H42" data-pipe="base"/>
-      <path d="M16 50.5 H42" data-pipe="hi"/>
-      <path d="M52 20 V42" data-pipe="base"/>
-      <path d="M50.5 20 V42" data-pipe="hi"/>
-      <circle cx="52" cy="52" r="28" data-face="cap"/>
-      <path d="M52 52 C42 42 38 36 48 32 C58 30 64 38 52 52 Z" stroke="currentColor" stroke-width="2" stroke-opacity="0.85"/>
-      <path d="M52 52 C62 42 66 36 56 32" stroke="currentColor" stroke-width="2" stroke-opacity="0.55"/>
-      <circle cx="52" cy="52" r="3" fill="currentColor" stroke="none"/>
-    </g>
-  </svg>`,
-  defaultWidth: 80,
-  defaultHeight: 80,
-  defaultConfig: {
-    speed: 0,
-    flow: 0,
-  },
-  statusRules: [
-    {
-      id: 'running',
-      name: '运行',
-      color: '#00d4aa',
-      condition: { type: 'compare', variable: 'speed', operator: '>', value: 0 },
-      priority: 1,
-    },
-    {
-      id: 'stopped',
-      name: '停止',
-      color: '#ff4757',
-      severity: 'normal',
-      condition: { type: 'compare', variable: 'speed', operator: '=', value: 0 },
-      priority: 2,
-    },
-  ],
-  dataBindings: [
-    { property: 'speed', variable: 'speed' },
-  ],
-  properties: [
-    {
-      key: 'name',
-      label: '名称',
-      type: 'string',
-      default: '泵',
-      group: '基本',
-    },
-    {
-      key: 'speed',
-      label: '转速',
-      type: 'number',
-      default: 0,
-      min: 0,
-      max: 3000,
-      group: '运行参数',
-    },
-  ],
-}
 
 export const TankDefinition: ComponentDefinition = {
   type: 'tank',
@@ -392,15 +256,15 @@ export const DisplayDefinition: ComponentDefinition = {
   ],
 }
 
+/**
+ * 基础设备类组件。面板展示顺序由 ComponentPanel.vue 统一编排
+ * （基础图形与常用挂件排在本列表之前），此处只列设备类。
+ * 阀门/泵已删除：泵阀类图元改由各行业分组提供（如水处理的 water_pump / water_valve）。
+ */
 export const basicComponents: ComponentDefinition[] = [
-  ValveDefinition,
-  PumpDefinition,
   TankDefinition,
   SetpointDefinition,
   CommandButtonDefinition,
   DisplayDefinition,
   ImageDefinition,
-  // 基础图形 7 个：矩形/圆/三角/横线/竖线/虚横线/虚竖线（源产品只给了 PNG 缩略图，
-  // 这里手绘成 currentColor 线条稿，理由见 shapes.ts 头部注释）
-  ...basicShapeComponents,
-]
+]

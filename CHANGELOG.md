@@ -335,6 +335,13 @@
 
 ### 重构与清理
 
+- 基础组件删除阀门与泵，常用图形与信息类组件前置到面板最前
+  - 动因：① 阀门/泵与行业分组重复——水处理分组已有 `water_pump` / `water_valve` 等泵阀素材图元，基础库里再放一份稀释了「基础」的定位；② 基础 Tab 原先把设备类（储罐/设定值/数值显示/图片）压在图形与日期时间前面，而组态场景里最高频的恰是矩形/圆/线与日期/时间/视频/网页/文字/超文本
+  - 删除 `basic/index.ts` 的 `ValveDefinition` / `PumpDefinition`（`valve` / `pump` 不再注册）。画布上已放置实例按未注册类型退化为默认样式，不报错；`overlayTypes.ts` 等按 type 分发的链路与这两个类型无关，无波及
+  - 面板顺序改为在 `ComponentPanel.vue` 显式编排（注册顺序即面板顺序）：7 个基础图形 → 日期/时间/视频/网页 → 文字 → 超文本 → 设备类（储罐/设定值/操作按钮/数值显示/图片）。`basicComponents` 收敛为设备类，图形改由面板从 `basic/shapes` 引入编排；widget 的 5 个 basic 分组挂件随编排前置，`widgetComponents` 整体仍在原位注册（同 key 重复注册只覆盖值、不改位置）
+  - 文档同步：README 组件表更新基础组件清单；USER_GUIDE 状态规则示例去掉阀门；示例工程 `demo-project.json` 的 `el_demo_pump` / `el_demo_valve` 换用 `water_pump` / `water_valve`（同为水泵房场景），避免删除定义后示例图元退化
+  - 实测：全量 54 测试文件 / 492 用例零失败（`--reporter=verbose` 逐文件与磁盘清单一致；沙箱前两轮分别拦掉 StatusEngine / alarmStore，两个文件在另一轮均跑过）；`pnpm build`（含 vue-tsc）通过
+
 ## [0.0.4-261002] - 261002
 
 ### 修复

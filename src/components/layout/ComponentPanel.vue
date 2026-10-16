@@ -117,6 +117,7 @@ import type { ComponentDefinition, ComponentGroup } from '@/types/scada'
 
 // 初始化组件注册
 import { basicComponents } from '@/industrial/basic'
+import { basicShapeComponents } from '@/industrial/basic/shapes'
 import { generalComponents } from '@/industrial/general'
 import { pipelineComponents } from '@/industrial/pipeline'
 import { electricalComponents } from '@/industrial/electrical'
@@ -129,7 +130,14 @@ import { ventilationComponents } from '@/industrial/ventilation'
 import { washComponents } from '@/industrial/wash'
 import { thermalComponents } from '@/industrial/thermal'
 import { decoComponents } from '@/industrial/deco'
-import { widgetComponents } from '@/industrial/widget'
+import {
+  widgetComponents,
+  DateDefinition,
+  ClockDefinition,
+  VideoDefinition,
+  IframeDefinition,
+  SuperTextDefinition,
+} from '@/industrial/widget'
 import { textComponents } from '@/industrial/basic/text'
 import { chartComponents } from '@/industrial/chart'
 import { loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
@@ -137,9 +145,26 @@ import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/template
 import { registerComponents } from '@/industrial/registry'
 import type { DeviceTemplate } from '@/types/template'
 
+/**
+ * 基础 Tab 的面板顺序（注册顺序即面板顺序）：
+ * 7 个基础图形 → 日期/时间/视频/网页 → 文字 → 超文本 → 设备类。
+ * 依据是组态场景的使用频率——图形与信息类组件天天用，设备类按需取。
+ * 新增基础组件默认追加在设备类之后；要前置就往这个数组里挪。
+ */
+const basicPanelComponents: ComponentDefinition[] = [
+  ...basicShapeComponents,
+  DateDefinition,
+  ClockDefinition,
+  VideoDefinition,
+  IframeDefinition,
+  ...textComponents,
+  SuperTextDefinition,
+  ...basicComponents,
+]
+
 // 注册内置组件（自定义从存储恢复后单独注册）
 registerComponents([
-  ...basicComponents,
+  ...basicPanelComponents,
   ...generalComponents,
   ...pipelineComponents,
   ...electricalComponents,
@@ -152,8 +177,9 @@ registerComponents([
   ...washComponents,
   ...thermalComponents,
   ...decoComponents,
+  // chart 分组的 4 个数据展示挂件在此注册；basic 分组的 5 个（日期/时间/视频/网页/超文本）
+  // 已随 basicPanelComponents 注册——同 key 重复注册只覆盖值、不改变位置，面板顺序不受影响
   ...widgetComponents,
-  ...textComponents,
   ...chartComponents,
 ])
 

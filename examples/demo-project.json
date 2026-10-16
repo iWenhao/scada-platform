@@ -64,7 +64,7 @@
         },
         {
           "id": "el_demo_pump",
-          "type": "pump",
+          "type": "water_pump",
           "deviceId": "pump_1",
           "x": 340,
           "y": 160,
@@ -96,7 +96,7 @@
         },
         {
           "id": "el_demo_valve",
-          "type": "valve",
+          "type": "water_valve",
           "deviceId": "valve_1",
           "x": 540,
           "y": 170,
