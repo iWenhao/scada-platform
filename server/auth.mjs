@@ -285,16 +285,19 @@ export function createAuthStore(dataDir) {
    * @returns {Promise<{ user?: object, error?: string }>}
    */
   async function createUser({ username, displayName, role, password }) {
-    if (!username || !password || String(password).length < 4) {
+    // 用户名先去空格再查重：查重用原始值、落库用 trim 后的值，
+    // 等于让「 admin」绕过重名检查建出第二个 admin——后者的登录名会被前者抢占，账号不可达。
+    const name = String(username ?? '').trim()
+    if (!name || !password || String(password).length < 4) {
       return { error: 'username/password invalid' }
     }
     if (ROLE_RANK[role] === undefined) return { error: 'invalid role' }
-    if (users.some(u => u.username === username)) return { error: 'username exists' }
+    if (users.some(u => u.username === name)) return { error: 'username exists' }
 
     const user = {
       id: `usr_${randomUUID().slice(0, 8)}`,
-      username: String(username).trim(),
-      displayName: String(displayName || username).trim(),
+      username: name,
+      displayName: String(displayName || name).trim(),
       role,
       passwordHash: hashPassword(password),
       createdAt: Date.now(),

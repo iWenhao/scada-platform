@@ -163,34 +163,46 @@ export async function querySamples(historyDir, key, from, to, maxPoints, options
   return limitPoints(points, maxPoints)
 }
 
+/** 分片文件名尾部的日期段：`<key>.<YYYYMMDD>.jsonl` */
+const SHARD_DAY_RE = /\.(\d{8})\.jsonl$/
+
+/**
+ * 递归枚举目录下所有分片。
+ * 层级不能写死成一层：命名空间是 `u/<userId>/`，分片实际落在 historyRoot/u/<userId>/ 下，
+ * 只扫一层时 readdir 拿到的是「u」这一个目录名、匹配不到分片正则，
+ * 于是保留期任务每次返回 0、历史文件无限增长且没有任何报错。
+ */
+async function* iterShardFiles(dir) {
+  let entries = []
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true })
+  } catch {
+    return
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name)
+    // 符号链接的 Dirent 既不是 directory 也不会命中分片名，天然不会被递归带成环
+    if (entry.isDirectory()) yield* iterShardFiles(full)
+    else {
+      const m = SHARD_DAY_RE.exec(entry.name)
+      if (m) yield { file: full, day: m[1] }
+    }
+  }
+}
+
 /**
  * 清理所有用户目录下超过保留期的分片。
+ * @returns {Promise<number>} 实际删除的分片数
  */
 export async function cleanupExpiredShards(historyRoot, retentionDays) {
   if (retentionDays <= 0) return 0
-  let userDirs = []
-  try {
-    userDirs = await fs.readdir(historyRoot, { withFileTypes: true })
-  } catch {
-    return 0
-  }
   const expireDay = dayString(Date.now() - retentionDays * 24 * 3600 * 1000)
   let removed = 0
-  for (const d of userDirs) {
-    if (!d.isDirectory()) continue
-    const dir = path.join(historyRoot, d.name)
-    let files
-    try {
-      files = await fs.readdir(dir)
-    } catch {
-      continue
-    }
-    for (const f of files) {
-      const m = f.match(/\.(\d{8})\.jsonl$/)
-      if (m && m[1] < expireDay) {
-        await fs.rm(path.join(dir, f), { force: true })
-        removed++
-      }
+  for await (const { file, day } of iterShardFiles(historyRoot)) {
+    // 字符串比较即日期比较（定长 YYYYMMDD）；等于 expireDay 的分片属保留期内，不删
+    if (day < expireDay) {
+      await fs.rm(file, { force: true })
+      removed++
     }
   }
   return removed
