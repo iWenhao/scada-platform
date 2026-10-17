@@ -255,8 +255,14 @@
 }
 
 .input-icon {
-  font-size: 14px;
+  display: inline-flex;
   opacity: 0.75;
+
+  /* 原为系统彩色 emoji，换线性图标后按输入框文字档取 16px */
+  :deep(.tool-icon) {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .eye {

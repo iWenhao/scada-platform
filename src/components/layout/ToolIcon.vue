@@ -159,6 +159,44 @@
       <text x="12" y="14.5" text-anchor="middle" font-size="6.5" fill="currentColor" stroke="none" font-weight="bold">Ab</text>
     </g>
 
+    <!-- 预览页 HUD：返回、画面切换、报警、写值锁定、轮播、全屏、审计 -->
+    <g v-else-if="name === 'back'">
+      <path d="M14.6 5.4 L7.4 12 l7.2 6.6" />
+    </g>
+    <g v-else-if="name === 'prev-page'">
+      <path d="M6.5 6 V18" />
+      <path d="M18.5 6 L10.8 12 L18.5 18 Z" />
+    </g>
+    <g v-else-if="name === 'bell'">
+      <path d="M18 9.2 A6 6 0 0 0 6 9.2 c0 6.2-2.4 7.4-2.4 7.4 h16.8 S18 14.6 18 9.2" />
+      <path d="M13.7 19.6 a2 2 0 0 1-3.4 0" />
+    </g>
+    <g v-else-if="name === 'lock'">
+      <rect x="5" y="10.5" width="14" height="10" rx="2" />
+      <path d="M8 10.5 V7.6 a4 4 0 0 1 8 0 v2.9" />
+      <path d="M12 14.2 v2.8" />
+    </g>
+    <g v-else-if="name === 'unlock'">
+      <rect x="5" y="10.5" width="14" height="10" rx="2" />
+      <path d="M8 10.5 V7.6 a4 4 0 0 1 7.7-1.6" />
+      <path d="M12 14.2 v2.8" />
+    </g>
+    <g v-else-if="name === 'rotate'">
+      <path d="M5.5 12 A6.5 6.5 0 0 1 12 5.5 h3.7" />
+      <path d="M13.3 3 L16.3 5.5 L13.3 8" />
+      <path d="M18.5 12 A6.5 6.5 0 0 1 12 18.5 h-3.7" />
+      <path d="M10.7 16 L7.7 18.5 L10.7 21" />
+    </g>
+    <g v-else-if="name === 'fullscreen'">
+      <path d="M4 9.5 V5.5 A1.5 1.5 0 0 1 5.5 4 H9.5 M14.5 4 h4 A1.5 1.5 0 0 1 20 5.5 V9.5 M20 14.5 v4 a1.5 1.5 0 0 1-1.5 1.5 H14.5 M9.5 20 H5.5 A1.5 1.5 0 0 1 4 18.5 V14.5" />
+    </g>
+    <g v-else-if="name === 'audit'">
+      <circle cx="6" cy="7" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="6" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="6" cy="17" r="1.2" fill="currentColor" stroke="none" />
+      <path d="M9.8 7 H19 M9.8 12 H19 M9.8 17 H15.6" />
+    </g>
+
     <!-- 默认：圆点占位 -->
     <circle v-else cx="12" cy="12" r="4" />
   </svg>

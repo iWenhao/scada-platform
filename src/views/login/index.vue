@@ -10,9 +10,9 @@
     <div class="cursor-glow" :style="glowStyle" />
 
     <!-- 主题切换：登录页是进入系统的第一屏，未登录也要能改外观 -->
-    <ThemeToggle v-slot="{ tip, emoji, toggle }">
+    <ThemeToggle v-slot="{ tip, icon, toggle }">
       <button class="theme-fab" type="button" :title="tip" @click="toggle">
-        {{ emoji }}
+        <ToolIcon :name="icon" />
       </button>
     </ThemeToggle>
 
@@ -41,7 +41,9 @@
             <label class="field">
               <span class="field-label">用户名</span>
               <div class="input-wrap">
-                <span class="input-icon">👤</span>
+                <span class="input-icon">
+                  <ToolIcon name="user" />
+                </span>
                 <input
                   v-model="username"
                   type="text"
@@ -54,7 +56,9 @@
             <label class="field">
               <span class="field-label">口令</span>
               <div class="input-wrap">
-                <span class="input-icon">🔒</span>
+                <span class="input-icon">
+                  <ToolIcon name="lock" />
+                </span>
                 <input
                   v-model="password"
                   :type="showPwd ? 'text' : 'password'"
@@ -114,6 +118,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useBrandingStore } from '@/stores/brandingStore'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import ToolIcon from '@/components/layout/ToolIcon.vue'
 import { SEED_USERS } from '@/auth/seedUsers'
 
 const router = useRouter()

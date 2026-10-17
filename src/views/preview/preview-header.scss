@@ -53,6 +53,18 @@
     font-size: 15px;
   }
 
+  /* 替换 emoji 字符后的线性图标：ToolIcon 自身固定 18px，这里按 HUD 按钮尺寸收档，
+     文字按钮 15px、纯图标按钮 17px，与 12px 的中文标签视觉重量相当 */
+  :deep(.tool-icon) {
+    width: 15px;
+    height: 15px;
+  }
+
+  &.icon :deep(.tool-icon) {
+    width: 17px;
+    height: 17px;
+  }
+
   &.danger {
     border-color: rgba(255, 71, 87, 0.55);
     background: rgba(255, 71, 87, 0.12);

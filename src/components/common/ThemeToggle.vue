@@ -4,7 +4,7 @@
     预览页 HUD、登录页这类自定义视觉的页面通过默认插槽自行渲染，
     展示语义与切换动作仍由 useThemeToggle 提供，避免各页面各写一份。
   -->
-  <slot v-bind="{ theme, isDark, icon, tip, label, emoji, toggle }">
+  <slot v-bind="{ theme, isDark, icon, tip, label, toggle }">
     <el-tooltip :content="tip" placement="bottom">
       <el-button class="theme-toggle" @click="toggle">
         <ToolIcon :name="icon" />
@@ -17,5 +17,5 @@
 import ToolIcon from '@/components/layout/ToolIcon.vue'
 import { useThemeToggle } from '@/composables/useThemeToggle'
 
-const { theme, isDark, icon, tip, label, emoji, toggle } = useThemeToggle()
+const { theme, isDark, icon, tip, label, toggle } = useThemeToggle()
 </script>

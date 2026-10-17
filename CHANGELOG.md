@@ -337,6 +337,13 @@
 
 ### 优化
 
+- 预览页 HUD 与登录页的 emoji 换成线性图标
+  - 动因（用户反馈）：预览页顶部工具栏一排 🔔 / 🔒🔓 / 📋 / 🌙☀️ 是系统彩色 emoji，「AI 味太浓」，且与编辑器工具栏那套单色线性图标不成一体；登录页的 👤 / 🔒 / 🌙 同一批一起处理
+  - 改动：`PreviewHeader.vue` 八个按钮统一走 `ToolIcon`（编辑器工具栏同一图标系统，24 viewBox / stroke 1.7 / 只吃 `currentColor`，因此自动跟随 HUD 文字色与 `danger`/`locked`/`on` 的换色）；`login/index.vue` 用户名与口令输入框前缀、右上角主题圆钮同样改走 `ToolIcon`（复用既有 `user` / `lock` 字形）；两处主题按钮从 ThemeToggle 的 `emoji` 插槽属性换回 `icon`，`useThemeToggle` 的 emoji 通道至此无调用方，留待后续清理
+  - `ToolIcon.vue` 补 `back` / `prev-page` / `bell` / `lock` / `unlock` / `rotate` / `fullscreen` / `audit` 八个字形；顺带把 `←` `⤺` `▶▶` `⛶` 四个 unicode 字符一起换掉（`⤺` 在部分字体下落为豆腐块；轮播按钮原先恒显 `▶▶`、只靠 `.on` 边框区分状态，换成环形箭头后图标本身可读）。返回箭头按用户选定的口径做成**单尖角 ‹**（不带箭杆），与右侧 `⏮ 上一画面` 区分层级
+  - 尺寸：HUD 用 `:deep(.tool-icon)` 收档——ToolIcon 自身固定 18px 对 32px 高的 HUD 按钮偏大，文字按钮取 15px、纯图标按钮取 17px；登录页输入框前缀 16px（`.input-icon` 改 inline-flex），主题圆钮沿用默认 18px
+  - 实测：系统 Chrome 无头把 15 个字形按实机档与放大两档渲染成图片逐一目视核对（形状、闭合、居中、与 12px 中文并排的视觉重量）；预览页真机（`/preview?project=示例工程-水泵房`）DOM 量得 8 个按钮全部出图、描边 `rgb(215,228,232)` 随 HUD 文字色、`.hud-bar` 文本内已无 emoji 码点；vitest 全量 **57 文件 / 511 用例**零失败（本轮无 `Errors`，逐文件与磁盘清单一致）；`vue-tsc --noEmit`、`pnpm build`、check-long-files 通过；eslint 改动文件 0 错误（PreviewHeader 仅 1 条既有 `<img/>` 自关闭警告，非本次引入）
+
 - 工具栏标题区视觉基线对齐 + 搜索 placeholder 跑马灯
   - 动因（用户反馈）：① 铅笔编辑图标与「未保存」标签肉眼上看比项目名称「更向上、更高」；② 搜索框 placeholder「搜索组件名称或分组」被截断只能看到一部分，希望滚动展示全文
   - 对齐问题的定位过程值得一记：盒子中心与**墨迹中心**实测都居中（三种 DPR 下像素级分析 Δ ≤ 0.7px，DPR 1 / 1.25 / 1.5 各测一轮），但**基线**差是真的——16px 标题基线 y=32，12px 标签文字基线 30.5、16px 图标墨迹底 31，都浮在标题基线上方 1~1.5px。人眼判读并排文字按基线而非几何中心，小字基线偏高读作「被抬高了」。修复：铅笔 `translateY(1px)`、标签 `translateY(1.5px)`，把墨迹底/基线压回与标题齐平

@@ -9,8 +9,6 @@ export interface ThemeToggleView {
   icon: ComputedRef<string>
   tip: ComputedRef<string>
   label: ComputedRef<string>
-  /** HUD / 玻璃风格页面用 emoji，与各自按钮群里的其它图标保持同一套语汇 */
-  emoji: ComputedRef<string>
   toggle: () => void
 }
 
@@ -27,11 +25,10 @@ export function useThemeToggle(): ThemeToggleView {
   const icon = computed(() => (isDark.value ? 'theme-dark' : 'theme-light'))
   const tip = computed(() => (isDark.value ? '切换亮色主题' : '切换暗色主题'))
   const label = computed(() => (isDark.value ? '暗色' : '亮色'))
-  const emoji = computed(() => (isDark.value ? '🌙' : '☀️'))
 
   function toggle() {
     uiStore.toggleTheme()
   }
 
-  return { theme, isDark, icon, tip, label, emoji, toggle }
+  return { theme, isDark, icon, tip, label, toggle }
 }

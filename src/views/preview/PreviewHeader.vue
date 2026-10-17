@@ -3,7 +3,7 @@
     <!-- 左：导航与画面 -->
     <div class="hud-left">
       <button class="hud-btn ghost" type="button" @click="emit('back')">
-        <span class="btn-ico">←</span>
+        <ToolIcon name="back" />
         <span>编辑器</span>
       </button>
       <button
@@ -12,7 +12,7 @@
         :disabled="!canGoBack"
         @click="emit('nav-back')"
       >
-        <span class="btn-ico">⤺</span>
+        <ToolIcon name="prev-page" />
         <span>上一画面</span>
       </button>
 
@@ -57,7 +57,7 @@
         :title="`${activeAlarmCount} 条活跃报警`"
         @click="alarmOpen = !alarmOpen"
       >
-        <span class="btn-ico">🔔</span>
+        <ToolIcon name="bell" />
         <span v-if="unackedCount" class="badge">{{ unackedCount }}</span>
       </button>
 
@@ -68,7 +68,7 @@
         :title="writeLocked ? '写值已锁定' : '写值未锁定'"
         @click="emit('toggle-write-lock')"
       >
-        <span class="btn-ico">{{ writeLocked ? '🔒' : '🔓' }}</span>
+        <ToolIcon :name="writeLocked ? 'lock' : 'unlock'" />
       </button>
 
       <button
@@ -78,18 +78,18 @@
         :title="autoRotate ? '停止轮播' : '自动轮播画面'"
         @click="emit('toggle-rotate')"
       >
-        <span class="btn-ico">▶▶</span>
+        <ToolIcon name="rotate" />
       </button>
       <button class="hud-btn icon" type="button" title="全屏" @click="emit('fullscreen')">
-        <span class="btn-ico">⛶</span>
+        <ToolIcon name="fullscreen" />
       </button>
       <button class="hud-btn icon" type="button" title="写值审计" @click="emit('open-audit')">
-        <span class="btn-ico">📋</span>
+        <ToolIcon name="audit" />
       </button>
 
-      <ThemeToggle v-slot="{ tip, emoji, toggle }">
+      <ThemeToggle v-slot="{ tip, icon, toggle }">
         <button class="hud-btn icon" type="button" :title="tip" @click="toggle">
-          <span class="btn-ico">{{ emoji }}</span>
+          <ToolIcon :name="icon" />
         </button>
       </ThemeToggle>
     </div>
@@ -105,6 +105,7 @@
 import { computed, ref } from 'vue'
 import AlarmPanel from '@/components/layout/AlarmPanel.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import ToolIcon from '@/components/layout/ToolIcon.vue'
 import type { ScadaPage } from '@/types/page'
 import { useBrandingStore } from '@/stores/brandingStore'
 import { connectionStatusView } from '@/status/connection'
