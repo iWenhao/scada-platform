@@ -424,6 +424,22 @@
   - 顺带补齐 §5.2 后端环境变量表缺失的 5 项：`HOST`、`SEED_PASSWORD`、`NOTIFY_ALLOW_PRIVATE`、`NOTIFY_TIMEOUT_MS`、`SMTP_REJECT_UNAUTHORIZED`。默认值逐个读码核对（`server/index.mjs:56`、`server/auth.mjs:147`、`server/notify/common.mjs:58-61`、`server/notify/email.mjs:11`），未照抄 `.env.example` 注释
   - 未动的代码：`src/auth/seedUsers.ts` 与登录页「演示账号（点击填入）」仍展示 `admin123` 等口令，其头注释还声称「与 server/auth.mjs 首次启动写入的账号一致」——这是 UI 行为改动（要定「只填用户名」还是「整块撤掉」），留待确认口径
 
+### 测试
+
+- 存储后端第一次有单测：5 个文件 64 用例，覆盖路径隔离、账号与会话、HTTP 门禁、时序分片与 JSONL
+  - 动因：`server/**` 是 2135 行、承担登录与全部工程数据读写的服务，仓库里却一个测试文件都没有——唯一把关是 `pnpm typecheck:server`，而类型自洽挡不住路径拼接、限流窗口、保留期这类行为错误。上面两条修复就是补测过程中直接撞出来的，不是先修再补测
+  - 覆盖清单：
+    - `server/lib/kv.test.ts` 12 用例——`scopeOf` 的三个命名空间、用户 id 里的 `/` 被编码后逃不出自己的目录；`keyError` 挡 NUL 与「**编码后**长度」上限（一个汉字膨胀 9 倍，只看原始长度挡不住 `ENAMETOOLONG` 变 500）；`../` 注入落不回 dataDir 之外、`..` 因固定 `.json` 后缀只会得到同目录怪文件名；跨用户同名 key 互不可见；原子写不留过程文件
+    - `server/auth.test.ts` 20 用例——角色等级序、种子四账号、`_users.json` 只有 `salt:hash` 且不含明文口令、同口令不同盐、令牌签发/注销/12 小时到期、重启恢复未过期会话并丢弃过期项、会话文件损坏按空处理、**按用户名与按来源两维限流**（锁定期内口令正确也拒绝、过期后放行且不影响已签发会话）、最后一名管理员不可降级或删除、改口令后旧口令立即失效、账号表落盘重启仍在
+    - `server/lib/http.test.ts` 12 用例——`CORS_ORIGIN=*` 与白名单两种回显（未命中来源拿不到自己的域名）、`Bearer` 前缀大小写敏感、分块请求体先拼接再解码（跨块的中文不解成乱码）、超限抛 413 且边界是「超过」不是「达到」、主密钥/会话/无令牌三条鉴权支路、`requireRole` 对未登录与降级判死
+    - `server/lib/history.test.ts` 13 用例——`dayString` 补零、跨天各写一个分片、非法点跳过、闭区间与按日期挑文件、乱序读出仍升序且损坏行不牵连其余、`maxPoints` 抽稀保首尾、`min/avg/max` 窗口按 epoch 对齐、三种非法聚合参数（未知 agg / 窗口 <1s / 窗口 >24h）回落成普通查询、保留期清理三条
+    - `server/lib/jsonl.test.ts` 7 用例——新→旧排序、limit 截尾、单行损坏跳过、末行无换行符也算一条、`cap` 截断不留半截行、中文与嵌套对象原样往返
+  - 接线：`vitest.config.ts` 的 `include` 补 `server/**/*.{test,spec}.{js,ts}`。测试沿用 `shared/` 的既有写法——被测是 `.mjs`、测试写 `.test.ts`：这样 `tsconfig.server.json`（`include` 只收 `.mjs`）不会被测试文件牵进来，前端那套 `strict` 也不会去判服务端
+  - 两处环境要点：① 全局 `environment` 是 jsdom，这 5 个文件各自声明 `// @vitest-environment node`，`fs` / `crypto` 走真实实现；② 假时钟一律 `vi.useFakeTimers({ toFake: ['Date'] })` **只冻时间**——把 timer 一起接管会让 `fs` 的 Promise 也跟着假时钟走，测到的是沙箱不是代码。scrypt 让 `auth.test.ts` 单文件耗时 5 秒多，属预期成本
+  - 实测：全量 62 测试文件 / 575 用例零失败（`--reporter=verbose` 的逐文件清单与 `find src examples shared scripts server -name "*.test.ts"` 得到的 62 个一致，汇总无 `Errors`）；`tsc -p tsconfig.server.json`、改动文件 `eslint`、`pnpm build`、`check-long-files.ps1` 全过。另以 `PORT=5199` + 临时 `DATA_DIR` 真跑一遍后端（health / 登录 / 存储读写 / 历史写入与两种查询 / 无令牌 401 / 重名账号 400 / 重启触发保留期清理），临时进程与数据目录已停、已清
+
+- `src/notify/notify.test.ts` 补 `afterEach` 删除临时目录：`beforeEach` 每个用例 `mkdtemp` 一次却从不回收，本机系统临时目录里已堆了 72 个 `scada-notify-*`。清理后单文件 6 用例仍全过、跑完不留目录
+
 ### 构建
 
 ### 重构与清理

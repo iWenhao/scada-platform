@@ -1,5 +1,5 @@
 // @ts-nocheck  server/notify.mjs 为零依赖 ESM
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
@@ -47,6 +47,11 @@ describe('notify config + dispatch', () => {
 
   beforeEach(async () => {
     dir = await fs.mkdtemp(path.join(os.tmpdir(), 'scada-notify-'))
+  })
+
+  // 临时目录按用例创建，不删就在系统临时目录里每跑一次堆一批（通知配置与日志都落在这里）
+  afterEach(async () => {
+    await fs.rm(dir, { recursive: true, force: true })
   })
 
   it('保存后可加载', async () => {
