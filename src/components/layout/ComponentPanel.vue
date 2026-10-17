@@ -2,7 +2,7 @@
   <div class="component-panel">
     <div class="panel-top">
       <div class="panel-header">
-        <span>组件库</span>
+        <span class="panel-title">组件库</span>
         <div class="header-actions">
           <!-- 搜索：收起态为圆形图标按钮（与「+」同款）；展开后放大镜收入框内，点框内图标 / Esc / 失焦即收起（收起即清除） -->
           <div class="header-search">
@@ -98,6 +98,7 @@
                   v-for="comp in mostUsedHits"
                   :key="comp.type"
                   class="component-item"
+                  :title="comp.name"
                   draggable="true"
                   @dragstart="(e) => onDragStart(e, comp)"
                 >
@@ -125,6 +126,7 @@
                   v-for="comp in components"
                   :key="comp.type"
                   class="component-item"
+                  :title="comp.name"
                   draggable="true"
                   @dragstart="(e) => onDragStart(e, comp)"
                 >
@@ -146,6 +148,7 @@
                 v-for="tpl in templateHits"
                 :key="tpl.id"
                 class="component-item custom-card template-card"
+                :title="tpl.name"
                 draggable="true"
                 @dragstart="(e) => onTemplateDragStart(e, tpl)"
               >
@@ -161,6 +164,7 @@
                 v-for="comp in customHits"
                 :key="comp.type"
                 class="component-item custom-card"
+                :title="comp.name"
                 draggable="true"
                 @dragstart="(e) => onDragStart(e, comp)"
               >

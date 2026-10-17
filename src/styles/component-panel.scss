@@ -28,13 +28,22 @@
     border-bottom: 1px solid var(--border-primary);
     font-size: 13px;
     letter-spacing: 0.3px;
+
+    /* 标题永不折行不压缩：空间不足时由搜索盒吸收（否则「库」字会掉到第二行） */
+    .panel-title {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
   }
 
-  /* 头部右侧操作区：搜索（图标 → 点击展开输入框）+ 新建自定义组件 */
+  /* 头部右侧操作区：搜索（图标按钮 → 点击展开搜索盒）+ 新建自定义组件 */
   .header-actions {
     display: flex;
     align-items: center;
     gap: 6px;
+    /* 关键：解除 flex 项的自动最小宽度（min-width:auto = 内容宽 170px），
+       否则搜索盒展开后本层缩不下去，头部溢出、标题被挤折行 */
+    min-width: 0;
   }
 
   /* 搜索：收起态为圆形图标按钮（与「+」同款），展开态为搜索盒（放大镜收入框内） */
@@ -63,6 +72,8 @@
     .search-toggle-slot {
       display: flex;
       align-items: center;
+      /* 展开态下空间不足时，压缩的是搜索盒（flex-shrink 默认 1），图标按钮保持原宽 */
+      flex-shrink: 0;
     }
 
     .search-box {
