@@ -4,7 +4,7 @@
       <div class="panel-header">
         <span class="panel-title">组件库</span>
         <div class="header-actions">
-          <LibrarySearchBox v-model:query="searchQuery" v-model:open="searchOpen" />
+          <LibrarySearchBox ref="searchBoxRef" v-model:query="searchQuery" v-model:open="searchOpen" />
           <el-tooltip content="创建自定义组件" placement="bottom">
             <el-button size="small" circle @click="showCustomDialog = true">
               <el-icon><Plus /></el-icon>
@@ -29,7 +29,7 @@
           :class="{ active: activeTab === tab.key, 'has-hit': hitTabs.has(tab.key) }"
           role="tab"
           :aria-selected="activeTab === tab.key"
-          @click="activeTab = tab.key"
+          @click="onTabClick(tab.key, $event)"
         >
           {{ tab.label }}
         </button>
@@ -134,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
 import { updateCustomComponent, removeCustomComponent, loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
 import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/templateLibrary'
@@ -191,6 +191,18 @@ const {
 
 /** 搜索盒展开态（展开/收起与跑马灯测量在 LibrarySearchBox 内） */
 const searchOpen = ref(false)
+/** 只用到 LibrarySearchBox 暴露的 focus()；不引 SFC，免与自动导入重名 */
+const searchBoxRef = ref<{ focus: () => void } | null>(null)
+
+/**
+ * 切 Tab：搜索态下把焦点还给搜索框——点 Tab 会让输入框失焦，焦点不回来的话
+ * Esc 收起与继续输入都失效，只能去点框内放大镜。`e.detail === 0` 是键盘触发的 click，
+ * 不抢焦点（键盘用户的焦点应留在 Tab 按钮上）。
+ */
+function onTabClick(key: PanelTabKey, e: MouseEvent) {
+  activeTab.value = key
+  if (searching.value && e.detail > 0) nextTick(() => searchBoxRef.value?.focus())
+}
 
 onMounted(async () => {
   customDefs.value = await loadCustomComponents()

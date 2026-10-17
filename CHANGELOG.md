@@ -15,6 +15,13 @@
   - 修法：滚动收敛到 `.panel-body`（`overflow-y: auto` 从 `.component-panel` 下移），头部移出滚动容器，宽度恒定不再随滚动条出现/消失而变；顺带删掉 `.panel-top` 的 sticky 吸顶 hack（头部本就固定，属死代码）
   - 实测：playwright + 系统 Chrome 逐 Tab 验证——三档 Tab 头部间隙恒为 9.1px、面板级滚动量 0、body 滚动量 1881/2737px 且滚到底头部 top 不变；`pnpm build` 39.2s 通过
 
+- 搜索态下切换 Tab 不再收起搜索（原「失焦即收起」把另一 Tab 的命中项一起清掉）
+  - 动因：搜「煤」时命中同时落在最常使用与行业组件，点行业组件那一下让输入框失焦 → `collapseSearch` 连带清空查询 → 该 Tab 下命中项全变不可见（实测切过去后 102 张卡全量铺开，等于白搜一次）
+  - 修法：失焦收起的判据由「失去焦点」收紧为「点击发生在组件库面板之外」——在 document 捕获阶段用 `mousedown` 记下目标是否在 `.component-panel` 内（卡片不可聚焦，`blur` 的 `relatedTarget` 恒为 null，判不出来）；切 Tab / 点卡片都属于还在用搜索，保留查询与过滤，点画布 / 属性面板照旧收起清除；键盘 Tab 移出无 `mousedown`，标志位是复位过的，照旧收起
+  - 配套：搜索态下点 Tab 把焦点还给输入框（`LibrarySearchBox` 新增 `defineExpose({ focus })`，面板 `onTabClick` 里 `nextTick` 调）——焦点不回来的话 `@keydown.esc` 收起与继续输入都失效，只剩点框内放大镜这一条路；`event.detail === 0`（键盘触发的 click）不抢焦点，焦点留在 Tab 按钮上
+  - 实测：playwright + 系统 Chrome——搜「煤」后切行业组件，框与查询均保留、焦点回到输入框、命中卡 10 张分属 4 个分组；Esc → 收起清除回 102 张；搜「泵」后点画布 → 照旧收起清除；键盘触发切 Tab → 焦点仍在 Tab 按钮且过滤保留。`pnpm build` 22.8s 通过
+  - 遗留：搜索态下点卡片开始拖拽，过滤会一直保留到用户主动收起（同属面板内点击，符合预期）
+
 ### 文档
 
 - README 对齐仓库现状（命令、目录树、架构图、组件开发指南），并纠 AGENTS.md 一处过期步骤

@@ -1,6 +1,6 @@
 <template>
   <div class="header-search">
-    <!-- 搜索：收起态为圆形图标按钮（与「+」同款）；展开后放大镜收入框内，点框内图标 / Esc / 失焦即收起（收起即清除） -->
+    <!-- 搜索：收起态为圆形图标按钮（与「+」同款）；展开后放大镜收入框内，点框内图标 / Esc / 焦点离开面板（点画布、属性面板等）即收起（收起即清除） -->
     <transition name="search-swap" mode="out-in" @after-enter="focusSearchInput">
       <!-- 展开态：搜索盒，放大镜在框内（点击即收起） -->
       <div v-if="visible" key="box" class="search-box">
@@ -24,7 +24,7 @@
           type="text"
           aria-label="搜索组件"
           @keydown.esc="collapseSearch"
-          @blur="collapseSearch"
+          @blur="onBlur"
         />
         <!-- placeholder 跑马灯：文案比可视区宽，原生 placeholder 无法滚动，用覆盖层缓滚展示全文 -->
         <span v-if="!query" ref="phClipRef" class="search-ph" aria-hidden="true">
@@ -61,7 +61,7 @@
  * 组件库的搜索盒（从 ComponentPanel.vue 拆出）：只负责展开/收起与 placeholder 跑马灯，
  * 查询文本与过滤结果都归父组件的 useComponentSearch——这里不复制一份匹配逻辑。
  */
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps<{
   query: string
@@ -117,9 +117,35 @@ function collapseSearch() {
   emit('update:query', '')
 }
 
+/**
+ * 「失焦收起」的例外：切 Tab / 点卡片都在组件库面板内部，属于还在用搜索，
+ * 一收起就把查询清了——另一 Tab 下的命中项（搜索时 Tab 上有圆点提示）会跟着消失。
+ * 卡片不可聚焦，blur 的 relatedTarget 恒为 null 判不出来，故在 document 捕获阶段
+ * 记下本次失焦是否由面板内部点击引起；键盘 Tab 移出没有 mousedown，标志位是复位过的，照旧收起。
+ */
+let downInsidePanel = false
+
+function onDocMouseDown(e: MouseEvent) {
+  const el = e.target as HTMLElement | null
+  downInsidePanel = !!el?.closest?.('.component-panel')
+}
+
+onMounted(() => document.addEventListener('mousedown', onDocMouseDown, true))
+onUnmounted(() => document.removeEventListener('mousedown', onDocMouseDown, true))
+
+function onBlur() {
+  const inside = downInsidePanel
+  downInsidePanel = false
+  if (inside) return
+  collapseSearch()
+}
+
 /** 清空文本但保持展开，继续可输入 */
 function clearSearch() {
   emit('update:query', '')
   nextTick(() => searchInputRef.value?.focus())
 }
+
+// 供面板在搜索态下切 Tab 后把焦点还回来：否则 Esc / 继续输入都失效（焦点已不在框内）
+defineExpose({ focus: () => searchInputRef.value?.focus() })
 </script>
