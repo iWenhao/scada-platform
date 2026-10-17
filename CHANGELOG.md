@@ -47,6 +47,14 @@
   - 实测：USER_GUIDE 340 → 359 行；章节编号连续（5.1~5.10，无跳号）；`git diff --numstat` 仅该文件 22 增 3 删；行尾 CRLF 359 条、LF-only 0；本轮只动 .md，未重跑 vitest / build（沿用上轮全绿结果）
   - **同因纠 README「交互流程 → 预览」一条**：原文写「编辑器保存 → 跳 `/preview?project=` → 预览页加载工程」，与「预览默认读发布版」冲突——上轮补功能特性时漏改这条。现改为「保存 → 发布快照 → 预览（默认发布版 / 无发布版回落工作副本 / `?source=draft` 读工作副本）→ 建连 → 只读渲染（渲染风格随工程只读跟随）」
 
+- 四份文档顶部互相索引与口径对齐
+  - 动因：README 顶部列了四份文档，但各自顶部的索引形态与内容并不对齐——AGENTS.md 那条把链接塞进加粗里（`🤖 **[AGENTS.md](AGENTS.md)**`），与前三行「**名称**：链接」不是一个结构；2.5D 规范的相关文档是纯代码串、点不开且不指回 README；AGENTS.md 的数据源清单漏 MQTT（README 与 USER_GUIDE 都列五源）
+  - README 顶部四行统一为「emoji + **名称**：链接 —— 一句话定位」，AGENTS.md 一条改为「**代理工作指南**：[AGENTS.md](AGENTS.md)」，并在其后补一句中枢声明：四份文档互相索引、跨文档口径以 README 为准
+  - AGENTS.md 数据源清单补 MQTT；文档地图补 `UI_DESIGN_GUIDE.md`（历史 UI 设计稿，2.5D 规范引用了它，此前地图里查不到）
+  - 2.5D 规范顶部相关文档改可点链接，并把 README 放在第一项作为中枢
+  - 未动 USER_GUIDE / DEPLOY 的顶部索引：两者已回指 README，且按受众裁剪——使用者手册不指图元规范、部署指南不指 AGENTS，硬凑成同一份全量清单反而误导
+  - 实测：四处改动全是 .md；相对路径逐个核对（`docs/` 下用 `../README.md` `../AGENTS.md` `../UI_DESIGN_GUIDE.md` `./USER_GUIDE.md`）；四份文档顶部现在都回指 README，中枢声明成立
+
 ## [0.0.5-261013] - 261013
 
 ### 功能

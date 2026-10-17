@@ -1,13 +1,13 @@
 # AGENTS.md — AI 编码代理工作指南
 
 > 本文件供 AI 编码代理（以及新加入的开发者）在本仓库工作时遵循。
-> 文档地图：[README.md](README.md)（架构图与二次开发指南）、[docs/USER_GUIDE.md](docs/USER_GUIDE.md)（使用者操作手册）、[docs/DEPLOY.md](docs/DEPLOY.md)（部署）、[docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)（图元绘制规范，触发即必读）。
+> 文档地图：[README.md](README.md)（架构图与二次开发指南）、[docs/USER_GUIDE.md](docs/USER_GUIDE.md)（使用者操作手册）、[docs/DEPLOY.md](docs/DEPLOY.md)（部署）、[docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)（图元绘制规范，触发即必读）、[UI_DESIGN_GUIDE.md](UI_DESIGN_GUIDE.md)（UI 设计稿，历史参考）。
 
 ## 项目概述
 
 SCADA Platform：基于 **Vue 3 + TypeScript + Konva.js (vue-konva) + Pinia + Element Plus + Vite** 的开源工业组态可视化编辑平台。
 - 前端是纯前端项目（构建产物可直接托管）；后端是可选的零依赖存储服务 `server/index.mjs`，不在线时回落 localStorage。
-- 数据来自可插拔的数据源适配器（Mock / WebSocket / HTTP 轮询 / OPC UA 网关）。
+- 数据来自可插拔的数据源适配器（Mock / WebSocket / HTTP 轮询 / OPC UA 网关 / MQTT）。
 
 三页面结构：`/` 首页（项目管理）→ `/editor` 组态编辑器 → `/preview` 只读运行预览。
 
