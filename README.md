@@ -280,7 +280,7 @@
 - **拖入组件**：面板 `dragstart`（带 type）→ 画布 `dragover` 提示 → `drop` 换算画布坐标 → 生成元素入 `canvasStore` → `useHistory.saveState()` → Konva 响应式渲染
 - **配置状态规则**：选中元素 → 属性面板 → 状态规则对话框增删改 → 写回 `element.statusRules` → `StatusEngine` 重算 → 画布按优先级换色
 - **连线**：源端口 `mousedown` → `mousemove` 更新临时线路径 → `mouseenter` 高亮目标最近端口 → `mouseup` 建连接对象入 `connectionStore` → 渲染并按流量播放动画（元素移动时端点跟随重算）
-- **预览**：编辑器保存（后端在线写远程，否则回落 localStorage）→ 跳 `/preview?project=` → 预览页加载工程并按当前数据源建连 → 数据推送驱动 `StatusEngine` → 只读渲染（禁拖拽/编辑）
+- **预览**：编辑器保存（后端在线写远程，否则回落 localStorage）→ 工具栏「发布」把工程快照为运行版 → 跳 `/preview?project=`（**默认加载发布版**，无发布版时回落工作副本，`?source=draft` 强制读工作副本）→ 按当前数据源建连 → 数据推送驱动 `StatusEngine` → 只读渲染（禁拖拽/编辑；2D / 2.5D 渲染风格随工程只读跟随）
 
 ---
 
