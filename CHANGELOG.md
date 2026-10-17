@@ -6,6 +6,20 @@
 版本规则：从 `0.0.1` 起步，末位每次 +1，满 10 进位（0.0.9 → 0.0.10 → 0.1.0 …）；
 发版时在版本号后附当天日期（YYMMDD，如 0.0.2-260928），`package.json` 保留三段数字。
 
+## [Unreleased]
+
+### 文档
+
+- README 对齐仓库现状（命令、目录树、架构图、组件开发指南），并纠 AGENTS.md 一处过期步骤
+  - 动因：README 的硬数字其实一直是对的（实测 `getAllComponents()` = 177 种 / 14 个分组，Mock `listDevices()` = 22 台），坏的是命令与结构——新用户照 README 起不了存储后端、会把 `pnpm test` 当单次运行、按目录树找不到 `server/`；已实现的多画面、点表、报警外发、账号权限在 README 里一个字没有，全在 USER_GUIDE 里
+  - 快速开始补 `pnpm server`（不起则自动回落 localStorage，改代理或 server 路由需重启 dev）与 `pnpm lint` / `pnpm typecheck:server`；测试段改成 `npx vitest run` 打头并注明 `pnpm test` = `vitest` 是 watch 会挂终端——原段把 `pnpm test` 注成「运行测试」，还与 `pnpm test:watch`（`vitest --watch`）重复列了两条 watch
+  - 项目结构整段重写：根级补 `server/`（lib / routes / notify / data）、`shared/`、`examples/`、`scripts/`、`design/`、Docker 三件套与 `eslint.config.js`；`src/` 补 `alarm/ auth/ composables/ export/ history/ notify/ storage/` 与 `views/login/`；`core/` 删掉早已不存在的 `layer/ drag/`（逻辑在 `core/canvas/` 的 composable 与 `stores/layerStore.ts`）；`industrial/` 由 3 个子目录改为 14 个分组目录 + `registry.ts` / `panelRegistry.ts`
+  - 两张架构图纠偏：数据源层补第 5 个框 MQTT（功能列表早已列 ✅，图里漏）；数据层「存储适配器 = JSON文件 / LocalStorage / **数据库**」改为 Remote(后端) / LocalStorage / 内存降级——数据库从未实现；同格组件注册表由 `basic/* pipeline/* electrical/*` 改为 `industrial/* panelRegistry custom/*`
+  - 功能特性补六节：多画面与工程管理、点表与历史与写值、报警与通知、账号与权限（四级角色 `viewer / operator / engineer / admin` + 审计）、自定义组件与设备模板；顶部文档地图补 `2.5D_ILLUSTRATION_GUIDE.md`，并把 AGENTS.md 从纯文本改成可点链接
+  - 组件开发指南按真实接法重写为四步（定义 → `panelRegistry` 汇总注册 → Mock 设备 → 同步文档），补自定义组件/设备模板这条「不写代码」路径（`customLibrary.ts` 键 `scada_custom_components`、`templateLibrary.ts` 键 `scada_device_templates`，与工程数据解耦）——原示例只给一个 `registerComponent()` 单文件调用，照它做不进面板
+  - 同因纠 `agents.md`「新增工业组件」第 3 步：注册数据层早已从 `ComponentPanel.vue` 拆到 `src/industrial/panelRegistry.ts`（该文件头注释写明缘由），旧文会把人支去改 UI 文件
+  - 实测：分组数与组件数用临时 vitest 脚本跑出（跑完已回收，工作区无残留）；全量 `npx vitest run` 65 文件 / 592 用例零失败且汇总无 `Errors`（磁盘清单 57 + `server/` 8 逐文件比对一致）；`pnpm build` 28.4s 通过（chunk 体积告警为既有）；`check-long-files.ps1` 报 OK，跳过 `src/industrial/*` 46 个豁免文件
+
 ## [0.0.5-261013] - 261013
 
 ### 功能

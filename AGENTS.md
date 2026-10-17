@@ -134,7 +134,7 @@ pnpm lint               # ESLint
 
 1. `type` 全局唯一且用英文小写（如 `shearer`），Mock 设备按 `<type>_1` 命名即可被 `deviceStore.suggestDeviceId()` 自动绑定。
 2. 提供 SVG `icon`（viewBox 0 0 100 100，`currentColor` 会被画布替换颜色）、`defaultWidth/Height`、`statusRules`（优先级数字越小越高）、`dataBindings`（首个绑定变量会显示在元素上）、`properties`。图标绘制已统一到**插画级（面基）**——**新写的一律按面基写**，不要新写线条稿；存量线条稿正在分批迁移，两档可共存。规格见下方「2.5D / 立体观感图元」一节与 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)。
-3. 在 `src/components/layout/ComponentPanel.vue` 注册并补充分组名。
+3. 把定义加进该目录导出的组件数组，由 `src/industrial/panelRegistry.ts` 汇总调用 `registerComponents([...])` 完成注册（`ComponentPanel.vue` 只剩 UI，注册数据层已拆到 panelRegistry，它以副作用方式 import）；新增分组要同时补 `BASIC_GROUPS` / `INDUSTRY_GROUPS` 与 `groupNames`（分组标题与搜索匹配共用这一份）。
 4. 在 `MockDataAdapter` 的 update 数据与 `listDevices()` 中补充对应模拟设备。
 5. 同步更新 README 组件表与 docs/USER_GUIDE.md 的设备清单。
 

@@ -4,7 +4,8 @@
 
 > 📘 **使用说明书**：[docs/USER_GUIDE.md](docs/USER_GUIDE.md) —— 安装启动、界面操作、状态规则配置、数据源接入与常见问题，面向所有使用者。
 > 🚀 **部署指南**：[docs/DEPLOY.md](docs/DEPLOY.md) —— 生产部署（同机同域 / 前后端分开）、Nginx、环境变量与安全加固清单。
-> 🤖 **AGENTS.md** —— AI 编码代理工作指南（项目约定、扩展点与常见坑），亦可供新成员快速上手。
+> 🎨 **图元绘制规范**：[docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md) —— 2.5D / 立体观感图元的面基标注与光照统一，新增设备图元必读。
+> 🤖 **[AGENTS.md](AGENTS.md)** —— AI 编码代理工作指南（项目约定、扩展点与常见坑），亦可供新成员快速上手。
 
 ## 功能特性
 
@@ -63,6 +64,28 @@
 - 可见性/锁定控制
 - 图层排序
 
+### 多画面与工程管理
+- 单工程多画面，左侧导航切换，画面可增删、重命名、排序
+- 首页（项目管理）新建 / 重命名 / 复制 / 删除 / 导入导出工程
+- 自动草稿与正式保存分离；撤销/重做栈跨画面共享
+
+### 点表、历史与写值
+- 点表管理：集中登记变量（数据类型 / 量程 / 单位 / 读写属性），组件按点位绑定
+- 时序历史入库与趋势图取数，保留期由后端 `HISTORY_RETENTION_DAYS` 控制
+- 运行期写值（设定值、操作按钮）：按角色、点表只读属性与量程校验后下发
+- 报警记录与历史采样点可导出 CSV
+
+### 报警与通知
+- 报警引擎按状态规则产生记录，运行端有报警列表与确认
+- 报警外发通知：邮件 / Webhook / 企业 IM 机器人（发送端在 `server/notify/`）
+
+### 账号与权限
+- 登录鉴权，四级角色 `viewer / operator / engineer / admin`
+- 工程存储按用户隔离；登录、写值等关键操作进审计日志
+
+### 自定义组件与设备模板
+- 把画布上的组合存为自定义组件或设备模板，跨工程复用（不设常驻 Tab，经搜索触达）
+
 ---
 
 ## 系统架构图
@@ -103,9 +126,11 @@
 |  +--------------+  +--------------+  +--------------+  +--------------+    |
 |  |  组件注册表  |  |  Pinia Store |  |  数据源管理  |  |  存储适配器  |    |
 |  |              |  |              |  |              |  |              |    |
-|  | basic/*      |  | canvasStore  |  | Mock         |  | JSON文件     |    |
-|  | pipeline/*   |  | deviceStore  |  | WebSocket    |  | LocalStorage |    |
-|  | electrical/* |  | connectionS. |  | HTTP轮询    |  | 数据库       |    |
+|  | industrial/* |  | canvasStore  |  | Mock         |  | Remote(后端) |    |
+|  | panelRegistry|  | deviceStore  |  | WebSocket    |  | LocalStorage |    |
+|  | custom/*     |  | connectionS. |  | HTTP轮询    |  | 内存降级     |    |
+|  |              |  | pageStore    |  | OPC UA       |  |              |    |
+|  |              |  | alarmStore   |  | MQTT         |  |              |    |
 |  +--------------+  +--------------+  +--------------+  +--------------+    |
 +-----------------------------------------------------------------------------+
 ```
@@ -169,13 +194,12 @@
 ```
 +-----------------------------------------------------------------------------+
 |                              数据源层                                        |
-|  +--------------+ +--------------+ +--------------+ +--------------+       |
-|  |  WebSocket   | |   HTTP轮询   | |    OPC UA    | |   模拟数据   |       |
-|  |              | |              | |              | |              |       |
-|  | ws://...     | | GET /api/... | | opc.tcp://.. | | 内置生成器   |       |
-|  | 实时推送     | | 定时轮询     | | 工业协议     | | 开发调试用   |       |
-|  +------+-------+ +------+-------+ +------+-------+ +------+-------+       |
-|         +----------------+----------------+----------------+               |
+|  +------------+ +------------+ +------------+ +------------+ +------------+ |
+|  | WebSocket  | |  HTTP轮询  | |   OPC UA   | |    MQTT    | |  模拟数据  | |
+|  | ws://...   | | GET /api/* | | 经 WS 网关 | | over WS    | | 内置生成器 | |
+|  | 实时推送   | | 定时轮询   | | NodeId映射 | | 直连Broker | | 开发调试用 | |
+|  +-----+------+ +-----+------+ +-----+------+ +-----+------+ +-----+------+ |
+|        +--------------+--------------+--------------+--------------+       |
 +-----------------------------------------------------------------------------+
                                   |
                                   v
@@ -410,8 +434,16 @@ pnpm install
 ### 开发
 
 ```bash
-pnpm dev
+pnpm dev                # http://localhost:5173
 ```
+
+### 启动存储后端（可选）
+
+```bash
+pnpm server             # http://localhost:5174，数据落 server/data/*.json
+```
+
+前端经 `/api/storage/*` 访问后端（Vite 已代理 `/api`）；**后端不在线时自动回落 localStorage**，纯前端试用可以不起它。要登录账号、用户隔离、时序历史与报警外发则需要起后端——环境变量与种子账号见 [docs/DEPLOY.md](docs/DEPLOY.md)。改 `vite.config.ts` 代理或 server 路由后需重启 dev server。
 
 ### 容器一键起全站
 
@@ -424,23 +456,19 @@ docker compose up -d --build   # 前端 http://localhost:8080
 ### 构建
 
 ```bash
-pnpm build
+pnpm build              # = vue-tsc --noEmit + vite build，产物在 dist/
 ```
 
-### 测试
+### 测试与静态检查
 
 ```bash
-# 运行测试
-pnpm test
+npx vitest run              # 单次跑全量（提交前的底线，别用 pnpm test 代替）
+npx vitest run --coverage   # 覆盖率报告
+pnpm test                   # = vitest，监听模式，会挂住终端
+pnpm test:ui                # 带 UI 的监听模式
 
-# 带UI的测试
-pnpm test:ui
-
-# 覆盖率报告
-pnpm test:coverage
-
-# 监听模式
-pnpm test:watch
+pnpm lint                   # ESLint，覆盖 src / server / shared / scripts
+pnpm typecheck:server       # 服务端 .mjs 的类型检查（前端 vue-tsc 的 include 不含 server/）
 ```
 
 ---
@@ -449,72 +477,96 @@ pnpm test:watch
 
 ```
 scada-platform/
-├── index.html
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── vitest.config.ts
-├── README.md
-├── docs/
-│   ├── USER_GUIDE.md                # 使用说明书
-│   └── DEPLOY.md                    # 部署指南
+├── index.html / vite.config.ts / vitest.config.ts / eslint.config.js
+├── package.json / pnpm-lock.yaml / pnpm-workspace.yaml   # 后者是依赖构建脚本白名单
+├── tsconfig.json / tsconfig.node.json / tsconfig.server.json
+├── Dockerfile / Dockerfile.server / docker-compose.yml / docker/nginx.conf
+├── .env.example                        # 前后端环境变量样例
+├── README.md / CHANGELOG.md / agents.md / LICENSE / UI_DESIGN_GUIDE.md
 │
-├── public/
-│   └── logo.svg
+├── docs/
+│   ├── USER_GUIDE.md                   # 使用说明书
+│   ├── DEPLOY.md                       # 部署指南
+│   └── 2.5D_ILLUSTRATION_GUIDE.md      # 图元绘制规范（面基 + 光照）
+│
+├── server/                             # 零依赖存储后端（pnpm server，可选）
+│   ├── index.mjs                       # 入口：路由装配与初始化
+│   ├── auth.mjs / notify.mjs           # 会话鉴权 / 通知编排
+│   ├── lib/                            # kv、jsonl、history、atomicWrite、http、credentials…
+│   ├── routes/                         # auth、storage、history、notify、audit、public
+│   ├── notify/                         # email、webhook、bots、sms、common
+│   └── data/                           # 运行时数据（*.json / *.jsonl，不提交）
+│
+├── shared/                             # 前后端共用（控制台启动横幅）
+├── examples/                           # demo-project.json 及其实例回归测试
+├── scripts/                            # 提交信息校验、长文件检查、素材导入工具
+├── design/                             # 视觉稿与探针页（非运行时）
+├── public/                             # logo.svg
 │
 └── src/
-    ├── main.ts
-    ├── App.vue
-    │
-    ├── core/                          # 核心引擎层
-    │   ├── canvas/                    # 画布引擎
-    │   ├── connection/                # 连线系统
-    │   ├── layer/                     # 图层系统
-    │   └── drag/                      # 拖拽系统
-    │
-    ├── industrial/                    # 工业组件库
-    │   ├── basic/                     # 基础组件
-    │   ├── pipeline/                  # 管道组件
-    │   └── electrical/                # 电气组件
-    │
-    ├── status/                        # 状态引擎
-    │
-    ├── datasource/                    # 数据源层
-    │   └── adapters/                  # 数据源适配器
-    │
-    ├── stores/                        # Pinia状态管理
-    │
-    ├── components/                    # UI组件
-    │   ├── layout/                    # 布局组件
-    │   ├── dialogs/                   # 对话框组件
-    │   └── common/                    # 通用组件
-    │
-    ├── views/                         # 页面视图
-    │   ├── editor/                    # 编辑器页面
-    │   ├── preview/                   # 预览页面
-    │   └── dashboard/                 # 仪表盘页面
-    │
-    ├── router/                        # 路由配置
-    ├── styles/                        # 样式文件
-    ├── utils/                         # 工具函数
-    └── types/                         # 类型定义
+    ├── main.ts / App.vue
+    ├── views/                          # login（登录）、dashboard（首页项目管理）、
+    │                                   # editor（组态编辑器）、preview（只读运行）
+    ├── components/                     # layout（三栏与面板）/ dialogs / common
+    ├── core/
+    │   ├── canvas/                     # 画布引擎：ScadaCanvas.vue + use* composable
+    │   └── connection/                 # 连线路径计算与流动动画
+    ├── industrial/                     # 组件库（14 个分组目录 + 注册表）
+    │   ├── basic/ general/ pipeline/ electrical/ deco/ chart/        # 基础 Tab
+    │   ├── coal/ transport/ ventilation/ wash/ thermal/ power/ chemical/ water/  # 行业 Tab
+    │   ├── widget/                     # 日期/时间/视频/网页/超文本等信息挂件
+    │   ├── custom/                     # 自定义组件与设备模板
+    │   ├── registry.ts                 # 组件注册表（按 type 取定义）
+    │   └── panelRegistry.ts            # 内置组件汇总注册 + 分组显示名（新组件在此挂）
+    ├── datasource/                     # DataSourceManager 与 adapters/（Mock/WS/HTTP/OPCUA/MQTT）
+    ├── status/                         # StatusEngine、表达式、severity、连接状态映射
+    ├── alarm/ notify/                  # 报警引擎 / 通知客户端
+    ├── history/ export/                # 时序历史缓冲 / CSV 导出
+    ├── auth/                           # 会话与种子账号
+    ├── storage/                        # getStorage() 抽象：remote + localStorage + 内存降级
+    ├── stores/                         # Pinia：canvas / device / connection / layer / page / project…
+    ├── composables/                    # 自动草稿、组件搜索、隐藏组件、主题等
+    ├── router/ styles/ utils/ types/   # 路由与守卫 / 主题样式 / 工具 / 类型定义
+    └── __tests__/                      # 跨模块测试
 ```
 
 ---
 
 ## 组件开发指南
 
-### 注册新组件
+### 新增内置组件
+
+一个组件要能用，得走完「定义 → 注册 → 数据 → 文档」四步，缺一步就会出现「面板里能拖、拖上去是灰的」：
+
+1. **写定义**——在对应分组目录的 `index.ts`（如 `src/industrial/coal/index.ts`）里按 `ComponentDefinition` 导出对象：
+   - `type` 全局唯一、英文小写；Mock 设备按 `<type>_1` 命名即可被 `deviceStore.suggestDeviceId()` 自动绑定；
+   - `icon` 为 SVG 字符串，`viewBox="0 0 100 100"`，`currentColor` 会被状态色替换；新写设备图元一律按**面基（插画级）**规范，见 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)；
+   - `statusRules` 的 `priority` 数字越小优先级越高；`dataBindings` 的首个绑定变量会显示在元素上；
+   - 可选字段：`motion`（运转动效，仅有可动件的设备需要）、`capabilities`（属性面板的能力裁剪开关）。
+2. **注册进面板**——把定义加进该目录导出的组件数组，由 `src/industrial/panelRegistry.ts` 汇总调用 `registerComponents([...])`（`ComponentPanel.vue` 以副作用 import 该模块完成注册）。新增分组要同时补 `BASIC_GROUPS` / `INDUSTRY_GROUPS` 与 `groupNames`——分组标题和搜索匹配共用这一份。
+3. **补模拟数据**——在 `MockDataAdapter` 的 `listDevices()` 与 update 数据里加同名设备。
+4. **同步文档**——更新本文件的组件表与 `docs/USER_GUIDE.md` 的设备清单。
+
+运行期动态注册（自定义组件从存储恢复时走这条）直接用注册表 API：
 
 ```typescript
-import { registerComponent } from '@/industrial/registry'
+import { registerComponent, unregisterComponent } from '@/industrial/registry'
+```
+
+### 自定义组件与设备模板（不写代码的那条路）
+
+在编辑器里把画布上的组合存成**自定义组件**或**设备模板**：前者由 `src/industrial/customLibrary.ts` 落存储（键 `scada_custom_components`），后者由 `templateLibrary.ts` 落库（键 `scada_device_templates`），启动时再注册回注册表。两者都与工程数据解耦——属"组件库"，刷新后仍可用；隔离按账号命名空间（远程模式由后端 `u/<userId>/` 完成，本地回落 localStorage 时沿用同一前缀语义）。组件库面板不设常驻 Tab，经搜索触达。
+
+### 最小定义示例
+
+```typescript
 import type { ComponentDefinition } from '@/types/scada'
 
-const MyComponent: ComponentDefinition = {
+export const MyComponentDefinition: ComponentDefinition = {
   type: 'my-component',
   name: '我的组件',
   group: 'basic',
-  icon: '<svg>...</svg>',
+  icon: '<svg viewBox="0 0 100 100">...</svg>',
   defaultWidth: 80,
   defaultHeight: 80,
   defaultConfig: {},
@@ -523,7 +575,7 @@ const MyComponent: ComponentDefinition = {
   properties: [],
 }
 
-registerComponent(MyComponent)
+// 然后把它加进同目录 index.ts 导出的组件数组，由 panelRegistry 统一注册
 ```
 
 ### 状态规则配置
