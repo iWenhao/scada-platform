@@ -115,6 +115,15 @@ pnpm lint               # ESLint
   - 由 `scripts/hooks/commit-msg` 机械拦截（超长或未知前缀直接拒绝提交），每个克隆启用一次：`git config core.hooksPath scripts/hooks`；确需绕过用 `git commit --no-verify`。
 - **变更日志**：功能与修复类提交需同步更新 `CHANGELOG.md` 的 `[Unreleased]` 区。
   - 详略分工：提交标题给「改了什么」，CHANGELOG 给「为什么这么改、动了哪些文件、实测了什么」。同一件事实不在两处各写一遍。
+- **README 同步**：改到下列任一类「结构性事实」，同一个提交里同步 `README.md` 对应小节，不留到「以后统一改文档」：
+  - `package.json` 的 scripts 与构建工具版本 → 「快速开始」「环境要求」；
+  - 根级目录或 `src/` 一级模块增删、页面路由增减 → 「项目结构」「功能特性」「交互流程」；
+  - 新增一整类用户可见能力（数据源适配器、存储与角色权限模型、点表/报警/历史等）→ 「功能特性」与两张架构图；
+  - 组件注册链路或图元规范变化 → 「组件开发指南」，并与「新增工业组件」一节对齐（组件表本身的同步步骤见其第 5 步）。
+  - 纯内部重构、bugfix、样式调整不在此列，只更 CHANGELOG。分工：README 写「现在是什么样」，CHANGELOG 写「为什么改、动了哪些文件、实测了什么」。
+  - **数字与命令必须实测后再写，并顺手写下取法**：README 漂掉的从来不是数字（`getAllComponents()` = 177 种 / 14 分组、`listDevices()` = 22 台，隔了很久还对得上），而是命令、目录树与架构图。写 `177` 时同时注明「`getAllComponents()` 的长度」，下次核对只需重跑那一条，不必重新考古。
+  - 提交前扫一眼 `git diff --stat`：出现 `package.json`、`src/views/**`、`src/datasource/adapters/**`、`server/routes/**` 这类路径，就问自己 README 有没有对应句子要改。
+  - 不做机械拦截——README 与代码的语义对应判不了正则，判据清单比检查脚本可靠（`commit-msg` 钩子只管标题格式）。
 - **版本号**：从 `0.0.1` 起步，末位每次 +1，满 10 进位（0.0.9 → 0.0.10 → 0.1.0）。
   - 发版时版本号后附当天日期 YYMMDD（如 `0.0.2-260928`，CHANGELOG 标题与 tag 使用）；
   - `package.json` 保留三段数字并同步修改。
