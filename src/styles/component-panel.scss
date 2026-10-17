@@ -18,13 +18,10 @@
   background: var(--bg-secondary);
   border-right: 1px solid var(--border-primary);
   width: 248px;
-  overflow-y: auto;
-
-  /* 顶部整体吸顶：头部 + 搜索框 + Tab 一起固定，内容滚动不穿透 */
+  /* 滚动收敛到 .panel-body：面板级滚动条曾把头部可用宽挤掉 15~17px，
+     内容长的基础/行业 Tab 一展开搜索盒就顶到「组件库」标题（最常使用内容短无滚动条，故只有那两档复发）。
+     头部移出滚动容器后宽度恒定，也无需再吸顶 */
   .panel-top {
-    position: sticky;
-    top: 0;
-    z-index: 3;
     background: var(--bg-secondary);
   }
 
@@ -266,6 +263,7 @@
     display: flex;
     flex-direction: column;
     flex: 1;
+    overflow-y: auto;
   }
 
   .tab-pane {
