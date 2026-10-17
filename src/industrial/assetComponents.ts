@@ -8,7 +8,8 @@ export interface AssetIconMeta {
 }
 
 /**
- * 导入图元的统一状态契约：单一 `state` 变量表达 0 停机 / 1 运行 / 2 报警。
+ * 设备图元与手写状态灯共用的状态契约：单一 `state` 变量表达 0 停机 / 1 运行 / 2 报警。
+ * 灯的变色语义必须与设备图元一致——同一画板上停停走走各说各话比没有语义更糟。
  *
  * 为什么用通用的 `state` 而不是逐台发明变量（speed / load / level…）：这批图元来自
  * 外部素材库，出厂不带语义，逐台指定会凭空造出上百个数据源里并不存在的变量。统一
@@ -18,7 +19,7 @@ export interface AssetIconMeta {
  * severity 一律显式声明：`alarm` 标 critical，其余标 normal。按 src/types/scada.ts 的
  * 约定，若不显式声明会按颜色兜底推断，停机态的灰/红会被误判成报警而刷满报警面板。
  */
-const STATE_RULES: StatusRule[] = [
+export const STATE_RULES: StatusRule[] = [
   {
     id: 'alarm',
     name: '报警',
