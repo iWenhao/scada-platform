@@ -9,19 +9,23 @@
  * 产品导出的（Sketch 风格：带 XML 声明、`<title>`、`id`、隐形整幅底矩形、统一主题色
  * `#57A9FB`），直接内联会有三个问题：颜色不随状态变、隐形底矩形污染包围盒测量、体积偏大。
  *
- * 规范化五步：
- *   1. 去掉 XML 声明 / `<title>` / `<desc>` / `id` / `version` / `xmlns:xlink`——渲染无用；
+/** 规范化五步：
+ *   1. 去掉 XML 声明 / `<title>` / `<desc>` / 无引用的 `id` / `version` / `xmlns:xlink`
+ *      ——渲染无用；**被 `url(#x)` 引用的 id 必须留**（详见 subunit-svg.mjs 的
+ *      normalizeIds，剥掉即图元整块不可见）；
  *   2. 去掉「带 opacity 但无任何可见 fill/stroke」的整幅底矩形——它不可见，却会进入
  *      `getBBox()`，让 buildTightSvg 拿到整幅方形包围盒，内容收紧整体失效；
  *   3. 主题色 → `currentColor`——不替换则状态变色对它无效（会恒定显示素材自带的蓝色）；
  *   4. 去掉根 `<svg>` 上的固有 `width`/`height`——素材按原大小渲染会把组件库 30×30 的
- *      格子撑爆（详见 stripIntrinsicSize 的注释）；
+ *      格子撑爆（详见 subunit-svg.mjs 的 stripIntrinsicSize）；
  *   5. 压成单行，减小内联体积。
  *
  * 刻意不处理 `transform`：素材里成对出现的 `translate(-x,-y)` / `translate(x,y)` 互相
  * 抵消，而残留偏移会被 `getBBox()` 正确计入并由 buildTightSvg 重写进 viewBox——手工清
  * transform 反而容易把真实几何偏移一并删掉。非主题色（如指示灯绿、火焰红）同样保留，
  * 它们承载语义且不会被状态色覆盖。
+ *
+ * 规范化与自检的实现在 scripts/subunit-svg.mjs（纯函数层，单独成文件以守住行数门槛）。
  *
  * 用法（素材目录在本机、未纳入本仓库，须显式传入）：
  *   node scripts/import-subunit-assets.mjs --src <素材根目录> --scan [--report <md路径>]
@@ -35,13 +39,16 @@ import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, existsSy
 import { join, dirname, resolve, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { renderPreviewPage } from './subunit-preview.mjs'
+import {
+  THEME_COLOR,
+  stripInvisiblePlates,
+  normalizeSvg,
+  validateSvg,
+} from './subunit-svg.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(HERE, '..')
 const MANIFEST_PATH = join(HERE, 'subunit-manifest.json')
-
-/** 素材统一的主题色：所有随状态变色的形状都用它 */
-export const THEME_COLOR = '#57A9FB'
 
 const GENERATED_HEADER = `/**
  * 本文件由 scripts/import-subunit-assets.mjs 生成，请勿手工编辑。
@@ -63,79 +70,6 @@ function walk(dir, ext, base = dir, acc = []) {
     else if (name.toLowerCase().endsWith(ext)) acc.push(relative(base, full).split('\\').join('/'))
   }
   return acc
-}
-
-/** 该矩形是不是「不可见底衬」：带 opacity，且没有任何可见的 fill/stroke 颜色 */
-function isInvisiblePlate(openTag) {
-  return /\sopacity="/.test(openTag) && !/\s(?:fill|stroke)="#/.test(openTag)
-}
-
-/** 删除不可见底衬矩形；自闭合与成对闭合两种写法都覆盖，只删开标签会留下孤立的 </rect> */
-export function stripInvisiblePlates(svg) {
-  return svg
-    .replace(/<rect\b[^>]*\/>/g, (tag) => (isInvisiblePlate(tag) ? '' : tag))
-    .replace(/<rect\b[^>]*>[\s\S]*?<\/rect>/g, (block) => {
-      const open = block.slice(0, block.indexOf('>') + 1)
-      return isInvisiblePlate(open) ? '' : block
-    })
-}
-
-/**
- * 去掉根 `<svg>` 上的固有像素尺寸（width/height），只留 viewBox。
- *
- * 为什么必须去：组件库是把 `ComponentDefinition.icon` 用 `v-html` 直接注入一个
- * 30×30 的格子里（见 ComponentPanel.vue）。手写图元一律只有 `viewBox`、不带宽高，
- * SVG 便按容器缩放；而素材文件的根标签带着源文件的固有尺寸（`width="937px"
- * height="367px"`、`width="28px" height="36px"` 等），注入后各按自己的大小渲染，
- * 30×30 的格子立刻失控——这是「导入组件在左侧库显示大小不一」的根因。
- *
- * 去掉是安全的：其余消费方都不看这两个属性——
- * - 画布渲染走 `iconBounds.buildTightSvg()`，它本来就会先清掉再按内容包围盒重写；
- * - `getIconBounds()` / `iconFrameOf()` 用 getBBox()，与宽高属性无关；
- * - 核对页自己实现了同一套收紧逻辑。
- */
-export function stripIntrinsicSize(svg) {
-  // 不能锚定 ^：去掉 XML 声明后字符串开头会残留 \r\n，行首锚点直接失效
-  //（实测 121 个图元一个都没剥掉，而 v-html 照旧按固有尺寸渲染）。
-  // 取第一个 <svg> 标签即根标签——这些素材里没有嵌套 <svg>。
-  const m = svg.match(/<svg\b[^>]*>/i)
-  if (!m) return svg
-  const open = m[0].replace(/\s+width="[^"]*"/i, '').replace(/\s+height="[^"]*"/i, '')
-  return open === m[0] ? svg : svg.replace(m[0], open)
-}
-
-/** 规范化单个素材 SVG（见文件头注释的四步） */
-export function normalizeSvg(raw) {
-  let s = raw
-  s = s.replace(/<\?xml[^>]*\?>/gi, '')
-  s = s.replace(/<title>[\s\S]*?<\/title>/gi, '')
-  s = s.replace(/<desc>[\s\S]*?<\/desc>/gi, '')
-  s = s.replace(/\s+id="[^"]*"/g, '')
-  s = s.replace(/\s+version="[^"]*"/g, '')
-  s = s.replace(/\s+xmlns:xlink="[^"]*"/g, '')
-  s = stripInvisiblePlates(s)
-  s = stripIntrinsicSize(s)
-  s = s.split(THEME_COLOR).join('currentColor')
-  return s.replace(/\s+/g, ' ').replace(/\s+</g, '<').replace(/>\s+/g, '>').trim()
-}
-
-/** 规范化结果自检；返回问题列表（空数组 = 通过） */
-export function validateSvg(svg, raw = '') {
-  const issues = []
-  if (!/^<svg\b/.test(svg)) issues.push('does not start with <svg')
-  if (!/<\/svg>$/.test(svg)) issues.push('does not end with </svg>')
-  if (raw.includes(THEME_COLOR) && !svg.includes('currentColor')) issues.push('theme color not replaced')
-  const open = (svg.match(/<rect\b/g) || []).length
-  const close = (svg.match(/<\/rect>/g) || []).length
-  const selfClosed = (svg.match(/<rect\b[^>]*\/>/g) || []).length
-  if (open !== close + selfClosed) {
-    issues.push(`rect tags unbalanced open=${open} close=${close} self=${selfClosed}`)
-  }
-  if (/<style/i.test(svg)) issues.push('contains <style> (may override recoloring)')
-  const root = svg.match(/<svg\b[^>]*>/i)?.[0] ?? ''
-  if (/\swidth="/i.test(root)) issues.push('root <svg> still carries width')
-  if (/\sheight="/i.test(root)) issues.push('root <svg> still carries height')
-  return issues
 }
 
 /** 转义为 TS 模板字符串安全的字面量 */
@@ -285,7 +219,7 @@ function runEmit(srcRoot, sysKey) {
       if (e[field] === undefined) problems.push(`${e.key}: manifest missing "${field}"`)
     }
     const raw = readSourceAsSvg(file)
-    const svg = normalizeSvg(raw)
+    const svg = normalizeSvg(raw, e.key)
     const v = validateSvg(svg, raw)
     if (v.length) problems.push(`${e.key}: ${v.join('; ')}`)
     iconLines.push(`  ${e.key}: \`${escapeForTemplate(svg)}\`,`)
@@ -330,7 +264,7 @@ function runPreview(srcRoot, sysKey, outPath) {
   const order = []
   for (const e of sys.entries) {
     const raw = readSourceAsSvg(join(srcRoot, e.src))
-    icons[e.key] = normalizeSvg(raw)
+    icons[e.key] = normalizeSvg(raw, e.key)
     meta[e.key] = { name: e.name, width: e.w, height: e.h }
     order.push(e.key)
   }
