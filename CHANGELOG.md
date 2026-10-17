@@ -365,6 +365,15 @@
 
 ### 修复
 
+- 首页顶栏主题切换按钮仍带矩形外框：`:deep()` 写在全局 scss 里导致整条圆形按钮规则被丢弃
+  - 动因（用户反馈）：主页的主题切换按钮外面有一个矩形框，希望去掉
+  - 根因：`dashboard.scss` 由 `views/dashboard/index.vue` 以 `import './dashboard.scss'` 引入，是**全局样式**；而 `:deep()` 只有 SFC `<style scoped>` 才会被 `@vue/compiler-sfc` 展开，全局文件里它原样输出成 `.nav-actions :deep(.theme-toggle)`，浏览器按无效伪类**丢弃整条规则**——按钮因此退回 Element Plus 默认外观（6px 圆角矩形 + 1px 边框）。原注释「父级 scoped 取不到、需 :deep 穿透」把引入方式记错了，`<style src scoped>` 那套只适用于 `toolbar.scss`
+  - 同一逗号组里的 `html[data-theme='light'] .sys-chip` 也被连带丢弃，亮色主题下「系统设置」胶囊的实底规则一直没生效
+  - 修法：两处选择器改为普通后代 `.nav-actions .theme-toggle`；顺带补 `flex: none`——按钮作为 flex 项默认 `flex-shrink: 1`，顶栏空间不足时会被压扁（实测 150px 容器内缩成 14×40，正是一个矩形），圆形象征不该参与收缩
+  - 副作用如实：`.sys-chip` 的亮色实底规则随本条修复一并恢复，亮色下「系统设置」胶囊底色变为 `--bg-tertiary`（此前只剩近乎看不见的白色叠加层，与顶栏同色）
+  - 实测：dev server 的编译产物里选择器已输出为 `.nav-actions .theme-toggle`（`hasDeep: false`）；把该样式表注入页面并按顶栏结构建探针量得 `border-style: none` / `border-radius: 999px` / 40×40 正圆、18×18 图标四边留 11px 居中无溢出，加 `flex: none` 后 150px 窄容器仍为 40×40。⚠️ 内置浏览器窗口未展开导致截图不可用（`visibilityState=hidden`），本轮以计算值 + 几何量测代替目视；探针 DOM 与注入样式已清理
+  - 同类排查：`toolbar.scss` 经 `<style src="./toolbar.scss" scoped>` 引入，其 `:deep()` 有效、不动；`src/components/dialogs/data-source.scss` 全仓无引用（孤儿文件），其中的 `:deep()` 不影响运行，未处理
+
 - 恢复草稿等 `ElMessageBox` / `ElMessage` 弹层样式破损：按需引入改造后这些编程式组件（显式 `import { ElMessage } from 'element-plus'` 后函数调用，非模板 `<el-xxx>` 标签）的样式无人注入——auto-import resolver 只对「未显式 import、靠它补进来的符号」注样式，显式 import 的 16 个文件全部漏掉，弹出的是无样式裸 DOM（恢复草稿弹窗文字发暗、按钮裸奔）。`main.ts` 全局补引 `message` / `message-box` 两个样式入口（其 css 链自带 base/input/button/overlay 依赖），覆盖全部调用点
   - 实测：`pnpm build`（含 vue-tsc）通过；暗色主题下恢复草稿弹窗样式正常
 

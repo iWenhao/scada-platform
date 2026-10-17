@@ -56,10 +56,13 @@
 }
 
 // 主题切换按钮：与系统设置胶囊同高的圆形图标按钮。
-// 按钮渲染在 ThemeToggle 子组件内部，父级 scoped 取不到，需 :deep 穿透。
-.nav-actions :deep(.theme-toggle) {
+// 本文件由 index.vue 以 import 方式引入，是全局样式，直接用后代选择器穿透子组件；
+// 这里写 :deep() 不会被编译展开，浏览器视为无效伪类并丢弃整条规则（按钮会退回默认方框）。
+.nav-actions .theme-toggle {
   width: var(--chip-h);
   height: var(--chip-h);
+  // 圆形按钮不能被 flex 压缩，否则窄窗口下会缩成扁矩形（实测缩到 14×40）
+  flex: none;
   padding: 0;
   border-radius: 999px;
   // 顶栏三个控件统一去掉 1px 边框：el-button 自带边框，需显式 none 而非删掉声明
@@ -81,7 +84,7 @@
 // 亮色主题下白色叠加层会糊在白底上，改成实底保证按钮轮廓可见。
 // 取 --bg-tertiary 而非 --bg-secondary：亮色下 secondary 就是顶栏底色（#ffffff），
 // 用它等于把按钮画成和顶栏同色，去掉边框后轮廓依旧看不出来。
-html[data-theme='light'] .nav-actions :deep(.theme-toggle),
+html[data-theme='light'] .nav-actions .theme-toggle,
 html[data-theme='light'] .sys-chip {
   background: var(--bg-tertiary);
 
