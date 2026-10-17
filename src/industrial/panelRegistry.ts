@@ -71,8 +71,8 @@ registerComponents([
 ])
 
 /** 基础 Tab 覆盖的注册分组 */
-export const BASIC_GROUPS: ComponentGroup[] = ['basic', 'general', 'pipeline', 'electrical', 'deco', 'chart']
-/** 行业 Tab 覆盖的注册分组 */
+export const BASIC_GROUPS: ComponentGroup[] = ['basic', 'general', 'deco', 'chart']
+/** 行业 Tab 覆盖的注册分组（管道 / 电气 2026-10-18 由基础 Tab 移入，属行业现场设备） */
 export const INDUSTRY_GROUPS: ComponentGroup[] = [
   'coal',
   'transport',
@@ -82,6 +82,8 @@ export const INDUSTRY_GROUPS: ComponentGroup[] = [
   'power',
   'chemical',
   'water',
+  'electrical',
+  'pipeline',
 ]
 
 /** 分组显示名（面板分组标题与搜索匹配共用一份） */
