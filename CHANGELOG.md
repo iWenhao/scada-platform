@@ -10,6 +10,24 @@
 
 ### 功能
 
+### 优化
+
+### 修复
+
+### 安全
+
+### 测试
+
+### 构建
+
+### 重构与清理
+
+### 文档
+
+## [0.0.6-261018] - 261018
+
+### 功能
+
 - 新增手写「状态灯」组件，归入通用设备分组
   - 动因：用户要求补一个状态灯。源资产（coalmine-ui 旧 `1通用/状态灯.svg`）已随旧组态编辑器的编号资产体系于 2022-05-06 被整库删除（提交 `c7e558e2f`），本次按 git 初次提交里的原文件复刻几何；没有修那份导出件本身——它带 `<style>` 类规则写死灰色，会压过 `currentColor` 继承，让状态变色对灯体永久失效
   - 几何与原资产一致：144 画布、外圈 r64.1 描边 6（固定 `#999999` 灯体，不随状态变）、灯芯 r47.9（`currentColor`，随状态变色）；iconImage.ts 的变色是 `currentColor` 字符串替换、固定色原样保留，故两色调可共存，停机态观感与原版「浅灰灯圈 + 深灰灯芯」同构
@@ -18,6 +36,35 @@
   - 已知边界（与 132 个导入图元同一口径）：画布颜色跟随「绑定设备的数据」，无数据时 StatusEngine 的 `?? 0` 兜底为停机色；属性面板的「状态」选择器写的是 `properties`，不直接驱动画布变色，改绑在数据绑定面板操作
   - 实测：全量 `npx vitest run` 65 文件 / 592 用例零失败；`vue-tsc --noEmit` 与 ESLint（3 个改动 .ts）零输出；playwright + 系统 Chrome——通用组件 Tab 卡片 50→51、通用设备组含「状态灯」卡，拖入画布后属性面板显示 状态灯 / status-lamp / 状态选择器；画布像素取色：灯芯 `#8c8c8c`、灯圈 `#999999`（停机态与原资产「浅灰圈 + 深灰芯」两色调一致）；三态取色页（与 iconImage.ts 同一条 currentColor 替换链路）实测 停机 `#8c8c8c` / 运行 `#00d4aa` / 报警 `#ff4d4f`，灯圈四态恒为 `#999999`
 
+- 组件库的组件可以移除了：卡片右上角红色 ×，二次确认，可一键恢复
+  - 动因：用户要求「组件库的组件也可以删除」。内置组件数百个，单个项目通常只用其中一小部分，列表越长翻找成本越高；此前只有自定义组件与设备模板能删（常驻的垃圾桶图标）
+  - **内置组件的「删除」实现为隐藏而非注销**：定义写死在 `src/industrial/**`，若走 `unregisterComponent` 则刷新页面就复活，且画布上同类型实例会退化成默认样式——两处都不是用户想要的。现在注册表保留定义（画布照常渲染取数），只有组件库面板按隐藏清单过滤掉它；自定义组件与设备模板仍是真删除（确认后从存储移除）
+  - 新增 `src/industrial/hiddenLibrary.ts`（纯存储层，键 `scada_hidden_components`，全局一份与工程数据解耦；非字符串项丢弃、去重、坏 JSON 按空处理）+ `src/composables/useHiddenComponents.ts`（模块级单例状态，与 `useHistory` 同构：`hide/show/showAll` + `hiddenComponents`/`hiddenCount`；计数只算仍在注册表里的 type，历史遗留条目不会把入口角标撑大）
+  - `useComponentSearch` 的 `isHit` 改名 `isShown` 并叠加「未被隐藏」判定：面板的分组列表、Tab 圆点、最常使用共用这一条口径，不会出现「Tab 计数还在、卡片却没了」。顺带修掉 `mostUsedHits` 只在搜索态过滤的问题（原来非搜索态直接返回原数组，任何过滤条件都会漏过去）
+  - 抽出 `src/components/layout/ComponentCard.vue`：四处卡片循环（最常使用 / 分组 / 自定义 / 模板）原本各写一遍卡片骨架，加操作区就是第四份重复；图标走 `icon` prop，设备模板没有 SVG 用默认插槽。拖拽载荷仍由面板决定（卡片不知道 `dataTransfer` 格式）
+  - 交互：操作区默认不出现，悬停或键盘聚焦卡片才滑出——满屏红叉既吵又容易误点；`opacity:0` 时同时置 `pointer-events:none`，看不见的叉子不该点得动。× 的底色静息即暗红 `color-mix(--accent-danger 72%, #000)`（前置一个 `#b8333f` 固定值作不支持 color-mix 时的保底），悬停升到纯正 `--accent-danger`（相对亮度 0.129 → 0.265，约 2 倍），白色符号两级对比度 5.86 / 3.34；编辑按钮保持灰底、悬停用主题主色，与删除区分。所有删除都要二次确认，文案按语义分两种（内置 =「移除」，自定义/模板 = 「删除」并说明画布实例的退化后果）
+  - 贴角位置来回调了六档（纯观感迭代，每一档都实测过几何）：内嵌 `3px` 用户嫌没贴角 → `-2px` 外溢，用户报「有一部分看不到」并怀疑 overflow hidden，实测否掉——`.component-item` 是 `visible`，滚动容器 `.component-panel`(auto) 离圆钮还有 97~170px，没有祖先裁它；真因是外溢的 1~2px 落在卡片外、没有底色衬托，半透明灰在那儿几乎无对比度 → `0` 偏移（圆边与卡片 8px 圆角重合，仍觉不够）→ `-9px` 按「圆心压在卡片外角点」（半径 8 + 边框 1），实测圆心 = 角点 (79,156) 但右侧外溢 2px 压到邻卡、用户嫌太外 → `-1px` 按「圆心落在圆角弧的圆心上」，弧心 = 外角点向内 8px，而 `top/right` 参照不含 1px 边框的 padding box（所以是 -1 不是 0），两圆半径同为 8 且同心，实测圆心 (71,164) = 弧心、偏差 0.00、一像素不外溢 → 用户仍觉偏内，**最终取两档中点 `-5px`**：圆心距外角点 5.66px（实测 (75,160) vs 角点 (79,156)），向卡片外悬出 4px，横竖都落在 6px 的网格间距里、离邻卡留 2px。注释已把这两个偏移标成可调参数（`-1` 同心 ↔ `-9` 压角），后续微调 ±1 即可，不必重新推导
+  - 配套一处层叠：`.component-item:hover { z-index: 2 }`——卡片是 `position: relative`，邻卡按 DOM 顺序绘制在后者之下，圆钮 hover `scale(1.2)` 外溢的 1.6px 会被右边那张卡盖住；2 高于邻卡（auto）又低于吸顶的 `.panel-top: 3`，滚到顶部的圆钮不会糊在面板头上
+  - 恢复入口：组件库标题右侧的「划线眼睛」圆形按钮，仅在有隐藏项时出现且排在最右（不顶开搜索与新建按钮），点开新的 `HiddenComponentsDialog.vue` 列出图标 + 名称 + type，支持逐个恢复与全部恢复
+  - 拆分随功能发生：`component-panel.scss` 原本 487 行，卡片样式再长就会越过 500 行阈值，把 `.component-group` 整块移到新的 `src/styles/component-card.scss`（主文件降到 377 行）；`ComponentPanel.vue` 拆完卡片后仍涨到 414 行超 400 阈值，于是把搜索盒（展开/收起 + placeholder 跑马灯测量）拆成 `LibrarySearchBox.vue`，面板降到 318 行，查询文本与过滤结果仍归面板的 `useComponentSearch`
+  - 实测：新增 `hiddenLibrary.test.ts` 6 用例 + `useHiddenComponents.test.ts` 7 用例（隐藏/幂等/恢复/全部恢复/跨刷新保留/失效 type 不计数/单例共享）；全量 57 文件 / 511 用例零失败，JSON 报告逐文件与磁盘清单比对一致；`vue-tsc --noEmit` 通过。**浏览器实测抓到一处只有跑起来才暴露的问题**：`<Close />` 未注册导致 × 位置一片空白——图标是白名单注册（`main.ts` 的 `usedIcons`，全量注册会把 294 个图标都打进包），已补 `Close`。红底与贴角这两步最终由用户在真浏览器里目视定稿；**隐藏标签页不是可靠的判据**：那里的 `getComputedStyle` 会返回旧值（我给它注入一条全新的 `rgb(1,2,3)` 规则，读出来仍是灰底），要核对样式的落地只能看真窗口，或退一步用 `fetch('/src/styles/xxx.scss?direct')` 看服务端下发的编译 CSS（这条能证实规则已在位、选择器已命中，只是证明不了渲染）
+
+- 装饰组件新增「导航」标题栏（992×62）
+  - 动因：源产品组件库里唯一值得补的一项——蓝色科技风横幅（渐变底 + 中央装饰框 + 虚线，无文字，做大屏标题栏时用户自行叠文字组件）。此前未导入的原因记录在 manifest 的 deco _note：源文件是 PNG，而导入管线只认 SVG
+  - 导入脚本新增 PNG 通道：`.png` 素材读为 base64、包成 viewBox 取固有像素的 SVG `<image>`，与矢量图元共用同一条图标管线——styleIcon 对无 `data-face` 标注的内容原样放行（2D/2.5D 外观一致），getIconImage 只做 currentColor 字符串替换、data-URI 原样穿透；manifest 追加 `deco_nav`（src `desc/real/_desc00.png`，源图 1984×124 为 @2x，元素默认尺寸按源产品取 992×62）
+  - 代价如实记录：118KB PNG → 约 158KB base64 进包（dist 3.1M 的约 5%，gzip 后基本不缩）。只值得给这类无文字装饰横幅用；带文字的贴图仍应另行托管，勿走此通道
+  - 已知边界：导航与其他装饰组件一样带 state 三态契约，但 raster 颜色固有、不随状态变色——配状态规则不会有视觉变化
+  - 横管 / 竖管维持不导入：源配置里两项 src 都错指到 `_desc09.svg`（与四通同源），且本项目已有原生「管道」组件
+
+- 组件库新增跨 Tab 搜索与「最常使用」Tab；移除「自定义组件」Tab
+  - 动因：组件已达数百个，找一个组件要在几个 Tab 里逐个翻；高频组件（矩形、文本、时间）每次组态也要重复找一遍
+  - 搜索（按用户两次要求调整过位置与形态）：最终形态是**头部内嵌的展开式搜索**——位于「组件库」标题右侧、新建按钮左侧，默认只显示放大镜图标，点击展开为输入框（自动聚焦），Esc 或再点图标收起；**收起即清除**，避免输入框看不见了过滤却还在生效。匹配「组件名 / type / 分组显示名」（大小写不敏感；设备模板按名称匹配），覆盖最常使用 / 基础 / 行业三个 Tab 与自定义组件。有命中的 Tab 自动激活（当前 Tab 无命中时跳到第一个有命中的 Tab）并带右上角小圆点，命中组件高亮（主题色边框 + 浅底 + 名称变色），非命中项在搜索态下隐藏
+  - 「最常使用」Tab 置于最前并作为默认 Tab：按组件类型统计拖入画布次数，取前 12 个（4 行 × 3 列），同次数按名称排序保证稳定；计数经 `scada_component_usage` 键持久化（storage 适配器，远程/本地模式都可用，与工程数据解耦），落件后经 `scada-usage-changed` 事件刷新面板；模板落件计入其底层组件类型；无记录时显示引导空态
+  - 移除「自定义组件」Tab（用户要求）：设备模板与自定义图形不再常驻面板，改为**只经搜索触达**——搜索命中时以「自定义组件」小节附在结果末尾，卡片保留编辑 / 删除 / 拖拽；新建自定义组件后自动按名字展开搜索，组件立刻可见（否则新建完在面板里没有任何落脚点）
+  - 结构（.vue 400 行门槛，当次拆完再提交）：注册块、分组清单与分组显示名从 `ComponentPanel.vue` 拆至 `src/industrial/panelRegistry.ts`；搜索逻辑在 `src/composables/useComponentSearch.ts`；最常使用数据在 `src/composables/useMostUsedComponents.ts`；计数持久化在 `src/industrial/usageLibrary.ts`。面板文件 341 → 349 行
+  - 实测：新增 `usageLibrary.test.ts` 6 用例（累加 / 空 type / 坏数据过滤 / 数组与损坏 JSON 兜底）；全量 **55 文件 / 498 用例**零失败（json 报告与磁盘清单逐文件比对一致，无 Errors）；`pnpm build`（含 vue-tsc）通过
+  - 文档同步：README 组件库段落改为三 Tab + 头部搜索口径；USER_GUIDE 简介与编辑器表格「组件库」行重写，5.6 设备模板改「搜索框输入模板名」，7.8 自定义组件改为「搜索触达」口径，新增 5.9「组件库：搜索与最常使用」
+
 ### 优化
 
 - 组件库「煤矿组件」分组更名「综采系统」
@@ -25,22 +72,69 @@
   - 只改显示名（`panelRegistry.ts` 的 `groupNames.coal`），分组 key `coal` 与全部组件 type 不变，已保存工程不受影响；搜索按分组显示名匹配，改后搜「综采」命中该组、搜「煤矿」无命中
   - 同步 README（组件分组清单、行业 Tab 括号列表）与 docs/USER_GUIDE.md（功能简介、编辑器布局表、模拟设备分组表）
   - 实测：全量 `npx vitest run` 65 文件 / 592 用例零失败；playwright + 系统 Chrome 进编辑器确认行业 Tab 首组标题为「综采系统」、搜索「综采」命中 16 卡片、搜索「煤矿」出现空态
+
 - 移除手写「采煤机」（`ShearerDefinition`），组内保留同名素材图元
   - 动因：手写线条稿（110×60）与综采素材图元 `coal_shearer_wide`（610×232）同名同设备，手写版是早期测试占位，素材版才是正式组件；组内两个「采煤机」并排且搜索无法区分
   - 删除 `src/industrial/coal/index.ts` 的定义与数组项；`elementMotion.test.ts` 同步收窄——动效定义断言改为 `roadheader`/`conveyor` 两个，坐标换算用例的几何常量改注「写死在此、与组件定义解耦」（数值本就是硬编码，不依赖该定义）
   - 不动 Mock 的 `shearer_1`（沿用 valve/pump 先例：删组件不删 Mock 设备，绑定它的旧工程数据不断）；`design/` 下历史探针引用的 `ValveDefinition`/`PumpDefinition` 早已失效，同属不参与构建的死代码，一并不动
   - 组件总数 177 → 176（`getAllComponents()` 实测），README/USER_GUIDE 同步；带动效组件由 3 个减为 2 个
   - 实测：playwright + 系统 Chrome 确认综采系统组 15 卡片、首张为「掘进机」、搜「采煤机」仅命中素材图元一条；全量 `npx vitest run` 见下一条提交记录
+
 - 组件库分组重排：电气组件（24）、管道组件（1）由「基础组件」Tab 移入「行业组件」Tab
   - 动因：用户要求两者归入行业 Tab。电气 24 种里 22 种是电力系统素材导入的现场设备，管道也是工艺流程现场件，与「基础图形 / 信息挂件 / 通用设备」不是一类；移走后基础 Tab 只剩基础组件 / 通用设备 / 装饰组件 / 图表组件 4 组，行业 Tab 变 10 组
   - 只改 `src/industrial/panelRegistry.ts` 的 `BASIC_GROUPS` / `INDUSTRY_GROUPS` 两个数组（管道 / 电气追加在行业 Tab 末尾）。分组只存在于组件定义层、不进元素实例（`ComponentInstance` 无 `group` 字段），**对既有工程数据零影响**；跨 Tab 搜索的 `hitTabs` 与「自动激活第一个命中 Tab」直接复用这两组常量，无需另改
   - 实测：playwright + 系统 Chrome——基础 Tab 分组为基础组件 / 通用设备 / 装饰组件 / 图表组件（18+13+11+8 = 50 种），行业 Tab 为综采 / 主运输 / 主通风 / 洗选 / 热力 / 电厂 / 化工 / 水处理 / 电气 / 管道（126 种）
   - 文档同步：README 组件表把两条搬到行业分组块末尾、Tab 描述与架构图面板列同步；USER_GUIDE 简介与编辑器布局表的 Tab 组数改为基础 4 组 / 行业 10 组
+
 - 组件库「基础组件」Tab 更名「通用组件」，图表组件上移到第二位
   - 动因：用户要求。原 Tab 名与组内第一个分组「基础组件」同名，切换后分不清哪个是 Tab 哪个是分组；图表（4 个数据挂件 + 4 个 ECharts）是高频件，原先沉在「装饰组件」下面，难找
   - 改法：`BASIC_GROUPS` 由 `['basic', 'general', 'deco', 'chart']` 调整为 `['basic', 'chart', 'general', 'deco']`（面板内分组顺序直接读这个数组）；`ComponentPanel.vue` 的 Tab label「基础组件」→「通用组件」。分组显示名 `groupNames.basic` 仍是「基础组件」，Tab 与分组不再同名；分组 key 与组件 type 不变，既有工程数据零影响
   - 文档同步：README 组件表把「图表组件」条目移到「基础组件」之后、Tab 描述与架构图面板列；USER_GUIDE 编辑器布局表 Tab 组序改为基础 / 图表 / 通用设备 / 装饰；另修 5.9 节搜索行为描述（× 与失焦逻辑前两轮已改，文档没跟上）
   - 实测：playwright + 系统 Chrome——Tab 标签为 最常使用 / 通用组件 / 行业组件；通用组件 Tab 分组为 基础组件(18) / 图表组件(8) / 通用设备(13) / 装饰组件(11) 共 50 种，行业 Tab 仍为 10 组 126 种；搜「图表」自动激活通用组件 Tab、命中 8 卡
+
+- 预览页 HUD 与登录页的 emoji 换成线性图标
+  - 动因（用户反馈）：预览页顶部工具栏一排 🔔 / 🔒🔓 / 📋 / 🌙☀️ 是系统彩色 emoji，「AI 味太浓」，且与编辑器工具栏那套单色线性图标不成一体；登录页的 👤 / 🔒 / 🌙 同一批一起处理
+  - 改动：`PreviewHeader.vue` 八个按钮统一走 `ToolIcon`（编辑器工具栏同一图标系统，24 viewBox / stroke 1.7 / 只吃 `currentColor`，因此自动跟随 HUD 文字色与 `danger`/`locked`/`on` 的换色）；`login/index.vue` 用户名与口令输入框前缀、右上角主题圆钮同样改走 `ToolIcon`（复用既有 `user` / `lock` 字形）；两处主题按钮从 ThemeToggle 的 `emoji` 插槽属性换回 `icon`，`useThemeToggle` 的 emoji 通道至此无调用方，留待后续清理
+  - `ToolIcon.vue` 补 `back` / `prev-page` / `bell` / `lock` / `unlock` / `rotate` / `fullscreen` / `audit` 八个字形；顺带把 `←` `⤺` `▶▶` `⛶` 四个 unicode 字符一起换掉（`⤺` 在部分字体下落为豆腐块；轮播按钮原先恒显 `▶▶`、只靠 `.on` 边框区分状态，换成环形箭头后图标本身可读）。返回箭头按用户选定的口径做成**单尖角 ‹**（不带箭杆），与右侧 `⏮ 上一画面` 区分层级
+  - 尺寸：HUD 用 `:deep(.tool-icon)` 收档——ToolIcon 自身固定 18px 对 32px 高的 HUD 按钮偏大，文字按钮取 15px、纯图标按钮取 17px；登录页输入框前缀 16px（`.input-icon` 改 inline-flex），主题圆钮沿用默认 18px
+  - 实测：系统 Chrome 无头把 15 个字形按实机档与放大两档渲染成图片逐一目视核对（形状、闭合、居中、与 12px 中文并排的视觉重量）；预览页真机（`/preview?project=示例工程-水泵房`）DOM 量得 8 个按钮全部出图、描边 `rgb(215,228,232)` 随 HUD 文字色、`.hud-bar` 文本内已无 emoji 码点；vitest 全量 **57 文件 / 511 用例**零失败（本轮无 `Errors`，逐文件与磁盘清单一致）；`vue-tsc --noEmit`、`pnpm build`、check-long-files 通过；eslint 改动文件 0 错误（PreviewHeader 仅 1 条既有 `<img/>` 自关闭警告，非本次引入）
+
+- 工具栏标题区视觉基线对齐 + 搜索 placeholder 跑马灯
+  - 动因（用户反馈）：① 铅笔编辑图标与「未保存」标签肉眼上看比项目名称「更向上、更高」；② 搜索框 placeholder「搜索组件名称或分组」被截断只能看到一部分，希望滚动展示全文
+  - 对齐问题的定位过程值得一记：盒子中心与**墨迹中心**实测都居中（三种 DPR 下像素级分析 Δ ≤ 0.7px，DPR 1 / 1.25 / 1.5 各测一轮），但**基线**差是真的——16px 标题基线 y=32，12px 标签文字基线 30.5、16px 图标墨迹底 31，都浮在标题基线上方 1~1.5px。人眼判读并排文字按基线而非几何中心，小字基线偏高读作「被抬高了」。修复：铅笔 `translateY(1px)`、标签 `translateY(1.5px)`，把墨迹底/基线压回与标题齐平
+  - placeholder 跑马灯：原生 placeholder 无法滚动，改为覆盖层方案——输入框 `placeholder` 移除（a11y 由 `aria-label` 承担），空态时叠加 `.search-ph`（与文本区同位、`overflow: hidden`、`pointer-events: none`），其内轨道文字用 keyframes 在 0 与 `--ph-shift` 间缓滚（6s ease-in-out alternate，两端各停 1.8s）；`--ph-shift` 由组件量出（轨道宽 − 可视宽，140px 盒下为 19px），放得下时为 0 不动；`prefers-reduced-motion` 下停用。量测时机：展开过渡 `@after-enter` 与 × 清空后（`watch` + `nextTick`）
+  - 实测（系统 Chrome，DPR 3）：`--ph-shift` 量出 19px（轨道 111 − 可视 92）、动画名生效、computed transform 随时间推进（0 → −14.2px）；强制内联 `translateX(-19px)` 后截图确认覆盖层真实绘制、尾部「分组」露出。⚠️ 无头截图对合成器动画会冻结（两次相隔 2.6s 的截图字节相同但 computed transform 在走），判别时以 computed 值 + 强制内联对照为准，勿据截图断言「没动」
+  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误且两文件警告画像与改前逐规则一致（ComponentPanel.vue 101 = 101）；vitest 全量 **55 文件 / 498 用例**零失败；check-long-files 通过；三文件行尾 CRLF 无混杂
+
+- 组件库面板标题防折行 + 组件名悬停显示全称
+  - 动因（用户反馈）：① 搜索框展开时「组件库」的「库」字掉到下一行；② 部分组件名过长显示省略号，希望悬停能看完整名称
+  - 折行根因（浏览器实测定位，非猜测）：`.panel-header` 的标题无防折行保护（flex 项默认 `flex-shrink: 1`），且 `.header-actions` 的 `min-width: auto`（flex 项自动最小尺寸 = 内容宽 170px）卡死整条收缩链——搜索盒展开后头部溢出，压力全砸在标题上把文字挤折行。修复三件套：标题加 `.panel-title`（`flex-shrink: 0` + `white-space: nowrap`）、`.header-actions` 加 `min-width: 0` 解除自动最小宽、图标按钮槽 `flex-shrink: 0`——空间不足时由搜索盒收缩吸收
+  - 实测（强制压窄模拟极端）：248px 正常态展开后标题单行、搜索盒 140px；压到 230 / 214px 标题仍单行，搜索盒缩到 131 / 115px 吸收挤压（修复前 214px 时搜索盒不缩、头部直接溢出）
+  - 悬停全称：四类组件卡片（最常使用 / 基础 / 行业 / 自定义图形与设备模板）加原生 `title` 属性，名称被省略号截断时悬停可见全名
+  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误（ComponentPanel.vue 警告 97 → 101，+4 为新增 `:title` 行沿用所在块既有 html-indent 缩进风格，非新增问题类别）；vitest 全量 **55 文件 / 498 用例**零失败（本轮逐文件与磁盘清单一致、无遗漏）；check-long-files 通过；两文件行尾 CRLF 无混杂
+
+- 组件库搜索交互收敛：失焦自动收起 + 去掉命中项高亮
+  - 动因（用户反馈）：① 搜索完结后组件不应保持高亮——「搜索到的组件，选中了也不要高亮」；② 鼠标移出搜索框（失焦）时应自动缩回成搜索图标
+  - 去掉 `.component-item.hit` 命中高亮（teal 边框 + 浅底 + 名称变色）：搜索态下非命中项本就被隐藏、命中项即唯一可见内容，整屏 teal 没有区分度；命中定位交给 Tab 级指示——自动激活 + 右上角圆点 `.has-hit`（保留）。此项撤掉了初版「当前搜出的组件也高亮」的视觉部分，过滤与 Tab 逻辑不动
+  - 输入框 `@blur` 即收起（沿用「收起即清除」）；框内放大镜与 × 按钮加 `@mousedown.prevent` 阻止焦点移出触发 blur——否则点 × 会连框一起收起（而非只清文本）、点放大镜则会收起两次
+  - 文档同步：USER_GUIDE 5.9 的高亮与收起描述改写
+  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误且 ComponentPanel.vue 警告数 99 → 97（html-indent 91→89，零新增）；vitest 全量 **55 文件 / 498 用例**零失败（首轮沙箱拦掉 elementMotion / expression / StatusEngine 三文件，补跑 60 用例全过，逐文件与磁盘清单一致）；check-long-files 通过；三文件行尾 CRLF 无混杂
+
+- 组件库搜索改为「圆形图标按钮 + 展开搜索盒」形态：图标按钮与「+」同款（el-button small circle + Search 图标），点击后搜索盒以宽度过渡展开，放大镜收入输入框内（原为独立图标按钮悬在输入框外，视觉脱节）；placeholder 恢复为初版口径「搜索组件名称或分组」
+  - 动因：用户反馈两点——① 放大镜图标跑到了搜索框外面；② 搜索按钮样式应与右侧「+」一致且有点击展开效果
+  - 匹配范围未动（组件名 / type / 分组显示名，大小写不敏感，设备模板按名称）——初版即是此口径，用户要求的「组件名、分组名、类型」已全覆盖，无逻辑改动
+  - 结构：`main.ts` 注册 Search 图标（与 Plus 同一处 usedIcons）；ComponentPanel.vue 头部搜索块重写——`<transition mode="out-in">` 做「圆形按钮 ↔ 搜索盒」交换（两者不同时在场，无布局重叠），展开动画为搜索盒 width 0→140px，`@after-enter` 聚焦输入框；框内放大镜为收起按钮（点击或 Esc 收起，收起即清除）；component-panel.scss 的 `.header-search` 块随之重写
+  - 文档同步：USER_GUIDE 5.9 收起交互描述改为「Esc 或点击框内放大镜」
+  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误且 ComponentPanel.vue 警告画像与改前逐规则一致（99=99：html-self-closing 5 / html-indent 91 / no-v-html 3，零新增）；vitest 全量 **55 文件 / 498 用例**零失败（首轮沙箱拦掉 expression / alarmStore 两文件，补跑 40 用例全过，逐文件与磁盘清单一致）；check-long-files 通过；四文件行尾 CRLF 无混杂
+
+- Element Plus 改为按需引入：移除 main.ts 的全量 `app.use(ElementPlus)`、全量 CSS 与全量图标注册，交还 unplugin 的 ElementPlusResolver 接管——此前「按需配置」被全量引入抵消，组件样式与 294 个图标全部无条件进包
+  - 动因：`vite.config.ts` 配了 `unplugin-auto-import` + `unplugin-vue-components` 的按需 resolver，而 `main.ts` 同时全量 `app.use` + `import 'element-plus/dist/index.css'` + 遍历注册全部图标，按需配置形同虚设
+  - 图标从全量 294 个收敛到实际用到的 22 个（模板标签 + 右键菜单 `:is` 字符串引用，逐个扫描核对）；官方暗色变量 `dark/css-vars.css` 保留（teleport 弹层/表格行转暗依赖它）。~~`ElMessage` / `ElMessageBox` 样式由 auto-import resolver 按需注入~~——此判断有误，见下方「修复」：resolver 不处理显式 import，编程式组件样式须在 main.ts 手动补引
+  - 实测：`pnpm build`（含 vue-tsc）通过；产物对比——`vendor-element` JS 1072 KB → 930 KB（-13%）、CSS 363 KB → 165 KB（-55%），合计约 -340 KB
+
+- 项目列表加载骨架屏与配置弹窗按需加载：首页项目网格从远程存储取数期间渲染 3 张脉冲占位卡片（此前先闪空态再出现卡片）；首页 6 个配置弹窗与工具栏 2 个弹窗改 `defineAsyncComponent` + `v-if` 打开才挂载，不再打进首屏 chunk
+
+- 滚轮缩放与拖拽对齐参考线写入按帧合帧：触控板滚轮每帧可触发多次 wheel，原先每次事件都写 store 触发整树更新，现合并到每帧一次（一帧内多个事件只生效最后一个，缩放不再按事件数爆发）；拖拽中 `alignGuides` 的响应式写回同样 rAF 合并，吸附调整（node 位置）保持同步，拖拽手感不变；组件卸载时取消挂起的 rAF
 
 ### 修复
 
@@ -60,6 +154,110 @@
   - 动因：点 × 的意图是「搜完了，收起来」，原实现只清文本、搜索盒仍占着头部 140px，还得再点一次框内放大镜才收起
   - 修法：删掉 `clearSearch()`（清文本 + 保持展开 + 回焦），× 直接绑 `collapseSearch`，与框内放大镜同归；`title` / `aria-label` 由「清除搜索」改为「清除并收起搜索」，免语义与实际不符
   - 实测：playwright + 系统 Chrome——搜「煤」后点 ×，搜索盒收起、圆形图标按钮回来、查询清空、卡片由 4 张命中回到 12 张全量；再点图标是干净的空框。`pnpm build` 23.0s 通过
+
+- 首页顶栏主题切换按钮仍带矩形外框：`:deep()` 写在全局 scss 里导致整条圆形按钮规则被丢弃
+  - 动因（用户反馈）：主页的主题切换按钮外面有一个矩形框，希望去掉
+  - 根因：`dashboard.scss` 由 `views/dashboard/index.vue` 以 `import './dashboard.scss'` 引入，是**全局样式**；而 `:deep()` 只有 SFC `<style scoped>` 才会被 `@vue/compiler-sfc` 展开，全局文件里它原样输出成 `.nav-actions :deep(.theme-toggle)`，浏览器按无效伪类**丢弃整条规则**——按钮因此退回 Element Plus 默认外观（6px 圆角矩形 + 1px 边框）。原注释「父级 scoped 取不到、需 :deep 穿透」把引入方式记错了，`<style src scoped>` 那套只适用于 `toolbar.scss`
+  - 同一逗号组里的 `html[data-theme='light'] .sys-chip` 也被连带丢弃，亮色主题下「系统设置」胶囊的实底规则一直没生效
+  - 修法：两处选择器改为普通后代 `.nav-actions .theme-toggle`；顺带补 `flex: none`——按钮作为 flex 项默认 `flex-shrink: 1`，顶栏空间不足时会被压扁（实测 150px 容器内缩成 14×40，正是一个矩形），圆形象征不该参与收缩
+  - 副作用如实：`.sys-chip` 的亮色实底规则随本条修复一并恢复，亮色下「系统设置」胶囊底色变为 `--bg-tertiary`（此前只剩近乎看不见的白色叠加层，与顶栏同色）
+  - 实测：dev server 的编译产物里选择器已输出为 `.nav-actions .theme-toggle`（`hasDeep: false`）；把该样式表注入页面并按顶栏结构建探针量得 `border-style: none` / `border-radius: 999px` / 40×40 正圆、18×18 图标四边留 11px 居中无溢出，加 `flex: none` 后 150px 窄容器仍为 40×40。⚠️ 内置浏览器窗口未展开导致截图不可用（`visibilityState=hidden`），本轮以计算值 + 几何量测代替目视；探针 DOM 与注入样式已清理
+  - 同类排查：`toolbar.scss` 经 `<style src="./toolbar.scss" scoped>` 引入，其 `:deep()` 有效、不动；`src/components/dialogs/data-source.scss` 全仓无引用（孤儿文件），其中的 `:deep()` 不影响运行，未处理
+
+- 恢复草稿等 `ElMessageBox` / `ElMessage` 弹层样式破损：按需引入改造后这些编程式组件（显式 `import { ElMessage } from 'element-plus'` 后函数调用，非模板 `<el-xxx>` 标签）的样式无人注入——auto-import resolver 只对「未显式 import、靠它补进来的符号」注样式，显式 import 的 16 个文件全部漏掉，弹出的是无样式裸 DOM（恢复草稿弹窗文字发暗、按钮裸奔）。`main.ts` 全局补引 `message` / `message-box` 两个样式入口（其 css 链自带 base/input/button/overlay 依赖），覆盖全部调用点
+  - 实测：`pnpm build`（含 vue-tsc）通过；暗色主题下恢复草稿弹窗样式正常
+
+- 缩略图与标尺跟随主题切换：MiniMap / CanvasRuler 是 Canvas 2D 绘制、原先调色板硬编码暗色（`#10141f`、`#151a28` 等），亮色主题下视觉破损。新增 `src/composables/useThemeCssVars.ts`（`readThemeVar` 读变量 + `useThemeTick` 经 MutationObserver 监听 `data-theme`），配色抽进 variables.scss 双主题变量（`--minimap-*` / `--ruler-*`），主题切换即重绘；顺带修复 MiniMap 的 ResizeObserver 未在卸载时断开
+  - 实测：新增 `useThemeCssVars.test.ts` 3 用例（变量读取 / 缺失回退 / tick 递增与观察器断开）
+
+- 预览页加载失败不再死路：原先 `loadPublishedProject` 失败仅弹一条 ElMessage 后 return，页面停在空白 HUD 无任何出路。现分 `loading / ready / failed` 三态——加载中显示转圈等待（远程存储有明确等待态），失败渲染错误占位页（工程名 + 原因提示 + 重试 / 返回首页 / 返回编辑器），重试复用同一加载函数
+
+- 历史数据的保留期一直形同虚设，过期分片从没被删过一个
+  - 动因：给 `server/lib/history.mjs` 补单测时，`cleanupExpiredShards` 的两条用例返回 0，顺着查出来的——不是测试写错，是这条清理链路从上线起就没起过作用
+  - 根因：目录层级写死成一层。分片实际落在 `HISTORY_DIR/u/<userId>/`（命名空间 `scopeOf()` 带 `u/` 前缀），而旧实现 `readdir(historyRoot)` 只取到 `u` 这一个**目录名**，再列一层拿到的是用户目录名，`.(\d{8})\.jsonl$` 一个都匹配不上 → 每次返回 0。启动时那次与 24 小时的定时器都安静地空跑，既不报错也不打日志，历史文件只会无限增长
+  - 修法：改成递归生成器 `iterShardFiles()` 遍历到任意深度，凡文件名尾部带 8 位日期段的 `.jsonl` 都算分片，日期用定长字符串比较（`YYYYMMDD` 字典序即时序），等于保留期边界当天的分片不删。符号链接的 `Dirent.isDirectory()` 为 false，递归不会成环
+  - 实测：`history.test.ts` 3 条清理用例（跨用户目录、边界当天保留、保留期非正数不动）；真跑一次端到端——写入 9 天前与今天两个分片后用 `HISTORY_RETENTION_DAYS=1` 重启，只有旧分片被删除、今天的完好
+  - 影响面：修好后第一次运行会把积压的过期分片删掉（默认保留 30 天）。数据目录里若存在人为命名成 `xxx.20200101.jsonl` 的文件会被一并清理
+
+- 用户名带前后空格能建出重名账号，新账号从此登录不了
+  - 动因：`auth.test.ts` 里按「`"  admin  "` 应判重名」写的用例如实失败，暴露出 `createUser` 的两步不一致：查重用**未 trim** 的原值比较，落库却存 `String(username).trim()`
+  - 后果：`"  admin  "` 通过查重、存成 `admin`，账号表里出现两个同名用户；`login()` 按 `u.username === username` 取第一个匹配，后建的那个（角色可以完全不同）永远登不进去，管理员只会看到「建了个账号但登录进去是另一个角色」。`username: '   '` 同理能建出**空用户名**账号
+  - 修法：入口处先 `trim` 成 `name`，校验非空、查重、落库、`displayName` 回落全部用这一个值
+  - 实测：`auth.test.ts` 两条用例；真跑 `POST /api/auth/users` 传 `"  admin  "` 返回 `400 {"error":"username exists"}`
+
+- 原子写在同一目标上并发时**静默丢写**：临时文件撞名 + Windows rename 顶撞，而调用方把失败 catch 掉了
+  - 动因：不是看出来的，是被一条不稳定的新用例逼出来的——会话摘要化之后 `auth.test.ts` 在全文件顺序下随机失败（单跑通过、纯 node 复现通过）。把 `persistSessions` 的 catch 临时改成打印 `stderr`，才拿到现场：`EPERM: operation not permitted, rename '..._sessions.json.<pid>.<ms>.tmp' -> '..._sessions.json'`。写没落地，而调用方认为「落盘失败不阻断登录」，于是丢的是一次无人知晓的写入
+  - 三个独立成因，逐个补：
+    - 临时文件名只按「pid + 毫秒」拼。`Date.now()` 是毫秒分辨率，两次并发登录落会话几乎必然同毫秒 → 同一个 `.tmp` 路径，先 rename 走的那次让另一次报 `ENOENT`。改法是加进程内自增序号
+    - 同一目标并发 rename 在 Windows 上会顶撞：目标正被另一个句柄替换时返回 `EPERM`。实测本机 **2 路并发 × 25 轮命中约 16%**（30 路则 18/30 失败），POSIX 上不存在这个问题，所以只在 Windows 部署时随机掉数据。改法是同一目标路径的写**排队串行**（按绝对路径挂 Promise 链，排空即释放条目，不同目标仍并发）
+    - 排队也躲不开「目标被别的句柄短暂占用」——杀软与索引服务在写完/读完的一瞬间抓着文件。这一类只能等，所以 rename 对 `EPERM`/`EBUSY` 做 `[10, 40, 120, 300]ms` 的**有界退避重试**，其余错误照抛
+  - 波及面：`_users.json`、`_sessions.json`、`_notify.json`、KV 存储的每个 key 文件都走这个函数。账号表写失败会返回 500（可见），会话与审计写失败是 catch 掉的（不可见）——后者才是这条的主因
+  - 实测：新增 `server/lib/atomicWrite.test.ts` 4 用例（20 路并发同目标全部成功且落盘是某一份完整内容、连续覆盖最后生效、一次写失败不卡死队列也不留临时文件、不同目标并发互不干扰）；改前脚本复现 2/4/8/16 路并发分别失败 8/21/58/114 次，改后同为 30 路并发失败 0；`auth.test.ts` 由「5 轮里 2 轮随机失败」变成连跑 5 轮全绿
+  - 未处理：跨进程的写竞争（两个 `node server/index.mjs` 指同一 `DATA_DIR`）不在本条范围内，那属于部署错误，加固清单里已有「5174 只对本机或内网开放」
+
+- 标题一 / 标题二拖入画布一片空白（连带按钮、背景一、背景2、磁选机）：导入脚本把 `<defs>` 里的 id 删光了，图元的可见部分全靠这些 id
+  - 动因（用户反馈）：装饰分组的标题一、标题二拖到画布上「啥也没有」，连选中框里也是空的
+  - 根因：`scripts/import-subunit-assets.mjs` 的净化第 1 步是 `replace(/\s+id="[^"]*"/g, '')`，而 Sketch 导出的 `<linearGradient id="linearGradient-1">` 和纯装饰的图层名 `<g id="图标">` 用的是同一个属性——两者被一起删了。`fill="url(#linearGradient-1)"` 于是指向不存在的 paint server，浏览器解析不出即当作 **none**，图元整张透明，控制台一声不响
+  - 为什么只有 decor（装饰）组暴露：标题一 / 标题二的可见部分**全是渐变**，没有任何实色描边兜底；按钮与背景一 / 背景2 还剩一圈实色描边，看着是「很淡的线框」而不是「丢了东西」，一直没被当成 bug 报上来
+  - 顺着同一条线又查出两个同源故障，都是「id 处理」这一处的漏网写法：
+    - **磁选机**（`wash_magnetic_separator`）的 mask 靠 `<use href="#path-1">` 拼出通版，`url(#x)` 之外的第二种引用写法当年不在考虑范围内，id 照删 → `<use>` 落空 → mask 变空 → 整台设备被完全裁掉，同样是「画布上啥也没有」
+    - 那个 `path-1` 本身还是个只带 opacity、没有实色 fill 的 rect，正好命中第 2 步「隐形底衬矩形」的剥离条件，一同被删——所以**保留 id 之前必须先算清谁在被引用**，否则加了白名单也救不回来
+    - `xlink:href` 依赖命名空间声明，而第 1 步刚把 `xmlns:xlink` 删了：文档没有这个前缀的绑定，浏览器不认这个属性。统一转成不需要命名空间的 SVG2 `href`
+  - 修法（`scripts/subunit-svg.mjs`）：新增 `referencedIds()` 收集 `url(#x)` / `href="#x"` / `xlink:href="#x"` 三种引用；`normalizeIds()` 只删无人引用的 id，被引用的统一加 `<type>-` 前缀（组件面板用 `v-html` 把多张图标注入同一文档，同名 id 只有第一个生效）；`stripInvisiblePlates(svg, keepIds)` 跳过被 `<use>` 拼进 mask 的元素；`validateSvg()` 补**悬空引用自检**——这次的三处故障全都能被这一条拦住
+  - 顺带拆分：本次把纯函数层抽到 `scripts/subunit-svg.mjs`（157 行），主脚本从 413 行落回 316 行——跨过 400 行门槛就必须当次处理，与当年拆 `subunit-preview.mjs` 同一手法
+  - 重新生成 `src/industrial/deco/`（11 图元，5 行变化）与 `src/industrial/wash/`（17 图元，1 行变化 + 过期的文件头注释）。其余 5 个分组的源文件不涉及 paint server，`--scan` 全量 264 个 SVG 零悬空、不可见底衬剥离数仍是 123（说明 keepIds 没有松开口子）
+  - 实测（headless Chrome，把每个图元按管线渲染到 canvas 数非透明像素）：标题一 0 → 0.90、标题二 0 → 0.60、按钮 0.124 → 0.916、背景一 0.031 → 0.992、磁选机 0 → 0.28（它是纯线条稿，正常只剩描边）；几何不变——把渐变临时替换为实色对照，覆盖率与修复后一致，证明是 paint 失效而非内容缺失
+
+### 安全
+
+- 种子口令的文档与部署示例仍写死 `admin123`，照做的全新部署必然登录失败
+  - 动因：`server/auth.mjs` 的种子口令早已改为随机生成（0.0.5 的对应条目），但三处说明没跟上——DEPLOY §5.4 的账号表按「每账号一个口令」列了 `admin123`/`engineer123`/`operator123`/`viewer123`（实际四账号**共用**一个随机口令）、§3.1 的 curl 示例直接写死 `admin123`、USER_GUIDE 账号表同样带口令列。本机之所以还能登，是因为 `server/data/_users.json` 是改造前种的，属存量巧合，不代表文档正确
+  - 改法：§5.4 改为「共用随机口令 + 只在首启日志打印一次 + `SEED_PASSWORD` 可预先固定 + 日志丢失时删 `_users.json` 重新播种」；§3.1 curl 用 `<初始口令>` 占位并注明取值来源；§6 加固清单补上「共用口令必须逐个改」的理由（任一账号泄露即四账号全泄露）；USER_GUIDE 账号表去掉口令列，并说明登录必须连后端（`authStore.login` 只打 `/api/auth/login`，没有离线登录路径）
+  - 「删表重新播种不丢工程」这条已核对成立：种子 id 固定为 `usr_seed_0..3`，数据按 `u/<userId>/` 命名空间存放，重新播种后 id 不变
+  - 顺带补齐 §5.2 后端环境变量表缺失的 5 项：`HOST`、`SEED_PASSWORD`、`NOTIFY_ALLOW_PRIVATE`、`NOTIFY_TIMEOUT_MS`、`SMTP_REJECT_UNAUTHORIZED`。默认值逐个读码核对（`server/index.mjs:56`、`server/auth.mjs:147`、`server/notify/common.mjs:58-61`、`server/notify/email.mjs:11`），未照抄 `.env.example` 注释
+  - 未动的代码：`src/auth/seedUsers.ts` 与登录页「演示账号（点击填入）」仍展示 `admin123` 等口令，其头注释还声称「与 server/auth.mjs 首次启动写入的账号一致」——这是 UI 行为改动（要定「只填用户名」还是「整块撤掉」），留待确认口径
+
+- 会话令牌不再明文落盘：`_sessions.json` 只存 SHA-256 摘要，内存 Map 也改以摘要为键
+  - 动因：`_sessions.json` 里存的是**活跃登录态的原始令牌**，TTL 12 小时内一直可用。谁读到数据目录就等于拿到全部在线账号的登录凭证——备份、容器日志、误传的 `data/`、一次误加的 `git add` 都算「读到」，而不需要任何口令。同目录的 `_users.json` 早就做到只存 `salt:hash`，会话这一侧是明显的不对称
+  - 改法：签发时仍返回随机令牌（`login` 响应是它唯一一次以明文出现），服务端各处只持有 `sessionKey(token) = SHA-256(token)`；每次请求对带来的令牌现算一次摘要再查表。口令用 scrypt 是为了抗爆破，令牌是 192 位随机值、搜索空间已经够大，摘要只需**抗原像**，慢哈希反而白付一次登录延迟
+  - 旧文件的处置是**不迁移、不沿用**：识别到旧格式（有 `token`、无 `tokenHash`）时那些会话一律作废——它们已经以明文在磁盘上待过，无法证明没被读过，继续认等于把「加固」让位给「少一次登录」。同时 `init()` 当场把文件改写成摘要格式，不等下一次登录/注销，否则升级完明文还要一直躺到有人登录为止
+  - 影响面（需告知在线用户）：**升级到本版本后所有既有会话失效，所有人重新登录一次**；已写入 [docs/DEPLOY.md](docs/DEPLOY.md) §5.5。备份数据目录不再等于备份出一批可用凭证，这条也写进了同节
+  - 连带修出一处：`resolveToken()` 判过期后原来是 `sessions.delete(token)`，键换成摘要之后这行**等于没删**——过期会话留在内存并随下次登录写回磁盘。改为删摘要键，判据做成用例：过期后先 `resolveToken` 再 `logout(token)`，若删除生效应报 `false`
+  - 顺手拆分（本次改动把 `server/auth.mjs` 从 387 行推到 411 行，越过 400 阈值，按 AGENTS.md 当次拆完）：密码学原语 → `server/lib/credentials.mjs`，登录失败限流 → `server/lib/loginGuard.mjs`（`createLoginGuard({ maxFails, lockMs })`，`isLocked/noteFail/clear` 三个动作，行为逐字保持），`auth.mjs` 落回 345 行。`ROLE_RANK` / `roleAtLeast` / `createAuthStore` 的导出面不变，五个路由的 import 无需改动
+  - 实测：`auth.test.ts` 新增 3 用例（磁盘只见 `tokenHash` 且等于手算摘要、无 `token` 字段、注销后文件回到 `[]`；旧明文条目不迁移且启动即改写；过期即删）；新拆两模块各配同目录测试 `credentials.test.ts` 6 用例（`salt:hash` 格式、同口令不同盐、畸形存储一律 false、摘要稳定且不含原文）、`loginGuard.test.ts` 4 用例（第 5 次才锁、两维任一命中即锁、锁定过期后计数从头攒——即 `until=0` 那个易改错的分支、`clear` 只清指定维度）；`pnpm typecheck:server` 通过（拆分后 `tsc` 是唯一覆盖服务端 `.mjs` 的把关）
+  - 真跑（`PORT=5199` + 临时 `DATA_DIR`，与本机 5173/5174 的实例错开）：预置一份旧明文会话文件后启动 → 文件立刻变成 `[]`；登录 → 磁盘只有 `tokenHash` 且与手工 `SHA-256` 逐字节相等、不含明文；重启进程 → 同一令牌 `GET /api/storage/get` 仍 200、缺令牌 401（会话恢复可用）；`logout` → 文件回到 `[]`、同令牌转 401。临时进程与数据目录已停、已清
+
+### 测试
+
+- 存储后端第一次有单测：5 个文件 64 用例，覆盖路径隔离、账号与会话、HTTP 门禁、时序分片与 JSONL
+  - 动因：`server/**` 是 2135 行、承担登录与全部工程数据读写的服务，仓库里却一个测试文件都没有——唯一把关是 `pnpm typecheck:server`，而类型自洽挡不住路径拼接、限流窗口、保留期这类行为错误。上面两条修复就是补测过程中直接撞出来的，不是先修再补测
+  - 覆盖清单：
+    - `server/lib/kv.test.ts` 12 用例——`scopeOf` 的三个命名空间、用户 id 里的 `/` 被编码后逃不出自己的目录；`keyError` 挡 NUL 与「**编码后**长度」上限（一个汉字膨胀 9 倍，只看原始长度挡不住 `ENAMETOOLONG` 变 500）；`../` 注入落不回 dataDir 之外、`..` 因固定 `.json` 后缀只会得到同目录怪文件名；跨用户同名 key 互不可见；原子写不留过程文件
+    - `server/auth.test.ts` 20 用例——角色等级序、种子四账号、`_users.json` 只有 `salt:hash` 且不含明文口令、同口令不同盐、令牌签发/注销/12 小时到期、重启恢复未过期会话并丢弃过期项、会话文件损坏按空处理、**按用户名与按来源两维限流**（锁定期内口令正确也拒绝、过期后放行且不影响已签发会话）、最后一名管理员不可降级或删除、改口令后旧口令立即失效、账号表落盘重启仍在
+    - `server/lib/http.test.ts` 12 用例——`CORS_ORIGIN=*` 与白名单两种回显（未命中来源拿不到自己的域名）、`Bearer` 前缀大小写敏感、分块请求体先拼接再解码（跨块的中文不解成乱码）、超限抛 413 且边界是「超过」不是「达到」、主密钥/会话/无令牌三条鉴权支路、`requireRole` 对未登录与降级判死
+    - `server/lib/history.test.ts` 13 用例——`dayString` 补零、跨天各写一个分片、非法点跳过、闭区间与按日期挑文件、乱序读出仍升序且损坏行不牵连其余、`maxPoints` 抽稀保首尾、`min/avg/max` 窗口按 epoch 对齐、三种非法聚合参数（未知 agg / 窗口 <1s / 窗口 >24h）回落成普通查询、保留期清理三条
+    - `server/lib/jsonl.test.ts` 7 用例——新→旧排序、limit 截尾、单行损坏跳过、末行无换行符也算一条、`cap` 截断不留半截行、中文与嵌套对象原样往返
+  - 接线：`vitest.config.ts` 的 `include` 补 `server/**/*.{test,spec}.{js,ts}`。测试沿用 `shared/` 的既有写法——被测是 `.mjs`、测试写 `.test.ts`：这样 `tsconfig.server.json`（`include` 只收 `.mjs`）不会被测试文件牵进来，前端那套 `strict` 也不会去判服务端
+  - 两处环境要点：① 全局 `environment` 是 jsdom，这 5 个文件各自声明 `// @vitest-environment node`，`fs` / `crypto` 走真实实现；② 假时钟一律 `vi.useFakeTimers({ toFake: ['Date'] })` **只冻时间**——把 timer 一起接管会让 `fs` 的 Promise 也跟着假时钟走，测到的是沙箱不是代码。scrypt 让 `auth.test.ts` 单文件耗时 5 秒多，属预期成本
+  - 实测：全量 62 测试文件 / 575 用例零失败（`--reporter=verbose` 的逐文件清单与 `find src examples shared scripts server -name "*.test.ts"` 得到的 62 个一致，汇总无 `Errors`）；`tsc -p tsconfig.server.json`、改动文件 `eslint`、`pnpm build`、`check-long-files.ps1` 全过。另以 `PORT=5199` + 临时 `DATA_DIR` 真跑一遍后端（health / 登录 / 存储读写 / 历史写入与两种查询 / 无令牌 401 / 重名账号 400 / 重启触发保留期清理），临时进程与数据目录已停、已清
+
+- `src/notify/notify.test.ts` 补 `afterEach` 删除临时目录：`beforeEach` 每个用例 `mkdtemp` 一次却从不回收，本机系统临时目录里已堆了 72 个 `scada-notify-*`。清理后单文件 6 用例仍全过、跑完不留目录
+
+- 会话摘要化与原子写这一轮再加 4 个文件 / 17 用例：`server/lib/atomicWrite.test.ts` 4、`server/lib/credentials.test.ts` 6、`server/lib/loginGuard.test.ts` 4、`server/auth.test.ts` 3
+  - `atomicWrite.test.ts` 是本轮最值钱的四个：20 路并发写同一目标全部成功、落盘内容是某一份**完整** payload（拼接残片会让 `_users.json` 解析失败）、一次写失败不卡死后续队列也不留临时文件。上面那条修复的三种失败模式里，前两种只有在这个文件里才测得到
+  - `credentials` / `loginGuard` 两个文件是拆分带出来的：限流那条「锁定过期后计数从头攒」直接对着 `until=0` 这个易改错的分支写，将来谁把注释里的判断简化掉就会红
+  - `auth.test.ts` 由 20 用例增至 26（会话摘要 2 + 过期即删 1，另把「重启恢复」用例里手造的会话文件改成摘要格式）。上一轮那条「5 个文件 64 用例」的记录保持原样，改动只在本节追加
+  - 环境要点补一条：`loginGuard` 用 `createLoginGuard({ maxFails, lockMs })` 注入短窗口，就不必为了测锁定过期而 `vi.advanceTimers`——`toFake: ['Date']` 只冻时钟的老约束继续适用，`atomicWrite` 的退避重试也因此走的是真实等待（单文件 0.5 秒级）
+  - 实测：全量 **65 测试文件 / 592 用例**零失败，汇总无 `Errors`；`--reporter=verbose` 的逐文件清单与 `find src examples shared scripts server -name "*.test.ts"` 的 65 个逐一比对一致（本轮一次跑全，未补跑）；`pnpm typecheck:server`、改动文件 `eslint`、`pnpm build`、`check-long-files.ps1`（`OK: 所有文件均在阈值以内`，例外跳过 46 个 `src/industrial/*`）全过
+
+### 重构与清理
+
+- 基础组件删除阀门与泵，常用图形与信息类组件前置到面板最前
+  - 动因：① 阀门/泵与行业分组重复——水处理分组已有 `water_pump` / `water_valve` 等泵阀素材图元，基础库里再放一份稀释了「基础」的定位；② 基础 Tab 原先把设备类（储罐/设定值/数值显示/图片）压在图形与日期时间前面，而组态场景里最高频的恰是矩形/圆/线与日期/时间/视频/网页/文字/超文本
+  - 删除 `basic/index.ts` 的 `ValveDefinition` / `PumpDefinition`（`valve` / `pump` 不再注册）。画布上已放置实例按未注册类型退化为默认样式，不报错；`overlayTypes.ts` 等按 type 分发的链路与这两个类型无关，无波及
+  - 面板顺序改为在 `ComponentPanel.vue` 显式编排（注册顺序即面板顺序）：7 个基础图形 → 日期/时间/视频/网页 → 文字 → 超文本 → 设备类（储罐/设定值/操作按钮/数值显示/图片）。`basicComponents` 收敛为设备类，图形改由面板从 `basic/shapes` 引入编排；widget 的 5 个 basic 分组挂件随编排前置，`widgetComponents` 整体仍在原位注册（同 key 重复注册只覆盖值、不改位置）
+  - 文档同步：README 组件表更新基础组件清单；USER_GUIDE 状态规则示例去掉阀门；示例工程 `demo-project.json` 的 `el_demo_pump` / `el_demo_valve` 换用 `water_pump` / `water_valve`（同为水泵房场景），避免删除定义后示例图元退化
+  - 实测：全量 54 测试文件 / 492 用例零失败（`--reporter=verbose` 逐文件与磁盘清单一致；沙箱前两轮分别拦掉 StatusEngine / alarmStore，两个文件在另一轮均跑过）；`pnpm build`（含 vue-tsc）通过
 
 ### 文档
 
@@ -422,193 +620,6 @@
   - 起因：原约定只规定「一句话说明」，既没有长度上限、也没有「正文」这个位置，细节（理由 / 文件清单 / 指标 / 边界情况）被一路堆进标题——实测最近 30 条提交标题中位数约 150 字符、最长 1033 字符，且 30 条**全部没有正文**，`git log --oneline` 已不可读
   - 校验逻辑在 `scripts/commit-msg-check.mjs`（纯函数 + 13 个单测）：标题长度按「字符」计（一个汉字算 1），而 shell 的 `${#var}` / `wc -c` 在 UTF-8 下按字节算会把中文标题算成 3 倍，故钩子脚本只负责定位与转发
   - 启用（每个克隆执行一次）：`git config core.hooksPath scripts/hooks`；`vitest.config.ts` 的 `include` 相应补上 `scripts/**`（原只收 `src/**`、`shared/**` 与 `examples/**`）
-
-## [Unreleased]
-
-### 功能
-
-- 组件库的组件可以移除了：卡片右上角红色 ×，二次确认，可一键恢复
-  - 动因：用户要求「组件库的组件也可以删除」。内置组件数百个，单个项目通常只用其中一小部分，列表越长翻找成本越高；此前只有自定义组件与设备模板能删（常驻的垃圾桶图标）
-  - **内置组件的「删除」实现为隐藏而非注销**：定义写死在 `src/industrial/**`，若走 `unregisterComponent` 则刷新页面就复活，且画布上同类型实例会退化成默认样式——两处都不是用户想要的。现在注册表保留定义（画布照常渲染取数），只有组件库面板按隐藏清单过滤掉它；自定义组件与设备模板仍是真删除（确认后从存储移除）
-  - 新增 `src/industrial/hiddenLibrary.ts`（纯存储层，键 `scada_hidden_components`，全局一份与工程数据解耦；非字符串项丢弃、去重、坏 JSON 按空处理）+ `src/composables/useHiddenComponents.ts`（模块级单例状态，与 `useHistory` 同构：`hide/show/showAll` + `hiddenComponents`/`hiddenCount`；计数只算仍在注册表里的 type，历史遗留条目不会把入口角标撑大）
-  - `useComponentSearch` 的 `isHit` 改名 `isShown` 并叠加「未被隐藏」判定：面板的分组列表、Tab 圆点、最常使用共用这一条口径，不会出现「Tab 计数还在、卡片却没了」。顺带修掉 `mostUsedHits` 只在搜索态过滤的问题（原来非搜索态直接返回原数组，任何过滤条件都会漏过去）
-  - 抽出 `src/components/layout/ComponentCard.vue`：四处卡片循环（最常使用 / 分组 / 自定义 / 模板）原本各写一遍卡片骨架，加操作区就是第四份重复；图标走 `icon` prop，设备模板没有 SVG 用默认插槽。拖拽载荷仍由面板决定（卡片不知道 `dataTransfer` 格式）
-  - 交互：操作区默认不出现，悬停或键盘聚焦卡片才滑出——满屏红叉既吵又容易误点；`opacity:0` 时同时置 `pointer-events:none`，看不见的叉子不该点得动。× 的底色静息即暗红 `color-mix(--accent-danger 72%, #000)`（前置一个 `#b8333f` 固定值作不支持 color-mix 时的保底），悬停升到纯正 `--accent-danger`（相对亮度 0.129 → 0.265，约 2 倍），白色符号两级对比度 5.86 / 3.34；编辑按钮保持灰底、悬停用主题主色，与删除区分。所有删除都要二次确认，文案按语义分两种（内置 =「移除」，自定义/模板 = 「删除」并说明画布实例的退化后果）
-  - 贴角位置来回调了六档（纯观感迭代，每一档都实测过几何）：内嵌 `3px` 用户嫌没贴角 → `-2px` 外溢，用户报「有一部分看不到」并怀疑 overflow hidden，实测否掉——`.component-item` 是 `visible`，滚动容器 `.component-panel`(auto) 离圆钮还有 97~170px，没有祖先裁它；真因是外溢的 1~2px 落在卡片外、没有底色衬托，半透明灰在那儿几乎无对比度 → `0` 偏移（圆边与卡片 8px 圆角重合，仍觉不够）→ `-9px` 按「圆心压在卡片外角点」（半径 8 + 边框 1），实测圆心 = 角点 (79,156) 但右侧外溢 2px 压到邻卡、用户嫌太外 → `-1px` 按「圆心落在圆角弧的圆心上」，弧心 = 外角点向内 8px，而 `top/right` 参照不含 1px 边框的 padding box（所以是 -1 不是 0），两圆半径同为 8 且同心，实测圆心 (71,164) = 弧心、偏差 0.00、一像素不外溢 → 用户仍觉偏内，**最终取两档中点 `-5px`**：圆心距外角点 5.66px（实测 (75,160) vs 角点 (79,156)），向卡片外悬出 4px，横竖都落在 6px 的网格间距里、离邻卡留 2px。注释已把这两个偏移标成可调参数（`-1` 同心 ↔ `-9` 压角），后续微调 ±1 即可，不必重新推导
-  - 配套一处层叠：`.component-item:hover { z-index: 2 }`——卡片是 `position: relative`，邻卡按 DOM 顺序绘制在后者之下，圆钮 hover `scale(1.2)` 外溢的 1.6px 会被右边那张卡盖住；2 高于邻卡（auto）又低于吸顶的 `.panel-top: 3`，滚到顶部的圆钮不会糊在面板头上
-  - 恢复入口：组件库标题右侧的「划线眼睛」圆形按钮，仅在有隐藏项时出现且排在最右（不顶开搜索与新建按钮），点开新的 `HiddenComponentsDialog.vue` 列出图标 + 名称 + type，支持逐个恢复与全部恢复
-  - 拆分随功能发生：`component-panel.scss` 原本 487 行，卡片样式再长就会越过 500 行阈值，把 `.component-group` 整块移到新的 `src/styles/component-card.scss`（主文件降到 377 行）；`ComponentPanel.vue` 拆完卡片后仍涨到 414 行超 400 阈值，于是把搜索盒（展开/收起 + placeholder 跑马灯测量）拆成 `LibrarySearchBox.vue`，面板降到 318 行，查询文本与过滤结果仍归面板的 `useComponentSearch`
-  - 实测：新增 `hiddenLibrary.test.ts` 6 用例 + `useHiddenComponents.test.ts` 7 用例（隐藏/幂等/恢复/全部恢复/跨刷新保留/失效 type 不计数/单例共享）；全量 57 文件 / 511 用例零失败，JSON 报告逐文件与磁盘清单比对一致；`vue-tsc --noEmit` 通过。**浏览器实测抓到一处只有跑起来才暴露的问题**：`<Close />` 未注册导致 × 位置一片空白——图标是白名单注册（`main.ts` 的 `usedIcons`，全量注册会把 294 个图标都打进包），已补 `Close`。红底与贴角这两步最终由用户在真浏览器里目视定稿；**隐藏标签页不是可靠的判据**：那里的 `getComputedStyle` 会返回旧值（我给它注入一条全新的 `rgb(1,2,3)` 规则，读出来仍是灰底），要核对样式的落地只能看真窗口，或退一步用 `fetch('/src/styles/xxx.scss?direct')` 看服务端下发的编译 CSS（这条能证实规则已在位、选择器已命中，只是证明不了渲染）
-
-- 装饰组件新增「导航」标题栏（992×62）
-  - 动因：源产品组件库里唯一值得补的一项——蓝色科技风横幅（渐变底 + 中央装饰框 + 虚线，无文字，做大屏标题栏时用户自行叠文字组件）。此前未导入的原因记录在 manifest 的 deco _note：源文件是 PNG，而导入管线只认 SVG
-  - 导入脚本新增 PNG 通道：`.png` 素材读为 base64、包成 viewBox 取固有像素的 SVG `<image>`，与矢量图元共用同一条图标管线——styleIcon 对无 `data-face` 标注的内容原样放行（2D/2.5D 外观一致），getIconImage 只做 currentColor 字符串替换、data-URI 原样穿透；manifest 追加 `deco_nav`（src `desc/real/_desc00.png`，源图 1984×124 为 @2x，元素默认尺寸按源产品取 992×62）
-  - 代价如实记录：118KB PNG → 约 158KB base64 进包（dist 3.1M 的约 5%，gzip 后基本不缩）。只值得给这类无文字装饰横幅用；带文字的贴图仍应另行托管，勿走此通道
-  - 已知边界：导航与其他装饰组件一样带 state 三态契约，但 raster 颜色固有、不随状态变色——配状态规则不会有视觉变化
-  - 横管 / 竖管维持不导入：源配置里两项 src 都错指到 `_desc09.svg`（与四通同源），且本项目已有原生「管道」组件
-
-- 组件库新增跨 Tab 搜索与「最常使用」Tab；移除「自定义组件」Tab
-  - 动因：组件已达数百个，找一个组件要在几个 Tab 里逐个翻；高频组件（矩形、文本、时间）每次组态也要重复找一遍
-  - 搜索（按用户两次要求调整过位置与形态）：最终形态是**头部内嵌的展开式搜索**——位于「组件库」标题右侧、新建按钮左侧，默认只显示放大镜图标，点击展开为输入框（自动聚焦），Esc 或再点图标收起；**收起即清除**，避免输入框看不见了过滤却还在生效。匹配「组件名 / type / 分组显示名」（大小写不敏感；设备模板按名称匹配），覆盖最常使用 / 基础 / 行业三个 Tab 与自定义组件。有命中的 Tab 自动激活（当前 Tab 无命中时跳到第一个有命中的 Tab）并带右上角小圆点，命中组件高亮（主题色边框 + 浅底 + 名称变色），非命中项在搜索态下隐藏
-  - 「最常使用」Tab 置于最前并作为默认 Tab：按组件类型统计拖入画布次数，取前 12 个（4 行 × 3 列），同次数按名称排序保证稳定；计数经 `scada_component_usage` 键持久化（storage 适配器，远程/本地模式都可用，与工程数据解耦），落件后经 `scada-usage-changed` 事件刷新面板；模板落件计入其底层组件类型；无记录时显示引导空态
-  - 移除「自定义组件」Tab（用户要求）：设备模板与自定义图形不再常驻面板，改为**只经搜索触达**——搜索命中时以「自定义组件」小节附在结果末尾，卡片保留编辑 / 删除 / 拖拽；新建自定义组件后自动按名字展开搜索，组件立刻可见（否则新建完在面板里没有任何落脚点）
-  - 结构（.vue 400 行门槛，当次拆完再提交）：注册块、分组清单与分组显示名从 `ComponentPanel.vue` 拆至 `src/industrial/panelRegistry.ts`；搜索逻辑在 `src/composables/useComponentSearch.ts`；最常使用数据在 `src/composables/useMostUsedComponents.ts`；计数持久化在 `src/industrial/usageLibrary.ts`。面板文件 341 → 349 行
-  - 实测：新增 `usageLibrary.test.ts` 6 用例（累加 / 空 type / 坏数据过滤 / 数组与损坏 JSON 兜底）；全量 **55 文件 / 498 用例**零失败（json 报告与磁盘清单逐文件比对一致，无 Errors）；`pnpm build`（含 vue-tsc）通过
-  - 文档同步：README 组件库段落改为三 Tab + 头部搜索口径；USER_GUIDE 简介与编辑器表格「组件库」行重写，5.6 设备模板改「搜索框输入模板名」，7.8 自定义组件改为「搜索触达」口径，新增 5.9「组件库：搜索与最常使用」
-
-### 优化
-
-- 预览页 HUD 与登录页的 emoji 换成线性图标
-  - 动因（用户反馈）：预览页顶部工具栏一排 🔔 / 🔒🔓 / 📋 / 🌙☀️ 是系统彩色 emoji，「AI 味太浓」，且与编辑器工具栏那套单色线性图标不成一体；登录页的 👤 / 🔒 / 🌙 同一批一起处理
-  - 改动：`PreviewHeader.vue` 八个按钮统一走 `ToolIcon`（编辑器工具栏同一图标系统，24 viewBox / stroke 1.7 / 只吃 `currentColor`，因此自动跟随 HUD 文字色与 `danger`/`locked`/`on` 的换色）；`login/index.vue` 用户名与口令输入框前缀、右上角主题圆钮同样改走 `ToolIcon`（复用既有 `user` / `lock` 字形）；两处主题按钮从 ThemeToggle 的 `emoji` 插槽属性换回 `icon`，`useThemeToggle` 的 emoji 通道至此无调用方，留待后续清理
-  - `ToolIcon.vue` 补 `back` / `prev-page` / `bell` / `lock` / `unlock` / `rotate` / `fullscreen` / `audit` 八个字形；顺带把 `←` `⤺` `▶▶` `⛶` 四个 unicode 字符一起换掉（`⤺` 在部分字体下落为豆腐块；轮播按钮原先恒显 `▶▶`、只靠 `.on` 边框区分状态，换成环形箭头后图标本身可读）。返回箭头按用户选定的口径做成**单尖角 ‹**（不带箭杆），与右侧 `⏮ 上一画面` 区分层级
-  - 尺寸：HUD 用 `:deep(.tool-icon)` 收档——ToolIcon 自身固定 18px 对 32px 高的 HUD 按钮偏大，文字按钮取 15px、纯图标按钮取 17px；登录页输入框前缀 16px（`.input-icon` 改 inline-flex），主题圆钮沿用默认 18px
-  - 实测：系统 Chrome 无头把 15 个字形按实机档与放大两档渲染成图片逐一目视核对（形状、闭合、居中、与 12px 中文并排的视觉重量）；预览页真机（`/preview?project=示例工程-水泵房`）DOM 量得 8 个按钮全部出图、描边 `rgb(215,228,232)` 随 HUD 文字色、`.hud-bar` 文本内已无 emoji 码点；vitest 全量 **57 文件 / 511 用例**零失败（本轮无 `Errors`，逐文件与磁盘清单一致）；`vue-tsc --noEmit`、`pnpm build`、check-long-files 通过；eslint 改动文件 0 错误（PreviewHeader 仅 1 条既有 `<img/>` 自关闭警告，非本次引入）
-
-- 工具栏标题区视觉基线对齐 + 搜索 placeholder 跑马灯
-  - 动因（用户反馈）：① 铅笔编辑图标与「未保存」标签肉眼上看比项目名称「更向上、更高」；② 搜索框 placeholder「搜索组件名称或分组」被截断只能看到一部分，希望滚动展示全文
-  - 对齐问题的定位过程值得一记：盒子中心与**墨迹中心**实测都居中（三种 DPR 下像素级分析 Δ ≤ 0.7px，DPR 1 / 1.25 / 1.5 各测一轮），但**基线**差是真的——16px 标题基线 y=32，12px 标签文字基线 30.5、16px 图标墨迹底 31，都浮在标题基线上方 1~1.5px。人眼判读并排文字按基线而非几何中心，小字基线偏高读作「被抬高了」。修复：铅笔 `translateY(1px)`、标签 `translateY(1.5px)`，把墨迹底/基线压回与标题齐平
-  - placeholder 跑马灯：原生 placeholder 无法滚动，改为覆盖层方案——输入框 `placeholder` 移除（a11y 由 `aria-label` 承担），空态时叠加 `.search-ph`（与文本区同位、`overflow: hidden`、`pointer-events: none`），其内轨道文字用 keyframes 在 0 与 `--ph-shift` 间缓滚（6s ease-in-out alternate，两端各停 1.8s）；`--ph-shift` 由组件量出（轨道宽 − 可视宽，140px 盒下为 19px），放得下时为 0 不动；`prefers-reduced-motion` 下停用。量测时机：展开过渡 `@after-enter` 与 × 清空后（`watch` + `nextTick`）
-  - 实测（系统 Chrome，DPR 3）：`--ph-shift` 量出 19px（轨道 111 − 可视 92）、动画名生效、computed transform 随时间推进（0 → −14.2px）；强制内联 `translateX(-19px)` 后截图确认覆盖层真实绘制、尾部「分组」露出。⚠️ 无头截图对合成器动画会冻结（两次相隔 2.6s 的截图字节相同但 computed transform 在走），判别时以 computed 值 + 强制内联对照为准，勿据截图断言「没动」
-  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误且两文件警告画像与改前逐规则一致（ComponentPanel.vue 101 = 101）；vitest 全量 **55 文件 / 498 用例**零失败；check-long-files 通过；三文件行尾 CRLF 无混杂
-
-- 组件库面板标题防折行 + 组件名悬停显示全称
-  - 动因（用户反馈）：① 搜索框展开时「组件库」的「库」字掉到下一行；② 部分组件名过长显示省略号，希望悬停能看完整名称
-  - 折行根因（浏览器实测定位，非猜测）：`.panel-header` 的标题无防折行保护（flex 项默认 `flex-shrink: 1`），且 `.header-actions` 的 `min-width: auto`（flex 项自动最小尺寸 = 内容宽 170px）卡死整条收缩链——搜索盒展开后头部溢出，压力全砸在标题上把文字挤折行。修复三件套：标题加 `.panel-title`（`flex-shrink: 0` + `white-space: nowrap`）、`.header-actions` 加 `min-width: 0` 解除自动最小宽、图标按钮槽 `flex-shrink: 0`——空间不足时由搜索盒收缩吸收
-  - 实测（强制压窄模拟极端）：248px 正常态展开后标题单行、搜索盒 140px；压到 230 / 214px 标题仍单行，搜索盒缩到 131 / 115px 吸收挤压（修复前 214px 时搜索盒不缩、头部直接溢出）
-  - 悬停全称：四类组件卡片（最常使用 / 基础 / 行业 / 自定义图形与设备模板）加原生 `title` 属性，名称被省略号截断时悬停可见全名
-  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误（ComponentPanel.vue 警告 97 → 101，+4 为新增 `:title` 行沿用所在块既有 html-indent 缩进风格，非新增问题类别）；vitest 全量 **55 文件 / 498 用例**零失败（本轮逐文件与磁盘清单一致、无遗漏）；check-long-files 通过；两文件行尾 CRLF 无混杂
-
-- 组件库搜索交互收敛：失焦自动收起 + 去掉命中项高亮
-  - 动因（用户反馈）：① 搜索完结后组件不应保持高亮——「搜索到的组件，选中了也不要高亮」；② 鼠标移出搜索框（失焦）时应自动缩回成搜索图标
-  - 去掉 `.component-item.hit` 命中高亮（teal 边框 + 浅底 + 名称变色）：搜索态下非命中项本就被隐藏、命中项即唯一可见内容，整屏 teal 没有区分度；命中定位交给 Tab 级指示——自动激活 + 右上角圆点 `.has-hit`（保留）。此项撤掉了初版「当前搜出的组件也高亮」的视觉部分，过滤与 Tab 逻辑不动
-  - 输入框 `@blur` 即收起（沿用「收起即清除」）；框内放大镜与 × 按钮加 `@mousedown.prevent` 阻止焦点移出触发 blur——否则点 × 会连框一起收起（而非只清文本）、点放大镜则会收起两次
-  - 文档同步：USER_GUIDE 5.9 的高亮与收起描述改写
-  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误且 ComponentPanel.vue 警告数 99 → 97（html-indent 91→89，零新增）；vitest 全量 **55 文件 / 498 用例**零失败（首轮沙箱拦掉 elementMotion / expression / StatusEngine 三文件，补跑 60 用例全过，逐文件与磁盘清单一致）；check-long-files 通过；三文件行尾 CRLF 无混杂
-
-- 组件库搜索改为「圆形图标按钮 + 展开搜索盒」形态：图标按钮与「+」同款（el-button small circle + Search 图标），点击后搜索盒以宽度过渡展开，放大镜收入输入框内（原为独立图标按钮悬在输入框外，视觉脱节）；placeholder 恢复为初版口径「搜索组件名称或分组」
-  - 动因：用户反馈两点——① 放大镜图标跑到了搜索框外面；② 搜索按钮样式应与右侧「+」一致且有点击展开效果
-  - 匹配范围未动（组件名 / type / 分组显示名，大小写不敏感，设备模板按名称）——初版即是此口径，用户要求的「组件名、分组名、类型」已全覆盖，无逻辑改动
-  - 结构：`main.ts` 注册 Search 图标（与 Plus 同一处 usedIcons）；ComponentPanel.vue 头部搜索块重写——`<transition mode="out-in">` 做「圆形按钮 ↔ 搜索盒」交换（两者不同时在场，无布局重叠），展开动画为搜索盒 width 0→140px，`@after-enter` 聚焦输入框；框内放大镜为收起按钮（点击或 Esc 收起，收起即清除）；component-panel.scss 的 `.header-search` 块随之重写
-  - 文档同步：USER_GUIDE 5.9 收起交互描述改为「Esc 或点击框内放大镜」
-  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误且 ComponentPanel.vue 警告画像与改前逐规则一致（99=99：html-self-closing 5 / html-indent 91 / no-v-html 3，零新增）；vitest 全量 **55 文件 / 498 用例**零失败（首轮沙箱拦掉 expression / alarmStore 两文件，补跑 40 用例全过，逐文件与磁盘清单一致）；check-long-files 通过；四文件行尾 CRLF 无混杂
-
-- Element Plus 改为按需引入：移除 main.ts 的全量 `app.use(ElementPlus)`、全量 CSS 与全量图标注册，交还 unplugin 的 ElementPlusResolver 接管——此前「按需配置」被全量引入抵消，组件样式与 294 个图标全部无条件进包
-  - 动因：`vite.config.ts` 配了 `unplugin-auto-import` + `unplugin-vue-components` 的按需 resolver，而 `main.ts` 同时全量 `app.use` + `import 'element-plus/dist/index.css'` + 遍历注册全部图标，按需配置形同虚设
-  - 图标从全量 294 个收敛到实际用到的 22 个（模板标签 + 右键菜单 `:is` 字符串引用，逐个扫描核对）；官方暗色变量 `dark/css-vars.css` 保留（teleport 弹层/表格行转暗依赖它）。~~`ElMessage` / `ElMessageBox` 样式由 auto-import resolver 按需注入~~——此判断有误，见下方「修复」：resolver 不处理显式 import，编程式组件样式须在 main.ts 手动补引
-  - 实测：`pnpm build`（含 vue-tsc）通过；产物对比——`vendor-element` JS 1072 KB → 930 KB（-13%）、CSS 363 KB → 165 KB（-55%），合计约 -340 KB
-
-- 项目列表加载骨架屏与配置弹窗按需加载：首页项目网格从远程存储取数期间渲染 3 张脉冲占位卡片（此前先闪空态再出现卡片）；首页 6 个配置弹窗与工具栏 2 个弹窗改 `defineAsyncComponent` + `v-if` 打开才挂载，不再打进首屏 chunk
-
-- 滚轮缩放与拖拽对齐参考线写入按帧合帧：触控板滚轮每帧可触发多次 wheel，原先每次事件都写 store 触发整树更新，现合并到每帧一次（一帧内多个事件只生效最后一个，缩放不再按事件数爆发）；拖拽中 `alignGuides` 的响应式写回同样 rAF 合并，吸附调整（node 位置）保持同步，拖拽手感不变；组件卸载时取消挂起的 rAF
-
-### 修复
-
-- 首页顶栏主题切换按钮仍带矩形外框：`:deep()` 写在全局 scss 里导致整条圆形按钮规则被丢弃
-  - 动因（用户反馈）：主页的主题切换按钮外面有一个矩形框，希望去掉
-  - 根因：`dashboard.scss` 由 `views/dashboard/index.vue` 以 `import './dashboard.scss'` 引入，是**全局样式**；而 `:deep()` 只有 SFC `<style scoped>` 才会被 `@vue/compiler-sfc` 展开，全局文件里它原样输出成 `.nav-actions :deep(.theme-toggle)`，浏览器按无效伪类**丢弃整条规则**——按钮因此退回 Element Plus 默认外观（6px 圆角矩形 + 1px 边框）。原注释「父级 scoped 取不到、需 :deep 穿透」把引入方式记错了，`<style src scoped>` 那套只适用于 `toolbar.scss`
-  - 同一逗号组里的 `html[data-theme='light'] .sys-chip` 也被连带丢弃，亮色主题下「系统设置」胶囊的实底规则一直没生效
-  - 修法：两处选择器改为普通后代 `.nav-actions .theme-toggle`；顺带补 `flex: none`——按钮作为 flex 项默认 `flex-shrink: 1`，顶栏空间不足时会被压扁（实测 150px 容器内缩成 14×40，正是一个矩形），圆形象征不该参与收缩
-  - 副作用如实：`.sys-chip` 的亮色实底规则随本条修复一并恢复，亮色下「系统设置」胶囊底色变为 `--bg-tertiary`（此前只剩近乎看不见的白色叠加层，与顶栏同色）
-  - 实测：dev server 的编译产物里选择器已输出为 `.nav-actions .theme-toggle`（`hasDeep: false`）；把该样式表注入页面并按顶栏结构建探针量得 `border-style: none` / `border-radius: 999px` / 40×40 正圆、18×18 图标四边留 11px 居中无溢出，加 `flex: none` 后 150px 窄容器仍为 40×40。⚠️ 内置浏览器窗口未展开导致截图不可用（`visibilityState=hidden`），本轮以计算值 + 几何量测代替目视；探针 DOM 与注入样式已清理
-  - 同类排查：`toolbar.scss` 经 `<style src="./toolbar.scss" scoped>` 引入，其 `:deep()` 有效、不动；`src/components/dialogs/data-source.scss` 全仓无引用（孤儿文件），其中的 `:deep()` 不影响运行，未处理
-
-- 恢复草稿等 `ElMessageBox` / `ElMessage` 弹层样式破损：按需引入改造后这些编程式组件（显式 `import { ElMessage } from 'element-plus'` 后函数调用，非模板 `<el-xxx>` 标签）的样式无人注入——auto-import resolver 只对「未显式 import、靠它补进来的符号」注样式，显式 import 的 16 个文件全部漏掉，弹出的是无样式裸 DOM（恢复草稿弹窗文字发暗、按钮裸奔）。`main.ts` 全局补引 `message` / `message-box` 两个样式入口（其 css 链自带 base/input/button/overlay 依赖），覆盖全部调用点
-  - 实测：`pnpm build`（含 vue-tsc）通过；暗色主题下恢复草稿弹窗样式正常
-
-- 缩略图与标尺跟随主题切换：MiniMap / CanvasRuler 是 Canvas 2D 绘制、原先调色板硬编码暗色（`#10141f`、`#151a28` 等），亮色主题下视觉破损。新增 `src/composables/useThemeCssVars.ts`（`readThemeVar` 读变量 + `useThemeTick` 经 MutationObserver 监听 `data-theme`），配色抽进 variables.scss 双主题变量（`--minimap-*` / `--ruler-*`），主题切换即重绘；顺带修复 MiniMap 的 ResizeObserver 未在卸载时断开
-  - 实测：新增 `useThemeCssVars.test.ts` 3 用例（变量读取 / 缺失回退 / tick 递增与观察器断开）
-
-- 预览页加载失败不再死路：原先 `loadPublishedProject` 失败仅弹一条 ElMessage 后 return，页面停在空白 HUD 无任何出路。现分 `loading / ready / failed` 三态——加载中显示转圈等待（远程存储有明确等待态），失败渲染错误占位页（工程名 + 原因提示 + 重试 / 返回首页 / 返回编辑器），重试复用同一加载函数
-
-- 历史数据的保留期一直形同虚设，过期分片从没被删过一个
-  - 动因：给 `server/lib/history.mjs` 补单测时，`cleanupExpiredShards` 的两条用例返回 0，顺着查出来的——不是测试写错，是这条清理链路从上线起就没起过作用
-  - 根因：目录层级写死成一层。分片实际落在 `HISTORY_DIR/u/<userId>/`（命名空间 `scopeOf()` 带 `u/` 前缀），而旧实现 `readdir(historyRoot)` 只取到 `u` 这一个**目录名**，再列一层拿到的是用户目录名，`.(\d{8})\.jsonl$` 一个都匹配不上 → 每次返回 0。启动时那次与 24 小时的定时器都安静地空跑，既不报错也不打日志，历史文件只会无限增长
-  - 修法：改成递归生成器 `iterShardFiles()` 遍历到任意深度，凡文件名尾部带 8 位日期段的 `.jsonl` 都算分片，日期用定长字符串比较（`YYYYMMDD` 字典序即时序），等于保留期边界当天的分片不删。符号链接的 `Dirent.isDirectory()` 为 false，递归不会成环
-  - 实测：`history.test.ts` 3 条清理用例（跨用户目录、边界当天保留、保留期非正数不动）；真跑一次端到端——写入 9 天前与今天两个分片后用 `HISTORY_RETENTION_DAYS=1` 重启，只有旧分片被删除、今天的完好
-  - 影响面：修好后第一次运行会把积压的过期分片删掉（默认保留 30 天）。数据目录里若存在人为命名成 `xxx.20200101.jsonl` 的文件会被一并清理
-
-- 用户名带前后空格能建出重名账号，新账号从此登录不了
-  - 动因：`auth.test.ts` 里按「`"  admin  "` 应判重名」写的用例如实失败，暴露出 `createUser` 的两步不一致：查重用**未 trim** 的原值比较，落库却存 `String(username).trim()`
-  - 后果：`"  admin  "` 通过查重、存成 `admin`，账号表里出现两个同名用户；`login()` 按 `u.username === username` 取第一个匹配，后建的那个（角色可以完全不同）永远登不进去，管理员只会看到「建了个账号但登录进去是另一个角色」。`username: '   '` 同理能建出**空用户名**账号
-  - 修法：入口处先 `trim` 成 `name`，校验非空、查重、落库、`displayName` 回落全部用这一个值
-  - 实测：`auth.test.ts` 两条用例；真跑 `POST /api/auth/users` 传 `"  admin  "` 返回 `400 {"error":"username exists"}`
-
-- 原子写在同一目标上并发时**静默丢写**：临时文件撞名 + Windows rename 顶撞，而调用方把失败 catch 掉了
-  - 动因：不是看出来的，是被一条不稳定的新用例逼出来的——会话摘要化之后 `auth.test.ts` 在全文件顺序下随机失败（单跑通过、纯 node 复现通过）。把 `persistSessions` 的 catch 临时改成打印 `stderr`，才拿到现场：`EPERM: operation not permitted, rename '..._sessions.json.<pid>.<ms>.tmp' -> '..._sessions.json'`。写没落地，而调用方认为「落盘失败不阻断登录」，于是丢的是一次无人知晓的写入
-  - 三个独立成因，逐个补：
-    - 临时文件名只按「pid + 毫秒」拼。`Date.now()` 是毫秒分辨率，两次并发登录落会话几乎必然同毫秒 → 同一个 `.tmp` 路径，先 rename 走的那次让另一次报 `ENOENT`。改法是加进程内自增序号
-    - 同一目标并发 rename 在 Windows 上会顶撞：目标正被另一个句柄替换时返回 `EPERM`。实测本机 **2 路并发 × 25 轮命中约 16%**（30 路则 18/30 失败），POSIX 上不存在这个问题，所以只在 Windows 部署时随机掉数据。改法是同一目标路径的写**排队串行**（按绝对路径挂 Promise 链，排空即释放条目，不同目标仍并发）
-    - 排队也躲不开「目标被别的句柄短暂占用」——杀软与索引服务在写完/读完的一瞬间抓着文件。这一类只能等，所以 rename 对 `EPERM`/`EBUSY` 做 `[10, 40, 120, 300]ms` 的**有界退避重试**，其余错误照抛
-  - 波及面：`_users.json`、`_sessions.json`、`_notify.json`、KV 存储的每个 key 文件都走这个函数。账号表写失败会返回 500（可见），会话与审计写失败是 catch 掉的（不可见）——后者才是这条的主因
-  - 实测：新增 `server/lib/atomicWrite.test.ts` 4 用例（20 路并发同目标全部成功且落盘是某一份完整内容、连续覆盖最后生效、一次写失败不卡死队列也不留临时文件、不同目标并发互不干扰）；改前脚本复现 2/4/8/16 路并发分别失败 8/21/58/114 次，改后同为 30 路并发失败 0；`auth.test.ts` 由「5 轮里 2 轮随机失败」变成连跑 5 轮全绿
-  - 未处理：跨进程的写竞争（两个 `node server/index.mjs` 指同一 `DATA_DIR`）不在本条范围内，那属于部署错误，加固清单里已有「5174 只对本机或内网开放」
-
-- 标题一 / 标题二拖入画布一片空白（连带按钮、背景一、背景2、磁选机）：导入脚本把 `<defs>` 里的 id 删光了，图元的可见部分全靠这些 id
-  - 动因（用户反馈）：装饰分组的标题一、标题二拖到画布上「啥也没有」，连选中框里也是空的
-  - 根因：`scripts/import-subunit-assets.mjs` 的净化第 1 步是 `replace(/\s+id="[^"]*"/g, '')`，而 Sketch 导出的 `<linearGradient id="linearGradient-1">` 和纯装饰的图层名 `<g id="图标">` 用的是同一个属性——两者被一起删了。`fill="url(#linearGradient-1)"` 于是指向不存在的 paint server，浏览器解析不出即当作 **none**，图元整张透明，控制台一声不响
-  - 为什么只有 decor（装饰）组暴露：标题一 / 标题二的可见部分**全是渐变**，没有任何实色描边兜底；按钮与背景一 / 背景2 还剩一圈实色描边，看着是「很淡的线框」而不是「丢了东西」，一直没被当成 bug 报上来
-  - 顺着同一条线又查出两个同源故障，都是「id 处理」这一处的漏网写法：
-    - **磁选机**（`wash_magnetic_separator`）的 mask 靠 `<use href="#path-1">` 拼出通版，`url(#x)` 之外的第二种引用写法当年不在考虑范围内，id 照删 → `<use>` 落空 → mask 变空 → 整台设备被完全裁掉，同样是「画布上啥也没有」
-    - 那个 `path-1` 本身还是个只带 opacity、没有实色 fill 的 rect，正好命中第 2 步「隐形底衬矩形」的剥离条件，一同被删——所以**保留 id 之前必须先算清谁在被引用**，否则加了白名单也救不回来
-    - `xlink:href` 依赖命名空间声明，而第 1 步刚把 `xmlns:xlink` 删了：文档没有这个前缀的绑定，浏览器不认这个属性。统一转成不需要命名空间的 SVG2 `href`
-  - 修法（`scripts/subunit-svg.mjs`）：新增 `referencedIds()` 收集 `url(#x)` / `href="#x"` / `xlink:href="#x"` 三种引用；`normalizeIds()` 只删无人引用的 id，被引用的统一加 `<type>-` 前缀（组件面板用 `v-html` 把多张图标注入同一文档，同名 id 只有第一个生效）；`stripInvisiblePlates(svg, keepIds)` 跳过被 `<use>` 拼进 mask 的元素；`validateSvg()` 补**悬空引用自检**——这次的三处故障全都能被这一条拦住
-  - 顺带拆分：本次把纯函数层抽到 `scripts/subunit-svg.mjs`（157 行），主脚本从 413 行落回 316 行——跨过 400 行门槛就必须当次处理，与当年拆 `subunit-preview.mjs` 同一手法
-  - 重新生成 `src/industrial/deco/`（11 图元，5 行变化）与 `src/industrial/wash/`（17 图元，1 行变化 + 过期的文件头注释）。其余 5 个分组的源文件不涉及 paint server，`--scan` 全量 264 个 SVG 零悬空、不可见底衬剥离数仍是 123（说明 keepIds 没有松开口子）
-  - 实测（headless Chrome，把每个图元按管线渲染到 canvas 数非透明像素）：标题一 0 → 0.90、标题二 0 → 0.60、按钮 0.124 → 0.916、背景一 0.031 → 0.992、磁选机 0 → 0.28（它是纯线条稿，正常只剩描边）；几何不变——把渐变临时替换为实色对照，覆盖率与修复后一致，证明是 paint 失效而非内容缺失
-
-### 安全
-
-- 种子口令的文档与部署示例仍写死 `admin123`，照做的全新部署必然登录失败
-  - 动因：`server/auth.mjs` 的种子口令早已改为随机生成（0.0.5 的对应条目），但三处说明没跟上——DEPLOY §5.4 的账号表按「每账号一个口令」列了 `admin123`/`engineer123`/`operator123`/`viewer123`（实际四账号**共用**一个随机口令）、§3.1 的 curl 示例直接写死 `admin123`、USER_GUIDE 账号表同样带口令列。本机之所以还能登，是因为 `server/data/_users.json` 是改造前种的，属存量巧合，不代表文档正确
-  - 改法：§5.4 改为「共用随机口令 + 只在首启日志打印一次 + `SEED_PASSWORD` 可预先固定 + 日志丢失时删 `_users.json` 重新播种」；§3.1 curl 用 `<初始口令>` 占位并注明取值来源；§6 加固清单补上「共用口令必须逐个改」的理由（任一账号泄露即四账号全泄露）；USER_GUIDE 账号表去掉口令列，并说明登录必须连后端（`authStore.login` 只打 `/api/auth/login`，没有离线登录路径）
-  - 「删表重新播种不丢工程」这条已核对成立：种子 id 固定为 `usr_seed_0..3`，数据按 `u/<userId>/` 命名空间存放，重新播种后 id 不变
-  - 顺带补齐 §5.2 后端环境变量表缺失的 5 项：`HOST`、`SEED_PASSWORD`、`NOTIFY_ALLOW_PRIVATE`、`NOTIFY_TIMEOUT_MS`、`SMTP_REJECT_UNAUTHORIZED`。默认值逐个读码核对（`server/index.mjs:56`、`server/auth.mjs:147`、`server/notify/common.mjs:58-61`、`server/notify/email.mjs:11`），未照抄 `.env.example` 注释
-  - 未动的代码：`src/auth/seedUsers.ts` 与登录页「演示账号（点击填入）」仍展示 `admin123` 等口令，其头注释还声称「与 server/auth.mjs 首次启动写入的账号一致」——这是 UI 行为改动（要定「只填用户名」还是「整块撤掉」），留待确认口径
-
-- 会话令牌不再明文落盘：`_sessions.json` 只存 SHA-256 摘要，内存 Map 也改以摘要为键
-  - 动因：`_sessions.json` 里存的是**活跃登录态的原始令牌**，TTL 12 小时内一直可用。谁读到数据目录就等于拿到全部在线账号的登录凭证——备份、容器日志、误传的 `data/`、一次误加的 `git add` 都算「读到」，而不需要任何口令。同目录的 `_users.json` 早就做到只存 `salt:hash`，会话这一侧是明显的不对称
-  - 改法：签发时仍返回随机令牌（`login` 响应是它唯一一次以明文出现），服务端各处只持有 `sessionKey(token) = SHA-256(token)`；每次请求对带来的令牌现算一次摘要再查表。口令用 scrypt 是为了抗爆破，令牌是 192 位随机值、搜索空间已经够大，摘要只需**抗原像**，慢哈希反而白付一次登录延迟
-  - 旧文件的处置是**不迁移、不沿用**：识别到旧格式（有 `token`、无 `tokenHash`）时那些会话一律作废——它们已经以明文在磁盘上待过，无法证明没被读过，继续认等于把「加固」让位给「少一次登录」。同时 `init()` 当场把文件改写成摘要格式，不等下一次登录/注销，否则升级完明文还要一直躺到有人登录为止
-  - 影响面（需告知在线用户）：**升级到本版本后所有既有会话失效，所有人重新登录一次**；已写入 [docs/DEPLOY.md](docs/DEPLOY.md) §5.5。备份数据目录不再等于备份出一批可用凭证，这条也写进了同节
-  - 连带修出一处：`resolveToken()` 判过期后原来是 `sessions.delete(token)`，键换成摘要之后这行**等于没删**——过期会话留在内存并随下次登录写回磁盘。改为删摘要键，判据做成用例：过期后先 `resolveToken` 再 `logout(token)`，若删除生效应报 `false`
-  - 顺手拆分（本次改动把 `server/auth.mjs` 从 387 行推到 411 行，越过 400 阈值，按 AGENTS.md 当次拆完）：密码学原语 → `server/lib/credentials.mjs`，登录失败限流 → `server/lib/loginGuard.mjs`（`createLoginGuard({ maxFails, lockMs })`，`isLocked/noteFail/clear` 三个动作，行为逐字保持），`auth.mjs` 落回 345 行。`ROLE_RANK` / `roleAtLeast` / `createAuthStore` 的导出面不变，五个路由的 import 无需改动
-  - 实测：`auth.test.ts` 新增 3 用例（磁盘只见 `tokenHash` 且等于手算摘要、无 `token` 字段、注销后文件回到 `[]`；旧明文条目不迁移且启动即改写；过期即删）；新拆两模块各配同目录测试 `credentials.test.ts` 6 用例（`salt:hash` 格式、同口令不同盐、畸形存储一律 false、摘要稳定且不含原文）、`loginGuard.test.ts` 4 用例（第 5 次才锁、两维任一命中即锁、锁定过期后计数从头攒——即 `until=0` 那个易改错的分支、`clear` 只清指定维度）；`pnpm typecheck:server` 通过（拆分后 `tsc` 是唯一覆盖服务端 `.mjs` 的把关）
-  - 真跑（`PORT=5199` + 临时 `DATA_DIR`，与本机 5173/5174 的实例错开）：预置一份旧明文会话文件后启动 → 文件立刻变成 `[]`；登录 → 磁盘只有 `tokenHash` 且与手工 `SHA-256` 逐字节相等、不含明文；重启进程 → 同一令牌 `GET /api/storage/get` 仍 200、缺令牌 401（会话恢复可用）；`logout` → 文件回到 `[]`、同令牌转 401。临时进程与数据目录已停、已清
-
-### 测试
-
-- 存储后端第一次有单测：5 个文件 64 用例，覆盖路径隔离、账号与会话、HTTP 门禁、时序分片与 JSONL
-  - 动因：`server/**` 是 2135 行、承担登录与全部工程数据读写的服务，仓库里却一个测试文件都没有——唯一把关是 `pnpm typecheck:server`，而类型自洽挡不住路径拼接、限流窗口、保留期这类行为错误。上面两条修复就是补测过程中直接撞出来的，不是先修再补测
-  - 覆盖清单：
-    - `server/lib/kv.test.ts` 12 用例——`scopeOf` 的三个命名空间、用户 id 里的 `/` 被编码后逃不出自己的目录；`keyError` 挡 NUL 与「**编码后**长度」上限（一个汉字膨胀 9 倍，只看原始长度挡不住 `ENAMETOOLONG` 变 500）；`../` 注入落不回 dataDir 之外、`..` 因固定 `.json` 后缀只会得到同目录怪文件名；跨用户同名 key 互不可见；原子写不留过程文件
-    - `server/auth.test.ts` 20 用例——角色等级序、种子四账号、`_users.json` 只有 `salt:hash` 且不含明文口令、同口令不同盐、令牌签发/注销/12 小时到期、重启恢复未过期会话并丢弃过期项、会话文件损坏按空处理、**按用户名与按来源两维限流**（锁定期内口令正确也拒绝、过期后放行且不影响已签发会话）、最后一名管理员不可降级或删除、改口令后旧口令立即失效、账号表落盘重启仍在
-    - `server/lib/http.test.ts` 12 用例——`CORS_ORIGIN=*` 与白名单两种回显（未命中来源拿不到自己的域名）、`Bearer` 前缀大小写敏感、分块请求体先拼接再解码（跨块的中文不解成乱码）、超限抛 413 且边界是「超过」不是「达到」、主密钥/会话/无令牌三条鉴权支路、`requireRole` 对未登录与降级判死
-    - `server/lib/history.test.ts` 13 用例——`dayString` 补零、跨天各写一个分片、非法点跳过、闭区间与按日期挑文件、乱序读出仍升序且损坏行不牵连其余、`maxPoints` 抽稀保首尾、`min/avg/max` 窗口按 epoch 对齐、三种非法聚合参数（未知 agg / 窗口 <1s / 窗口 >24h）回落成普通查询、保留期清理三条
-    - `server/lib/jsonl.test.ts` 7 用例——新→旧排序、limit 截尾、单行损坏跳过、末行无换行符也算一条、`cap` 截断不留半截行、中文与嵌套对象原样往返
-  - 接线：`vitest.config.ts` 的 `include` 补 `server/**/*.{test,spec}.{js,ts}`。测试沿用 `shared/` 的既有写法——被测是 `.mjs`、测试写 `.test.ts`：这样 `tsconfig.server.json`（`include` 只收 `.mjs`）不会被测试文件牵进来，前端那套 `strict` 也不会去判服务端
-  - 两处环境要点：① 全局 `environment` 是 jsdom，这 5 个文件各自声明 `// @vitest-environment node`，`fs` / `crypto` 走真实实现；② 假时钟一律 `vi.useFakeTimers({ toFake: ['Date'] })` **只冻时间**——把 timer 一起接管会让 `fs` 的 Promise 也跟着假时钟走，测到的是沙箱不是代码。scrypt 让 `auth.test.ts` 单文件耗时 5 秒多，属预期成本
-  - 实测：全量 62 测试文件 / 575 用例零失败（`--reporter=verbose` 的逐文件清单与 `find src examples shared scripts server -name "*.test.ts"` 得到的 62 个一致，汇总无 `Errors`）；`tsc -p tsconfig.server.json`、改动文件 `eslint`、`pnpm build`、`check-long-files.ps1` 全过。另以 `PORT=5199` + 临时 `DATA_DIR` 真跑一遍后端（health / 登录 / 存储读写 / 历史写入与两种查询 / 无令牌 401 / 重名账号 400 / 重启触发保留期清理），临时进程与数据目录已停、已清
-
-- `src/notify/notify.test.ts` 补 `afterEach` 删除临时目录：`beforeEach` 每个用例 `mkdtemp` 一次却从不回收，本机系统临时目录里已堆了 72 个 `scada-notify-*`。清理后单文件 6 用例仍全过、跑完不留目录
-
-- 会话摘要化与原子写这一轮再加 4 个文件 / 17 用例：`server/lib/atomicWrite.test.ts` 4、`server/lib/credentials.test.ts` 6、`server/lib/loginGuard.test.ts` 4、`server/auth.test.ts` 3
-  - `atomicWrite.test.ts` 是本轮最值钱的四个：20 路并发写同一目标全部成功、落盘内容是某一份**完整** payload（拼接残片会让 `_users.json` 解析失败）、一次写失败不卡死后续队列也不留临时文件。上面那条修复的三种失败模式里，前两种只有在这个文件里才测得到
-  - `credentials` / `loginGuard` 两个文件是拆分带出来的：限流那条「锁定过期后计数从头攒」直接对着 `until=0` 这个易改错的分支写，将来谁把注释里的判断简化掉就会红
-  - `auth.test.ts` 由 20 用例增至 26（会话摘要 2 + 过期即删 1，另把「重启恢复」用例里手造的会话文件改成摘要格式）。上一轮那条「5 个文件 64 用例」的记录保持原样，改动只在本节追加
-  - 环境要点补一条：`loginGuard` 用 `createLoginGuard({ maxFails, lockMs })` 注入短窗口，就不必为了测锁定过期而 `vi.advanceTimers`——`toFake: ['Date']` 只冻时钟的老约束继续适用，`atomicWrite` 的退避重试也因此走的是真实等待（单文件 0.5 秒级）
-  - 实测：全量 **65 测试文件 / 592 用例**零失败，汇总无 `Errors`；`--reporter=verbose` 的逐文件清单与 `find src examples shared scripts server -name "*.test.ts"` 的 65 个逐一比对一致（本轮一次跑全，未补跑）；`pnpm typecheck:server`、改动文件 `eslint`、`pnpm build`、`check-long-files.ps1`（`OK: 所有文件均在阈值以内`，例外跳过 46 个 `src/industrial/*`）全过
-
-### 构建
-
-### 重构与清理
-
-- 基础组件删除阀门与泵，常用图形与信息类组件前置到面板最前
-  - 动因：① 阀门/泵与行业分组重复——水处理分组已有 `water_pump` / `water_valve` 等泵阀素材图元，基础库里再放一份稀释了「基础」的定位；② 基础 Tab 原先把设备类（储罐/设定值/数值显示/图片）压在图形与日期时间前面，而组态场景里最高频的恰是矩形/圆/线与日期/时间/视频/网页/文字/超文本
-  - 删除 `basic/index.ts` 的 `ValveDefinition` / `PumpDefinition`（`valve` / `pump` 不再注册）。画布上已放置实例按未注册类型退化为默认样式，不报错；`overlayTypes.ts` 等按 type 分发的链路与这两个类型无关，无波及
-  - 面板顺序改为在 `ComponentPanel.vue` 显式编排（注册顺序即面板顺序）：7 个基础图形 → 日期/时间/视频/网页 → 文字 → 超文本 → 设备类（储罐/设定值/操作按钮/数值显示/图片）。`basicComponents` 收敛为设备类，图形改由面板从 `basic/shapes` 引入编排；widget 的 5 个 basic 分组挂件随编排前置，`widgetComponents` 整体仍在原位注册（同 key 重复注册只覆盖值、不改位置）
-  - 文档同步：README 组件表更新基础组件清单；USER_GUIDE 状态规则示例去掉阀门；示例工程 `demo-project.json` 的 `el_demo_pump` / `el_demo_valve` 换用 `water_pump` / `water_valve`（同为水泵房场景），避免删除定义后示例图元退化
-  - 实测：全量 54 测试文件 / 492 用例零失败（`--reporter=verbose` 逐文件与磁盘清单一致；沙箱前两轮分别拦掉 StatusEngine / alarmStore，两个文件在另一轮均跑过）；`pnpm build`（含 vue-tsc）通过
 
 ## [0.0.4-261002] - 261002
 

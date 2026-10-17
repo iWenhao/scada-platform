@@ -1,6 +1,6 @@
 {
   "name": "scada-platform",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
   "description": "开源工业组态可视化编辑平台",
   "scripts": {
