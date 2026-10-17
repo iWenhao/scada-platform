@@ -2,92 +2,6 @@ import type { ComponentDefinition } from '@/types/scada'
 import { buildAssetComponents } from '../assetComponents'
 import { coalAssetIcons, coalAssetMeta } from './assets.generated'
 
-/** 采煤机 */
-export const ShearerDefinition: ComponentDefinition = {
-  type: 'shearer',
-  name: '采煤机',
-  group: 'coal',
-  // 两个截割滚筒的截齿不在这里：它们要随滚筒转动，已移入 motion.rotors
-  // （整张图标是光栅位图，位图内部的图形无法单独旋转）
-  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="6" y1="80" x2="94" y2="80" />
-      <rect x="38" y="46" width="24" height="26" />
-      <circle cx="20" cy="60" r="13" />
-      <circle cx="80" cy="60" r="13" />
-      <line x1="33" y1="55" x2="38" y2="55" />
-      <line x1="62" y1="55" x2="67" y2="55" />
-    </g>
-  </svg>`,
-  defaultWidth: 110,
-  defaultHeight: 60,
-  defaultConfig: {
-    haulSpeed: 0,
-    load: 0,
-    animate: true,
-  },
-  // 截齿绕各自滚筒圆心转动：坐标与上方图标同一用户坐标系，圆心即 circle 的 cx/cy
-  motion: {
-    driveVariable: 'speed',
-    degPerUnit: 70,
-    rotors: [
-      {
-        cx: 20,
-        cy: 60,
-        svg: `<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-          <line x1="11" y1="50" x2="7" y2="46" />
-          <line x1="29" y1="50" x2="33" y2="46" />
-          <line x1="11" y1="70" x2="7" y2="74" />
-          <line x1="29" y1="70" x2="33" y2="74" />
-        </g>`,
-      },
-      {
-        cx: 80,
-        cy: 60,
-        svg: `<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-          <line x1="71" y1="50" x2="67" y2="46" />
-          <line x1="89" y1="50" x2="93" y2="46" />
-          <line x1="71" y1="70" x2="67" y2="74" />
-          <line x1="89" y1="70" x2="93" y2="74" />
-        </g>`,
-      },
-    ],
-  },
-  statusRules: [
-    {
-      id: 'overload',
-      name: '截割过载',
-      color: '#ffa502',
-      severity: 'critical',
-      condition: { type: 'compare', variable: 'load', operator: '>', value: 90 },
-      priority: 1,
-    },
-    {
-      id: 'cutting',
-      name: '割煤中',
-      color: '#00d4aa',
-      condition: { type: 'compare', variable: 'speed', operator: '>', value: 0.1 },
-      priority: 2,
-    },
-    {
-      id: 'stopped',
-      name: '停机',
-      color: '#666666',
-      condition: { type: 'compare', variable: 'speed', operator: '=', value: 0 },
-      priority: 3,
-    },
-  ],
-  dataBindings: [
-    { property: 'haulSpeed', variable: 'speed' },
-    { property: 'load', variable: 'load' },
-  ],
-  properties: [
-    { key: 'name', label: '名称', type: 'string', default: '采煤机', group: '基本' },
-    { key: 'animate', label: '运转动效', type: 'boolean', default: true, group: '基本' },
-    { key: 'haulSpeed', label: '牵引速度(m/min)', type: 'number', default: 0, min: 0, max: 15, group: '运行参数' },
-  ],
-}
-
 /** 掘进机 */
 export const RoadheaderDefinition: ComponentDefinition = {
   type: 'roadheader',
@@ -462,7 +376,6 @@ export const CoalBunkerDefinition: ComponentDefinition = {
 }
 
 export const coalComponents: ComponentDefinition[] = [
-  ShearerDefinition,
   RoadheaderDefinition,
   ConveyorDefinition,
   FanDefinition,
@@ -470,7 +383,7 @@ export const coalComponents: ComponentDefinition[] = [
   HoistDefinition,
   CoalBunkerDefinition,
   // 综采系统（外部素材导入，9 台）：组合开关/采煤机/液压支架/破碎机/转载机等。
-  // 与手写的 ShearerDefinition 重名（同为「采煤机」，一个是线条稿、一个是素材图元），
-  // type 不同故互不覆盖；溯源见 scripts/subunit-manifest.json
+  // 手写的 ShearerDefinition 已移除——它与素材「采煤机」同名且同为综采设备，
+  // 线条稿版本是早期占位，保留素材图元；溯源见 scripts/subunit-manifest.json
   ...buildAssetComponents('coal', coalAssetIcons, coalAssetMeta),
 ]

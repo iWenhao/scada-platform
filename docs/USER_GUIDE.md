@@ -9,7 +9,7 @@
 
 SCADA Platform 是一个基于 **Vue 3 + TypeScript + Konva.js** 的开源工业组态可视化编辑平台。前后端分离架构（前端可独立运行，后端提供持久化与通知），打开浏览器即可：
 
-- 从组件库拖入工业组件搭建工艺流程画面：**14 个分组、177 种组件**，覆盖基础图形与信息挂件、通用设备、装饰、图表，以及煤矿、主运输、主通风、洗选、热力、电厂、化工、水处理、电气、管道行业；组件库支持跨 Tab 搜索与「最常使用」自动排序
+- 从组件库拖入工业组件搭建工艺流程画面：**14 个分组、176 种组件**，覆盖基础图形与信息挂件、通用设备、装饰、图表，以及综采、主运输、主通风、洗选、热力、电厂、化工、水处理、电气、管道行业；组件库支持跨 Tab 搜索与「最常使用」自动排序
 - 通过端口拖拽建立组件连线
 - 配置状态规则，让组件颜色随实时数据自动变化（运行/停止/高温/瓦斯报警等）
 - 接入 WebSocket / HTTP 轮询 / OPC UA 网关 / MQTT 实时数据源，或使用内置模拟数据调试
@@ -82,7 +82,7 @@ npx vitest run   # 单次运行
 | 区域 | 位置 | 作用 |
 |------|------|------|
 | 工具栏 | 顶部 | 左上角 Logo 点击返回主页；选择/连线/平移工具切换、标尺/小地图开关、撤销重做删除、缩放、画布配置、数据源配置、主题切换、2D/2.5D 渲染风格切换、发布/保存/导出/导入、预览 |
-| 组件库 | 左侧 | 三个 Tab：**最常使用**（按拖入次数自动列出前 12 个高频组件）、**基础组件**（基础 / 通用设备 / 装饰 / 图表 4 组）与**行业组件**（煤矿 / 主运输 / 主通风 / 洗选 / 热力 / 电厂 / 化工 / 水处理 / 电气 / 管道 10 组）共 177 种内置组件；标题右侧可搜索（组件名 / 类型 / 分组名）；悬停卡片右上角出现红色 × 可移除组件（需二次确认，可恢复）；自定义组件与设备模板不设常驻 Tab，只经搜索触达，创建后自动按名字展开搜索 |
+| 组件库 | 左侧 | 三个 Tab：**最常使用**（按拖入次数自动列出前 12 个高频组件）、**基础组件**（基础 / 通用设备 / 装饰 / 图表 4 组）与**行业组件**（综采 / 主运输 / 主通风 / 洗选 / 热力 / 电厂 / 化工 / 水处理 / 电气 / 管道 10 组）共 176 种内置组件；标题右侧可搜索（组件名 / 类型 / 分组名）；悬停卡片右上角出现红色 × 可移除组件（需二次确认，可恢复）；自定义组件与设备模板不设常驻 Tab，只经搜索触达，创建后自动按名字展开搜索 |
 | 画布 | 中间 | 1920x1080 画布，支持网格显示、组件拖放、连线绘制 |
 | 属性面板 | 右侧 | 选中组件后编辑名称、位置、尺寸、旋转、组件属性、数据绑定、状态规则 |
 | 图层管理 | 底部 | 每个图层可切换可见性（眼睛）与锁定（锁头），可新增图层 |
@@ -224,7 +224,7 @@ npx vitest run   # 单次运行
 | 分组 | 设备（变量） |
 |------|------|
 | 基础/管道/电气 | motor_1（speed, temp, vibration）、pump_1（speed, flow, pressure）、valve_1（openDegree）、tank_1（level, temp）、pipe_1（flowRate）、sensor_1（value） |
-| 煤矿 | shearer_1（speed, load）、roadheader_1（cutting, load）、conveyor_1（speed, load）、fan_1（speed, vibration）、gas_sensor_1（density, %CH4）、hoist_1（speed, load）、coal_bunker_1（level, temp） |
+| 综采 | shearer_1（speed, load）、roadheader_1（cutting, load）、conveyor_1（speed, load）、fan_1（speed, vibration）、gas_sensor_1（density, %CH4）、hoist_1（speed, load）、coal_bunker_1（level, temp） |
 | 电厂 | turbine_1（speed, temp）、generator_1（power, voltage）、boiler_1（pressure, level, temp）、transformer_1（temp, load）、breaker_1（closed） |
 | 化工 | reactor_1（temp, pressure, level）、heat_exchanger_1（flow, tempIn, tempOut） |
 | 水处理 | sediment_tank_1（level, turbidity）、sub_pump_1（running, flow） |

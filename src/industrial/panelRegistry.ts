@@ -92,7 +92,7 @@ const groupNames: Record<string, string> = {
   general: '通用设备',
   pipeline: '管道组件',
   electrical: '电气组件',
-  coal: '煤矿组件',
+  coal: '综采系统',
   transport: '主运输系统',
   ventilation: '主通风系统',
   wash: '洗选系统',

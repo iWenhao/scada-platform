@@ -12,7 +12,6 @@ import {
 import { registerComponents } from '@/industrial/registry'
 import {
   coalComponents,
-  ShearerDefinition,
   RoadheaderDefinition,
   ConveyorDefinition,
 } from '@/industrial/coal'
@@ -20,8 +19,8 @@ import {
 registerComponents(coalComponents)
 
 // —— 坐标换算：图标与可动件必须落在同一套 contain 变换上 ——
-// 用采煤机的真实几何构造：图标内容包围盒 x6..94 / y46..80（描边补偿 1.8），
-// 左滚筒截齿 x7..33 / y46..74，滚筒圆心 (20,60)。
+// 几何取一条横向双滚筒图元的实测值：图标内容包围盒 x6..94 / y46..80（描边补偿 1.8），
+// 左滚筒截齿 x7..33 / y46..74，滚筒圆心 (20,60)。数值写死在此，与组件定义解耦。
 const layout = computeElementLayout({ width: 176, height: 96, wantName: false, wantValue: false })
 const iconBounds = { x: 4.2, y: 44.2, width: 91.6, height: 37.6 }
 const frame = makeIconFrame(iconBounds, layout)
@@ -160,7 +159,7 @@ describe('非浏览器环境的降级', () => {
   }
 
   it('测量不可用时旋转件与带面都返回空，且不抛错', () => {
-    expect(getRotorConfigs(makeElement('shearer'), layout, '#0f0', '25d', 45)).toEqual([])
+    expect(getRotorConfigs(makeElement('roadheader'), layout, '#0f0', '25d', 45)).toEqual([])
     expect(getBeltConfigs(makeElement('conveyor'), layout, '#0f0', 45)).toEqual([])
   })
 
@@ -184,13 +183,12 @@ function circleCenters(svg: string): Array<[number, number]> {
 }
 
 describe('内置组件的动效定义', () => {
-  const animated = [ShearerDefinition, RoadheaderDefinition, ConveyorDefinition]
+  const animated = [RoadheaderDefinition, ConveyorDefinition]
 
-  it('只给点名的三个设备加了动效', () => {
+  it('只给点名的两个设备加了动效', () => {
     expect(coalComponents.filter(d => d.motion).map(d => d.type).sort()).toEqual([
       'conveyor',
       'roadheader',
-      'shearer',
     ])
   })
 
@@ -209,7 +207,7 @@ describe('内置组件的动效定义', () => {
   })
 
   it('可动件图形已从静态图标移出，不残留同一条图元', () => {
-    for (const def of [ShearerDefinition, RoadheaderDefinition]) {
+    for (const def of [RoadheaderDefinition]) {
       const iconTags = shapeTags(def.icon)
       const rotorTags = (def.motion?.rotors ?? []).flatMap(r => shapeTags(r.svg))
       expect(rotorTags.length, `${def.type} 的旋转件是空的`).toBeGreaterThan(0)
@@ -220,7 +218,7 @@ describe('内置组件的动效定义', () => {
   })
 
   it('旋转中心与该设备的某个圆同心（滚筒/截割头）', () => {
-    for (const def of [ShearerDefinition, RoadheaderDefinition]) {
+    for (const def of [RoadheaderDefinition]) {
       const centers = circleCenters(def.icon)
       for (const rotor of def.motion?.rotors ?? []) {
         expect(centers, `${def.type} 的旋转中心 (${rotor.cx},${rotor.cy}) 与任何圆都不同心`).toContainEqual([
@@ -242,7 +240,7 @@ describe('内置组件的动效定义', () => {
       }
       return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) }
     }
-    for (const def of [ShearerDefinition, RoadheaderDefinition]) {
+    for (const def of [RoadheaderDefinition]) {
       for (const rotor of def.motion?.rotors ?? []) {
         const box = userBox(rotor.svg)
         expect(box.minX).toBeGreaterThanOrEqual(0)

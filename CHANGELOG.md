@@ -10,11 +10,23 @@
 
 ### 优化
 
+- 组件库「煤矿组件」分组更名「综采系统」
+  - 动因：该分组的 16 个组件里 9 个来自 coalmine-ui 素材库的综采系统图元（`subunit-manifest.json` 系统键 `zongcai`），组名与素材来源对齐，且与「主运输系统 / 主通风系统 / 洗选系统」等同级分组命名口径一致
+  - 只改显示名（`panelRegistry.ts` 的 `groupNames.coal`），分组 key `coal` 与全部组件 type 不变，已保存工程不受影响；搜索按分组显示名匹配，改后搜「综采」命中该组、搜「煤矿」无命中
+  - 同步 README（组件分组清单、行业 Tab 括号列表）与 docs/USER_GUIDE.md（功能简介、编辑器布局表、模拟设备分组表）
+  - 实测：全量 `npx vitest run` 65 文件 / 592 用例零失败；playwright + 系统 Chrome 进编辑器确认行业 Tab 首组标题为「综采系统」、搜索「综采」命中 16 卡片、搜索「煤矿」出现空态
+- 移除手写「采煤机」（`ShearerDefinition`），组内保留同名素材图元
+  - 动因：手写线条稿（110×60）与综采素材图元 `coal_shearer_wide`（610×232）同名同设备，手写版是早期测试占位，素材版才是正式组件；组内两个「采煤机」并排且搜索无法区分
+  - 删除 `src/industrial/coal/index.ts` 的定义与数组项；`elementMotion.test.ts` 同步收窄——动效定义断言改为 `roadheader`/`conveyor` 两个，坐标换算用例的几何常量改注「写死在此、与组件定义解耦」（数值本就是硬编码，不依赖该定义）
+  - 不动 Mock 的 `shearer_1`（沿用 valve/pump 先例：删组件不删 Mock 设备，绑定它的旧工程数据不断）；`design/` 下历史探针引用的 `ValveDefinition`/`PumpDefinition` 早已失效，同属不参与构建的死代码，一并不动
+  - 组件总数 177 → 176（`getAllComponents()` 实测），README/USER_GUIDE 同步；带动效组件由 3 个减为 2 个
+  - 实测：playwright + 系统 Chrome 确认综采系统组 15 卡片、首张为「掘进机」、搜「采煤机」仅命中素材图元一条；全量 `npx vitest run` 见下一条提交记录
 - 组件库分组重排：电气组件（24）、管道组件（1）由「基础组件」Tab 移入「行业组件」Tab
   - 动因：用户要求两者归入行业 Tab。电气 24 种里 22 种是电力系统素材导入的现场设备，管道也是工艺流程现场件，与「基础图形 / 信息挂件 / 通用设备」不是一类；移走后基础 Tab 只剩基础组件 / 通用设备 / 装饰组件 / 图表组件 4 组，行业 Tab 变 10 组
   - 只改 `src/industrial/panelRegistry.ts` 的 `BASIC_GROUPS` / `INDUSTRY_GROUPS` 两个数组（管道 / 电气追加在行业 Tab 末尾）。分组只存在于组件定义层、不进元素实例（`ComponentInstance` 无 `group` 字段），**对既有工程数据零影响**；跨 Tab 搜索的 `hitTabs` 与「自动激活第一个命中 Tab」直接复用这两组常量，无需另改
   - 实测：playwright + 系统 Chrome——基础 Tab 分组为基础组件 / 通用设备 / 装饰组件 / 图表组件（18+13+11+8 = 50 种），行业 Tab 为综采 / 主运输 / 主通风 / 洗选 / 热力 / 电厂 / 化工 / 水处理 / 电气 / 管道（126 种）
   - 文档同步：README 组件表把两条搬到行业分组块末尾、Tab 描述与架构图面板列同步；USER_GUIDE 简介与编辑器布局表的 Tab 组数改为基础 4 组 / 行业 10 组
+
 ### 修复
 
 - 组件库头部搜索盒在基础/行业组件 Tab 下展开时顶到「组件库」标题
