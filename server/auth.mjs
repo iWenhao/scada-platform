@@ -3,18 +3,25 @@
  *
  * 职责：
  *   1. 用户档案持久化（DATA_DIR/_users.json，口令 scrypt 哈希 + 随机盐）
- *   2. 登录会话（内存 Map + 可选落盘 _sessions.json，TTL 12 小时）
+ *   2. 登录会话（内存 Map + 可选落盘 _sessions.json，TTL 12 小时；落盘只存令牌摘要）
  *   3. 角色等级校验（viewer < operator < engineer < admin）
  *
  * 安全约定：
  *   - 口令只存 `salt:hash`，永不回传前端
  *   - 校验使用 timingSafeEqual，降低时序侧信道
+ *   - 会话令牌只在响应里出现一次，磁盘上只存 SHA-256 摘要：明文落盘等于
+ *     「读到数据目录就拿到全部活跃登录态」，而备份/容器日志/误传的 data 目录都算读到
  *   - 不允许删除/降级「最后一名管理员」，避免锁死系统
+ *
+ * 哈希与限流这两类原语分别放在 ./lib/credentials.mjs 与 ./lib/loginGuard.mjs，
+ * 本模块只管账号与会话的生命周期。
  */
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { scryptSync, randomBytes, timingSafeEqual, randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import { writeFileAtomic } from './lib/atomicWrite.mjs'
+import { hashPassword, sessionKey, verifyPassword } from './lib/credentials.mjs'
+import { createLoginGuard } from './lib/loginGuard.mjs'
 
 /** 角色等级：数字越大权限越高（与前端 types/auth.ts 保持一致） */
 export const ROLE_RANK = {
@@ -35,31 +42,6 @@ export function roleAtLeast(role, min) {
 }
 
 /**
- * 口令哈希：scrypt(password, salt, 32) → "salt:hash_hex"
- * 存储格式固定两段，便于 verify 时拆开。
- */
-function hashPassword(password) {
-  const salt = randomBytes(16).toString('hex')
-  const hash = scryptSync(String(password), salt, 32).toString('hex')
-  return `${salt}:${hash}`
-}
-
-/**
- * 校验口令。使用常数时间比较，失败（格式错/长度不一致）一律 false。
- */
-function verifyPassword(password, stored) {
-  if (!stored || !stored.includes(':')) return false
-  const [salt, hash] = stored.split(':')
-  try {
-    const calc = scryptSync(String(password), salt, 32)
-    const expected = Buffer.from(hash, 'hex')
-    return calc.length === expected.length && timingSafeEqual(calc, expected)
-  } catch {
-    return false
-  }
-}
-
-/**
  * 裁剪用户对象：去掉 salt / passwordHash，供 API 返回。
  */
 function publicUser(u) {
@@ -75,7 +57,7 @@ function publicUser(u) {
 /**
  * 创建账号存储。dataDir 下维护：
  *   _users.json     用户列表（含口令哈希）
- *   _sessions.json  会话 token 列表（进程重启后可恢复未过期会话）
+ *   _sessions.json  会话摘要列表（tokenHash -> 用户与到期时间，进程重启后可恢复未过期会话）
  *
  * @param {string} dataDir 数据目录
  */
@@ -83,7 +65,7 @@ export function createAuthStore(dataDir) {
   const usersFile = path.join(dataDir, '_users.json')
   const sessionsFile = path.join(dataDir, '_sessions.json')
 
-  /** @type {Map<string, { userId: string, expiresAt: number }>} token -> 会话 */
+  /** @type {Map<string, { userId: string, expiresAt: number }>} 令牌摘要(SHA-256 hex) -> 会话 */
   const sessions = new Map()
 
   /** @type {Array<any>} 内存中的用户列表 */
@@ -103,12 +85,13 @@ export function createAuthStore(dataDir) {
   /**
    * 会话落盘（尽力而为）。
    * 失败不抛错：内存会话仍可用，只是进程重启后无法恢复登录态。
+   * 落盘的是 Map 的键（令牌摘要），原始令牌只在 login 响应里给出去一次、不再写磁盘。
    */
   async function persistSessions() {
     try {
       await writeFileAtomic(
         sessionsFile,
-        JSON.stringify([...sessions.entries()].map(([token, s]) => ({ token, ...s }))),
+        JSON.stringify([...sessions.entries()].map(([tokenHash, s]) => ({ tokenHash, ...s }))),
         'utf8',
       )
     } catch {
@@ -119,8 +102,8 @@ export function createAuthStore(dataDir) {
   /** 剔除已过期会话，避免 Map 无限增长 */
   function pruneSessions() {
     const now = Date.now()
-    for (const [token, s] of sessions) {
-      if (s.expiresAt < now) sessions.delete(token)
+    for (const [tokenHash, s] of sessions) {
+      if (s.expiresAt < now) sessions.delete(tokenHash)
     }
   }
 
@@ -166,14 +149,19 @@ export function createAuthStore(dataDir) {
       console.log('[scada-server]   口令只以 scrypt 哈希落盘、不再回显，请登录后立即修改')
     }
 
-    // 恢复会话文件（只认未过期的）
+    // 恢复会话文件（只认未过期、且以摘要为键的条目）
+    let sawLegacyPlainToken = false
     try {
       const raw = await fs.readFile(sessionsFile, 'utf8')
       const list = JSON.parse(raw)
       if (Array.isArray(list)) {
         for (const s of list) {
-          if (s?.token && s?.userId && s?.expiresAt > Date.now()) {
-            sessions.set(s.token, { userId: s.userId, expiresAt: s.expiresAt })
+          if (s?.tokenHash && s?.userId && s?.expiresAt > Date.now()) {
+            sessions.set(s.tokenHash, { userId: s.userId, expiresAt: s.expiresAt })
+          } else if (s?.token && !s?.tokenHash) {
+            // 旧版格式存的是明文令牌。不迁移：这些令牌已经以明文在磁盘上待过，
+            // 无法证明没被读过，继续沿用等于把「加固」让位给「少一次登录」
+            sawLegacyPlainToken = true
           }
         }
       }
@@ -181,43 +169,13 @@ export function createAuthStore(dataDir) {
       // 无会话文件或损坏：忽略
     }
     pruneSessions()
+    // 检测到旧明文条目就当场把文件改写成摘要格式，不等下一次登录/注销——
+    // 否则升级完之后明文还会在磁盘上一直躺到有人登录为止
+    if (sawLegacyPlainToken) await persistSessions()
   }
 
-  /**
-   * 登录失败限流。
-   *
-   * 登录接口不区分「用户名不存在」与「口令错误」，但不限次数的话仍可无限试。
-   * 两个维度各记一份：按用户名（挡针对某账号的定向爆破）、按来源（挡同一来源撞不同账号），
-   * 任一维度超限就拒绝。计数只存内存，重启即清零——对本服务的体量足够，
-   * 也避免把失败记录写进数据目录。
-   */
-  const LOGIN_MAX_FAILS = 5
-  const LOGIN_LOCK_MS = 5 * 60 * 1000
-  const loginFails = new Map() // key -> { count, until }
-
-  function loginLocked(keys) {
-    const now = Date.now()
-    for (const key of keys) {
-      const rec = loginFails.get(key)
-      if (rec && rec.until > now) return true
-    }
-    return false
-  }
-
-  function noteLoginFail(keys) {
-    const now = Date.now()
-    for (const key of keys) {
-      const rec = loginFails.get(key)
-      // 只在「曾经锁定且锁已过期」时清零，否则早期失败会永久压住该账号。
-      // 注意 until=0 表示从未锁定，不能参与这个判断——否则每次失败都会把计数重置回 1，
-      // 永远攒不到阈值，限流形同虚设。
-      const count = rec && rec.until > 0 && rec.until <= now ? 0 : (rec?.count || 0)
-      loginFails.set(key, {
-        count: count + 1,
-        until: count + 1 >= LOGIN_MAX_FAILS ? now + LOGIN_LOCK_MS : 0,
-      })
-    }
-  }
+  // 登录失败限流按「用户名 + 来源」两维计数，实现见 ./lib/loginGuard.mjs
+  const loginGuard = createLoginGuard()
 
   /**
    * 登录。成功签发随机 token；失败返回 null（不区分用户名/口令错误，避免枚举）。
@@ -230,26 +188,27 @@ export function createAuthStore(dataDir) {
   async function login(username, password, clientKey = '') {
     pruneSessions()
     const keys = [`u:${username}`, `i:${clientKey || '-'}`]
-    if (loginLocked(keys)) return null
+    if (loginGuard.isLocked(keys)) return null
 
     const user = users.find(u => u.username === username)
     if (!user || !verifyPassword(password, user.passwordHash)) {
-      noteLoginFail(keys)
+      loginGuard.noteFail(keys)
       return null
     }
-    loginFails.delete(`u:${username}`)
+    loginGuard.clear([`u:${username}`])
 
     const token = randomBytes(24).toString('hex')
     const expiresAt = Date.now() + SESSION_TTL_MS
-    sessions.set(token, { userId: user.id, expiresAt })
+    // Map 用摘要做键：原始令牌只随本次响应出去一次，此后服务端各处都只见摘要
+    sessions.set(sessionKey(token), { userId: user.id, expiresAt })
     await persistSessions()
     return { token, expiresAt, user: publicUser(user) }
   }
 
-  /** 注销：删除指定 token 的会话 */
+  /** 注销：删除指定 token 的会话（按摘要定位） */
   async function logout(token) {
     if (!token) return false
-    const ok = sessions.delete(token)
+    const ok = sessions.delete(sessionKey(token))
     if (ok) await persistSessions()
     return ok
   }
@@ -260,10 +219,12 @@ export function createAuthStore(dataDir) {
    */
   function resolveToken(token) {
     if (!token) return null
-    const s = sessions.get(token)
+    const key = sessionKey(token)
+    const s = sessions.get(key)
     if (!s) return null
     if (s.expiresAt < Date.now()) {
-      sessions.delete(token)
+      // 按摘要删：Map 的键已不是原始令牌，用 token 删等于没删，过期会话会一直赖在内存和磁盘上
+      sessions.delete(key)
       return null
     }
     const user = users.find(u => u.id === s.userId)

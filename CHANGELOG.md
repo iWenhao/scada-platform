@@ -434,6 +434,16 @@
   - 顺带补齐 §5.2 后端环境变量表缺失的 5 项：`HOST`、`SEED_PASSWORD`、`NOTIFY_ALLOW_PRIVATE`、`NOTIFY_TIMEOUT_MS`、`SMTP_REJECT_UNAUTHORIZED`。默认值逐个读码核对（`server/index.mjs:56`、`server/auth.mjs:147`、`server/notify/common.mjs:58-61`、`server/notify/email.mjs:11`），未照抄 `.env.example` 注释
   - 未动的代码：`src/auth/seedUsers.ts` 与登录页「演示账号（点击填入）」仍展示 `admin123` 等口令，其头注释还声称「与 server/auth.mjs 首次启动写入的账号一致」——这是 UI 行为改动（要定「只填用户名」还是「整块撤掉」），留待确认口径
 
+- 会话令牌不再明文落盘：`_sessions.json` 只存 SHA-256 摘要，内存 Map 也改以摘要为键
+  - 动因：`_sessions.json` 里存的是**活跃登录态的原始令牌**，TTL 12 小时内一直可用。谁读到数据目录就等于拿到全部在线账号的登录凭证——备份、容器日志、误传的 `data/`、一次误加的 `git add` 都算「读到」，而不需要任何口令。同目录的 `_users.json` 早就做到只存 `salt:hash`，会话这一侧是明显的不对称
+  - 改法：签发时仍返回随机令牌（`login` 响应是它唯一一次以明文出现），服务端各处只持有 `sessionKey(token) = SHA-256(token)`；每次请求对带来的令牌现算一次摘要再查表。口令用 scrypt 是为了抗爆破，令牌是 192 位随机值、搜索空间已经够大，摘要只需**抗原像**，慢哈希反而白付一次登录延迟
+  - 旧文件的处置是**不迁移、不沿用**：识别到旧格式（有 `token`、无 `tokenHash`）时那些会话一律作废——它们已经以明文在磁盘上待过，无法证明没被读过，继续认等于把「加固」让位给「少一次登录」。同时 `init()` 当场把文件改写成摘要格式，不等下一次登录/注销，否则升级完明文还要一直躺到有人登录为止
+  - 影响面（需告知在线用户）：**升级到本版本后所有既有会话失效，所有人重新登录一次**；已写入 [docs/DEPLOY.md](docs/DEPLOY.md) §5.5。备份数据目录不再等于备份出一批可用凭证，这条也写进了同节
+  - 连带修出一处：`resolveToken()` 判过期后原来是 `sessions.delete(token)`，键换成摘要之后这行**等于没删**——过期会话留在内存并随下次登录写回磁盘。改为删摘要键，判据做成用例：过期后先 `resolveToken` 再 `logout(token)`，若删除生效应报 `false`
+  - 顺手拆分（本次改动把 `server/auth.mjs` 从 387 行推到 411 行，越过 400 阈值，按 AGENTS.md 当次拆完）：密码学原语 → `server/lib/credentials.mjs`，登录失败限流 → `server/lib/loginGuard.mjs`（`createLoginGuard({ maxFails, lockMs })`，`isLocked/noteFail/clear` 三个动作，行为逐字保持），`auth.mjs` 落回 345 行。`ROLE_RANK` / `roleAtLeast` / `createAuthStore` 的导出面不变，五个路由的 import 无需改动
+  - 实测：`auth.test.ts` 新增 3 用例（磁盘只见 `tokenHash` 且等于手算摘要、无 `token` 字段、注销后文件回到 `[]`；旧明文条目不迁移且启动即改写；过期即删）；新拆两模块各配同目录测试 `credentials.test.ts` 6 用例（`salt:hash` 格式、同口令不同盐、畸形存储一律 false、摘要稳定且不含原文）、`loginGuard.test.ts` 4 用例（第 5 次才锁、两维任一命中即锁、锁定过期后计数从头攒——即 `until=0` 那个易改错的分支、`clear` 只清指定维度）；`pnpm typecheck:server` 通过（拆分后 `tsc` 是唯一覆盖服务端 `.mjs` 的把关）
+  - 真跑（`PORT=5199` + 临时 `DATA_DIR`，与本机 5173/5174 的实例错开）：预置一份旧明文会话文件后启动 → 文件立刻变成 `[]`；登录 → 磁盘只有 `tokenHash` 且与手工 `SHA-256` 逐字节相等、不含明文；重启进程 → 同一令牌 `GET /api/storage/get` 仍 200、缺令牌 401（会话恢复可用）；`logout` → 文件回到 `[]`、同令牌转 401。临时进程与数据目录已停、已清
+
 ### 测试
 
 - 存储后端第一次有单测：5 个文件 64 用例，覆盖路径隔离、账号与会话、HTTP 门禁、时序分片与 JSONL
@@ -449,6 +459,13 @@
   - 实测：全量 62 测试文件 / 575 用例零失败（`--reporter=verbose` 的逐文件清单与 `find src examples shared scripts server -name "*.test.ts"` 得到的 62 个一致，汇总无 `Errors`）；`tsc -p tsconfig.server.json`、改动文件 `eslint`、`pnpm build`、`check-long-files.ps1` 全过。另以 `PORT=5199` + 临时 `DATA_DIR` 真跑一遍后端（health / 登录 / 存储读写 / 历史写入与两种查询 / 无令牌 401 / 重名账号 400 / 重启触发保留期清理），临时进程与数据目录已停、已清
 
 - `src/notify/notify.test.ts` 补 `afterEach` 删除临时目录：`beforeEach` 每个用例 `mkdtemp` 一次却从不回收，本机系统临时目录里已堆了 72 个 `scada-notify-*`。清理后单文件 6 用例仍全过、跑完不留目录
+
+- 会话摘要化与原子写这一轮再加 4 个文件 / 17 用例：`server/lib/atomicWrite.test.ts` 4、`server/lib/credentials.test.ts` 6、`server/lib/loginGuard.test.ts` 4、`server/auth.test.ts` 3
+  - `atomicWrite.test.ts` 是本轮最值钱的四个：20 路并发写同一目标全部成功、落盘内容是某一份**完整** payload（拼接残片会让 `_users.json` 解析失败）、一次写失败不卡死后续队列也不留临时文件。上面那条修复的三种失败模式里，前两种只有在这个文件里才测得到
+  - `credentials` / `loginGuard` 两个文件是拆分带出来的：限流那条「锁定过期后计数从头攒」直接对着 `until=0` 这个易改错的分支写，将来谁把注释里的判断简化掉就会红
+  - `auth.test.ts` 由 20 用例增至 26（会话摘要 2 + 过期即删 1，另把「重启恢复」用例里手造的会话文件改成摘要格式）。上一轮那条「5 个文件 64 用例」的记录保持原样，改动只在本节追加
+  - 环境要点补一条：`loginGuard` 用 `createLoginGuard({ maxFails, lockMs })` 注入短窗口，就不必为了测锁定过期而 `vi.advanceTimers`——`toFake: ['Date']` 只冻时钟的老约束继续适用，`atomicWrite` 的退避重试也因此走的是真实等待（单文件 0.5 秒级）
+  - 实测：全量 **65 测试文件 / 592 用例**零失败，汇总无 `Errors`；`--reporter=verbose` 的逐文件清单与 `find src examples shared scripts server -name "*.test.ts"` 的 65 个逐一比对一致（本轮一次跑全，未补跑）；`pnpm typecheck:server`、改动文件 `eslint`、`pnpm build`、`check-long-files.ps1`（`OK: 所有文件均在阈值以内`，例外跳过 46 个 `src/industrial/*`）全过
 
 ### 构建
 

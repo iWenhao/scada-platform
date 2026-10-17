@@ -4,6 +4,7 @@
  * 这里的断言都是安全属性：口令不落地成明文、会话有明确期限、爆破有上限、
  * 最后一个管理员不会被删掉——四条都是「出事就没法登录」的那类，值得钉住。
  */
+import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -160,6 +161,9 @@ describe('登录与令牌', () => {
 })
 
 describe('会话落盘与恢复', () => {
+  /** 磁盘只认摘要，测试手造会话文件时按同一算法写 */
+  const digest = (token: string) => createHash('sha256').update(token).digest('hex')
+
   it('进程重启后未过期会话仍可用', async () => {
     freezeClock()
     const { auth, dir } = await newStore()
@@ -170,6 +174,23 @@ describe('会话落盘与恢复', () => {
     expect(restored.resolveToken(token).username).toBe('admin')
   })
 
+  it('_sessions.json 只写令牌摘要，明文令牌不落盘', async () => {
+    freezeClock()
+    const { auth, dir } = await newStore()
+    const { token } = await auth.login('admin', SEED, '10.0.0.20')
+
+    const raw = await readFile(path.join(dir, '_sessions.json'), 'utf8')
+    expect(raw).not.toContain(token)
+    const [entry] = JSON.parse(raw)
+    expect(entry.tokenHash).toBe(digest(token))
+    expect(entry.tokenHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(entry).not.toHaveProperty('token')
+    expect(entry.userId).toBe('usr_seed_0')
+    // 注销走的也是摘要定位，明文令牌在服务端各处都不必出现
+    expect(await auth.logout(token)).toBe(true)
+    expect(await readFile(path.join(dir, '_sessions.json'), 'utf8')).toBe('[]')
+  })
+
   it('重启时丢弃已过期会话，损坏的会话文件按空处理', async () => {
     freezeClock()
     const { dir } = await newStore()
@@ -177,8 +198,8 @@ describe('会话落盘与恢复', () => {
     await writeFile(
       path.join(dir, '_sessions.json'),
       JSON.stringify([
-        { token: 'live', userId: 'usr_seed_0', expiresAt: BASE + SESSION_TTL_MS },
-        { token: 'dead', userId: 'usr_seed_0', expiresAt: BASE - 1 },
+        { tokenHash: digest('live'), userId: 'usr_seed_0', expiresAt: BASE + SESSION_TTL_MS },
+        { tokenHash: digest('dead'), userId: 'usr_seed_0', expiresAt: BASE - 1 },
       ]),
       'utf8',
     )
@@ -192,6 +213,41 @@ describe('会话落盘与恢复', () => {
     const broken = createAuthStore(dir)
     await broken.init()
     expect(broken.resolveToken('live')).toBeNull()
+  })
+
+  it('旧版明文令牌不迁移，且升级时当场把文件改写成摘要格式', async () => {
+    freezeClock()
+    const { dir } = await newStore()
+    await writeFile(
+      path.join(dir, '_sessions.json'),
+      JSON.stringify([{ token: 'legacy-plain-token', userId: 'usr_seed_0', expiresAt: BASE + SESSION_TTL_MS }]),
+      'utf8',
+    )
+    const auth = createAuthStore(dir)
+    await auth.init()
+
+    // 已明文落过盘的令牌一律作废
+    expect(auth.resolveToken('legacy-plain-token')).toBeNull()
+    // 不等下一次登录触发落盘：init 就把明文从磁盘上抹掉
+    const raw = await readFile(path.join(dir, '_sessions.json'), 'utf8')
+    expect(raw).not.toContain('legacy-plain-token')
+    expect(JSON.parse(raw)).toEqual([])
+  })
+
+  it('过期会话在被判过期的那一刻就从 Map 删除（键是摘要，删错键会一直残留）', async () => {
+    freezeClock()
+    const { auth, dir } = await newStore()
+    const { token } = await auth.login('viewer', SEED, '10.0.0.21')
+    vi.setSystemTime(BASE + SESSION_TTL_MS + 1)
+    expect(auth.resolveToken(token)).toBeNull()
+    // 条目已被 resolveToken 摘掉，所以注销报 false；若删的是原始令牌这种错键，这里会是 true
+    expect(await auth.logout(token)).toBe(false)
+
+    // 落盘只反映仍存活的会话：过期项不会跟着下一次登录被写回磁盘
+    const again = await auth.login('viewer', SEED, '10.0.0.22')
+    const list = JSON.parse(await readFile(path.join(dir, '_sessions.json'), 'utf8'))
+    expect(list).toHaveLength(1)
+    expect(list[0].tokenHash).toBe(digest(again.token))
   })
 })
 
