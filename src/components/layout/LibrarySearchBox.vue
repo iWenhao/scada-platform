@@ -1,6 +1,6 @@
 <template>
   <div class="header-search">
-    <!-- 搜索：收起态为圆形图标按钮（与「+」同款）；展开后放大镜收入框内，点框内图标 / Esc / 焦点离开面板（点画布、属性面板等）即收起（收起即清除） -->
+    <!-- 搜索：收起态为圆形图标按钮（与「+」同款）；展开后放大镜收入框内，点框内图标 / 点 × / Esc / 焦点离开面板（点画布、属性面板等）即收起（收起即清除，回到图标态） -->
     <transition name="search-swap" mode="out-in" @after-enter="focusSearchInput">
       <!-- 展开态：搜索盒，放大镜在框内（点击即收起） -->
       <div v-if="visible" key="box" class="search-box">
@@ -34,10 +34,10 @@
           v-if="query"
           class="search-clear"
           type="button"
-          title="清除搜索"
-          aria-label="清除搜索"
+          title="清除并收起搜索"
+          aria-label="清除并收起搜索"
           @mousedown.prevent
-          @click="clearSearch"
+          @click="collapseSearch"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
@@ -138,12 +138,6 @@ function onBlur() {
   downInsidePanel = false
   if (inside) return
   collapseSearch()
-}
-
-/** 清空文本但保持展开，继续可输入 */
-function clearSearch() {
-  emit('update:query', '')
-  nextTick(() => searchInputRef.value?.focus())
 }
 
 // 供面板在搜索态下切 Tab 后把焦点还回来：否则 Esc / 继续输入都失效（焦点已不在框内）
