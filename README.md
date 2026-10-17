@@ -19,6 +19,7 @@
 - 撤销/重做操作
 - 画布尺寸自定义
 - 亮色/暗色主题切换
+- 2D / 2.5D 渲染风格：工程级设置（工具栏切换，随工程保存），`2d` 为平面线条稿、`25d` 开启面基光照；预览页只读跟随——**改风格后须发布才在运行端生效**（预览默认加载发布版，`?source=draft` 看工作副本）
 
 ### 工业组件库
 
@@ -56,7 +57,7 @@
 - WebSocket 实时推送（支持断线自动重连）✅
 - HTTP 定时轮询（失败自愈，自动重试）✅
 - OPC UA（经 WebSocket 网关接入，NodeId 映射）✅
-- MQTT（over WebSocket 浏览器直连 Broker，无需网关；主题即设备，payload 支持扁平变量表或统一格式；写值发布到 `<设备>/set`）✅
+- MQTT（over WebSocket 浏览器直连 Broker，无需网关；主题即设备，payload 支持扁平变量表或统一格式；写值发布到 `<前缀>/<设备>/set`）✅
 - 模拟数据（开发调试，22 台内置设备）✅
 
 ### 图层管理
@@ -77,7 +78,7 @@
 
 ### 报警与通知
 - 报警引擎按状态规则产生记录，运行端有报警列表与确认
-- 报警外发通知：邮件 / Webhook / 企业 IM 机器人（发送端在 `server/notify/`）
+- 报警外发通知：邮件 / Webhook / 企业 IM 机器人 / 短信（发送端在 `server/notify/`）
 
 ### 账号与权限
 - 登录鉴权，四级角色 `viewer / operator / engineer / admin`
@@ -259,6 +260,7 @@
 |  +---------------------------------------------------------------------+   |
 |  |  组件渲染：                                                          |   |
 |  |    fill = status?.color || '#666'                                   |   |
+|  |    着色 = viewMode: '25d' 面基光照 / '2d' 平涂                      |   |
 |  |    text = device.speed + ' RPM'                                     |   |
 |  |                                                                      |   |
 |  |  连线动画：                                                          |   |
@@ -391,7 +393,7 @@ scada-platform/
     ├── auth/                           # 会话与种子账号
     ├── storage/                        # getStorage() 抽象：remote + localStorage + 内存降级
     ├── stores/                         # Pinia：canvas / device / connection / layer / page / project…
-    ├── composables/                    # 自动草稿、组件搜索、隐藏组件、主题等
+    ├── composables/                    # 自动草稿、组件搜索、最常使用、隐藏组件、主题等
     ├── router/ styles/ utils/ types/   # 路由与守卫 / 主题样式 / 工具 / 类型定义
     └── __tests__/                      # 跨模块测试
 ```
@@ -409,7 +411,7 @@ scada-platform/
    - `icon` 为 SVG 字符串，`viewBox="0 0 100 100"`，`currentColor` 会被状态色替换；新写设备图元一律按**面基（插画级）**规范，见 [docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)；
    - `statusRules` 的 `priority` 数字越小优先级越高；`dataBindings` 的首个绑定变量会显示在元素上；
    - 可选字段：`motion`（运转动效，仅有可动件的设备需要）、`capabilities`（属性面板的能力裁剪开关）。
-2. **注册进面板**——把定义加进该目录导出的组件数组，由 `src/industrial/panelRegistry.ts` 汇总调用 `registerComponents([...])`（`ComponentPanel.vue` 以副作用 import 该模块完成注册）。新增分组要同时补 `BASIC_GROUPS` / `INDUSTRY_GROUPS` 与 `groupNames`——分组标题和搜索匹配共用这一份。
+2. **注册进面板**——把定义加进该目录导出的组件数组，由 `src/industrial/panelRegistry.ts` 汇总调用 `registerComponents([...])`（面板、搜索与「最常使用」都从注册表取数，注册一次三处生效；`ComponentPanel.vue` 以副作用 import 该模块触发注册）。**新增分组要动三处**：`src/types/scada.ts` 的 `ComponentGroup` union（类型源头，漏了 `group` 字面量直接过不了类型检查）、`panelRegistry.ts` 的 `BASIC_GROUPS` / `INDUSTRY_GROUPS`（决定落在哪个 Tab）、同文件里的 `groupNames`（分组标题与搜索匹配共用一份，经 `getGroupName()` 对外暴露，本身不导出）。
 3. **补模拟数据**——在 `MockDataAdapter` 的 `listDevices()` 与 update 数据里加同名设备。
 4. **同步文档**——更新本文件的组件表与 `docs/USER_GUIDE.md` 的设备清单。
 

@@ -28,6 +28,16 @@
   - 删整节的落法：新片段先用 write 工具落成临时 `.md`，再用 node 按行切片重写 README——中文不经 shell 命令行，避开 MSYS 转码；临时文件走回收站回收
   - 实测：README 628 → 494 行；围栏配对无未闭合、旧节标题与子标题零残留（按码点校验，不看控制台渲染）；`check-long-files.ps1` 仍报 OK（README 属文档，不在行数约束内）；本轮只动 `.md`，`vitest` / `pnpm build` 沿用上轮全绿结果未重跑
 
+- README 三轮补漏：渲染风格、分组注册步骤、短信渠道与两处口径
+  - 动因：上两轮把命令、目录树、架构图、组件表对齐之后，仍有一整类用户可见能力在 README 与 USER_GUIDE 里都是零字——2D / 2.5D 渲染风格；另有两处描述照着做会卡住或与实际不符
+  - 功能特性「可视化编辑」补渲染风格一条：`2d` 平面线条稿 / `25d` 开启面基光照，工具栏切换、属工程级设置随工程保存、预览页只读跟随；**改风格后须发布才在运行端生效**——`src/views/preview/index.vue` 默认走 `loadPublishedProject()`，只用 `?source=draft` 才读工作副本，这是「预览默认读发布版」引出的第一个用户可见坑，此前文档未提
+  - 运行时数据流图「Konva 画布渲染」框补一行着色来源；ASCII 图按**显示宽度**对齐插入（中文计 2 宽），新行与锚点行同为 78 宽
+  - 组件开发指南第 2 步改准：新增分组由「补 `BASIC_GROUPS` / `INDUSTRY_GROUPS` 与 `groupNames`」改为动三处——`src/types/scada.ts` 的 `ComponentGroup` union（类型源头，漏了 `group` 字面量直接过不了 `vue-tsc`，旧文完全没提）、`panelRegistry.ts` 的两组 Tab 常量、同文件的 `groupNames`（**私有 const，只经 `getGroupName()` 暴露**，旧文写得像能直接补导出）
+  - 报警外发渠道补短信（`server/notify/sms.mjs` 早已存在，原列邮件 / Webhook / 企业 IM 三项）；MQTT 写值主题由 `<设备>/set` 改为 `<前缀>/<设备>/set`（与 `MqttAdapter.ts` 的 `${prefix}${deviceId}/set` 一致，USER_GUIDE 原本就是对的）；项目结构 `composables/` 注释补「最常使用」（`usageLibrary.ts`）
+  - 未改且复核仍准确：组件表 14 行与「177 种 / 14 分组」、Mock「22 台」、命令段——实测 `getAllComponents()` = 177 / 14 分组（basic18 general13 pipeline1 electrical24 coal16 power5 chemical2 water29 transport5 ventilation6 wash17 thermal22 deco11 chart8），`listDevices()` = 22
+  - 遗留（本次范围只到 README）：`docs/USER_GUIDE.md` 同样没有渲染风格与「预览默认读发布版」的说明，需单独补
+  - 实测：README 494 → 495 行；`git diff --numstat` 仅 README 6 增 4 删；行尾 CRLF 495 条、LF-only 0（脚本按原行尾 join 回去，未做 LF 归一）；组件数用临时 vitest 脚本跑出后回收，工作区无残留
+
 ## [0.0.5-261013] - 261013
 
 ### 功能
