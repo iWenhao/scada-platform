@@ -404,6 +404,13 @@
 
 ### 安全
 
+- 种子口令的文档与部署示例仍写死 `admin123`，照做的全新部署必然登录失败
+  - 动因：`server/auth.mjs` 的种子口令早已改为随机生成（0.0.5 的对应条目），但三处说明没跟上——DEPLOY §5.4 的账号表按「每账号一个口令」列了 `admin123`/`engineer123`/`operator123`/`viewer123`（实际四账号**共用**一个随机口令）、§3.1 的 curl 示例直接写死 `admin123`、USER_GUIDE 账号表同样带口令列。本机之所以还能登，是因为 `server/data/_users.json` 是改造前种的，属存量巧合，不代表文档正确
+  - 改法：§5.4 改为「共用随机口令 + 只在首启日志打印一次 + `SEED_PASSWORD` 可预先固定 + 日志丢失时删 `_users.json` 重新播种」；§3.1 curl 用 `<初始口令>` 占位并注明取值来源；§6 加固清单补上「共用口令必须逐个改」的理由（任一账号泄露即四账号全泄露）；USER_GUIDE 账号表去掉口令列，并说明登录必须连后端（`authStore.login` 只打 `/api/auth/login`，没有离线登录路径）
+  - 「删表重新播种不丢工程」这条已核对成立：种子 id 固定为 `usr_seed_0..3`，数据按 `u/<userId>/` 命名空间存放，重新播种后 id 不变
+  - 顺带补齐 §5.2 后端环境变量表缺失的 5 项：`HOST`、`SEED_PASSWORD`、`NOTIFY_ALLOW_PRIVATE`、`NOTIFY_TIMEOUT_MS`、`SMTP_REJECT_UNAUTHORIZED`。默认值逐个读码核对（`server/index.mjs:56`、`server/auth.mjs:147`、`server/notify/common.mjs:58-61`、`server/notify/email.mjs:11`），未照抄 `.env.example` 注释
+  - 未动的代码：`src/auth/seedUsers.ts` 与登录页「演示账号（点击填入）」仍展示 `admin123` 等口令，其头注释还声称「与 server/auth.mjs 首次启动写入的账号一致」——这是 UI 行为改动（要定「只填用户名」还是「整块撤掉」），留待确认口径
+
 ### 构建
 
 ### 重构与清理

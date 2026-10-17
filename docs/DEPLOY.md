@@ -72,7 +72,7 @@ node server/index.mjs
 - `AUTH_TOKEN` 是**服务主密钥**（可选）：设置后该 Token 拥有全部权限，用于探针/CI/无浏览器场景。日常访问用登录会话（见 §5.4），不要把主密钥分发给操作员
 - 同域反代时 `CORS_ORIGIN` 可随意（不会用到预检），但建议仍写上前端站点
 - `HISTORY_RETENTION_DAYS` 控制时序历史保留天数，超期分片每日自动清理
-- **首次启动会自动创建种子账号**并在日志里提示：`admin/engineer/operator/viewer`（口令见 §5.4，上线后必须改）
+- **首次启动会自动创建种子账号** `admin/engineer/operator/viewer`，四个账号共用一个**随机初始口令**，只在首启那次的日志里打印一次（详见 §5.4，登录后必须改）
 
 验证：
 
@@ -85,9 +85,10 @@ curl -sS -H "Authorization: Bearer change-me" http://127.0.0.1:5174/api/health
 # {"ok":true}
 
 # 登录取会话 Token（种子账号，仅首次验证用）
+# 口令取首启日志里「初始口令:」那一行的值；部署时用 SEED_PASSWORD 固定过就用你设定的那个
 curl -sS -X POST http://127.0.0.1:5174/api/auth/login \
   -H 'content-type: application/json' \
-  -d '{"username":"admin","password":"admin123"}'
+  -d '{"username":"admin","password":"<初始口令>"}'
 # {"token":"...","user":{...}}
 ```
 
@@ -257,11 +258,16 @@ curl -sS -D - -o /dev/null -X OPTIONS \
 | 变量 | 默认 | 说明 |
 |------|------|------|
 | `PORT` | `5174` | 监听端口 |
+| `HOST` | `127.0.0.1` | 监听地址，默认只本机可访问；容器/局域网部署改 `0.0.0.0` |
 | `DATA_DIR` | `<项目>/server/data` | 数据目录：用户空间 `u/<userId>/` + 全局 `_*.json` |
 | `MAX_BODY_BYTES` | `20971520`（20MB） | 单次写入上限，超出返回 413 |
 | `CORS_ORIGIN` | `*` | 允许的跨域来源，逗号分隔；生产不要用 `*` |
 | `AUTH_TOKEN` | 空 | 可选**服务主密钥**（Bearer），设置后拥有全部权限；登录会话仍可用 |
+| `SEED_PASSWORD` | 空 | 仅**首次启动**建种子账号时生效；留空则随机生成并打印在启动日志（见 §5.4）。已有 `_users.json` 时不改口令 |
 | `HISTORY_RETENTION_DAYS` | `30` | 时序历史保留天数，超期分片每日自动清理；`0` 表示不清理 |
+| `NOTIFY_ALLOW_PRIVATE` | `0` | 通知外发是否放行内网/回环地址；默认拦截防 SSRF，现场 webhook 确在内网时设 `1` |
+| `NOTIFY_TIMEOUT_MS` | `10000` | 通知 HTTP 请求超时（毫秒），非正数回落默认值 |
+| `SMTP_REJECT_UNAUTHORIZED` | `1` | SMTP 是否校验服务器证书；自签证书邮件服务器设 `0` |
 
 ### 5.3 接口一览
 
@@ -293,14 +299,19 @@ curl -sS -D - -o /dev/null -X OPTIONS \
 
 ### 5.4 账号与角色
 
-首次启动写入种子账号（**上线后必须改口令**）：
+首次启动（`DATA_DIR/_users.json` 不存在）写入四个种子账号，**共用同一个随机初始口令**：
 
-| 用户名 | 角色 | 初始口令 |
-|--------|------|----------|
-| `admin` | 管理员 | `admin123` |
-| `engineer` | 工程师 | `engineer123` |
-| `operator` | 操作员 | `operator123` |
-| `viewer` | 观察员 | `viewer123` |
+| 用户名 | 角色 |
+|--------|------|
+| `admin` | 管理员 |
+| `engineer` | 工程师 |
+| `operator` | 操作员 |
+| `viewer` | 观察员 |
+
+- 口令由 `randomBytes(9)` 生成，**只在首启那次的日志里打印一次**，不落任何文件、也不经接口回显——部署时把这一行抄进密码管理工具
+- 想固定口令：首启前设 `SEED_PASSWORD`（见 `.env.example`），留空即随机
+- 日志已丢失（如容器重建）时口令无法找回，只能删 `_users.json` 让服务重新播种；种子 id 固定为 `usr_seed_0..3`，工程数据在 `u/<userId>/` 下按 id 存放，所以重新播种后原有工程仍可访问
+- **上线后必须改口令**（用户管理界面或 `/api/auth/password`）
 
 角色能力（等级 `viewer < operator < engineer < admin`）：
 
@@ -343,7 +354,7 @@ DATA_DIR/
 
 上线前逐项确认：
 
-- [ ] **改掉种子口令**：`admin/engineer/operator/viewer` 的初始口令必须全部改掉（用户管理界面或 `/api/auth/password`）
+- [ ] **改掉种子口令**：四个账号首启时共用同一个随机口令，必须逐个改成各自独立的口令（用户管理界面或 `/api/auth/password`），否则任一账号泄露等于四账号全泄露
 - [ ] **账号收敛**：删除不再使用的账号；确认至少保留一名 admin
 - [ ] **服务主密钥**：如设置 `AUTH_TOKEN`，用强随机值并妥善保管，**不要**注入前端构建（日常用登录会话）
 - [ ] **CORS**：`CORS_ORIGIN` 只列真实前端站点，不再使用 `*`
