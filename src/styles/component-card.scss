@@ -37,6 +37,10 @@
     border: 1px solid var(--border-primary);
 
     &:hover {
+      /* 卡片是 position:relative，相邻卡片按 DOM 顺序绘制在后者之下；圆钮悬停
+       scale(1.2) 会外溢 1.6px 压到邻卡边框上，静息态也要防键盘聚焦时的错位，
+       统一抬到 2（仍低于吸顶的 .panel-top: 3，滚到顶部的圆钮不会糊在面板头上）*/
+      z-index: 2;
       background: var(--bg-tertiary);
       border-color: var(--accent-primary);
       box-shadow: 0 4px 12px rgba(0, 212, 170, 0.12);
@@ -73,11 +77,14 @@
 
     /* 次级操作：默认不出现，悬停或键盘聚焦卡片时才滑出——满屏红叉既吵也易误点。
        opacity:0 时禁用命中，否则看不见的叉子照样能把组件删掉。
-       负偏移让圆钮骑在卡片右上角（徽章式），内嵌 3px 时视觉上会显得没贴角。 */
+       贴角程度是一个纯观感参数，改这两个数即可：偏移量 = 想让圆钮中心
+       落在「圆心(-1，与圆角弧同心)」到「外角点(-9，中心正好压在角上)」之间。
+       -5 = 两者的中点：圆钮中心距角点 5.66px，圆钮向卡片外悬出 4px，
+       而网格间距 6px，所以离邻卡还留 2px，不会贴上。 */
     .card-actions {
       position: absolute;
-      top: -2px;
-      right: -2px;
+      top: -5px;
+      right: -5px;
       z-index: 1;
       display: flex;
       gap: 2px;
@@ -109,7 +116,17 @@
       transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease,
         box-shadow 0.15s ease;
 
-      /* 悬停：变红实底并放大，明确这是「移除」而不是选中 */
+      /* 删除是危险操作，静息态就用红色说话：底色是暗一档的红，悬停升到
+         纯正的 --accent-danger（亮度约 2 倍），两级都能撑住白色符号。
+         先写固定值再写 color-mix：前者是不支持 color-mix 时的保底，
+         后者让底色跟着 --accent-danger 走。 */
+      &.remove {
+        color: #fff;
+        background: #b8333f;
+        background: color-mix(in srgb, var(--accent-danger) 72%, #000);
+      }
+
+      /* 悬停：红色提亮并放大，明确这是「移除」而不是选中 */
       &:hover {
         color: #fff;
         background: var(--accent-danger);
