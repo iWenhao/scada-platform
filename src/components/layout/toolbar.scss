@@ -51,6 +51,13 @@
     opacity: 0;
     transition: opacity 0.2s;
     flex-shrink: 0;
+    /* 视觉基线对齐：盒子居中时 16px 图标墨迹底比 16px 文字基线高约 1px，肉眼读作「偏高」 */
+    transform: translateY(1px);
+  }
+
+  /* 同理：12px 标签文字基线比 16px 标题基线高约 1.5px，下移对齐阅读基线 */
+  .el-tag {
+    transform: translateY(1.5px);
   }
 
   .project-name-group:hover {

@@ -27,11 +27,14 @@
                   v-model="searchQuery"
                   class="search-input"
                   type="text"
-                  placeholder="搜索组件名称或分组"
                   aria-label="搜索组件"
                   @keydown.esc="collapseSearch"
                   @blur="collapseSearch"
                 />
+                <!-- placeholder 跑马灯：文案比可视区宽，原生 placeholder 无法滚动，用覆盖层缓滚展示全文 -->
+                <span v-if="!searchQuery" ref="phClipRef" class="search-ph" aria-hidden="true">
+                  <span ref="phTrackRef" class="search-ph-track" :style="{ '--ph-shift': phShift + 'px' }">搜索组件名称或分组</span>
+                </span>
                 <button
                   v-if="searchQuery"
                   class="search-clear"
@@ -191,7 +194,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
 import { updateCustomComponent, removeCustomComponent, loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
 import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/templateLibrary'
@@ -255,8 +258,26 @@ function toggleSearch() {
 
 /** 展开过渡结束后聚焦输入框 */
 function focusSearchInput() {
+  measurePhShift()
   searchInputRef.value?.focus()
 }
+
+/** placeholder 跑马灯：量出溢出量（轨道宽 − 可视宽），放得下则为 0 不滚 */
+const phClipRef = ref<HTMLElement | null>(null)
+const phTrackRef = ref<HTMLElement | null>(null)
+const phShift = ref(0)
+
+function measurePhShift() {
+  const clip = phClipRef.value
+  const track = phTrackRef.value
+  if (!clip || !track) return
+  phShift.value = Math.max(0, Math.ceil(track.offsetWidth - clip.clientWidth))
+}
+
+/** 清空文本（×）后覆盖层重新挂载，补一次测量 */
+watch([searchVisible, () => searchQuery.value === ''], ([visible, empty]) => {
+  if (visible && empty) nextTick(measurePhShift)
+})
 
 /** 收起即清除：避免输入框看不见了、过滤却还在生效 */
 function collapseSearch() {

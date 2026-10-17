@@ -326,6 +326,13 @@
 
 ### 优化
 
+- 工具栏标题区视觉基线对齐 + 搜索 placeholder 跑马灯
+  - 动因（用户反馈）：① 铅笔编辑图标与「未保存」标签肉眼上看比项目名称「更向上、更高」；② 搜索框 placeholder「搜索组件名称或分组」被截断只能看到一部分，希望滚动展示全文
+  - 对齐问题的定位过程值得一记：盒子中心与**墨迹中心**实测都居中（三种 DPR 下像素级分析 Δ ≤ 0.7px，DPR 1 / 1.25 / 1.5 各测一轮），但**基线**差是真的——16px 标题基线 y=32，12px 标签文字基线 30.5、16px 图标墨迹底 31，都浮在标题基线上方 1~1.5px。人眼判读并排文字按基线而非几何中心，小字基线偏高读作「被抬高了」。修复：铅笔 `translateY(1px)`、标签 `translateY(1.5px)`，把墨迹底/基线压回与标题齐平
+  - placeholder 跑马灯：原生 placeholder 无法滚动，改为覆盖层方案——输入框 `placeholder` 移除（a11y 由 `aria-label` 承担），空态时叠加 `.search-ph`（与文本区同位、`overflow: hidden`、`pointer-events: none`），其内轨道文字用 keyframes 在 0 与 `--ph-shift` 间缓滚（6s ease-in-out alternate，两端各停 1.8s）；`--ph-shift` 由组件量出（轨道宽 − 可视宽，140px 盒下为 19px），放得下时为 0 不动；`prefers-reduced-motion` 下停用。量测时机：展开过渡 `@after-enter` 与 × 清空后（`watch` + `nextTick`）
+  - 实测（系统 Chrome，DPR 3）：`--ph-shift` 量出 19px（轨道 111 − 可视 92）、动画名生效、computed transform 随时间推进（0 → −14.2px）；强制内联 `translateX(-19px)` 后截图确认覆盖层真实绘制、尾部「分组」露出。⚠️ 无头截图对合成器动画会冻结（两次相隔 2.6s 的截图字节相同但 computed transform 在走），判别时以 computed 值 + 强制内联对照为准，勿据截图断言「没动」
+  - 实测：`pnpm build`（含 vue-tsc）通过；eslint 0 错误且两文件警告画像与改前逐规则一致（ComponentPanel.vue 101 = 101）；vitest 全量 **55 文件 / 498 用例**零失败；check-long-files 通过；三文件行尾 CRLF 无混杂
+
 - 组件库面板标题防折行 + 组件名悬停显示全称
   - 动因（用户反馈）：① 搜索框展开时「组件库」的「库」字掉到下一行；② 部分组件名过长显示省略号，希望悬停能看完整名称
   - 折行根因（浏览器实测定位，非猜测）：`.panel-header` 的标题无防折行保护（flex 项默认 `flex-shrink: 1`），且 `.header-actions` 的 `min-width: auto`（flex 项自动最小尺寸 = 内容宽 170px）卡死整条收缩链——搜索盒展开后头部溢出，压力全砸在标题上把文字挤折行。修复三件套：标题加 `.panel-title`（`flex-shrink: 0` + `white-space: nowrap`）、`.header-actions` 加 `min-width: 0` 解除自动最小宽、图标按钮槽 `flex-shrink: 0`——空间不足时由搜索盒收缩吸收
