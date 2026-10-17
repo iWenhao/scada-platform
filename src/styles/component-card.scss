@@ -1,0 +1,141 @@
+/* 组件库卡片：分组标题、三列网格与悬停出现的次级操作（编辑 / 移除）。
+   从 component-panel.scss 拆出：卡片交互样式随「组件可移除」功能继续增长，
+   留在主文件会把 component-panel.scss 推过 500 行阈值。 */
+.component-panel .component-group {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border-primary);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .group-title {
+    color: var(--text-secondary);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+
+  .component-items {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .component-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 2px 8px;
+    border-radius: 8px;
+    cursor: grab;
+    transition: all 0.18s;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+
+    &:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--accent-primary);
+      box-shadow: 0 4px 12px rgba(0, 212, 170, 0.12);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      cursor: grabbing;
+      transform: scale(0.97);
+    }
+
+    .component-icon {
+      width: 30px;
+      height: 30px;
+      margin-bottom: 6px;
+      color: var(--accent-primary);
+      flex-shrink: 0;
+      filter: drop-shadow(0 1px 2px rgba(0, 212, 170, 0.35));
+      transition: transform 0.15s ease, filter 0.15s ease;
+
+      // 图标一律按容器缩放。SVG 根标签若带固有像素尺寸（外部素材就是
+      // width="937px" height="367px" 这种），会按原大小渲染把 30×30 的格子
+      // 撑爆；手写图元一律只有 viewBox，本来就靠容器缩放，这里补一道统一口径。
+      svg {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    &:hover .component-icon {
+      transform: scale(1.06);
+      filter: drop-shadow(0 2px 6px rgba(0, 212, 170, 0.55));
+    }
+
+    /* 次级操作：默认不出现，悬停或键盘聚焦卡片时才滑出——满屏红叉既吵也易误点。
+       opacity:0 时禁用命中，否则看不见的叉子照样能把组件删掉。
+       负偏移让圆钮骑在卡片右上角（徽章式），内嵌 3px 时视觉上会显得没贴角。 */
+    .card-actions {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      z-index: 1;
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-3px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    &:hover .card-actions,
+    &:focus-within .card-actions {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+    }
+
+    .item-action {
+      display: grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: rgba(128, 128, 128, 0.22);
+      transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease,
+        box-shadow 0.15s ease;
+
+      /* 悬停：变红实底并放大，明确这是「移除」而不是选中 */
+      &:hover {
+        color: #fff;
+        background: var(--accent-danger);
+        transform: scale(1.2);
+        box-shadow: 0 2px 6px rgba(255, 71, 87, 0.45);
+      }
+
+      &:active {
+        transform: scale(0.92);
+      }
+    }
+
+    /* 编辑不是危险操作，悬停用主色与删除区分开 */
+    .item-action.edit:hover {
+      color: var(--bg-primary);
+      background: var(--accent-primary);
+      box-shadow: 0 2px 6px rgba(0, 212, 170, 0.4);
+    }
+
+    .component-name {
+      color: var(--text-primary);
+      font-size: 10px;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+}

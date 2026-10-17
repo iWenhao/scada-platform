@@ -308,6 +308,17 @@
 
 ### 功能
 
+- 组件库的组件可以移除了：卡片右上角红色 ×，二次确认，可一键恢复
+  - 动因：用户要求「组件库的组件也可以删除」。内置组件数百个，单个项目通常只用其中一小部分，列表越长翻找成本越高；此前只有自定义组件与设备模板能删（常驻的垃圾桶图标）
+  - **内置组件的「删除」实现为隐藏而非注销**：定义写死在 `src/industrial/**`，若走 `unregisterComponent` 则刷新页面就复活，且画布上同类型实例会退化成默认样式——两处都不是用户想要的。现在注册表保留定义（画布照常渲染取数），只有组件库面板按隐藏清单过滤掉它；自定义组件与设备模板仍是真删除（确认后从存储移除）
+  - 新增 `src/industrial/hiddenLibrary.ts`（纯存储层，键 `scada_hidden_components`，全局一份与工程数据解耦；非字符串项丢弃、去重、坏 JSON 按空处理）+ `src/composables/useHiddenComponents.ts`（模块级单例状态，与 `useHistory` 同构：`hide/show/showAll` + `hiddenComponents`/`hiddenCount`；计数只算仍在注册表里的 type，历史遗留条目不会把入口角标撑大）
+  - `useComponentSearch` 的 `isHit` 改名 `isShown` 并叠加「未被隐藏」判定：面板的分组列表、Tab 圆点、最常使用共用这一条口径，不会出现「Tab 计数还在、卡片却没了」。顺带修掉 `mostUsedHits` 只在搜索态过滤的问题（原来非搜索态直接返回原数组，任何过滤条件都会漏过去）
+  - 抽出 `src/components/layout/ComponentCard.vue`：四处卡片循环（最常使用 / 分组 / 自定义 / 模板）原本各写一遍卡片骨架，加操作区就是第四份重复；图标走 `icon` prop，设备模板没有 SVG 用默认插槽。拖拽载荷仍由面板决定（卡片不知道 `dataTransfer` 格式）
+  - 交互：操作区默认不出现，悬停或键盘聚焦卡片才滑出——满屏红叉既吵又容易误点；`opacity:0` 时同时置 `pointer-events:none`，看不见的叉子不该点得动。悬停到 × 上变红色实底 + 放大 + 投影，编辑按钮用主题色与删除区分。所有删除都要二次确认，文案按语义分两种（内置 =「移除」，自定义/模板 =「删除」并说明画布实例的退化后果）
+  - 恢复入口：组件库标题右侧的「划线眼睛」圆形按钮，仅在有隐藏项时出现且排在最右（不顶开搜索与新建按钮），点开新的 `HiddenComponentsDialog.vue` 列出图标 + 名称 + type，支持逐个恢复与全部恢复
+  - 拆分随功能发生：`component-panel.scss` 原本 487 行，卡片样式再长就会越过 500 行阈值，把 `.component-group` 整块移到新的 `src/styles/component-card.scss`（主文件降到 377 行）；`ComponentPanel.vue` 拆完卡片后仍涨到 414 行超 400 阈值，于是把搜索盒（展开/收起 + placeholder 跑马灯测量）拆成 `LibrarySearchBox.vue`，面板降到 318 行，查询文本与过滤结果仍归面板的 `useComponentSearch`
+  - 实测：新增 `hiddenLibrary.test.ts` 6 用例 + `useHiddenComponents.test.ts` 7 用例（隐藏/幂等/恢复/全部恢复/跨刷新保留/失效 type 不计数/单例共享）；全量 57 文件 / 511 用例零失败，JSON 报告逐文件与磁盘清单比对一致；`vue-tsc --noEmit` 通过。**浏览器实测抓到一处只有跑起来才暴露的问题**：`<Close />` 未注册导致 × 位置一片空白——图标是白名单注册（`main.ts` 的 `usedIcons`，全量注册会把 294 个图标都打进包），已补 `Close`
+
 - 装饰组件新增「导航」标题栏（992×62）
   - 动因：源产品组件库里唯一值得补的一项——蓝色科技风横幅（渐变底 + 中央装饰框 + 虚线，无文字，做大屏标题栏时用户自行叠文字组件）。此前未导入的原因记录在 manifest 的 deco _note：源文件是 PNG，而导入管线只认 SVG
   - 导入脚本新增 PNG 通道：`.png` 素材读为 base64、包成 viewBox 取固有像素的 SVG `<image>`，与矢量图元共用同一条图标管线——styleIcon 对无 `data-face` 标注的内容原样放行（2D/2.5D 外观一致），getIconImage 只做 currentColor 字符串替换、data-URI 原样穿透；manifest 追加 `deco_nav`（src `desc/real/_desc00.png`，源图 1984×124 为 @2x，元素默认尺寸按源产品取 992×62）

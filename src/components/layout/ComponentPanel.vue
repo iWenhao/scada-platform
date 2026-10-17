@@ -4,64 +4,16 @@
       <div class="panel-header">
         <span class="panel-title">组件库</span>
         <div class="header-actions">
-          <!-- 搜索：收起态为圆形图标按钮（与「+」同款）；展开后放大镜收入框内，点框内图标 / Esc / 失焦即收起（收起即清除） -->
-          <div class="header-search">
-            <transition name="search-swap" mode="out-in" @after-enter="focusSearchInput">
-              <!-- 展开态：搜索盒，放大镜在框内（点击即收起） -->
-              <div v-if="searchVisible" key="box" class="search-box">
-                <button
-                  class="search-icon-btn"
-                  type="button"
-                  title="收起搜索"
-                  aria-label="收起搜索"
-                  @mousedown.prevent
-                  @click="collapseSearch"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="M20 20l-3.5-3.5" />
-                  </svg>
-                </button>
-                <input
-                  ref="searchInputRef"
-                  v-model="searchQuery"
-                  class="search-input"
-                  type="text"
-                  aria-label="搜索组件"
-                  @keydown.esc="collapseSearch"
-                  @blur="collapseSearch"
-                />
-                <!-- placeholder 跑马灯：文案比可视区宽，原生 placeholder 无法滚动，用覆盖层缓滚展示全文 -->
-                <span v-if="!searchQuery" ref="phClipRef" class="search-ph" aria-hidden="true">
-                  <span ref="phTrackRef" class="search-ph-track" :style="{ '--ph-shift': phShift + 'px' }">搜索组件名称或分组</span>
-                </span>
-                <button
-                  v-if="searchQuery"
-                  class="search-clear"
-                  type="button"
-                  title="清除搜索"
-                  aria-label="清除搜索"
-                  @mousedown.prevent
-                  @click="clearSearch"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
-              </div>
-              <!-- 收起态：圆形图标按钮（与「+」同款），点击展开 -->
-              <div v-else key="toggle" class="search-toggle-slot">
-                <el-tooltip content="搜索组件" placement="bottom">
-                  <el-button size="small" circle @click="toggleSearch">
-                    <el-icon><Search /></el-icon>
-                  </el-button>
-                </el-tooltip>
-              </div>
-            </transition>
-          </div>
+          <LibrarySearchBox v-model:query="searchQuery" v-model:open="searchOpen" />
           <el-tooltip content="创建自定义组件" placement="bottom">
             <el-button size="small" circle @click="showCustomDialog = true">
               <el-icon><Plus /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <!-- 恢复入口：只在有隐藏项时出现（排在最右，避免顶开搜索与新建按钮） -->
+          <el-tooltip v-if="hiddenCount" :content="`已隐藏 ${hiddenCount} 个组件，点击恢复`" placement="bottom">
+            <el-button size="small" circle @click="showHiddenDialog = true">
+              <el-icon><Hide /></el-icon>
             </el-button>
           </el-tooltip>
         </div>
@@ -95,19 +47,19 @@
         <template v-else>
           <!-- 最常使用：按拖入画布次数降序，免去逐个翻 Tab -->
           <template v-if="activeTab === 'most'">
-            <div v-if="mostUsedHits.length" class="component-group custom-group">
+            <div v-if="mostUsedHits.length" class="component-group">
               <div class="component-items">
-                <div
+                <ComponentCard
                   v-for="comp in mostUsedHits"
                   :key="comp.type"
-                  class="component-item"
-                  :title="comp.name"
-                  draggable="true"
-                  @dragstart="(e) => onDragStart(e, comp)"
-                >
-                  <div class="component-icon" v-html="comp.icon"></div>
-                  <span class="component-name">{{ comp.name }}</span>
-                </div>
+                  :name="comp.name"
+                  :icon="comp.icon"
+                  :editable="isCustom(comp)"
+                  :remove-title="removeTitleOf(comp)"
+                  @dragstart="(e: DragEvent) => onDragStart(e, comp)"
+                  @edit="startEditCustom(comp)"
+                  @remove="removeComponent(comp)"
+                />
               </div>
             </div>
             <div v-else-if="!customHasHits" class="most-empty">
@@ -125,17 +77,14 @@
             >
               <div class="group-title">{{ getGroupName(group) }}</div>
               <div class="component-items">
-                <div
+                <ComponentCard
                   v-for="comp in components"
                   :key="comp.type"
-                  class="component-item"
-                  :title="comp.name"
-                  draggable="true"
-                  @dragstart="(e) => onDragStart(e, comp)"
-                >
-                  <div class="component-icon" v-html="comp.icon"></div>
-                  <span class="component-name">{{ comp.name }}</span>
-                </div>
+                  :name="comp.name"
+                  :icon="comp.icon"
+                  @dragstart="(e: DragEvent) => onDragStart(e, comp)"
+                  @remove="removeComponent(comp)"
+                />
               </div>
             </div>
             <div v-if="!tabGroups.length && !customHasHits" class="search-empty">
@@ -144,40 +93,30 @@
           </template>
 
           <!-- 自定义组件（已无独立 Tab）：搜索命中时附在结果末尾，卡片保留编辑/删除 -->
-          <div v-if="searching && customHasHits" class="component-group custom-group">
+          <div v-if="searching && customHasHits" class="component-group">
             <div class="group-title">自定义组件</div>
             <div class="component-items">
-              <div
+              <ComponentCard
                 v-for="tpl in templateHits"
                 :key="tpl.id"
-                class="component-item custom-card template-card"
-                :title="tpl.name"
-                draggable="true"
-                @dragstart="(e) => onTemplateDragStart(e, tpl)"
+                :name="tpl.name"
+                remove-title="删除设备模板"
+                @dragstart="(e: DragEvent) => onTemplateDragStart(e, tpl)"
+                @remove="removeTemplate(tpl)"
               >
-                <div class="card-actions">
-                  <el-icon title="删除" @click.stop="removeTemplate(tpl)"><Delete /></el-icon>
-                </div>
-                <div class="component-icon">
-                  <el-icon :size="26"><Box /></el-icon>
-                </div>
-                <span class="component-name">{{ tpl.name }}</span>
-              </div>
-              <div
+                <el-icon :size="26"><Box /></el-icon>
+              </ComponentCard>
+              <ComponentCard
                 v-for="comp in customHits"
                 :key="comp.type"
-                class="component-item custom-card"
-                :title="comp.name"
-                draggable="true"
-                @dragstart="(e) => onDragStart(e, comp)"
-              >
-                <div class="card-actions">
-                  <el-icon title="编辑" @click.stop="startEditCustom(comp)"><Edit /></el-icon>
-                  <el-icon title="删除" @click.stop="removeCustom(comp)"><Delete /></el-icon>
-                </div>
-                <div class="component-icon" v-html="comp.icon"></div>
-                <span class="component-name">{{ comp.name }}</span>
-              </div>
+                :name="comp.name"
+                :icon="comp.icon"
+                editable
+                remove-title="删除自定义组件"
+                @dragstart="(e: DragEvent) => onDragStart(e, comp)"
+                @edit="startEditCustom(comp)"
+                @remove="removeCustom(comp)"
+              />
             </div>
           </div>
         </template>
@@ -190,17 +129,19 @@
       :editing="editingDef"
       @confirm="onCustomSaved"
     />
+    <HiddenComponentsDialog v-model="showHiddenDialog" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
 import { updateCustomComponent, removeCustomComponent, loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
 import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/templateLibrary'
 import { BASIC_GROUPS, INDUSTRY_GROUPS, getGroupName } from '@/industrial/panelRegistry'
 import { useComponentSearch, type PanelTabKey } from '@/composables/useComponentSearch'
 import { useMostUsedComponents } from '@/composables/useMostUsedComponents'
+import { useHiddenComponents } from '@/composables/useHiddenComponents'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import type { ComponentDefinition, ComponentGroup } from '@/types/scada'
 import type { DeviceTemplate } from '@/types/template'
@@ -232,8 +173,10 @@ const customDefs = ref<ComponentDefinition[]>([])
 const deviceTemplates = ref<DeviceTemplate[]>([])
 const showCustomDialog = ref(false)
 const editingDef = ref<ComponentDefinition | null>(null)
+const showHiddenDialog = ref(false)
 
 const { mostUsed } = useMostUsedComponents()
+const { hiddenCount, hide: hideComponentType, refresh: refreshHidden } = useHiddenComponents()
 const {
   searchQuery,
   searching,
@@ -243,57 +186,16 @@ const {
   mostUsedHits,
   customHits,
   templateHits,
-  isHit,
+  isShown,
 } = useComponentSearch({ activeTab, mostUsed, customDefs, deviceTemplates })
 
-/** 搜索框展开态：默认只显示图标；有查询时强制展开（避免筛了却看不到原因） */
+/** 搜索盒展开态（展开/收起与跑马灯测量在 LibrarySearchBox 内） */
 const searchOpen = ref(false)
-const searchInputRef = ref<HTMLInputElement | null>(null)
-const searchVisible = computed(() => searchOpen.value || searching.value)
-
-/** 展开搜索（收起由框内放大镜 / Esc 触发；收起即清除） */
-function toggleSearch() {
-  searchOpen.value = true
-}
-
-/** 展开过渡结束后聚焦输入框 */
-function focusSearchInput() {
-  measurePhShift()
-  searchInputRef.value?.focus()
-}
-
-/** placeholder 跑马灯：量出溢出量（轨道宽 − 可视宽），放得下则为 0 不滚 */
-const phClipRef = ref<HTMLElement | null>(null)
-const phTrackRef = ref<HTMLElement | null>(null)
-const phShift = ref(0)
-
-function measurePhShift() {
-  const clip = phClipRef.value
-  const track = phTrackRef.value
-  if (!clip || !track) return
-  phShift.value = Math.max(0, Math.ceil(track.offsetWidth - clip.clientWidth))
-}
-
-/** 清空文本（×）后覆盖层重新挂载，补一次测量 */
-watch([searchVisible, () => searchQuery.value === ''], ([visible, empty]) => {
-  if (visible && empty) nextTick(measurePhShift)
-})
-
-/** 收起即清除：避免输入框看不见了、过滤却还在生效 */
-function collapseSearch() {
-  searchOpen.value = false
-  searchQuery.value = ''
-}
-
-/** 清空文本但保持展开，继续可输入 */
-function clearSearch() {
-  searchQuery.value = ''
-  nextTick(() => searchInputRef.value?.focus())
-}
 
 onMounted(async () => {
   customDefs.value = await loadCustomComponents()
   deviceTemplates.value = await loadDeviceTemplates()
+  await refreshHidden()
   window.addEventListener('scada-templates-changed', refreshTemplates)
 })
 
@@ -306,13 +208,13 @@ async function refreshTemplates() {
   deviceTemplates.value = await loadDeviceTemplates()
 }
 
-/** 当前 Tab 下的分组（保持原有组内顺序；搜索态只保留命中项，空组不展示） */
+/** 当前 Tab 下的分组（保持原有组内顺序；搜索态只保留命中项，已从组件库移除的不出现） */
 const tabGroups = computed(() => {
   const map = getComponentsByGroup()
   const wanted = activeTab.value === 'basic' ? BASIC_GROUPS : INDUSTRY_GROUPS
   const result: Array<[ComponentGroup, ComponentDefinition[]]> = []
   for (const group of wanted) {
-    const list = (map.get(group) ?? []).filter(isHit)
+    const list = (map.get(group) ?? []).filter(isShown)
     if (list.length) result.push([group, list])
   }
   return result
@@ -347,6 +249,34 @@ async function removeCustom(def: ComponentDefinition) {
   await removeCustomComponent(def.type)
   customDefs.value = customDefs.value.filter(c => c.type !== def.type)
   ElMessage.success('已删除')
+}
+
+const isCustom = (comp: ComponentDefinition) => comp.group === 'custom'
+
+/** 叉叉提示：内置组件是「从组件库移除」，自定义组件是真删除 */
+const removeTitleOf = (comp: ComponentDefinition) =>
+  isCustom(comp) ? '删除自定义组件' : '从组件库移除'
+
+/**
+ * 卡片删除入口：内置组件的定义写死在代码里，删除做成隐藏（可在标题右侧恢复），
+ * 注册表保留定义，因此画布上已放置的实例照常渲染取数；自定义组件走真删除。
+ */
+async function removeComponent(comp: ComponentDefinition) {
+  if (isCustom(comp)) {
+    await removeCustom(comp)
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      `确定从组件库移除「${comp.name}」吗？移除后组件库不再列出它，画布上已放置的实例不受影响；可在组件库标题右侧恢复。`,
+      '移除组件',
+      { type: 'warning', confirmButtonText: '移除', cancelButtonText: '取消' },
+    )
+  } catch {
+    return
+  }
+  await hideComponentType(comp.type)
+  ElMessage.success(`已移除「${comp.name}」`)
 }
 
 // 进入编辑模式

@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import {
-  ArrowDown, Bottom, Box, Collection, Connection, CopyDocument, Delete, Download,
+  ArrowDown, Bottom, Box, Close, Collection, Connection, CopyDocument, Delete, Download,
   Edit, FolderOpened, Hide, Lock, MoreFilled, Plus, Refresh, Search, Select, Setting,
   Top, TrendCharts, Unlock, Upload, View,
 } from '@element-plus/icons-vue'
@@ -37,7 +37,7 @@ const app = createApp(App)
 // 只注册模板与右键菜单(:is 字符串)中实际用到的图标——
 // 全量注册会把 294 个图标全部打进 bundle；新增图标时在此补充
 const usedIcons = {
-  ArrowDown, Bottom, Box, Collection, Connection, CopyDocument, Delete, Download,
+  ArrowDown, Bottom, Box, Close, Collection, Connection, CopyDocument, Delete, Download,
   Edit, FolderOpened, Hide, Lock, MoreFilled, Plus, Refresh, Search, Select, Setting,
   Top, TrendCharts, Unlock, Upload, View,
 }

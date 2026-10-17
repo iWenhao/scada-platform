@@ -1,6 +1,7 @@
 import { ref, computed, watch, type Ref } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
 import { BASIC_GROUPS, INDUSTRY_GROUPS, getGroupName } from '@/industrial/panelRegistry'
+import { useHiddenComponents } from './useHiddenComponents'
 import type { ComponentDefinition, ComponentGroup } from '@/types/scada'
 import type { DeviceTemplate } from '@/types/template'
 
@@ -17,8 +18,9 @@ const TAB_ORDER: PanelTabKey[] = ['most', 'basic', 'industry']
  *
  * 行为约定：
  * - 有命中的 Tab 自动激活——当前 Tab 无命中时，跳到 TAB_ORDER 里第一个有命中的 Tab；
- * - 有命中的 Tab 带圆点标记（hitTabs），命中的组件在列表里高亮；
+ * - 有命中的 Tab 带圆点标记（hitTabs），命中项不做额外高亮，靠 Tab 圆点定位；
  * - 非命中项在搜索态下由各 Tab 的视图过滤掉，不堆在面板里；
+ * - 被从组件库移除（隐藏）的内置组件一律不参与命中，见 isShown；
  * - 自定义组件没有 Tab，搜索命中时以「自定义组件」小节附在结果末尾（卡片保留编辑/删除）。
  */
 export function useComponentSearch(opts: {
@@ -27,12 +29,14 @@ export function useComponentSearch(opts: {
   customDefs: Ref<ComponentDefinition[]>
   deviceTemplates: Ref<DeviceTemplate[]>
 }) {
+  const { isHidden } = useHiddenComponents()
   const searchQuery = ref('')
   const query = computed(() => searchQuery.value.trim().toLowerCase())
   const searching = computed(() => query.value.length > 0)
 
-  /** 命中判定：组件名 / type / 分组显示名 */
-  function isHit(comp: ComponentDefinition): boolean {
+  /** 面板可见判定：未被从组件库移除，且（搜索态下）命中 组件名 / type / 分组显示名 */
+  function isShown(comp: ComponentDefinition): boolean {
+    if (isHidden(comp.type)) return false
     if (!searching.value) return true
     const q = query.value
     return (
@@ -48,12 +52,12 @@ export function useComponentSearch(opts: {
     return groups.flatMap(g => map.get(g) ?? [])
   }
 
-  const basicHits = computed(() => collectGroups(BASIC_GROUPS).filter(isHit))
-  const industryHits = computed(() => collectGroups(INDUSTRY_GROUPS).filter(isHit))
-  const mostUsedHits = computed(() => (searching.value ? opts.mostUsed.value.filter(isHit) : opts.mostUsed.value))
+  const basicHits = computed(() => collectGroups(BASIC_GROUPS).filter(isShown))
+  const industryHits = computed(() => collectGroups(INDUSTRY_GROUPS).filter(isShown))
+  const mostUsedHits = computed(() => opts.mostUsed.value.filter(isShown))
 
   /** 自定义侧（无 Tab）的命中：模板 + 自定义图形 */
-  const customHits = computed(() => opts.customDefs.value.filter(isHit))
+  const customHits = computed(() => opts.customDefs.value.filter(isShown))
   const templateHits = computed(() =>
     searching.value
       ? opts.deviceTemplates.value.filter(t => t.name.toLowerCase().includes(query.value))
@@ -86,7 +90,7 @@ export function useComponentSearch(opts: {
     searchQuery,
     query,
     searching,
-    isHit,
+    isShown,
     hitTabs,
     anyHits,
     customHasHits,
