@@ -70,8 +70,8 @@ registerComponents([
   ...chartComponents,
 ])
 
-/** 基础 Tab 覆盖的注册分组 */
-export const BASIC_GROUPS: ComponentGroup[] = ['basic', 'general', 'deco', 'chart']
+/** 基础 Tab 覆盖的注册分组（图表组件 2026-10-18 上移到「基础组件」之后：图表是高频件，沉在装饰下面难找） */
+export const BASIC_GROUPS: ComponentGroup[] = ['basic', 'chart', 'general', 'deco']
 /** 行业 Tab 覆盖的注册分组（管道 / 电气 2026-10-18 由基础 Tab 移入，属行业现场设备） */
 export const INDUSTRY_GROUPS: ComponentGroup[] = [
   'coal',

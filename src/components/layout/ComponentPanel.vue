@@ -152,7 +152,7 @@ import '@/industrial/panelRegistry'
 /** Tab：最常使用 / 基础 / 行业（「自定义组件」Tab 已移除，改由搜索触达） */
 const tabs: Array<{ key: PanelTabKey; label: string }> = [
   { key: 'most', label: '最常使用' },
-  { key: 'basic', label: '基础组件' },
+  { key: 'basic', label: '通用组件' },
   { key: 'industry', label: '行业组件' },
 ]
 
