@@ -20,6 +20,14 @@
   - 同因纠 `agents.md`「新增工业组件」第 3 步：注册数据层早已从 `ComponentPanel.vue` 拆到 `src/industrial/panelRegistry.ts`（该文件头注释写明缘由），旧文会把人支去改 UI 文件
   - 实测：分组数与组件数用临时 vitest 脚本跑出（跑完已回收，工作区无残留）；全量 `npx vitest run` 65 文件 / 592 用例零失败且汇总无 `Errors`（磁盘清单 57 + `server/` 8 逐文件比对一致）；`pnpm build` 28.4s 通过（chunk 体积告警为既有）；`check-long-files.ps1` 报 OK，跳过 `src/industrial/*` 46 个豁免文件
 
+- README 二轮收口：交互流程图压成事件链、环境要求补下限依据
+  - 动因：上轮按商定范围留下了两处——4 张 ASCII 交互时序图（占全篇约 1/4，信息密度低且「保存到 localStorage」已被「登录后写远程」取代），以及 `pnpm >= 8` 与仓库实际不符
+  - `## 交互流程图` 整节（4 图约 144 行）替换为 `## 交互流程` 四条事件链（8 行）：拖入组件 / 配置状态规则 / 连线 / 预览，图形化的界面细节统一指向 USER_GUIDE §5 不重复；预览一条改为「后端在线写远程，否则回落 localStorage」
+  - 运行时数据流首框「模拟数据 / WebSocket」改为「任一数据源推送」并在图下补一行枚举五源，与上轮改过的数据源层图（已含 MQTT）对齐
+  - 环境要求 `pnpm >= 8` → `>= 9，推荐 10/11`：`pnpm-lock.yaml` 是 `lockfileVersion: 9.0`，pnpm 8 读不了会当没有锁文件、把锁重写成旧格式；镜像固定 `corepack prepare pnpm@11`。**Node 下限保留 18**——实测 `vite@5.4.21` / `vitest@1.6.1` 的 engines 为 `^18.0.0 || >=20.0.0`，Docker 用 node:20 是镜像选择不是下限，不要顺手也跟着改
+  - 删整节的落法：新片段先用 write 工具落成临时 `.md`，再用 node 按行切片重写 README——中文不经 shell 命令行，避开 MSYS 转码；临时文件走回收站回收
+  - 实测：README 628 → 494 行；围栏配对无未闭合、旧节标题与子标题零残留（按码点校验，不看控制台渲染）；`check-long-files.ps1` 仍报 OK（README 属文档，不在行数约束内）；本轮只动 `.md`，`vitest` / `pnpm build` 沿用上轮全绿结果未重跑
+
 ## [0.0.5-261013] - 261013
 
 ### 功能
