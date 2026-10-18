@@ -12,6 +12,11 @@
 
 ### 优化
 
+- 消除画布每个元素刷一条的 Vue 警告 `Extraneous non-emits event listeners (click, contextmenu, mouseenter, …)`
+  - 根因：vue-konva 的容器节点（Group/Layer/Label/FastLayer）返回的是插槽片段，根节点不是元素，模板上的 `@click` 等监听无法被「自动继承」；vue-konva 会在 setup 里把 vnode.props 的 on* 键合进 applyNodeProps，所以功能不受影响，但 dev 下每个元素一条警告
+  - 改法：CanvasElements.vue 的分组配置（含 8 个事件）整体搬进脚本 `groupConfig()` 并通过 `:config="item.group"` 传入（`onClick`/`onDragstart`…，applyNodeProps 对 on* 键做同样的 `node.on()` 注册，功能一致）；PreviewStage.vue 的 `@click` 同改进 config。ConnectionLine.vue 本就是 config 写法，未动
+  - 实测：playwright + 系统 Chrome 进编辑器拖入设备与雷达图，控制台 0 条 Extraneous 警告；点选元素后属性面板正常显示坐标（onClick 生效）；全量 `npx vitest run` 65 文件 / 596 用例零失败，`vue-tsc --noEmit` 零输出
+
 ### 修复
 
 - 雷达图无数据绑定时挂载即崩（控制台 `Cannot read properties of undefined (reading 'push')`）

@@ -19,8 +19,8 @@
               height: element.height,
               rotation: element.rotation,
               visible: isLayerVisible(element.layerId),
+              onClick: () => emit('element-click', element),
             }"
-            @click="emit('element-click', element)"
           >
             <v-rect :config="hitAreaConfig(element)" />
             <!-- 设备图形：立体感由图标内部的面基图元 + 光照承担（与编辑器一致） -->

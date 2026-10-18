@@ -1,27 +1,7 @@
 <template>
   <v-layer>
     <template v-for="item in renderItems" :key="item.element.id">
-      <v-group
-        :config="{
-          id: item.element.id,
-          x: item.element.x,
-          y: item.element.y,
-          width: item.element.width,
-          height: item.element.height,
-          rotation: item.element.rotation,
-          visible: isLayerVisible(item.element.layerId),
-          draggable: !isLayerLocked(item.element.layerId) && !item.element.locked && activeTool !== 'connect',
-          dragBoundFunc: snapToGrid ? gridSnapFunc : undefined,
-        }"
-        @click="emit('element-click', item.element, $event)"
-        @contextmenu="emit('element-contextmenu', item.element, $event)"
-        @mouseenter="emit('hover', item.element.id)"
-        @mouseleave="emit('hover', null)"
-        @dragstart="emit('drag-start', item.element, $event)"
-        @dragmove="emit('drag-move', item.element, $event)"
-        @dragend="emit('drag-end', item.element, $event)"
-        @transformend="emit('transform-end', item.element.id)"
-      >
+      <v-group :config="item.group">
         <!-- 命中层（不可见，保证可选中/拖拽/缩放/右键） -->
         <v-rect
           :config="item.hit"
@@ -202,6 +182,38 @@ function textContent(element: ComponentInstance): string {
 }
 
 /**
+ * 分组节点的完整配置（含事件监听）。
+ *
+ * ⚠️ 事件必须写进 config，不能写成模板上的 `@click`：vue-konva 的容器节点
+ * （Group / Layer / Label / FastLayer）返回的是插槽片段，根节点不是元素，
+ * 模板上的监听无法被"自动继承"，Vue dev 下会给每个元素刷一条
+ * `Extraneous non-emits event listeners` 警告。applyNodeProps 对 config 里
+ * `on` 前缀的键做同样的处理（`onClick` → `node.on('click')`），功能一致。
+ */
+function groupConfig(element: ComponentInstance) {
+  return {
+    id: element.id,
+    x: element.x,
+    y: element.y,
+    width: element.width,
+    height: element.height,
+    rotation: element.rotation,
+    visible: isLayerVisible(element.layerId),
+    draggable:
+      !isLayerLocked(element.layerId) && !element.locked && props.activeTool !== 'connect',
+    dragBoundFunc: props.snapToGrid ? props.gridSnapFunc : undefined,
+    onClick: (e: any) => emit('element-click', element, e),
+    onContextmenu: (e: any) => emit('element-contextmenu', element, e),
+    onMouseenter: () => emit('hover', element.id),
+    onMouseleave: () => emit('hover', null),
+    onDragstart: (e: any) => emit('drag-start', element, e),
+    onDragmove: (e: any) => emit('drag-move', element, e),
+    onDragend: (e: any) => emit('drag-end', element, e),
+    onTransformend: () => emit('transform-end', element.id),
+  }
+}
+
+/**
  * 每个元素的渲染数据预计算。
  *
  * 原来模板里同一项要重复求值多次——`getElementLayout` 一处就出现 7 次、
@@ -217,6 +229,7 @@ const renderItems = computed(() => props.elements.map((element) => {
   const display = isDisplayElement(element)
   const item = {
     element,
+    group: groupConfig(element),
     hit: hitAreaConfig(element),
     icon: getIconImageConfig(element),
     userImage: getUserImageConfig(element),
@@ -269,6 +282,4 @@ const renderItems = computed(() => props.elements.map((element) => {
 
   return item
 }))
-
-void props.gridSnapFunc
 </script>
