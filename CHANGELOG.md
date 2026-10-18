@@ -34,6 +34,15 @@
   - 判速沿用现成口径，未新增字段：`state=1` 运行 → 110 deg/s（下限），`state=2` 报警 → 140 deg/s，`state=0` 停机不转
   - 动了：`src/industrial/assetComponents.ts`（挖取 + 继承包装 + 定位框）、`src/industrial/coal/index.ts`（两只滚筒的声明）、`src/types/scada.ts`（`MotionRotor` 坐标口径的注释纠正：不是固定 0..100，而是主图标自己的用户坐标）、新增 `src/industrial/assetComponents.test.ts`、`design/probe/motion*`（核对页改用当前 API 并加未挖取原图的半透明叠图对照）
   - 实测：`assetComponents` 14 + `elementMotion` 22 = 36 用例通过；浏览器探针页用真实模块画 0°/25°/50° 与停机色、2D/2.5D 两档，滚筒与机身同心、截齿跟转、叠上未挖取原图无重影；元素 300px 宽时整机相对改造前缩 0.4%（Δ 1.3px，机身与滚筒走同一套变换故互相对齐不受影响）；全量 66 文件 / 615 用例、`pnpm build`、超长文件检查全部通过
+- 首页「最近项目」支持按项目名称搜索
+  - 场景：项目多了以后只能靠肉眼在一堆卡片里找，编辑器里的「打开项目」入口早已删掉，首页没有任何检索手段
+  - 改法：新建 `src/views/dashboard/ProjectSearchBox.vue`（只管展开/收起与输入，不碰项目数据），挂在「最近项目」标题行右侧——位置即作用域，且这一行在本次改造后是常驻不滚的固定头，滚到第几屏都够得着。过滤走 `index.vue` 的 `visibleProjects` computed，对已加载的 `recentProjects` 做大小写不敏感子串匹配，不再打一次存储请求；标题行的 `section-sub` 在筛选时改成「匹配 N / M 个项目」，让人知道列表变短是被筛的而不是丢了
+  - 窄窗口（≤720px）退成圆形放大镜按钮，点击展开、失焦且无内容即收回；**有查询时强制展开**，不会出现「筛了却看不见筛选条件」。断点用 `matchMedia` 监听而不是纯 CSS，因为收起/展开是有状态的交互
+  - 取舍：没复用编辑器组件库的 `LibrarySearchBox`——它的「失焦即清空」写死了 `.component-panel` 内部判定，而首页要求宽窗口下输入框常驻、点卡片不该把查询清掉，硬套需要给旧组件加参数并改动编辑器的搜索行为。仓库里这是第 2 个搜索盒，**第 3 次出现必须收敛成公共实现**
+  - 边界：无命中时保留「新建项目」ghost 卡（它是动作不是结果），下方补一行「没有名称包含「x」的项目 + 清空搜索」；删除掉最后一个命中项后查询保持不动，由提示行解释为什么空了
+  - 措辞统一到「项目」：新写的搜索文案（占位符 / aria-label / 无命中提示 / 计数）一律用「项目」，并把首页两处「新建工程」与空态标题「还没有组态工程」一并改成「新建项目 / 还没有组态项目」——同一块空态里按钮写「新建项目」而标题写「组态工程」是自相矛盾，且 `docs/USER_GUIDE.md` 早已写作「新建项目」。首页还剩这些「工程」未动（属既有文案，不在本次范围）：统计卡标签「工程项目」、hero 摘要「N 个工程已发布」、底部提示「发布后的工程」、发布弹窗标题「发布工程」、「示例工程已导入」；编辑器侧（`Toolbar.vue`「把当前工程快照为运行版」等）继续用「工程」
+  - 顺带删掉首页的「打开项目」`el-dialog`：`showOpenDialog` 全仓库只有 `= false` 与初始值两处赋值，没有任何入口能打开它（卡片上的打开走 `@open`），属死代码；连带清理 `.open-project-*` 样式
+  - 实测：`vue-tsc --noEmit` 零输出、`vitest run --changed` 10 文件 / 113 用例通过、改动文件 eslint 零告警、`pnpm build` 通过、超长文件检查 OK（`index.vue` 399 行、`dashboard.scss` 454 行）。**浏览器肉眼核对未完成**：自动模式拦下代填登录凭据，验证停在未登录跳转页
 
 ### 优化
 
@@ -74,6 +83,12 @@
   - 改法一（`useProjectActions.handlePreview`）：编辑器的「预览」带 `?source=draft`——按钮语义是「看我刚存的东西」，运行版入口（首页卡片预览）仍默认读发布快照。同步修正工具栏那枚 tooltip（原文案写死「默认显示发布版」，现在不成立了）
   - 改法二（兜住「读发布版」这类入口）：`projectStore` 新增 `snapshotEditorSession()` / `restoreEditorSession()`，预览页挂载前抓现场、卸载时还原并 `clearHistory()`（否则回编辑器一按 Ctrl+Z 会把预览那份内容撤销进来）。还原要显式开关：`uiStore.hasEditSession` 由编辑器 setup 置位、首页挂载复位——从首页直接进预览时内存里是空工程，还原反而会把刚加载好的工程抹掉
   - 动了：`src/components/layout/toolbar/useProjectActions.ts`、`src/components/layout/Toolbar.vue`（文案）、`src/stores/projectStore.ts`、`src/stores/uiStore.ts`、`src/views/preview/index.vue`、`src/views/editor/index.vue`、`src/views/dashboard/index.vue`、`src/stores/projectStore.test.ts`
+- 首页只滚动「最近项目」区，顶栏 / 欢迎语 / 统计卡 / 标题行钉住不动
+  - 背景：原来整页一起滚，项目一多往下拖，「最近项目」标题和它的计数、搜索框就滚出画面，四张统计卡也在第一屏之后变成纯占位
+  - 改法：`dashboard.scss` 把 `.dashboard-container` 由 `min-height:100vh` 改成 `height:100vh` + flex 列 + `overflow:hidden`，`.dashboard-content` 转为 flex 列（`flex:1; min-height:0`），新增 `.project-scroll` 承载网格 + 空态 + 底部提示（`flex:1; min-height:0; overflow-y:auto`）。底部留白从 `.dashboard-content` 的 padding 挪进滚动区，否则末尾卡片会被 padding 吃掉一截
+  - 一个容易忽略的裁剪问题：`overflow-y:auto` 会让浏览器把同一元素的 `overflow-x` 由 `visible` 按 `auto` 处理，卡片悬停的 `translateY(-4px)` 与阴影会在上、左边缘被切掉。解法是四边各留 8px padding 缓冲 + 等量负 margin 抵掉位移，保持网格与标题行左边线对齐
+  - 短屏兜底：`@media (max-height: 620px)` 退回整页滚动。固定区自己就超过一屏时继续锁死会把网格挤到看不见；固定区那几个块靠默认 `min-height:auto` 不会被 flex 压扁，高度不足全部由滚动区吸收
+  - 实测：静态门槛同「首页搜索」一条（typecheck / `--changed` 单测 / eslint / build / 超长文件检查全过）。**滚动手感与两档主题下的搜索框配色待肉眼核对**（同上，未登录）
   - 实测：新增 2 条 store 用例——① 1 画面发布 → 内存加到 3 画面 → `loadPublishedProject()` 确认被顶回 1 张 → 还原后画面名依次为主页/画面 2/画面 3、activePageId 回到画面 3、`hasUnsavedChanges` 一起回来；② 快照与后续编辑隔离（改工作区元素名后还原仍是旧名，验证深拷贝，同 `useHistory` 的引用穿透教训）。全量 `npx vitest run --reporter=verbose` 66 文件 / 618 用例通过（与磁盘 `git ls-files | grep -c '\.test\.ts$'` = 66 对齐，汇总行无 `Errors`）；`vue-tsc --noEmit`、`pnpm build`、超长文件检查均通过
   - 浏览器实机：在临时端口对（5180 前端 + 5178 独立 `DATA_DIR`，避开正在跑的 5173/5174）走通「编辑器加 3 张画面 → 点预览」，确认 URL 带 `source=draft` 且预览 HUD 的画面胶囊是 3 张（改前读发布版是 1 张）。**改法二的还原没能实机点到**：内嵌浏览器标签处于 hidden 状态，`<RouterView>` 的 `mode="out-in"` 过渡依赖 rAF，隐藏标签里不推进，路由停在 `page-fade-leave-active`；`hasEditSession` 开关与 onUnmounted 还原仅由上述 store 用例覆盖，建议手动点一次（进预览 → 点「编辑器」）
 - 报表拖到画布上默认就带一条竖向滚动条

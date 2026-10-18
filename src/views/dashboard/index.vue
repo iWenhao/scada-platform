@@ -48,62 +48,73 @@
 
       <div class="section-head">
         <h2>最近项目</h2>
-        <span class="section-sub">按修改时间排序</span>
+        <span class="section-sub">{{ listSummary }}</span>
+        <ProjectSearchBox v-model="keyword" />
       </div>
 
-      <div v-if="loadingProjects" class="project-grid" aria-label="正在加载项目列表">
-        <div v-for="i in 3" :key="i" class="project-card skeleton-card" aria-hidden="true">
-          <div class="sk sk-thumb" />
-          <div class="sk sk-line" />
-          <div class="sk sk-line short" />
-        </div>
-      </div>
-
-      <template v-else-if="recentProjects.length">
-        <div class="project-grid">
-          <ProjectCard
-            v-for="row in recentProjects"
-            :key="row.name"
-            :project="row"
-            :editing="editingName === row.name"
-            :model-value="editingValue"
-            @update:model-value="editingValue = $event"
-            @open="loadProject(row.name)"
-            @preview="previewProject(row.name)"
-            @publish="publishProject(row.name)"
-            @unpublish="unpublishProject(row.name)"
-            @config="(k) => openProjectConfig(row.name, k)"
-            @more="(c) => handleCardCommand(c, row.name)"
-            @start-rename="startRename(row.name)"
-            @confirm-rename="confirmRename(row.name)"
-            @cancel-rename="cancelRename"
-          />
-          <div class="project-card ghost" @click="goToEditor">
-            <div class="ghost-center">
-              <div class="ghost-plus">＋</div>
-              <div class="ghost-title">新建工程</div>
-              <div class="ghost-sub">从空白开始组态</div>
-              <el-button size="small" type="primary" plain class="demo-btn" @click.stop="importDemo">
-                导入示例 Demo
-              </el-button>
-            </div>
+      <!-- 页面只有这一段跟着滚：顶栏/欢迎语/统计卡/标题行都钉住，搜索框因此任何一屏都在眼前 -->
+      <div class="project-scroll">
+        <div v-if="loadingProjects" class="project-grid" aria-label="正在加载项目列表">
+          <div v-for="i in 3" :key="i" class="project-card skeleton-card" aria-hidden="true">
+            <div class="sk sk-thumb" />
+            <div class="sk sk-line" />
+            <div class="sk sk-line short" />
           </div>
         </div>
-      </template>
 
-      <div v-else class="empty-state">
-        <div class="ghost-plus lg">＋</div>
-        <h3>还没有组态工程</h3>
-        <p>新建空白工程，或导入示例快速体验工艺流程、报警与趋势。</p>
-        <div class="empty-actions">
-          <el-button type="primary" @click="goToEditor">新建工程</el-button>
-          <el-button @click="importDemo">导入示例 Demo</el-button>
-          <el-button @click="importProject">导入 JSON</el-button>
+        <template v-else-if="recentProjects.length">
+          <div class="project-grid">
+            <ProjectCard
+              v-for="row in visibleProjects"
+              :key="row.name"
+              :project="row"
+              :editing="editingName === row.name"
+              :model-value="editingValue"
+              @update:model-value="editingValue = $event"
+              @open="loadProject(row.name)"
+              @preview="previewProject(row.name)"
+              @publish="publishProject(row.name)"
+              @unpublish="unpublishProject(row.name)"
+              @config="(k) => openProjectConfig(row.name, k)"
+              @more="(c) => handleCardCommand(c, row.name)"
+              @start-rename="startRename(row.name)"
+              @confirm-rename="confirmRename(row.name)"
+              @cancel-rename="cancelRename"
+            />
+            <!-- 新建入口不参与过滤：它是动作而不是搜索结果 -->
+            <div class="project-card ghost" @click="goToEditor">
+              <div class="ghost-center">
+                <div class="ghost-plus">＋</div>
+                <div class="ghost-title">新建项目</div>
+                <div class="ghost-sub">从空白开始组态</div>
+                <el-button size="small" type="primary" plain class="demo-btn" @click.stop="importDemo">
+                  导入示例 Demo
+                </el-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 空的是搜索结果而不是「没有项目」，所以新建卡保留、下面补一行说明 -->
+          <div v-if="!visibleProjects.length" class="no-match">
+            <span>没有名称包含「{{ keyword.trim() }}」的项目</span>
+            <el-button size="small" @click="keyword = ''">清空搜索</el-button>
+          </div>
+        </template>
+
+        <div v-else class="empty-state">
+          <div class="ghost-plus lg">＋</div>
+          <h3>还没有组态项目</h3>
+          <p>新建空白项目，或导入示例快速体验工艺流程、报警与趋势。</p>
+          <div class="empty-actions">
+            <el-button type="primary" @click="goToEditor">新建项目</el-button>
+            <el-button @click="importDemo">导入示例 Demo</el-button>
+            <el-button @click="importProject">导入 JSON</el-button>
+          </div>
         </div>
-      </div>
 
-      <div class="footer-hint">
-        <p>提示：发布后的工程才会出现在预览 / 运行端；草稿改动不影响值班画面。</p>
+        <div class="footer-hint">
+          <p>提示：发布后的工程才会出现在预览 / 运行端；草稿改动不影响值班画面。</p>
+        </div>
       </div>
     </div>
 
@@ -114,23 +125,6 @@
     <AlarmConfigDialog v-if="showAlarmConfig" v-model="showAlarmConfig" />
     <TagTableDialog v-if="showTagTable" v-model="showTagTable" />
     <BrandingDialog v-if="showBranding" v-model="showBranding" />
-
-    <el-dialog v-model="showOpenDialog" title="打开项目" width="420px">
-      <div class="open-project-list">
-        <div
-          v-for="project in recentProjects"
-          :key="project.name"
-          class="open-project-item"
-          @click="loadProject(project.name); showOpenDialog = false"
-        >
-          <el-icon :size="20"><FolderOpened /></el-icon>
-          <div class="open-project-info">
-            <div class="open-project-name">{{ project.name }}</div>
-            <div class="open-project-time">{{ project.lastModified }}</div>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
@@ -154,6 +148,7 @@ const TagTableDialog = defineAsyncComponent(() => import('@/components/dialogs/T
 const BrandingDialog = defineAsyncComponent(() => import('@/components/dialogs/BrandingDialog.vue'))
 import TopNav from './TopNav.vue'
 import ProjectCard from './ProjectCard.vue'
+import ProjectSearchBox from './ProjectSearchBox.vue'
 import type { ProjectRow } from './types'
 import { thumbKey } from '@/core/canvas/thumbnail'
 import demoProjectJson from '../../../examples/demo-project.json?raw'
@@ -169,7 +164,8 @@ const deviceStore = useDeviceStore()
 const recentProjects = ref<ProjectRow[]>([])
 /** 项目列表加载中（远程存储时避免先闪空态再出现卡片） */
 const loadingProjects = ref(true)
-const showOpenDialog = ref(false)
+/** 名称关键词：过滤在内存里做，不再打一次存储请求 */
+const keyword = ref('')
 const showNotifyConfig = ref(false)
 const showUserManage = ref(false)
 const showDataSource = ref(false)
@@ -181,6 +177,19 @@ const editingName = ref<string | null>(null)
 const editingValue = ref('')
 
 const publishedCount = computed(() => recentProjects.value.filter(p => p.publishedAt).length)
+
+/** 搜索命中项：大小写不敏感的子串匹配（项目名基本是中文，不做分词） */
+const visibleProjects = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  return kw ? recentProjects.value.filter(p => p.name.toLowerCase().includes(kw)) : recentProjects.value
+})
+
+/** 标题行的次级文案：筛选时改成命中数，让人知道列表变短是被筛的而不是丢了 */
+const listSummary = computed(() => {
+  const kw = keyword.value.trim()
+  if (!kw) return '按修改时间排序'
+  return `匹配 ${visibleProjects.value.length} / ${recentProjects.value.length} 个项目`
+})
 
 const dataSourceLabel = computed(() => connectionStatusView(deviceStore.connectionStatus).text)
 

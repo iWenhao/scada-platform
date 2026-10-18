@@ -1,5 +1,9 @@
+// 首页改为「一屏不滚、只有项目区滚」：容器锁死视口高度，滚动条交给 .project-scroll
 .dashboard-container {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 212, 170, 0.07), transparent),
     var(--bg-primary);
@@ -10,6 +14,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 40px;
+  // 固定区的第一块：不允许被 flex 压缩，否则窄窗口下顶栏会被挤扁
+  flex: none;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-primary);
 }
@@ -142,7 +148,14 @@ html[data-theme='light'] .sys-chip {
 .dashboard-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 36px 40px 48px;
+  // 底部留白改由 .project-scroll 提供：留在这里会被滚动区吃掉，末尾卡片永远差一截
+  padding: 36px 40px 0;
+  // 固定区（hero / 统计卡 / 标题行）+ 一个可滚区，纵向由 flex 分配剩余高度
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 .hero {
@@ -250,7 +263,8 @@ html[data-theme='light'] .sys-chip {
 
 .section-head {
   display: flex;
-  align-items: baseline;
+  // 原来是 baseline：行里多了 32px 高的搜索控件后，标题基线与输入框内容会对不上
+  align-items: center;
   gap: 12px;
   margin-bottom: 16px;
 
@@ -260,6 +274,116 @@ html[data-theme='light'] .sys-chip {
     color: var(--text-primary);
     margin: 0;
   }
+}
+
+// 首页唯一的滚动区：网格 + 空态 + 底部提示，顶栏/欢迎语/统计卡/标题行都不进这里。
+// overflow-y:auto 会让浏览器把同一元素的 overflow-x 由 visible 按 auto 处理，
+// 卡片悬停的 translateY(-4px) 与阴影会被上、左边缘裁切，故四边各留 8px 缓冲，
+// 再用等量负 margin 把缓冲抵掉，保持网格与上方标题行左边线对齐。
+.project-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: -8px;
+  padding: 8px 8px 48px;
+}
+
+// 标题行右侧的工程搜索：宽窗口常驻输入框，窄窗口退成圆钮（点击展开、失焦即收回）。
+// 用原生 button 而不是 el-button：dark-theme.scss 里 html.dark .el-button 带 !important 覆盖，
+// 要让控件跟随 --border-primary 就得一路 !important 对冲；原生按钮没有这层纠缠。
+.section-head .proj-search {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex: none;
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 220px;
+    height: 32px;
+    padding: 0 6px 0 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 999px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+
+    &:focus-within {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.12);
+    }
+  }
+
+  .search-lead {
+    flex: none;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .search-field {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    // 与顶栏胶囊里的文字同档，避免比卡片标题还抢眼
+    font-size: 12px;
+    color: var(--text-primary);
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+  }
+
+  .search-clear,
+  .search-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: var(--accent-primary);
+    }
+  }
+
+  .search-clear {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+
+  // 收起态圆钮：与顶栏 theme-toggle 同形（圆形、无边框、靠配色分层而不是透明度）
+  .search-toggle {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+}
+
+// 搜索无命中：比 empty-state 轻一档，别让「没匹配」读成「工程被删了」
+.no-match {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 18px 20px;
+  border: 1px dashed var(--border-primary);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
 }
 
 .section-sub {
@@ -304,41 +428,6 @@ html[data-theme='light'] .sys-chip {
   }
 }
 
-.open-project-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.open-project-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-primary);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--accent-primary);
-  }
-}
-
-.open-project-info {
-  .open-project-name {
-    color: var(--text-primary);
-    font-size: 14px;
-  }
-
-  .open-project-time {
-    color: var(--text-muted);
-    font-size: 12px;
-  }
-}
-
 @media (max-width: 900px) {
   .stats-row {
     grid-template-columns: repeat(2, 1fr);
@@ -347,5 +436,19 @@ html[data-theme='light'] .sys-chip {
   .hero {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+// 兜底：视口太矮时（768 高的笔记本减去浏览器工具栏、或系统缩放放大），
+// 固定区自己就超过一屏，继续锁死会把网格挤到看不见——退回整页滚动。
+@media (max-height: 620px) {
+  .dashboard-container {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .project-scroll {
+    overflow: visible;
   }
 }
