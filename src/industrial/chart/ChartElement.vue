@@ -1,9 +1,20 @@
 <template>
-  <div ref="containerRef" class="chart-element"></div>
+  <div ref="containerRef" v-show="!emptyKind" class="chart-element"></div>
+  <!--
+    空态占位：趋势/柱状/雷达「一条绑定一个系列」，没绑变量时 ECharts 那边
+    只剩坐标轴甚至全空，而 Konva 侧不画 overlay 类型图标、名称条也被关掉，
+    不占位的话元素在画布上完全隐形。饼图原本有占位环兜底，统一改为 DOM 空态。
+  -->
+  <div v-if="emptyKind" class="chart-empty" :style="emptyBoxStyle">
+    <span :style="emptyTitleStyle">{{ emptyKind === 'unbound' ? '未绑定数据' : '暂无数据' }}</span>
+    <span :style="emptyHintStyle">{{
+      emptyKind === 'unbound' ? unboundHint : '已绑定变量但还没收到数据，检查数据源是否已连接'
+    }}</span>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts/core'
 import { LineChart, BarChart, PieChart, RadarChart } from 'echarts/charts'
 import { GridComponent, LegendComponent, RadarComponent } from 'echarts/components'
@@ -31,12 +42,72 @@ echarts.use([
 
 const props = defineProps<{
   element: ComponentInstance
+  /** 画布缩放，空态文案/边框随之缩放（与 WidgetElement 同一套换算） */
+  zoom?: number
 }>()
+
+const z = computed(() => props.zoom ?? 1)
 
 const deviceStore = useDeviceStore()
 const containerRef = ref<HTMLDivElement | null>(null)
 let chart: echarts.ECharts | null = null
 let resizeObserver: ResizeObserver | null = null
+
+/**
+ * 空态判定：
+ * - unbound：一条绑定都没有 → ECharts 侧 trend/bar 的 series 为空、只剩坐标轴；
+ * - nodata：绑了变量但从没收到过值（数据源未连接）→ 柱高为 0、折线无点，一样看不见。
+ * 「收到过 0」不算 nodata：柱子 0 高但类目名/坐标轴可见，属于正常状态。
+ */
+const emptyKind = computed<'unbound' | 'nodata' | null>(() => {
+  const el = props.element
+  const bindings = el.dataBindings ?? []
+  if (bindings.length === 0) return 'unbound'
+  const deviceId = el.deviceId || el.id
+  if (el.type === 'chart-trend') {
+    const hasPoints = bindings.some(b => deviceStore.getHistory(deviceId, b.variable).length > 0)
+    return hasPoints ? null : 'nodata'
+  }
+  const data = deviceStore.getDeviceData(deviceId)
+  const received = bindings.some(b => data[b.variable] !== undefined)
+  return received ? null : 'nodata'
+})
+
+/** unbound 引导文案按图型区分（一条变量一个系列/柱/维度/扇区） */
+const unboundHint = computed(
+  () =>
+    ({
+      'chart-trend': '在「数据绑定」里添加变量，一条变量一条曲线',
+      'chart-bar': '在「数据绑定」里添加变量，一条变量一根柱',
+      'chart-radar': '在「数据绑定」里添加变量，一条变量一个维度',
+      'chart-pie': '在「数据绑定」里添加变量，一条变量一个扇区',
+    })[props.element.type] ?? '在「数据绑定」里添加变量',
+)
+
+const emptyBoxStyle = computed(() => ({
+  position: 'absolute' as const,
+  inset: 0,
+  display: 'flex',
+  flexDirection: 'column' as const,
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: `${4 * z.value}px`,
+  padding: `${8 * z.value}px`,
+  border: `${Math.max(1, Math.min(z.value, 1))}px dashed rgba(120,140,170,0.45)`,
+  borderRadius: `${4 * z.value}px`,
+  color: '#8a9bb0',
+  textAlign: 'center' as const,
+}))
+
+const emptyTitleStyle = computed(() => ({
+  fontSize: `${Math.max(10, 12 * z.value)}px`,
+}))
+
+const emptyHintStyle = computed(() => ({
+  fontSize: `${Math.max(10, 12 * z.value * 0.85)}px`,
+  lineHeight: 1.4,
+  opacity: 0.75,
+}))
 
 function seriesNames(): string[] {
   return (props.element.dataBindings ?? []).map(b => b.variable)
@@ -83,14 +154,17 @@ function render() {
   chart?.setOption(buildOption(), { notMerge: true })
 }
 
-onMounted(() => {
-  if (!containerRef.value) return
+/** 惰性初始化：空态期间容器被 v-show 隐藏（尺寸 0），此时 init ECharts 会拿到空画布 */
+function ensureChart() {
+  if (chart || !containerRef.value) return
   chart = echarts.init(containerRef.value)
   render()
+}
 
-  // 画布缩放/元素变换改变容器尺寸时同步重排
+onMounted(() => {
   resizeObserver = new ResizeObserver(() => chart?.resize())
-  resizeObserver.observe(containerRef.value)
+  if (containerRef.value) resizeObserver.observe(containerRef.value)
+  if (!emptyKind.value) ensureChart()
 })
 
 onUnmounted(() => {
@@ -110,6 +184,11 @@ watch(
   ],
   render,
 )
+
+// 空态 → 有数据时容器恢复可见，等 DOM 更新后再初始化 ECharts
+watch(emptyKind, kind => {
+  if (!kind) nextTick(ensureChart)
+})
 </script>
 
 <style scoped lang="scss">

@@ -13,7 +13,7 @@
       class="html-slot"
       :style="slotStyle(element)"
     >
-      <ChartElement :element="element" />
+      <ChartElement :element="element" :zoom="canvasStore.zoom" />
     </div>
     <div
       v-for="element in widgetElements"
