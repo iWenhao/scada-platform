@@ -1,6 +1,30 @@
 import type { ComponentDefinition } from '@/types/scada'
-import { buildAssetComponents } from '../assetComponents'
+import { buildAssetComponents, type AssetMotionSpec } from '../assetComponents'
 import { coalAssetIcons, coalAssetMeta } from './assets.generated'
+
+/**
+ * 综采采煤机（素材导入）的两只截割滚筒。
+ *
+ * 滚筒在素材里是一整个带 transform 链的 `<g>`，buildAssetComponents 按锚点把它从机身
+ * 挖出来做旋转件（挖法与回落条件见 assetComponents.ts 的 AssetRotorSpec）。
+ * 圆心取各分组 transform 的不动点：左滚筒 `translate(cx,cy) rotate(-45) translate(-cx,-cy)`
+ * 与右滚筒 `translate(cx,cy) scale(-1,1) translate(-cx,-cy)`，与图元尾部的中心定位点
+ * `circle cx=78.5/553.5` 相互印证。右滚筒是左滚筒的镜像，配反向转动才与机身对称。
+ */
+const coalAssetMotion: Record<string, AssetMotionSpec> = {
+  coal_shearer_wide: {
+    driveVariable: 'state',
+    rotors: [
+      { anchor: 'translate(78.441366, 78.441366) rotate(-45.000000)', cx: 78.441366, cy: 78.441366 },
+      {
+        anchor: 'translate(553.742025, 152.190819) scale(-1, 1)',
+        cx: 553.742025,
+        cy: 152.190819,
+        direction: -1,
+      },
+    ],
+  },
+}
 
 /** 掘进机 */
 export const RoadheaderDefinition: ComponentDefinition = {
@@ -385,5 +409,6 @@ export const coalComponents: ComponentDefinition[] = [
   // 综采系统（外部素材导入，9 台）：组合开关/采煤机/液压支架/破碎机/转载机等。
   // 手写的 ShearerDefinition 已移除——它与素材「采煤机」同名且同为综采设备，
   // 线条稿版本是早期占位，保留素材图元；溯源见 scripts/subunit-manifest.json
-  ...buildAssetComponents('coal', coalAssetIcons, coalAssetMeta),
+  // 采煤机的两只滚筒按 coalAssetMotion 声明挖成旋转件，其余图元保持静止
+  ...buildAssetComponents('coal', coalAssetIcons, coalAssetMeta, coalAssetMotion),
 ]

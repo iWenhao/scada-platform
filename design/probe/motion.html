@@ -43,10 +43,15 @@
   <body>
     <h1>运转动效核对（真实模块 + Konva 实际绘制）</h1>
     <p class="lead">
-      虚线框 = 图形区 contain 矩形；粉色点 = 旋转中心。第三行是皮带，比较虚线相对带面的位置；第四行是停机色（角度 0），应与改造前的整张图标完全一致。
+      虚线框 = 图形区 contain 矩形；粉色点 = 旋转中心。第 1 格采煤机把**未挖取的原始素材图**（洋红，半透明）叠在挖取后的版本上，滚筒对不齐就会看成重影；第 2 行是同一台设备的 2.5D 风格（线条稿应无差异）；第 3 行是停机色；第 4、5 行是掘进机截割头与皮带带面。
     </p>
     <div id="stage"></div>
     <pre id="geo">(计算中…)</pre>
-    <script src="./motion-bundle.js"></script>
+    <!--
+      本页用 dev server 直接编译 TS 入口（不再预打包 bundle，避免打包器不在依赖里时过期腐坏）：
+        npx vite --port 5180 --strictPort
+        打开 http://127.0.0.1:5180/design/probe/motion.html
+    -->
+    <script type="module" src="./motion-entry.ts"></script>
   </body>
 </html>

@@ -183,10 +183,13 @@ function circleCenters(svg: string): Array<[number, number]> {
 }
 
 describe('内置组件的动效定义', () => {
-  const animated = [RoadheaderDefinition, ConveyorDefinition]
+  // 采煤机是素材导入的图元，动效由 industrial/assetComponents.ts 挖取生成
+  const shearer = coalComponents.find(d => d.type === 'coal_shearer_wide')!
+  const animated = [RoadheaderDefinition, ConveyorDefinition, shearer]
 
-  it('只给点名的两个设备加了动效', () => {
+  it('只给点名的三个设备加了动效', () => {
     expect(coalComponents.filter(d => d.motion).map(d => d.type).sort()).toEqual([
+      'coal_shearer_wide',
       'conveyor',
       'roadheader',
     ])
@@ -207,7 +210,9 @@ describe('内置组件的动效定义', () => {
   })
 
   it('可动件图形已从静态图标移出，不残留同一条图元', () => {
-    for (const def of [RoadheaderDefinition]) {
+    // 采煤机的两只滚筒图元完全同形（镜像只写在分组 transform 上），
+    // 这条断言顺带抓住「只挖了一只滚筒」——剩下那只的图元还在基图里
+    for (const def of [RoadheaderDefinition, shearer]) {
       const iconTags = shapeTags(def.icon)
       const rotorTags = (def.motion?.rotors ?? []).flatMap(r => shapeTags(r.svg))
       expect(rotorTags.length, `${def.type} 的旋转件是空的`).toBeGreaterThan(0)
