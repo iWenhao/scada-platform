@@ -553,6 +553,9 @@ onUnmounted(stopTick)
     padding: 2px 6px;
     width: 100%;
     box-sizing: border-box;
+    // overlay 的 .html-slot 是 pointer-events: none 且该属性会继承，
+    // 不显式恢复的话搜索框在编辑态与运行端都点不进去
+    pointer-events: auto;
 
     &:disabled {
       opacity: 0.6;

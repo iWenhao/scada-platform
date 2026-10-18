@@ -35,6 +35,9 @@
 
 ### 修复
 
+- 表格（带搜索）的搜索框点不进去
+  - 根因：overlay 的 `.html-slot` 是 `pointer-events: none`，而 **pointer-events 会继承**——子元素不显式写 `auto` 就一起失效。`.wg-filter-input` 一直没写，于是搜索框在编辑态与运行端都是摆设（编辑态 readonly 为 false，本该可用）
+  - 修复：给 `.wg-filter-input` 补 `pointer-events: auto`。分页条同理，所以翻页按钮所在的 `.wg-pager` 也显式声明（否则点了没反应）
 - 保存/预览时报 `remove failed: HTTP 500`（自动草稿删不掉）
   - 现象：点「保存」或「预览」，控制台 `DELETE /api/storage/remove?key=scada_draft_未命名项目 500` + Vue 未处理异常；点「预览」时页面不跳转，看起来像保存失败
   - 根因：`removeValue` 直接 `fs.rm(..., { force: true })`，而 force 只吞 ENOENT。Windows 上刚写完的文件句柄还没释放（杀软/索引服务），紧接着删就拿到 EPERM——自动草稿每 30 秒重写一次，正式保存后立刻删正好撞这个窗口。同目录的 rename 早已为此做了退避重试（`lib/atomicWrite.mjs`），删除这条路漏了
