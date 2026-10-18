@@ -51,6 +51,11 @@
   - **拖拽影像里带着删除红叉**：浏览器的拖拽影像在 **mousedown 之后、dragstart 之前**快照，而开始拖拽必然先 hover（红叉此刻正显示），所以在 dragstart 里改样式已经来不及。改为卡片上记 `dragging` 状态（mousedown 置真，mouseup / dragend / mouseleave 复位），`&.dragging .card-actions { opacity: 0 }` 写在 `:hover` 规则之后、靠同特异性后来者胜出
   - **鼠标移到红叉上仍弹气泡**：给 `.card-actions` 加 mouseenter / mouseleave 置 `suppressed`，tooltip 的 `:disabled` 多挂这一条——先关气泡再谈删除，不让气泡压住操作按钮
   - 实测：暗色气泡背景 rgb(22,33,62)、浅色纯白；鼠标停在红叉上可见气泡数 0；按下卡片后红叉 opacity 0；0 页面错误
+- 快速拖动组件库卡片时，拖拽影像里仍带着删除红叉
+  - 现象：上一轮已修掉「按下卡片即收起红叉」（mousedown 置 `dragging` + `opacity: 0`），慢速拖动确认不再带叉；但按下后立刻快速拖到画布，红叉还是会出现在鼠标后面的拖影里
+  - 根因：`opacity` 是可过渡属性，而 `.card-actions` 基准态挂着 `transition: opacity 0.15s`——`dragging` 类加上时 opacity 才从 1 开始往 0 走，浏览器在 mousedown 之后、dragstart 之前抓取拖影，快速拖动正好抓在过渡开始处，红叉处于半透明中途，照样被画进拖影；慢速拖动时过渡早已结束，所以看着像已经修好
+  - 改法（两层）：`&.dragging .card-actions` 改用 `display: none`——display 不可过渡，mousedown 当帧就把红叉从渲染树里摘掉；并把 `transition` 从基准态挪进「显示态」规则（`:hover` / `:focus-within`）——CSS 过渡取的是变化后样式中的定义，于是淡入照旧从显示态触发，而一切收起（移开鼠标、按下卡片）都是当帧完成。后者堵掉另一个理论窗口：单次大跳步让 mouseleave 先于 dragstart 触发时，基准态若还挂着过渡，红叉会在淡回 0 的半路上被抓拍
+  - 实测（playwright + 系统 Chrome，搜索「报表」取首张卡片）：悬停 80ms opacity 0.93、380ms 到 1（淡入保留）；按下当帧 display=none / transition=0s；一次移动 260px 跨过拖拽阈值并离开卡片后立刻 opacity=0 且 transition=0s（无过渡中途帧），200ms 后仍为 0；松手后重新悬停淡入照旧；0 页面错误
 - 缩放组件后选中框回弹到原尺寸，与图形对不上
   - 现象：拖变换器锚点缩放设备，松手后组件按新尺寸渲染，四周的选中框却回到原来的位置和大小，要取消选中再点一次才跳回来
   - 根因：Transformer 量框用的是被绑节点的**子节点**包围盒（`Container.getClientRect` 只并集子节点，Group 自身的 width/height 不参与），而它只监听被绑节点自身的 `widthChange/heightChange/scaleXChange/…`（`TRANSFORM_CHANGE_STR`）+ `absoluteTransformChange`，Group 的 `_attrsAffectingSize` 为空——子节点尺寸变化不派发任何事件。`onTransformEnd`（`src/core/canvas/useElementDrag.ts:141`）写 store 后立即 `node.scaleX(1)`，这次 `scaleXChange` 触发的 `update()` 量到的仍是旧子节点（新宽高要等 Vue flush 才落到节点上）；flush 后子节点真正长成新尺寸时没有任何事件通知它 → 框永久停在旧尺寸

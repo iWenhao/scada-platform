@@ -91,7 +91,12 @@
       opacity: 0;
       pointer-events: none;
       transform: translateY(-3px);
-      transition: opacity 0.15s ease, transform 0.15s ease;
+      /* 基准态不写 transition，过渡只写在下面的「显示态」规则里：
+         CSS 过渡取的是变化后样式中的定义，于是淡入照旧从显示态触发，
+         而一切「收起」——鼠标移开、按下卡片（dragging）——都是当帧完成。
+         拖拽影像在 mousedown 之后、dragstart 之前快照，收起路上任何
+         一帧的残留（半透明红叉）都会被抓进拖影；动画只允许出现在
+         「正在展示」的方向上。 */
     }
 
     &:hover .card-actions,
@@ -99,13 +104,21 @@
       opacity: 1;
       pointer-events: auto;
       transform: none;
+      transition: opacity 0.15s ease, transform 0.15s ease;
     }
 
     /* 按下就收起红叉：浏览器的拖拽影像是在 mousedown 之后、dragstart 之前
        快照的，而开始拖拽必然先 hover（红叉此时正显示），不提前收起来
-       拖影里就会带着一个红叉。放在 :hover 规则之后，靠同特异性后来者胜出。 */
+       拖影里就会带着一个红叉。放在 :hover 规则之后，靠同特异性后来者胜出。
+
+       ⚠️ 必须「瞬间消失」而不是淡出：上面那条 `transition: opacity 0.15s`
+       会让红叉在快照那一刻还处在半透明中途——慢慢拖能等到过渡走完（看着
+       像修好了），快速拖则正好抓在过渡开始处，红叉照样进拖影。display 不可
+       过渡，配合关掉 transition 才能保证快照时它已经不在画面里。 */
     &.dragging .card-actions {
+      display: none;
       opacity: 0;
+      transition: none;
       pointer-events: none;
     }
 
