@@ -26,9 +26,17 @@
 
     <!-- 网格图：每格一个绑定变量，按阈值着色 -->
     <div v-else-if="type === 'grid-chart'" class="wg-grid" :style="gridStyle">
-      <div v-for="cell in gridCells" :key="cell.key" class="wg-grid-cell" :style="cellBoxStyle(cell)">
-        <span class="wg-grid-name" :style="textStyle">{{ cell.name }}</span>
-        <span class="wg-grid-value" :style="valueStyle(cell)">{{ cell.text }}</span>
+      <template v-if="gridCells.length">
+        <div v-for="cell in gridCells" :key="cell.key" class="wg-grid-cell" :style="cellBoxStyle(cell)">
+          <span class="wg-grid-name" :style="textStyle">{{ cell.name }}</span>
+          <span class="wg-grid-value" :style="valueStyle(cell)">{{ cell.text }}</span>
+        </div>
+      </template>
+      <!-- 一个绑定一格：没绑定就没有格子，而 Konva 侧又不画这类挂件的图标、
+           名称条也被关掉，不占位的话元素在画布上完全隐形，只能靠盲选 -->
+      <div v-else class="wg-grid-empty" :style="emptyStyle">
+        <span :style="textStyle">未绑定数据</span>
+        <span :style="emptyHintStyle">在「数据绑定」里添加变量，一个变量一格</span>
       </div>
     </div>
 
@@ -259,6 +267,29 @@ const cellBoxStyle = (cell: { alarm: boolean }) => ({
   gap: `${2 * z.value}px`,
   minWidth: 0,
 })
+
+/** 空态：跨满整行并撑满容器，虚线框提示这里有个元素、但还没接数据 */
+const emptyStyle = computed(() => ({
+  gridColumn: '1 / -1',
+  height: '100%',
+  minHeight: `${40 * z.value}px`,
+  display: 'flex',
+  flexDirection: 'column' as const,
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: `${4 * z.value}px`,
+  padding: `${8 * z.value}px`,
+  border: `${Math.max(1, 1 * Math.min(z.value, 1))}px dashed rgba(120,140,170,0.45)`,
+  borderRadius: `${4 * z.value}px`,
+  color: '#8a9bb0',
+  textAlign: 'center' as const,
+}))
+
+const emptyHintStyle = computed(() => ({
+  fontSize: `${Math.max(10, num(prop('fontSize', 12), 12) * z.value * 0.85)}px`,
+  lineHeight: 1.4,
+  opacity: 0.75,
+}))
 
 const valueStyle = (cell: { alarm: boolean }) => ({
   fontSize: `${num(prop('valueFontSize', 15), 15) * z.value}px`,

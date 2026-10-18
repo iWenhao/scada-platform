@@ -19,6 +19,10 @@
 
 ### 修复
 
+- 网格图未绑定数据时在画布上完全不可见
+  - 现象：拖入后什么都看不到（playwright 探针实测 overlay 容器 512×352 在、格子 0、可见文字为空）。根因是网格图「一个绑定一格」，没绑变量就没有格子；而 Konva 侧对 overlay 类型不画内建图标、`DATA_DRIVEN_CAPS` 又关掉了名称条，三路全空后画布上只剩一个不可见的命中区
+  - 修复：`WidgetElement.vue` 给 grid-chart 补空态——跨满整行（`grid-column: 1/-1`）的虚线框 + 「未绑定数据」主文案与「在数据绑定里添加变量」引导，字号/间距随 zoom 缩放，与其他挂件同一套换算；有绑定后走的仍是原渲染路径，行为不变
+  - 实测：playwright 拖入网格图，空态文案在画布可见；全量 `npx vitest run` 65 文件 / 596 用例零失败，`vue-tsc --noEmit` 零输出
 - 雷达图无数据绑定时挂载即崩（控制台 `Cannot read properties of undefined (reading 'push')`）
   - 根因：ECharts 6 的 radarLayout 按「指标轴」逐项建 points 数组，`radar.indicator` 为空（刚拖入、还没绑变量）时一个轴都没有，但数据项仍然存在，`points[idx].push(...)` 直接 TypeError，ChartElement 的 mounted 整体报错；崩溃点定位自浏览器报错行号与 node SSR 复现（同一报错文案）
   - 修复：`buildRadarOption`（src/industrial/chart/options.ts）在无绑定时补一条「暂无数据」占位指标轴，占位值复用既有的全 0 占位分支，并保证数据项长度与轴数一致
