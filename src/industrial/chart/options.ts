@@ -3,6 +3,10 @@
  *
  * 统一约定：背景透明（透出画布底色）、文字用暗色调色板可读的浅灰、
  * 图表内不再配标题（元素名称由画布标签条承担），避免双重标题。
+ *
+ * 不配 tooltip：图元按需求未注册 TooltipComponent，写了 `tooltip: { show: false }`
+ * 反而会触发 ECharts 的 "Component tooltip is used but not imported" 警告；
+ * option 里没有 tooltip 键时该组件根本不会创建，行为一致且更省体积。
  */
 
 /** 系列名 + 数据点（trend 用） */
@@ -31,7 +35,6 @@ export function buildTrendOption(series: TrendSeriesInput[], maxPoints: number) 
       itemWidth: 12,
       itemHeight: 8,
     },
-    tooltip: { show: false },
     xAxis: {
       type: 'time',
       axisLabel: { color: TEXT_COLOR, fontSize: 10, hideOverlap: true },
@@ -62,7 +65,6 @@ export function buildBarOption(names: string[], values: number[]) {
     color: [...CHART_PALETTE],
     animation: false,
     grid: { left: 44, right: 12, top: 28, bottom: 22 },
-    tooltip: { show: false },
     xAxis: {
       type: 'category',
       data: names,
@@ -92,7 +94,6 @@ export function buildPieOption(items: Array<{ name: string; value: number }>) {
     backgroundColor: 'transparent',
     color: [...CHART_PALETTE],
     animation: false,
-    tooltip: { show: false },
     legend: {
       bottom: 2,
       left: 'center',
@@ -141,16 +142,20 @@ export function downsample<T>(items: T[], maxPoints: number): T[] {
  * 用占位多边形保持布局稳定，避免用户以为组件坏了。
  */
 export function buildRadarOption(items: Array<{ name: string; value: number }>, max?: number) {
-  const names = items.map(it => it.name)
-  const values = items.map(it => (Number.isFinite(it.value) ? it.value : 0))
-  const hasData = values.some(v => v !== 0)
+  // ⚠️ 无绑定时必须补一条占位指标轴：radar.indicator 为空时 ECharts 6 的
+  // radarLayout 会在 `points[idx].push(...)` 上抛 TypeError（points 是按轴逐项
+  // 建的，一个轴都没有就一项都不会建，但数据项仍然存在），图元会随 mounted
+  // 报错一起挂掉。占位轴让「拖进来还没绑变量」的状态保持可渲染。
+  const source = items.length > 0 ? items : [{ name: '暂无数据', value: 0 }]
+  const names = source.map(it => it.name)
+  const values = source.map(it => (Number.isFinite(it.value) ? it.value : 0))
+  const hasData = items.length > 0 && values.some(v => v !== 0)
   // 上限缺省取数据最大值的 1.2 倍（至少 1，防全 0 时除零）
   const ceiling = Math.max(1, max ?? Math.max(...values.map(Math.abs), 0) * 1.2)
   return {
     backgroundColor: 'transparent',
     color: [...CHART_PALETTE],
     animation: false,
-    tooltip: { show: false },
     legend: {
       bottom: 2,
       left: 'center',

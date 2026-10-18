@@ -1,4 +1,11 @@
+// @vitest-environment node
+// 图表 option 会用 ECharts 的 SSR 模式真跑一遍，node 环境下 zrender 不走
+// document/canvas；留在 jsdom 下会因缺少 canvas 实现刷一堆 measureText 报错
 import { describe, it, expect } from 'vitest'
+import * as echarts from 'echarts/core'
+import { LineChart, BarChart, PieChart, RadarChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, RadarComponent } from 'echarts/components'
+import { SVGRenderer } from 'echarts/renderers'
 import {
   buildTrendOption,
   buildBarOption,
@@ -7,6 +14,19 @@ import {
   downsample,
   CHART_PALETTE,
 } from './options'
+
+// 与 ChartElement.vue 的按需注册保持一致（四种图 + grid/legend/radar），
+// 渲染器换成 SVG：单测环境没有 canvas，SSR 模式下它不碰 DOM
+echarts.use([
+  LineChart,
+  BarChart,
+  PieChart,
+  RadarChart,
+  GridComponent,
+  LegendComponent,
+  RadarComponent,
+  SVGRenderer,
+])
 
 describe('downsample', () => {
   it('点数不足时原样返回', () => {
@@ -138,5 +158,49 @@ describe('buildRadarOption', () => {
 
   it('背景透明，透出画布底色', () => {
     expect(buildRadarOption(items).backgroundColor).toBe('transparent')
+  })
+
+  it('无数据绑定时补一条占位指标轴', () => {
+    // 空 indicator 会让 ECharts 6 的 radarLayout 在 points[idx].push() 上崩
+    const option = buildRadarOption([])
+    expect(option.radar.indicator.length).toBeGreaterThan(0)
+    // 数据项长度必须与指标轴数量一致，否则仍然取不到点
+    expect(option.series[0].data[0].value).toHaveLength(option.radar.indicator.length)
+  })
+})
+
+describe('图表 option 与 ECharts 的契约', () => {
+  // 图元只注册了四种图 + grid/legend/radar，option 里出现未注册的组件会被
+  // ECharts 警告；这里直接把它实例化一遍，等于把「拖进来就崩」挡在单测里。
+  function renderWithEcharts(option: any) {
+    const chart = echarts.init(null, null, { renderer: 'svg', ssr: true, width: 240, height: 160 })
+    try {
+      chart.setOption(option)
+      chart.renderToSVGString()
+    } finally {
+      chart.dispose()
+    }
+  }
+
+  it('四种图在无数据绑定时都能成图，不抛异常', () => {
+    expect(() => renderWithEcharts(buildTrendOption([], 60))).not.toThrow()
+    expect(() => renderWithEcharts(buildBarOption([], []))).not.toThrow()
+    expect(() => renderWithEcharts(buildPieOption([]))).not.toThrow()
+    expect(() => renderWithEcharts(buildRadarOption([]))).not.toThrow()
+  })
+
+  it('有数据时四种图都能成图', () => {
+    expect(() =>
+      renderWithEcharts(buildTrendOption([{ name: 'a', points: [{ t: 1, v: 2 }] }], 60)),
+    ).not.toThrow()
+    expect(() => renderWithEcharts(buildBarOption(['a', 'b'], [1, 2]))).not.toThrow()
+    expect(() => renderWithEcharts(buildPieOption([{ name: 'a', value: 1 }]))).not.toThrow()
+    expect(() => renderWithEcharts(buildRadarOption([{ name: 'a', value: 1 }, { name: 'b', value: 2 }]))).not.toThrow()
+  })
+
+  it('不出现未注册组件（tooltip 未注册就不该写进 option）', () => {
+    const option = buildRadarOption([{ name: 'a', value: 1 }])
+    expect(option).not.toHaveProperty('tooltip')
+    expect(option).not.toHaveProperty('title')
   })
 })

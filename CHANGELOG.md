@@ -14,6 +14,12 @@
 
 ### 修复
 
+- 雷达图无数据绑定时挂载即崩（控制台 `Cannot read properties of undefined (reading 'push')`）
+  - 根因：ECharts 6 的 radarLayout 按「指标轴」逐项建 points 数组，`radar.indicator` 为空（刚拖入、还没绑变量）时一个轴都没有，但数据项仍然存在，`points[idx].push(...)` 直接 TypeError，ChartElement 的 mounted 整体报错；崩溃点定位自浏览器报错行号与 node SSR 复现（同一报错文案）
+  - 修复：`buildRadarOption`（src/industrial/chart/options.ts）在无绑定时补一条「暂无数据」占位指标轴，占位值复用既有的全 0 占位分支，并保证数据项长度与轴数一致
+  - 顺带删掉四个 builder 里的 `tooltip: { show: false }`：TooltipComponent 未按需注册，写了反而触发 ECharts 的 "Component tooltip is used but not imported" 警告；option 里没有 tooltip 键时该组件根本不会创建（已用 SSR 探针实测「未创建」），行为一致且省体积
+  - 回归护栏：options.test.ts 新增「图表 option 与 ECharts 的契约」一组，用 ECharts SSR（SVG 渲染器）把四个 builder 的空数据/有数据 option 真渲染一遍，文件头 `@vitest-environment node` 避开 jsdom 无 canvas 的 measureText 报错噪音
+
 ### 安全
 
 ### 测试
