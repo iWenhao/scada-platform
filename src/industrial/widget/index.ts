@@ -133,6 +133,18 @@ export const ReportTableDefinition = widgetDef(
       default: '',
       group: '表格',
     },
+    {
+      key: 'widths',
+      label: '列宽（逗号分隔）',
+      type: 'string',
+      default: '',
+      placeholder: '如：160,25%,200',
+      hint:
+        '按顺序对应各列：写数字是像素（160）、带 % 是按表格宽度比例（25%）、留空则该列均分剩余宽度。' +
+        '各列都写明且总和小于元素宽度时，会按比例放大填满（想让表格整体变窄请直接调小元素宽度）；' +
+        '总和超出元素宽度时横向滚动。内容仍放不下时单元格末尾显示省略号（预览端可悬停看全文）。',
+      group: '表格',
+    },
     { key: 'align', label: '对齐', type: 'select', default: 'left', options: [
       { label: '左', value: 'left' },
       { label: '中', value: 'center' },
@@ -150,6 +162,7 @@ export const ReportTableDefinition = widgetDef(
       rows: 4,
       showHeader: true,
       headers: '',
+      widths: '',
       align: 'left',
     },
   },

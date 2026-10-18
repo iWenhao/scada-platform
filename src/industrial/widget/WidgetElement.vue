@@ -11,14 +11,27 @@
     <!-- 报表：表头 + 数据行，绑定变量按行优先填格 -->
     <div v-else-if="type === 'report-table'" class="wg-table-wrap">
       <table class="wg-table" :style="reportTableStyle">
+        <colgroup>
+          <col v-for="(w, i) in colWidths" :key="`w${i}`" :style="w ? { width: w } : null">
+        </colgroup>
         <thead v-if="showHeader">
           <tr>
-            <th v-for="(h, i) in headerCells" :key="`h${i}`" :style="reportCellStyle">{{ h }}</th>
+            <th
+              v-for="(h, i) in headerCells"
+              :key="`h${i}`"
+              :style="reportCellStyle"
+              :title="h"
+            >{{ h }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(row, r) in bodyRows" :key="`r${r}`">
-            <td v-for="(c, i) in row" :key="`c${r}-${i}`" :style="reportCellStyle">{{ c }}</td>
+            <td
+              v-for="(c, i) in row"
+              :key="`c${r}-${i}`"
+              :style="reportCellStyle"
+              :title="c"
+            >{{ c }}</td>
           </tr>
         </tbody>
       </table>
@@ -222,23 +235,62 @@ const reportRowHeight = computed(() =>
 )
 
 /**
+ * 报表列宽：与列数一一对应，留空/非法值的列参与均分剩余宽度。
+ *
+ * `table-layout: fixed` 下唯一可控的列宽入口是 `<col>`（写在 td 上的 width
+ * 会被内容挤动，fixed 布局只认第一行的宽度）；百分比列随表格宽度走，像素列
+ * 要乘 zoom——DOM 容器尺寸已按 zoom 放大，CSS px 不会跟着缩放。
+ */
+const colWidths = computed<(string | null)[]>(() => {
+  const raw = String(prop('widths', ''))
+  const list = raw.split(/[,，|]/).map(s => s.trim())
+  const out: (string | null)[] = []
+  for (let i = 0; i < columns.value; i++) {
+    const w = list[i]
+    if (!w) {
+      out.push(null)
+      continue
+    }
+    if (/^\d+(\.\d+)?%$/.test(w)) {
+      out.push(w)
+      continue
+    }
+    const px = Number(w)
+    out.push(Number.isFinite(px) && px > 0 ? `${px * z.value}px` : null)
+  }
+  return out
+})
+
+/** 表格最小宽度：像素列按实宽累加、未指定/百分比列按 56px 兜底，超出容器就滚动 */
+const reportMinWidth = computed(() => {
+  let sum = 0
+  for (const w of colWidths.value) {
+    if (w && w.endsWith('%')) continue
+    sum += w ? parseFloat(w) : 56 * z.value
+  }
+  return `${sum}px`
+})
+
+/**
  * 报表专用表格样式（不与「表格」挂件共用：那个的行数随绑定变量变化，均分会
  * 让单变量时的一行占满全高）：
- * - `table-layout: fixed`：列宽均分，不再被内容长短牵着走
- * - `minWidth` 按列数给每列留 56px 下限，列数调多时横向滚动，而不是把列挤成一条缝
+ * - `table-layout: fixed`：列宽不被内容长短牵着走，配合 `<col>` 才能按列控宽
  * - 不给 table 本身 height: 100%，高度由「行高 × 行数」自己控制（见 reportRowHeight）
  */
 const reportTableStyle = computed(() => ({
   ...tableStyle.value,
   tableLayout: 'fixed' as const,
-  minWidth: `${columns.value * 56 * z.value}px`,
+  minWidth: reportMinWidth.value,
 }))
 
-/** 报表单元格：在通用样式上补计算出来的行高与更宽松的内边距 */
+/** 报表单元格：在通用样式上补计算出来的行高、更宽松的内边距与超长省略 */
 const reportCellStyle = computed(() => ({
   ...cellStyle.value,
   height: `${reportRowHeight.value * z.value}px`,
   padding: `${6 * z.value}px ${10 * z.value}px`,
+  // 内容再长也不越界到邻格：超出部分末尾省略，完整内容挂在 title 上（预览端可悬停）
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
 }))
 
 const headerCells = computed(() => {
