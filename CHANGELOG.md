@@ -21,6 +21,7 @@
   - 行为边界：各列都写明且总和小于元素宽度时按比例放大填满（想让表格整体变窄应调小元素宽度，不是调列宽）；总和超出时按 minWidth 出横向滚动条；非法值（非数字 / 负数）当空处理、参与均分
   - 顺带：报表单元格加 `overflow: hidden` + `text-overflow: ellipsis`，超长内容末尾省略而不是越界到邻格，完整内容挂到 title 上（预览端可悬停查看）
   - 实测：widths=260,,90 → 260/289/90；30%,,40% → 192/192/256；abc,,-5 → 均分 213（非法值回落）；900 → 表格宽 1012、容器 640、横向可滚动；70 窄列 + 长内容 → 单元格省略且 title 保留全文；0 页面错误
+
 ### 优化
 
 - 趋势图更名折线图
@@ -40,6 +41,13 @@
 
 ### 修复
 
+- 缩放组件后选中框回弹到原尺寸，与图形对不上
+  - 现象：拖变换器锚点缩放设备，松手后组件按新尺寸渲染，四周的选中框却回到原来的位置和大小，要取消选中再点一次才跳回来
+  - 根因：Transformer 量框用的是被绑节点的**子节点**包围盒（`Container.getClientRect` 只并集子节点，Group 自身的 width/height 不参与），而它只监听被绑节点自身的 `widthChange/heightChange/scaleXChange/…`（`TRANSFORM_CHANGE_STR`）+ `absoluteTransformChange`，Group 的 `_attrsAffectingSize` 为空——子节点尺寸变化不派发任何事件。`onTransformEnd`（`src/core/canvas/useElementDrag.ts:141`）写 store 后立即 `node.scaleX(1)`，这次 `scaleXChange` 触发的 `update()` 量到的仍是旧子节点（新宽高要等 Vue flush 才落到节点上）；flush 后子节点真正长成新尺寸时没有任何事件通知它 → 框永久停在旧尺寸
+  - 同一条链路解释了另一类既有毛病：属性面板改宽高、撤销/重做、对齐这些**程序化**改几何，框同样不跟着走——此前只在 `selectedIds` 变化时才重绑
+  - 修复：`ScadaCanvas.vue` 把绑定动作抽成 `rebindTransformer()`，监听对象由 `selectedIds` 换成「选中元素的 x/y/width/height/rotation 签名」（`selectedGeometry` computed）。选择变化与几何变化于是走同一条路：`nextTick` 之后重跑 `nodes()`，它会 detach+attach 清尺寸缓存、按真实子节点包围盒重算，并同步单节点旋转；多选时同一次 mouseup 的多次写回被 Vue 合并成一次回调
+  - 没动 `onTransformEnd` 的回写时序：那个「store 异步 + 同步清 scale」的空窗经确认画不到屏幕上（Konva `batchDraw` 排 requestAnimationFrame，Vue flush 在微任务里先跑完），所以没有额外给节点补一次同步写宽高——补了也量不到框，真正的缺口是刷新时机
+  - 验证：`vue-tsc --noEmit` 零输出；浏览器实测由使用者在已开着的编辑器里跑（内嵌浏览器标签 0×0 无布局，Konva 量不到尺寸，且 5173 归主实例，未起竞争实例）
 - 表格（带搜索）的搜索框点不进去
   - 根因：overlay 的 `.html-slot` 是 `pointer-events: none`，而 **pointer-events 会继承**——子元素不显式写 `auto` 就一起失效。`.wg-filter-input` 一直没写，于是搜索框在编辑态与运行端都是摆设（编辑态 readonly 为 false，本该可用）
   - 修复：给 `.wg-filter-input` 补 `pointer-events: auto`。分页条同理，所以翻页按钮所在的 `.wg-pager` 也显式声明（否则点了没反应）

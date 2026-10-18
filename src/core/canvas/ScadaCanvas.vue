@@ -259,19 +259,42 @@ const transformerConfig = {
     newBox.width < 10 || newBox.height < 10 ? oldBox : newBox,
 }
 
-// 选中变化时把变换器绑定到目标节点（支持多选）
-watch(() => canvasStore.selectedIds, async (ids) => {
+/**
+ * 选中元素的几何签名。
+ *
+ * 变换器跟不上尺寸的「程序化」变化：量框量的是子节点包围盒，但它只监听被绑
+ * 节点自身的 width/scale 等事件——缩放结束先按旧子节点尺寸算了一次框，之后
+ * 子节点被刷成新尺寸却没有任何事件（Group 的 `_attrsAffectingSize` 为空），
+ * 框就停在旧大小。属性面板改宽高、撤销/重做、对齐同样中招。
+ * 用签名把选中元素的几何纳入监听，值一变就重绑。
+ */
+const selectedGeometry = computed(() =>
+  canvasStore.selectedIds
+    .map((id) => {
+      const el = canvasStore.elements.find(item => item.id === id)
+      return el ? `${id}:${el.x},${el.y},${el.width},${el.height},${el.rotation}` : id
+    })
+    .join('|'),
+)
+
+/**
+ * 重绑变换器：`nodes()` 会 detach 后重新 attach，清掉尺寸缓存并按此刻
+ * 真实的子节点包围盒重算框；nextTick 保证等 Vue 把新宽高刷到节点上。
+ */
+async function rebindTransformer() {
   await nextTick()
   const transformer = transformerRef.value?.getNode()
   if (!transformer) return
 
   const stage = stageRef.value.getNode()
-  const nodes = (ids ?? [])
+  const nodes = canvasStore.selectedIds
     .map(id => stage.findOne('#' + id))
     .filter(Boolean)
   transformer.nodes(nodes)
   transformer.getLayer()?.batchDraw()
-}, { deep: true })
+}
+
+watch(selectedGeometry, rebindTransformer)
 
 // 鼠标按下：分发给平移 / 框选
 function onMouseDown(e: any) {
