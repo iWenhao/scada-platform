@@ -54,6 +54,11 @@
 
 ### 修复
 
+- 报表拖到画布上默认就带一条竖向滚动条
+  - 根因：行高按「元素高度 / 行数」均分（默认 400×240、4 数据行 + 表头 = 5 行 → 48px），五行加起来正好等于容器高度、零余量；而表格是 `border-collapse: collapse`，上下外框各外凸半像素，表格实际 241px 装进 240px 的 `.wg-table-wrap`（`overflow: auto`）必然判溢出。行高与容器同步乘 zoom，所以任何缩放比例下都复发；滚动条还会吃掉 10px 宽度（表格实测宽从 400 变 390）
+  - 改法：均分前先扣 2px 边框余量再向下取整（`Math.floor((height - 2) / rowCount)`），保证「行高 × 行数 + 外框」恒不大于容器；取整是关键，不取整时分数行高的像素对齐可能把余量再吃掉
+  - 边界：32px 下限与 80px 上限不变——元素缩得太小、或行数配得太多导致下限生效时，仍按设计出滚动条
+  - 实测：在跑着的 dev server 页面里注入与组件同一套内联样式的探针（全局 `box-sizing` 与滚动条样式都取自真实页面），新公式下 240/5、250/5、170/5、300/8、600/5、241/5 六种尺寸 `scrollHeight == clientHeight`、滚动条消失；120/5 与 240/20 两种下限生效的场景仍 `scrollHeight` 163/649 > 容器、横向均未溢出。默认 5 行报表在 zoom 0.25~3 七档逐一测过，全部无滚动条。`vue-tsc --noEmit` 通过、`vitest run industrial/widget` 20 例通过
 - 组件卡片说明气泡的三处观感问题（偏亮 / 拖影带红叉 / 红叉上还弹气泡）
   - **气泡在暗色主题下发亮**：EP 的 `el-tooltip` 默认 `effect="dark"`，那是写死的 `#303133` 深灰，不吃 element-plus 的暗色变量，在本项目更深的画布底色上反而显得亮。改成 `effect="light"` 后走 `--el-bg-color-overlay` / `--el-text-color-regular`，跟着 `html.dark` 一起变。实测：暗色 `rgb(22,33,62)`、浅色 `rgb(255,255,255)`
   - **拖拽影像里带着删除红叉**：浏览器的拖拽影像在 **mousedown 之后、dragstart 之前**快照，而开始拖拽必然先 hover（红叉此刻正显示），所以在 dragstart 里改样式已经来不及。改为卡片上记 `dragging` 状态（mousedown 置真，mouseup / dragend / mouseleave 复位），`&.dragging .card-actions { opacity: 0 }` 写在 `:hover` 规则之后、靠同特异性后来者胜出

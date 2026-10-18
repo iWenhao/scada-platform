@@ -249,9 +249,14 @@ const reportRowCount = computed(() => rows.value + (showHeader.value ? 1 : 0))
  * 头重脚轻；tr 上写百分比高度同样无效。均分改成自己算反而可预期。
  * 夹上下限是防两端走形：元素拉到很高时行不会跟着无限长，缩得很小时由外层
  * `.wg-table-wrap` 的 overflow 出滚动条而不是把字挤没。
+ *
+ * 均分前先扣 2px、再向下取整：`border-collapse` 让表格上下外框各外凸半像素，
+ * 行高若正好把容器填满（240/5=48），表格就比容器高 1px，`overflow: auto` 判定
+ * 溢出，默认拖入的报表因此永远带一条滚动条（还会挤掉 10px 表格宽度）。
+ * 留下的零头靠取整保证不被边框吃掉，行高本身不进属性面板，不影响配置语义。
  */
 const reportRowHeight = computed(() =>
-  Math.min(Math.max(num(props.element.height, 240) / reportRowCount.value, 32), 80),
+  Math.min(Math.max(Math.floor((num(props.element.height, 240) - 2) / reportRowCount.value), 32), 80),
 )
 
 /**
