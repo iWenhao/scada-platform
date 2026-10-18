@@ -1,3 +1,4 @@
+// @vitest-environment node
 // @ts-nocheck  server/notify.mjs 为零依赖 ESM
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { promises as fs } from 'node:fs'

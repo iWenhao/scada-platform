@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { resolveApiBase, resolveApiToken } from './config'
 import { RemoteStorageAdapter } from './remote'

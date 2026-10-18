@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { MAX_SUBJECT_LENGTH, PREFIXES, checkCommitMessage } from './commit-msg-check.mjs'
 

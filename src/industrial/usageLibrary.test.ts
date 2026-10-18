@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, beforeEach } from 'vitest'
 import { MemoryStorageAdapter, setStorage, getStorage } from '@/storage'
 import { loadUsageCounts, recordComponentUsage } from './usageLibrary'

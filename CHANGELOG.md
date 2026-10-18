@@ -29,6 +29,14 @@
 
 ### 优化
 
+- 收紧单测验证节奏：改完代码的默认动作是「跑受影响的测试」，不是全量
+  - 背景：全量 `npx vitest run` wall 53s，其中用例本体只占 8s，其余全耗在 65 个文件的加载与 jsdom 环境上；且本机跑全量会因沙箱 EPERM **静默少跑文件**（`Test Files` 在 62~65 之间跳，汇总行带 `Errors` 时那次运行等同没跑过）——又慢又不可信，付一分钟换回一个残缺的绿灯
+  - 改法（`AGENTS.md`「验证节奏」节）：写死硬约束 + 三档日常命令（`npx vitest run <路径片段>` / `--changed` / `-t <关键词>`，均支持路径子串模糊匹配）；全量只允许出现在「准备提交」，且必须确认汇总行无 `Errors` 才算数，必要时 `--no-file-parallelism`；新增「给测试文件选环境」小节，规定新增测试时如何选 jsdom / node
+- 纯逻辑单测改用 node 环境跑（40 个文件）
+  - 背景：单测默认跑 jsdom，但只有真碰 DOM 的用例需要它。jsdom 环境开销远大于纯逻辑用例本体，白跑很贵
+  - 改法：给无 DOM 依赖的用例补 `// @vitest-environment node` 头（`server/**` 早已这么做，本次补齐 `src/` 一侧）。插入时按文件自身换行符写、其余字节原样保留——仓库工作区 36 CRLF / 29 LF-only 混存，任何「读全文再写回」的规范化都会制造几十个文件的假 diff，实测每个文件 `+1 -0`
+  - 为什么只改 40 个而不是全部：判据看「用例自身是否摸 DOM」，但被测源码可能间接依赖。实测 8 个文件炸掉——`alarmStore.ts` 的 `window.setTimeout`（自己用例全过、副作用抛 unhandled rejection，是最隐蔽的一类）、5 个 datasource 适配器（fetch / WebSocket）、`DataSourceManager`、`historian`、`deviceStore`，已全部回滚保持原状
+  - 实测：全量 53.1s → 39.9s（−25%，同口径 plain run 对比）；`--no-file-parallelism` 串行 65 文件 / 601 用例 / 0 FAIL / 0 Errors；40 个文件合计 `+40 -0`，无一行被整体改写
 - 趋势图更名折线图
   - 组件名与元素默认名（`src/industrial/chart/index.ts` 的 `name` 与 `nameProperty`）改为「折线图」，与柱状图/饼图/雷达图同为「图型」口径；实测跨 Tab 搜索「折线图」命中、「趋势图」0 命中
   - 不涉及历史趋势弹窗（`TrendChartDialog`）与属性面板的「查看趋势图」入口——那两处指的是**历史曲线**功能，表述保留；README 图表清单同步。组件库使用频次按 type 统计，改名不影响既有工程与高频排序

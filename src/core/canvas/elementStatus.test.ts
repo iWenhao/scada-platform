@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_ELEMENT_COLOR, evaluateElementColor } from './elementStatus'
 import type { StatusRule } from '@/types/scada'

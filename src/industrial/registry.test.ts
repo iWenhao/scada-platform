@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { getElementCapabilities, registerComponents } from './registry'
 import { widgetComponents } from './widget'

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_BRAND_NAME, DEFAULT_BRAND_SUBTITLE } from '@/stores/brandingStore'
 import { FRONTEND_DETAILS } from '../../shared/consoleBanner.mjs'

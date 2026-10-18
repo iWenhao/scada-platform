@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { evaluateAlarmDef } from './alarmEngine'
 import type { Condition } from '@/types/scada'

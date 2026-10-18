@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { isNameShown, isValueShown, plainTextConfig, commandButtonConfig } from './elementChrome'
 import type { ElementLayout } from './elementLayout'

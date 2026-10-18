@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { normalizeProperties } from './elementDefaults'
 import type { ComponentDefinition, ComponentInstance } from '@/types/scada'
