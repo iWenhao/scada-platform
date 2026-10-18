@@ -54,6 +54,7 @@
                   :key="comp.type"
                   :name="comp.name"
                   :icon="comp.icon"
+                  :description="comp.description"
                   :editable="isCustom(comp)"
                   :remove-title="removeTitleOf(comp)"
                   @dragstart="(e: DragEvent) => onDragStart(e, comp)"
@@ -82,6 +83,7 @@
                   :key="comp.type"
                   :name="comp.name"
                   :icon="comp.icon"
+                  :description="comp.description"
                   @dragstart="(e: DragEvent) => onDragStart(e, comp)"
                   @remove="removeComponent(comp)"
                 />
@@ -111,6 +113,7 @@
                 :key="comp.type"
                 :name="comp.name"
                 :icon="comp.icon"
+                :description="comp.description"
                 editable
                 remove-title="删除自定义组件"
                 @dragstart="(e: DragEvent) => onDragStart(e, comp)"

@@ -113,6 +113,13 @@ export interface ElementCapabilities {
 export interface ComponentDefinition {
   type: string
   name: string
+  /**
+   * 一句话用途说明，悬停组件库卡片时显示。
+   *
+   * 只给「名字看不出干什么」的组件写——设备图元（泵、风机）自带语义不必写，
+   * 而报表/表格/网格图这类同为表格长相、数据模型却不同的最容易选错，必写。
+   */
+  description?: string
   group: ComponentGroup
   icon: string
   defaultWidth: number

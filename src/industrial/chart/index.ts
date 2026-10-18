@@ -24,6 +24,7 @@ function nameProperty(defaultName: string) {
 export const ChartTrendDefinition: ComponentDefinition = {
   type: 'chart-trend',
   name: '折线图',
+  description: '一条绑定画一条曲线，数据来自历史缓冲；可配显示点数（10~300）',
   group: 'chart',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="3">
@@ -55,6 +56,7 @@ export const ChartTrendDefinition: ComponentDefinition = {
 export const ChartBarDefinition: ComponentDefinition = {
   type: 'chart-bar',
   name: '柱状图',
+  description: '一条绑定一根柱，取变量的当前值；适合横向比较几个点位',
   group: 'chart',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="3">
@@ -75,6 +77,7 @@ export const ChartBarDefinition: ComponentDefinition = {
 export const ChartPieDefinition: ComponentDefinition = {
   type: 'chart-pie',
   name: '饼图',
+  description: '一条绑定一个扇区，按当前值算占比；所有绑定值之和为 0 时显示占位环',
   group: 'chart',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="3">
@@ -96,6 +99,7 @@ export const ChartPieDefinition: ComponentDefinition = {
 export const ChartRadarDefinition: ComponentDefinition = {
   type: 'chart-radar',
   name: '雷达图',
+  description: '一条绑定一个维度（指标轴），取当前值连成多边形；可配半径上限',
   group: 'chart',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round">

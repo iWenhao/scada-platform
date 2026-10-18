@@ -47,11 +47,13 @@ function widgetDef(
   options: {
     defaultConfig?: Record<string, unknown>
     capabilities?: ElementCapabilities
+    description?: string
   } = {},
 ): ComponentDefinition {
   return {
     type,
     name,
+    description: options.description,
     group,
     icon,
     defaultWidth,
@@ -107,7 +109,10 @@ export const ProgressBarDefinition = widgetDef(
     fontSizeProp(12),
     { key: 'decimals', label: '小数位', type: 'number', default: 0, min: 0, max: 3, group: '显示' },
   ],
-  { capabilities: DATA_DRIVEN_CAPS },
+  {
+    capabilities: DATA_DRIVEN_CAPS,
+    description: '一个绑定变量映射到 0~100% 的填充条，适合液位、开度、负载这类有上限的量',
+  },
 )
 
 export const ReportTableDefinition = widgetDef(
@@ -153,6 +158,9 @@ export const ReportTableDefinition = widgetDef(
   ],
   {
     capabilities: DATA_DRIVEN_CAPS,
+    // 与「表格」同为表格长相，区别只在数据模型：这边行列数由属性定死、格子里只有值，
+    // 用来摆固定格式的版面；那边一行一个点位、行数跟着绑定走
+    description: '固定行列数，表头与列宽可配；绑定变量按行优先填格，格子里只显示值',
     // 与属性定义同源写一份：渲染层的口径是 properties（prop('fontSize', 12) 的
     // 兜底只在没落盘时生效），不物化进 defaultConfig 的话属性面板会从 12 起算，
     // 一改动就把 12 落盘、把这里调大的字号冲掉
@@ -184,7 +192,10 @@ export const GridChartDefinition = widgetDef(
     { key: 'alarmAbove', label: '报警阈值（大于）', type: 'number', default: 0, min: 0, group: '显示' },
     { key: 'decimals', label: '小数位', type: 'number', default: 1, min: 0, max: 3, group: '显示' },
   ],
-  { capabilities: DATA_DRIVEN_CAPS },
+  {
+    capabilities: DATA_DRIVEN_CAPS,
+    description: '一格一个绑定变量，超过阈值整格变红；格子数 = 绑定数，每行列数可配',
+  },
 )
 
 export const FilterTableDefinition = widgetDef(
@@ -214,7 +225,11 @@ export const FilterTableDefinition = widgetDef(
       group: '表格',
     },
   ],
-  { capabilities: DATA_DRIVEN_CAPS },
+  {
+    capabilities: DATA_DRIVEN_CAPS,
+    description:
+      '一行一个绑定变量，固定三列（名称 / 数值 / 单位）；行数 = 绑定数，带搜索与超阈值变色、可分页',
+  },
 )
 
 export const DateDefinition = widgetDef(
