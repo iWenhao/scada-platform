@@ -12,6 +12,13 @@
 
 ### 优化
 
+- 报表默认样式：列更宽、行不再塌成 9px
+  - 现象：拖入后每列窄、每行高度几乎为零。探针实测元素 512×352 里表格只占 62px 高，4 个数据行的单元格各 9px（空内容时行高只剩上下 padding），表格挤在顶部、下面 290px 空着
+  - 改法：默认尺寸 320×220 → 400×240（`fitDropSize` 对所有组件统一放大 1.6 倍，实际落 640×384）；表格 `table-layout: fixed` 让列宽均分；行高改为按「元素高度 ÷（数据行 + 表头）」均分并夹在 32~80px
+  - 为什么不用 `table { height: 100% }` 让浏览器自己分：实测 Chrome 把多余空间全分给 tbody——默认 5 行、容器 240px 时表头被压到 20px、数据行 55px，头重脚轻；tr 上写百分比高度同样无效（实测仍是 32/88）。自己算反而可预期。夹上下限是防两端走形：元素拉很高时行不跟着无限长，缩很小时由外层 overflow 出滚动条
+  - 报表字号默认 12 → 14，并给报表补上 `defaultConfig`（9 个 HTML 挂件此前一个都没写）：渲染层的最终口径是 `prop('fontSize', 12)`，不物化进 properties 的话属性面板会从 12 起算，一改动就把 14 冲掉
+  - 报表走独立的 `reportTableStyle` / `reportCellStyle`，不与「表格」挂件共用——那个的行数随绑定变量变化，均分会让单变量时的一行占满全高
+  - 实测：拖入后列宽 213（原 174）、行高 77 且表头与数据行等高、表格撑满容器 100%（原 84% 高度 + 表格 62px）；元素高度缩到 150 时行高被 32 下限兜住并出滚动条；0 页面错误
 - 消除画布每个元素刷一条的 Vue 警告 `Extraneous non-emits event listeners (click, contextmenu, mouseenter, …)`
   - 根因：vue-konva 的容器节点（Group/Layer/Label/FastLayer）返回的是插槽片段，根节点不是元素，模板上的 `@click` 等监听无法被「自动继承」；vue-konva 会在 setup 里把 vnode.props 的 on* 键合进 applyNodeProps，所以功能不受影响，但 dev 下每个元素一条警告
   - 改法：CanvasElements.vue 的分组配置（含 8 个事件）整体搬进脚本 `groupConfig()` 并通过 `:config="item.group"` 传入（`onClick`/`onDragstart`…，applyNodeProps 对 on* 键做同样的 `node.on()` 注册，功能一致）；PreviewStage.vue 的 `@click` 同改进 config。ConnectionLine.vue 本就是 config 写法，未动

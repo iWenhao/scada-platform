@@ -117,10 +117,12 @@ export const ReportTableDefinition = widgetDef(
   svg(
     '<rect x="10" y="16" width="80" height="68" rx="4" /><line x1="10" y1="34" x2="90" y2="34" /><line x1="10" y1="52" x2="90" y2="52" /><line x1="10" y1="70" x2="90" y2="70" /><line x1="36" y1="16" x2="36" y2="84" /><line x1="62" y1="16" x2="62" y2="84" />',
   ),
-  320,
-  220,
+  400,
+  240,
   [
-    fontSizeProp(12),
+    // 报表字号比别的挂件大一档：行高按容器均分后（默认拖入的行高约 77px），
+    // 12px 的字在宽行里会显得空荡荡
+    fontSizeProp(14),
     { key: 'columns', label: '列数', type: 'number', default: 3, min: 1, max: 12, group: '表格' },
     { key: 'rows', label: '数据行数', type: 'number', default: 4, min: 1, max: 50, group: '表格' },
     { key: 'showHeader', label: '显示表头', type: 'boolean', default: true, group: '表格' },
@@ -137,7 +139,20 @@ export const ReportTableDefinition = widgetDef(
       { label: '右', value: 'right' },
     ], group: '表格' },
   ],
-  { capabilities: DATA_DRIVEN_CAPS },
+  {
+    capabilities: DATA_DRIVEN_CAPS,
+    // 与属性定义同源写一份：渲染层的口径是 properties（prop('fontSize', 12) 的
+    // 兜底只在没落盘时生效），不物化进 defaultConfig 的话属性面板会从 12 起算，
+    // 一改动就把 12 落盘、把这里调大的字号冲掉
+    defaultConfig: {
+      fontSize: 14,
+      columns: 3,
+      rows: 4,
+      showHeader: true,
+      headers: '',
+      align: 'left',
+    },
+  },
 )
 
 export const GridChartDefinition = widgetDef(

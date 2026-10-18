@@ -10,15 +10,15 @@
 
     <!-- 报表：表头 + 数据行，绑定变量按行优先填格 -->
     <div v-else-if="type === 'report-table'" class="wg-table-wrap">
-      <table class="wg-table" :style="tableStyle">
+      <table class="wg-table" :style="reportTableStyle">
         <thead v-if="showHeader">
           <tr>
-            <th v-for="(h, i) in headerCells" :key="`h${i}`" :style="cellStyle">{{ h }}</th>
+            <th v-for="(h, i) in headerCells" :key="`h${i}`" :style="reportCellStyle">{{ h }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(row, r) in bodyRows" :key="`r${r}`">
-            <td v-for="(c, i) in row" :key="`c${r}-${i}`" :style="cellStyle">{{ c }}</td>
+            <td v-for="(c, i) in row" :key="`c${r}-${i}`" :style="reportCellStyle">{{ c }}</td>
           </tr>
         </tbody>
       </table>
@@ -172,6 +172,7 @@ const cellStyle = computed(() => ({
   whiteSpace: 'nowrap' as const,
 }))
 
+
 const richStyle = computed(() => ({
   fontSize: `${num(prop('fontSize', 13), 13) * z.value}px`,
   lineHeight: 1.6,
@@ -203,6 +204,42 @@ const fillStyle = computed(() => ({
 const showHeader = computed(() => prop('showHeader', true) === true)
 const columns = computed(() => Math.min(Math.max(num(prop('columns', 3), 3), 1), 12))
 const rows = computed(() => Math.min(Math.max(num(prop('rows', 4), 4), 1), 50))
+
+/** 报表的总行数（表头算一行） */
+const reportRowCount = computed(() => rows.value + (showHeader.value ? 1 : 0))
+
+/**
+ * 报表行高：按元素高度均分，并夹在 32~64px。
+ *
+ * 为什么不用 `table { height: 100% }` 让浏览器自己分：实测 Chrome 会把多余空间
+ * 全分给 tbody（默认 4 行 + 表头、容器 240px 时表头被压到 20px、数据行 55px），
+ * 头重脚轻；tr 上写百分比高度同样无效。均分改成自己算反而可预期。
+ * 夹上下限是防两端走形：元素拉到很高时行不会跟着无限长，缩得很小时由外层
+ * `.wg-table-wrap` 的 overflow 出滚动条而不是把字挤没。
+ */
+const reportRowHeight = computed(() =>
+  Math.min(Math.max(num(props.element.height, 240) / reportRowCount.value, 32), 80),
+)
+
+/**
+ * 报表专用表格样式（不与「表格」挂件共用：那个的行数随绑定变量变化，均分会
+ * 让单变量时的一行占满全高）：
+ * - `table-layout: fixed`：列宽均分，不再被内容长短牵着走
+ * - `minWidth` 按列数给每列留 56px 下限，列数调多时横向滚动，而不是把列挤成一条缝
+ * - 不给 table 本身 height: 100%，高度由「行高 × 行数」自己控制（见 reportRowHeight）
+ */
+const reportTableStyle = computed(() => ({
+  ...tableStyle.value,
+  tableLayout: 'fixed' as const,
+  minWidth: `${columns.value * 56 * z.value}px`,
+}))
+
+/** 报表单元格：在通用样式上补计算出来的行高与更宽松的内边距 */
+const reportCellStyle = computed(() => ({
+  ...cellStyle.value,
+  height: `${reportRowHeight.value * z.value}px`,
+  padding: `${6 * z.value}px ${10 * z.value}px`,
+}))
 
 const headerCells = computed(() => {
   const raw = String(prop('headers', ''))
