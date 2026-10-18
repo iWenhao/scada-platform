@@ -37,6 +37,13 @@
 
 ### 优化
 
+- 首页项目卡片操作栏改成单行常驻，配置项收进「⋯」
+  - 背景：三个问题叠在一起。① 6 个控件用 `flex-wrap` 排在 `minmax(320px,1fr)` 的栅格里，已发布态「取消发布」比「发布」宽 24px，最小列宽下必然换成两行，卡片高度跟着发布状态跳；② 操作栏 `opacity:0` 只在悬停时淡入，未悬停时是一块点不着的空白，触屏与键盘用户永远够不到；③ `html.dark .el-button--primary` 的品牌青覆盖只管暗色，亮色主题下主按钮仍是 Element Plus 默认蓝，同一张卡两套主题两种强调色，加上 success/warning plain 的绿与橙，一行五种视觉重量
+  - 改法：`ProjectCard.vue` 操作栏收成「打开编辑 / 预览 / 发布（取消发布）/ ⋯」，数据源·报警·点表三项并进 ⋯，组件内按命令分流回 `config` 与 `more` 两个事件，`dashboard/index.vue` 的契约一字未改。`project-card.scss` 用 `nowrap` + `gap:2px` + 顶部 hairline + `padding-top:10px` 定出恒定 35px 单行，取消悬停才显示的透明度门（层级改由配色承担：整行只有一个实心态）；主按钮不再用 `type="primary"`，直接消费 `--accent-primary`，两套主题同色；次级按钮统一透明底 + 细边框 + 次要文字；⋯ 靠 `margin-left:6px` 补足与左侧的 8px，读起来不像第五个平级按钮
+  - 「删除」悬停转红：EP 的 `el-dropdown-item` 不透传 class（实测 `li` 上只有 `el-dropdown-menu__item`），改用内层 `span` 做钩子 + `:has()` 反推整项。特异性算术：`:has(.x)` 只按参数中最高的那一个计一次，基础态不带 `:not(.is-disabled)` 时只有 (0,2,0)，压不过 `html.dark .el-dropdown-menu__item` 的 (0,2,1)，红色实测被盖回 `--text-primary`；补上后 (0,3,0) 胜出
+  - 顺带把 `.card-actions` 的选择器全部加上 `.project-card` 前缀：编辑器里的 `ComponentCard` 用了同名 class（绝对定位的红叉、自己的悬停展开逻辑），此前两边在同一份全局样式里互相污染
+  - 实测：临时实例（`vite --port 5180` + 后端 5178 + 独立 `DATA_DIR`，未触碰 5173/5174）导入示例工程。320px 列宽下草稿态按钮合计 226px + 3×2 = 232 ≤ 286，已发布态（取消发布 72px）同样单行；行高恒 35px、`scrollWidth == clientWidth` 无溢出；⋯ 与左侧实测 8px；「删除」computed color = `rgb(255,71,87)` 而邻项仍 `rgb(224,224,224)`；主按钮两档主题均 `rgb(0,212,170)`。`vitest run --changed` 3 文件 39 用例、`vue-tsc --noEmit`、超长文件检查通过
+  - 未做完：亮色主题的肉眼核对、以及「删除」悬停底色的截图——验证时应用内浏览器标签页被切走（`visibilityState=hidden`），指针事件打不进、隐藏页的 computed 读数不可信
 - 收紧单测验证节奏：改完代码的默认动作是「跑受影响的测试」，不是全量
   - 背景：全量 `npx vitest run` wall 53s，其中用例本体只占 8s，其余全耗在 65 个文件的加载与 jsdom 环境上；且本机跑全量会因沙箱 EPERM **静默少跑文件**（`Test Files` 在 62~65 之间跳，汇总行带 `Errors` 时那次运行等同没跑过）——又慢又不可信，付一分钟换回一个残缺的绿灯
   - 改法（`AGENTS.md`「验证节奏」节）：写死硬约束 + 三档日常命令（`npx vitest run <路径片段>` / `--changed` / `-t <关键词>`，均支持路径子串模糊匹配）；全量只允许出现在「准备提交」，且必须确认汇总行无 `Errors` 才算数，必要时 `--no-file-parallelism`；新增「给测试文件选环境」小节，规定新增测试时如何选 jsdom / node

@@ -182,20 +182,90 @@
   margin-bottom: 12px;
 }
 
-.card-actions {
+// 操作栏：单行、常驻、2px 间距。
+// 原来的 flex-wrap + 「悬停才淡入」有两个问题：
+// 1) 栅格最小列宽 320px 排不下 6 个控件，已发布态「取消发布」又比「发布」宽 24px，
+//    于是换成两行、卡片高度跟着状态跳；现在配置项收进 ⋯、靠 nowrap 保证单行。
+// 2) opacity:0 时按钮看不见也点不着，触屏与键盘用户永远够不到；层级改用配色而不是透明度。
+// 选择器一律带 .project-card 前缀：.card-actions 这个名字在编辑器的 ComponentCard 里
+// 也用（它有自己的绝对定位与悬停展开逻辑），不scoped会互相污染。
+.project-card .card-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  // 悬停卡片时才展开操作按钮，保持卡片整洁
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-primary);
 }
 
-.project-card:hover .card-actions,
-.project-card:focus-within .card-actions {
-  opacity: 1;
-  pointer-events: auto;
+// 卡片主按钮直接消费 --accent-primary，而不是用 type="primary"：
+// 暗色主题下 dark-theme.scss 把 .el-button--primary 覆盖成了品牌青，亮色主题却没有这层覆盖
+// （仍是 Element Plus 默认蓝），同一张卡在两套主题里会给出两种强调色。
+// !important 是必要的：html.dark .el-button 这条基础覆盖本身就带 !important，
+// 不带 !important 的声明在它面前无效（特异性只用于 !important 之间的比较）。
+.project-card .card-actions .btn-accent {
+  background-color: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  color: #fff !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--accent-secondary) !important;
+    border-color: var(--accent-secondary) !important;
+  }
+}
+
+// 次级操作：两档主题统一走「透明底 + 细边框 + 次要文字」，悬停才提亮，
+// 使整行只有一个实心态（主按钮），其余控件不抢注意力。
+.project-card .card-actions .btn-quiet {
+  background-color: transparent !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-secondary) !important;
+
+  &:hover,
+  &:focus {
+    background-color: var(--bg-tertiary) !important;
+    border-color: var(--border-active) !important;
+    color: var(--text-primary) !important;
+  }
+}
+
+// ⋯ 只有图标，去掉边框读起来更像行尾的「更多」而不是第五个按钮。
+// 多带一个 .btn-quiet 是为了特异性：`html.dark .el-button:hover` 是 (0,3,1)，
+// 单条 .btn-more (0,3,0) 压不住它，悬停时会被描上一圈 teal 边框。
+.project-card .card-actions .btn-quiet.btn-more {
+  border-color: transparent !important;
+
+  &:hover,
+  &:focus {
+    border-color: transparent !important;
+  }
+}
+
+// ⋯ 与左侧按钮的间距单独拉到 8px（行内 gap 是 2px，这里补 6px）：
+// 它是「还有更多操作」的入口而不是第五个平级按钮，需要和前面的动作拉开一档，
+// 否则 2px 的紧贴会让它读起来像和「发布」是一组。
+.project-card .card-actions .card-more {
+  margin-left: 6px;
+}
+
+// 「删除」悬停转红警示。
+// 选择器不能带 .project-card 祖先：EP 的下拉菜单被传送到 body 下，卡片不是它的祖先节点。
+// 钩子是菜单项里的 span（EP 的 el-dropdown-item 不透传 class，实测 li 上只有
+// `el-dropdown-menu__item`），靠 :has() 反推整项——与仓库既有 color-mix() 同一档浏览器要求。
+// 特异性算术（实测踩过：少了 :not 时红色被盖回 --text-primary）：
+// `:has(.x)` 只按参数里最高的那一个计，即 1 个类，所以
+//   本条基础态 = .el-dropdown-menu__item + :has + :not = (0,3,0)
+//   对手 html.dark .el-dropdown-menu__item = (0,2,1) → 3 类 > 2 类，本条胜出；
+// 若去掉 :not 就只剩 (0,2,0)，比对手少一个类型选择器而被压住。
+.el-dropdown-menu__item:has(.card-menu-danger-label):not(.is-disabled) {
+  color: var(--accent-danger) !important;
+
+  &:hover,
+  &:focus {
+    background-color: rgba(255, 71, 87, 0.14) !important;
+    color: var(--accent-danger) !important;
+  }
 }
 
 .project-card.ghost {
