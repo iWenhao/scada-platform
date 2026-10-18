@@ -8,7 +8,7 @@
 >
 > 🎨 **图元绘制规范**：[docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md) —— 2.5D / 立体观感图元的面基标注与光照统一，新增设备图元必读。
 >
-> 🤖 **代理工作指南**：[AGENTS.md](AGENTS.md) —— AI 编码代理与新成员的项目约定、扩展点与常见坑，改动本仓库前必读。
+> 🤖 **代理工作指南**：[AGENTS.md](AGENTS.md) —— AI 编码代理与新成员的项目约定、扩展点与常见坑，改动本仓库前必读。正文按加载预算（32 KiB 起截断）排序，只在本机成立的环境诊断细节外移到 [docs/ENV_NOTES.md](docs/ENV_NOTES.md)，出现症状时再读。
 
 四份文档顶部均回指本文件，跨文档口径以 README 为准；各文档按受众裁剪、不做强行互指，完整文档地图见 [AGENTS.md](AGENTS.md) 开头。
 
@@ -353,12 +353,13 @@ scada-platform/
 ├── tsconfig.json / tsconfig.node.json / tsconfig.server.json
 ├── Dockerfile / Dockerfile.server / docker-compose.yml / docker/nginx.conf
 ├── .env.example                        # 前后端环境变量样例
-├── README.md / CHANGELOG.md / agents.md / LICENSE / UI_DESIGN_GUIDE.md
+├── README.md / CHANGELOG.md / AGENTS.md / LICENSE / UI_DESIGN_GUIDE.md
 │
 ├── docs/
 │   ├── USER_GUIDE.md                   # 使用说明书
 │   ├── DEPLOY.md                       # 部署指南
-│   └── 2.5D_ILLUSTRATION_GUIDE.md      # 图元绘制规范（面基 + 光照）
+│   ├── 2.5D_ILLUSTRATION_GUIDE.md      # 图元绘制规范（面基 + 光照）
+│   └── ENV_NOTES.md                    # 本机环境诊断细节（AGENTS.md 的外移层）
 │
 ├── server/                             # 零依赖存储后端（pnpm server，可选）
 │   ├── index.mjs                       # 入口：路由装配与初始化
