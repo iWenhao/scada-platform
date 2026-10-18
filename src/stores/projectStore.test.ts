@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useProjectStore } from './projectStore'
+import { usePageStore } from './pageStore'
 import { useCanvasStore } from './canvasStore'
 import { useConnectionStore } from './connectionStore'
 import { MemoryStorageAdapter, getStorage, setStorage } from '@/storage'
@@ -217,5 +218,60 @@ describe('projectStore.resetProject', () => {
     expect(canvasStore.elements).toHaveLength(0)
     expect(connectionStore.connections).toHaveLength(0)
     expect(store.dataSourceConfig.type).toBe('mock')
+  })
+})
+
+describe('projectStore 编辑会话现场', () => {
+  let store: ReturnType<typeof useProjectStore>
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    setStorage(new MemoryStorageAdapter())
+    store = useProjectStore()
+  })
+
+  /** 造一个带元素的最小页面内容，用于验证快照与后续编辑隔离 */
+  function addTank(canvasStore: ReturnType<typeof useCanvasStore>, name: string) {
+    canvasStore.addElement({
+      id: `e_${name}`, type: 'tank', name, x: 0, y: 0, width: 60, height: 60,
+      rotation: 0, layerId: 'device',
+      properties: {}, statusRules: [], dataBindings: [],
+    })
+  }
+
+  it('发布版整表替换画面列表后，还原快照应找回新增画面', async () => {
+    const pageStore = usePageStore()
+    store.resetProject() // 单张「主页」
+    await store.saveProject('现场')
+    await store.publishProject('现场') // 发布版停在 1 张画面
+
+    pageStore.addPage('画面2')
+    pageStore.addPage('画面3')
+    store.markDirty()
+    const lastPageId = pageStore.activePageId
+    const snapshot = store.snapshotEditorSession()
+
+    // 预览页默认读发布版：setPages 是整表替换，编辑器内存里的画面 2/3 就此消失（原缺陷）
+    expect(await store.loadPublishedProject('现场')).toBe(true)
+    expect(pageStore.pages).toHaveLength(1)
+
+    store.restoreEditorSession(snapshot)
+    expect(pageStore.pages.map(p => p.name)).toEqual(['主页', '画面2', '画面3'])
+    expect(pageStore.activePageId).toBe(lastPageId)
+    // 未保存标记也要一起回来，否则用户看不出自己还没存
+    expect(store.hasUnsavedChanges).toBe(true)
+  })
+
+  it('现场快照应与后续编辑隔离，不受 store 就地改写穿透', () => {
+    const canvasStore = useCanvasStore()
+    store.resetProject()
+    addTank(canvasStore, '原罐')
+
+    const snapshot = store.snapshotEditorSession()
+    // 快照之后再改工作区：还原必须拿回快照那一刻的内容
+    canvasStore.elements[0].name = '改过了'
+
+    store.restoreEditorSession(snapshot)
+    expect(useCanvasStore().elements[0].name).toBe('原罐')
   })
 })

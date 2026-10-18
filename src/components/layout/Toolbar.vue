@@ -186,7 +186,7 @@
         </el-button>
       </el-tooltip>
 
-      <el-tooltip content="预览模式（默认显示发布版）" placement="bottom">
+      <el-tooltip content="预览当前工作副本（会先保存；运行端入口才看发布版）" placement="bottom">
         <el-button type="success" @click="handlePreview">
           <ToolIcon name="play" />
           <span class="btn-text">预览</span>

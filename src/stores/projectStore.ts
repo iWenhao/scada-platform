@@ -120,6 +120,34 @@ export const useProjectStore = defineStore('project', () => {
     hasUnsavedChanges.value = false
   }
 
+  /**
+   * 编辑会话现场快照 / 还原。
+   *
+   * 为什么要这一对：预览页在同一标签页里被路由进来，Pinia store 不会重建，
+   * 而它要把「发布版」整表灌进 pageStore（setPages 是替换不是合并）。编辑器里新增但尚未
+   * 再保存的画面、以及未保存标记，都会在这一步被旧快照顶掉——用户看到的症状是
+   * 「加了画面 2/画面 3，去预览再回来只剩主页」。预览页卸载时还原即可。
+   * 快照走深拷贝：applyProjectData 会改写 store，不能和还原用的数据共享引用。
+   */
+  function snapshotEditorSession() {
+    return {
+      projectData: JSON.parse(JSON.stringify(buildProjectData())) as Record<string, any>,
+      projectName: projectName.value,
+      projectDescription: projectDescription.value,
+      lastSaveTime: lastSaveTime.value,
+      hasUnsavedChanges: hasUnsavedChanges.value,
+    }
+  }
+
+  /** 还原现场：先回填名称与脏标记，再整表装回画面与工程级配置 */
+  function restoreEditorSession(snapshot: ReturnType<typeof snapshotEditorSession>) {
+    projectName.value = snapshot.projectName
+    projectDescription.value = snapshot.projectDescription
+    applyProjectData(snapshot.projectData)
+    lastSaveTime.value = snapshot.lastSaveTime
+    hasUnsavedChanges.value = snapshot.hasUnsavedChanges
+  }
+
   // 正式保存 / 发布 / 加载 / 导入 / 自动草稿：都只是「工程数据 ↔ 存储」的往返，
   // 拆到 projectPersistence.ts，靠注入的 state 与三个数据动作拿到所需依赖
   const persistence = createProjectPersistence({
@@ -267,6 +295,8 @@ export const useProjectStore = defineStore('project', () => {
     setViewMode,
     setAlarmDefs,
     setTagTable,
+    snapshotEditorSession,
+    restoreEditorSession,
     saveProject,
     loadProject,
     publishProject,

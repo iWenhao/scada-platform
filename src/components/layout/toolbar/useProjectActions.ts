@@ -112,9 +112,15 @@ export function useProjectActions() {
     input.click()
   }
 
+  /**
+   * 「预览」看的是自己刚存的工作副本，不是发布版：
+   * 发布快照可能属于上一次发布（画面数更少），而预览页与编辑器共用同一份 Pinia store，
+   * 读发布版会把内存里的画面列表整表换掉，回到编辑器就表现为「新增的画面没了」。
+   * 运行端入口（首页卡片预览）仍默认读发布版。
+   */
   async function handlePreview() {
     await projectStore.saveProject()
-    router.push({ path: '/preview', query: { project: projectStore.projectName } })
+    router.push({ path: '/preview', query: { project: projectStore.projectName, source: 'draft' } })
   }
 
   /**

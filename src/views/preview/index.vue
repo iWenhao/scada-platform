@@ -87,6 +87,13 @@ const { promptWriteValue, writePresetValue } = useWriteValue()
 /** 画面导航栈：元素跳转 / 上一画面按钮共用 */
 const navStack = new PageNavStack()
 
+/**
+ * 进入预览前抓下的编辑现场。预览页会把发布版（或草稿）灌进同一份全局 store，
+ * 编辑器里新增但还没再保存的画面就在这一步被顶掉；离开时原样装回去。
+ * 只在存在编辑会话时有值——从首页直接进预览时内存里是空工程，还原反而坏事。
+ */
+let editorSnapshot: ReturnType<typeof projectStore.snapshotEditorSession> | null = null
+
 const showAuditLog = ref(false)
 const autoRotate = ref(false)
 let rotateTimer: number | null = null
@@ -230,6 +237,8 @@ function retryLoad() {
 }
 
 onMounted(async () => {
+  // 快照必须在装载工程之前抓，否则抓到的已是预览要显示的那份内容
+  if (uiStore.hasEditSession) editorSnapshot = projectStore.snapshotEditorSession()
   await loadPreviewProject()
 
   deviceStore.initDataSource(projectStore.dataSourceConfig)
@@ -248,6 +257,12 @@ onUnmounted(() => {
   deviceStore.disconnect()
   if (updateInterval) {
     clearInterval(updateInterval)
+  }
+  // 还原编辑现场：撤销栈里装的是预览那份内容，不清掉回到编辑器一按 Ctrl+Z 就串页
+  if (editorSnapshot) {
+    projectStore.restoreEditorSession(editorSnapshot)
+    editorSnapshot = null
+    clearHistory()
   }
 })
 </script>

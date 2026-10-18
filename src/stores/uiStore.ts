@@ -62,6 +62,22 @@ export const useUiStore = defineStore('ui', () => {
    */
   const writeLocked = ref<boolean>(false)
 
+  /**
+   * 本标签页是否存在编辑会话（内存里有需要保护的编辑现场）。
+   * 编辑器 setup 置位、首页挂载复位；只活在内存里，刷新即消失——正好等于「编辑会话」的生命周期。
+   * 预览页据此决定要不要在离开时还原现场：从首页直接进预览时，内存里那份是空工程，
+   * 还原它反而会把预览加载好的工程抹掉。
+   */
+  const hasEditSession = ref<boolean>(false)
+
+  function markEditSession() {
+    hasEditSession.value = true
+  }
+
+  function clearEditSession() {
+    hasEditSession.value = false
+  }
+
   function toggleWriteLock() {
     writeLocked.value = !writeLocked.value
   }
@@ -148,6 +164,9 @@ export const useUiStore = defineStore('ui', () => {
     showRuler,
     showMinimap,
     writeLocked,
+    hasEditSession,
+    markEditSession,
+    clearEditSession,
     toggleWriteLock,
     toggleLeftPanel,
     toggleRightPanel,

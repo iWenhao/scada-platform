@@ -141,6 +141,7 @@ import { useProjectStore } from '@/stores/projectStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useAlarmStore } from '@/stores/alarmStore'
 import { useDeviceStore } from '@/stores/deviceStore'
+import { useUiStore } from '@/stores/uiStore'
 import { getStorage } from '@/storage'
 import { connectionStatusView } from '@/status/connection'
 import { ElMessageBox, ElMessage } from 'element-plus'
@@ -244,6 +245,8 @@ async function openProjectConfig(name: string, kind: string) {
 }
 
 onMounted(() => {
+  // 回到首页即视为编辑会话结束：预览页此后不再还原现场（否则会把刚加载好的工程抹成空工程）
+  useUiStore().clearEditSession()
   void loadRecentProjects()
 })
 

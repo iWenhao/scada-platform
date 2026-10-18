@@ -69,6 +69,13 @@
 
 ### 修复
 
+- 编辑器点「预览」再返回，新增的画面 2 / 画面 3 没了
+  - 根因：预览与编辑器是同一份 Pinia store。工具栏「预览」先 `saveProject()` 再 `router.push('/preview?project=…')`，而预览页默认读**发布快照**，`applyProjectData → pageStore.setPages()` 是整表替换，把内存里那张旧发布版（只有主页）灌进编辑会话；返回 `/editor` 不重新读盘，于是画面 2/3「消失」。若此时再点一次保存，回退结果就被写回工作副本（本机实测：`scada_published_未命名项目` 与 `scada_project_未命名项目` 都只剩 1 张画面，时间戳相差 10 分钟，正对应这条链）
+  - 改法一（`useProjectActions.handlePreview`）：编辑器的「预览」带 `?source=draft`——按钮语义是「看我刚存的东西」，运行版入口（首页卡片预览）仍默认读发布快照。同步修正工具栏那枚 tooltip（原文案写死「默认显示发布版」，现在不成立了）
+  - 改法二（兜住「读发布版」这类入口）：`projectStore` 新增 `snapshotEditorSession()` / `restoreEditorSession()`，预览页挂载前抓现场、卸载时还原并 `clearHistory()`（否则回编辑器一按 Ctrl+Z 会把预览那份内容撤销进来）。还原要显式开关：`uiStore.hasEditSession` 由编辑器 setup 置位、首页挂载复位——从首页直接进预览时内存里是空工程，还原反而会把刚加载好的工程抹掉
+  - 动了：`src/components/layout/toolbar/useProjectActions.ts`、`src/components/layout/Toolbar.vue`（文案）、`src/stores/projectStore.ts`、`src/stores/uiStore.ts`、`src/views/preview/index.vue`、`src/views/editor/index.vue`、`src/views/dashboard/index.vue`、`src/stores/projectStore.test.ts`
+  - 实测：新增 2 条 store 用例——① 1 画面发布 → 内存加到 3 画面 → `loadPublishedProject()` 确认被顶回 1 张 → 还原后画面名依次为主页/画面 2/画面 3、activePageId 回到画面 3、`hasUnsavedChanges` 一起回来；② 快照与后续编辑隔离（改工作区元素名后还原仍是旧名，验证深拷贝，同 `useHistory` 的引用穿透教训）。全量 `npx vitest run --reporter=verbose` 66 文件 / 618 用例通过（与磁盘 `git ls-files | grep -c '\.test\.ts$'` = 66 对齐，汇总行无 `Errors`）；`vue-tsc --noEmit`、`pnpm build`、超长文件检查均通过
+  - 浏览器实机：在临时端口对（5180 前端 + 5178 独立 `DATA_DIR`，避开正在跑的 5173/5174）走通「编辑器加 3 张画面 → 点预览」，确认 URL 带 `source=draft` 且预览 HUD 的画面胶囊是 3 张（改前读发布版是 1 张）。**改法二的还原没能实机点到**：内嵌浏览器标签处于 hidden 状态，`<RouterView>` 的 `mode="out-in"` 过渡依赖 rAF，隐藏标签里不推进，路由停在 `page-fade-leave-active`；`hasEditSession` 开关与 onUnmounted 还原仅由上述 store 用例覆盖，建议手动点一次（进预览 → 点「编辑器」）
 - 报表拖到画布上默认就带一条竖向滚动条
   - 根因：行高按「元素高度 / 行数」均分（默认 400×240、4 数据行 + 表头 = 5 行 → 48px），五行加起来正好等于容器高度、零余量；而表格是 `border-collapse: collapse`，上下外框各外凸半像素，表格实际 241px 装进 240px 的 `.wg-table-wrap`（`overflow: auto`）必然判溢出。行高与容器同步乘 zoom，所以任何缩放比例下都复发；滚动条还会吃掉 10px 宽度（表格实测宽从 400 变 390）
   - 改法：均分前先扣 2px 边框余量再向下取整（`Math.floor((height - 2) / rowCount)`），保证「行高 × 行数 + 外框」恒不大于容器；取整是关键，不取整时分数行高的像素对齐可能把余量再吃掉
