@@ -8,7 +8,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { writeFileAtomic } from './atomicWrite.mjs'
+import { writeFileAtomic, withTransientRetry } from './atomicWrite.mjs'
 
 let dir = ''
 
@@ -66,5 +66,45 @@ describe('writeFileAtomic', () => {
       expect(JSON.parse(await readFile(f, 'utf8')).i).toBe(i)
     }
     await expect(leftovers()).resolves.toEqual([])
+  })
+})
+
+describe('withTransientRetry', () => {
+  /** 造一个只带 code 的 fs 错误，避免真的去抢文件句柄 */
+  const fsError = (code: string) => Object.assign(new Error(`${code}: simulated`), { code })
+
+  it('EPERM 与 EBUSY 都算瞬时占用，重试到成功为止', async () => {
+    let calls = 0
+    const value = await withTransientRetry(async () => {
+      calls += 1
+      if (calls < 3) throw fsError(calls === 1 ? 'EPERM' : 'EBUSY')
+      return 'done'
+    }, [1, 2, 4])
+
+    expect(value).toBe('done')
+    expect(calls).toBe(3)
+  })
+
+  it('非瞬时错误立刻抛出，一次都不重试', async () => {
+    let calls = 0
+    await expect(
+      withTransientRetry(async () => {
+        calls += 1
+        throw fsError('EACCES')
+      }, [1, 2]),
+    ).rejects.toThrow(/EACCES/)
+    expect(calls).toBe(1)
+  })
+
+  it('重试次数用完仍失败，抛出的是原始错误', async () => {
+    let calls = 0
+    await expect(
+      withTransientRetry(async () => {
+        calls += 1
+        throw fsError('EPERM')
+      }, [1, 2]),
+    ).rejects.toMatchObject({ code: 'EPERM' })
+    // 首次 + 两次重试
+    expect(calls).toBe(3)
   })
 })

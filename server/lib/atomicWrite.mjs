@@ -32,7 +32,8 @@ async function writeOnce(filePath, data, encoding) {
   const tmp = tmpPathFor(filePath)
   try {
     await fs.writeFile(tmp, data, encoding)
-    await renameInto(tmp, filePath)
+    // 同目录内 rename：POSIX 与 Windows（MoveFileEx + REPLACE_EXISTING）都能覆盖已存在的目标
+    await withTransientRetry(() => fs.rename(tmp, filePath))
   } catch (e) {
     // 临时文件残留不影响正确性（下次写入会另起名字），但会污染目录，尽量清掉
     await fs.rm(tmp, { force: true }).catch(() => {})
@@ -41,26 +42,33 @@ async function writeOnce(filePath, data, encoding) {
 }
 
 /**
- * rename 覆盖目标，遇 Windows 瞬时占用重试。
- *
- * 同目录内 rename 本身是原子的，但在 Windows 上「目标文件正被另一个句柄打开」时返回
- * EPERM/EBUSY——常见来源是杀软与索引服务在读完（或刚写完）的一瞬间抓着文件不放。
- * 这不是代码能避免的状态，只能等句柄释放，所以做有界退避重试。
- * 不重试的代价是静默丢写：调用方普遍把落盘失败当尽力而为（会话、审计都是 catch 掉的）。
+ * Windows 瞬时占用：文件刚被写完（或被读走）时，杀软与索引服务的句柄还没释放，
+ * 此时 rename 覆盖它、或 rm 删它都会拿到 EPERM/EBUSY。这不是代码能避免的状态，
+ * 只能等句柄释放，所以两处都用这套有界退避。
  * 实测本机：写完立刻读再写的循环里，约每 2~4 次全文件测试命中一回。
  */
-const RENAME_DELAYS_MS = [10, 40, 120, 300]
+const TRANSIENT_DELAYS_MS = [10, 40, 120, 300]
 
-async function renameInto(tmp, filePath) {
+function isTransientFsError(e) {
+  return e?.code === 'EPERM' || e?.code === 'EBUSY'
+}
+
+/**
+ * 执行一次 fs 操作，遇瞬时占用按 delays 退避重试；重试仍失败则抛出原始错误。
+ * 不重试的代价是静默丢写：调用方普遍把落盘失败当尽力而为（会话、审计都是 catch 掉的）。
+ * `fs.rm({ force: true })` 只吞 ENOENT，EPERM 照抛，所以删除也要包一层。
+ *
+ * @template T
+ * @param {() => Promise<T>} action 需要重试的 fs 操作
+ * @param {number[]} [delays] 每次重试前的等待毫秒数，长度即最大重试次数
+ */
+export async function withTransientRetry(action, delays = TRANSIENT_DELAYS_MS) {
   for (let attempt = 0; ; attempt++) {
     try {
-      // 同目录内 rename：POSIX 与 Windows（MoveFileEx + REPLACE_EXISTING）都能覆盖已存在的目标
-      await fs.rename(tmp, filePath)
-      return
+      return await action()
     } catch (e) {
-      const transient = e?.code === 'EPERM' || e?.code === 'EBUSY'
-      if (!transient || attempt >= RENAME_DELAYS_MS.length) throw e
-      await new Promise((resolve) => setTimeout(resolve, RENAME_DELAYS_MS[attempt]))
+      if (!isTransientFsError(e) || attempt >= delays.length) throw e
+      await new Promise((resolve) => setTimeout(resolve, delays[attempt]))
     }
   }
 }

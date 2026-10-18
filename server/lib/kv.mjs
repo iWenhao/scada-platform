@@ -4,7 +4,7 @@
  */
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
-import { writeFileAtomic } from './atomicWrite.mjs'
+import { writeFileAtomic, withTransientRetry } from './atomicWrite.mjs'
 
 /**
  * 当前请求的存储命名空间。
@@ -86,5 +86,7 @@ export async function writeValue(dataDir, key, scope, value) {
 }
 
 export async function removeValue(dataDir, key, scope) {
-  await fs.rm(fileFor(dataDir, key, scope), { force: true })
+  // 自动草稿每 30 秒重写一次，正式保存后紧接着删最容易撞上 Windows 的句柄未释放（EPERM/EBUSY）；
+  // force 只吞 ENOENT，不重试就是一条 500 打到前端
+  await withTransientRetry(() => fs.rm(fileFor(dataDir, key, scope), { force: true }))
 }

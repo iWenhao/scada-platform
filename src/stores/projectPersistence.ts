@@ -48,8 +48,14 @@ export function createProjectPersistence(ctx: {
     const json = JSON.stringify(ctx.buildProjectData())
     await getStorage().set(projectKey(state.projectName.value), json)
 
-    // 已正式落盘，自动草稿不再需要
-    await clearDraft()
+    // 已正式落盘，自动草稿不再需要。但清理失败不能算保存失败：项目数据已经写好了，
+    // 这里抛出去会让「保存」报未处理异常、「预览」直接不跳转，用户以为没存上。
+    // 草稿残留的代价只是下次进来多问一次恢复。
+    try {
+      await clearDraft()
+    } catch (e) {
+      console.warn('草稿清理失败（项目已保存）:', e)
+    }
 
     state.lastSaveTime.value = Date.now()
     state.hasUnsavedChanges.value = false

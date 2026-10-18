@@ -29,6 +29,12 @@
 
 ### 修复
 
+- 保存/预览时报 `remove failed: HTTP 500`（自动草稿删不掉）
+  - 现象：点「保存」或「预览」，控制台 `DELETE /api/storage/remove?key=scada_draft_未命名项目 500` + Vue 未处理异常；点「预览」时页面不跳转，看起来像保存失败
+  - 根因：`removeValue` 直接 `fs.rm(..., { force: true })`，而 force 只吞 ENOENT。Windows 上刚写完的文件句柄还没释放（杀软/索引服务），紧接着删就拿到 EPERM——自动草稿每 30 秒重写一次，正式保存后立刻删正好撞这个窗口。同目录的 rename 早已为此做了退避重试（`lib/atomicWrite.mjs`），删除这条路漏了
+  - 修复：把 rename 的退避重试抽成 `withTransientRetry(action, delays)`（EPERM/EBUSY 才重试，[10,40,120,300] 毫秒），rename 与 `removeValue` 共用；前端 `saveProject()` 里 `clearDraft()` 改为 catch + `console.warn`——项目数据此时已落盘，草稿清理失败不该让整个保存算失败（残留草稿最多多问一次恢复）
+  - 实测：隔离端口 + 临时数据目录起后端跑真实请求，PUT→GET→DELETE 全 200、删不存在的键仍 200；`kv.test.ts` 打桩 `fs.promises.rm` 首次抛 EPERM，断言 `removeValue` 重试后成功（13 用例）；`atomicWrite.test.ts` 补重试语义 3 用例（瞬时错误重试到成功、EACCES 一次不重试、耗尽后抛原始错误）；`projectStore.test.ts` 补「remove 抛错时 saveProject 仍返回 true 且项目已落盘」
+  - ⚠️ 生效需重启 `pnpm server`（常驻 node 进程不热加载）
 - 趋势图/柱状图/雷达图未绑定数据时在画布上近乎不可见
   - 现象：拖入后画布上「没有啥东西」。playwright 墨迹探针实测（canvas 非透明像素占比）：趋势图 0.28%、柱状图 0.28%、雷达图 0.51%，肉眼等于空白；对照饼图有占位环所以 17.69% 清晰可见。根因与已修的网格图同型——图表「一条绑定一个系列」，没绑变量时 trend/bar 的 series 为空（只剩几乎看不见的坐标轴）、radar 的占位多边形透明度仅 0.25；而 Konva 侧对 overlay 类型不画图标、名称条也被关掉；绑了变量但数据源未连接时（柱高 0、折线无点）同样空白
   - 修复：`ChartElement.vue` 统一加 DOM 空态（虚线框 + 「未绑定数据/暂无数据」文案 + 按图型区分的引导），字号/边框随 zoom 缩放，与网格图空态同一套风格；`unbound`（无绑定）与 `nodata`（绑了但从没收到值，trend 看历史缓冲、bar/radar/pie 看变量是否推送过）两档判定，「收到过 0」不算空态（柱子 0 高但类目名可见属正常）；空态期间不初始化 ECharts（容器 v-show 隐藏时 init 会拿到 0 尺寸），脱离空态后 nextTick 惰性 init；`HtmlOverlay.vue` 给 ChartElement 传 zoom

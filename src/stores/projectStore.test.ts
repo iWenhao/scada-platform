@@ -173,6 +173,23 @@ describe('projectStore 草稿', () => {
     await store.saveDraft()
     expect(await store.getSavedProjects()).toEqual([])
   })
+
+  it('草稿清理失败也算保存成功', async () => {
+    // 远程删除会撞 Windows 的「刚写完句柄未释放」（EPERM → HTTP 500）。
+    // 此时项目数据已落盘，若把清理失败抛出去，「保存」报未处理异常、「预览」直接不跳转
+    class RemoveFailsAdapter extends MemoryStorageAdapter {
+      override async remove(_key: string): Promise<void> {
+        throw new Error('remove failed: HTTP 500')
+      }
+    }
+    setStorage(new RemoveFailsAdapter())
+    store.setDataSource({ type: 'websocket', name: 'ws', url: 'ws://a' })
+    await store.saveDraft()
+
+    await expect(store.saveProject()).resolves.toBe(true)
+    expect(store.hasUnsavedChanges).toBe(false)
+    expect(await getStorage().get('scada_project_未命名项目')).not.toBeNull()
+  })
 })
 
 describe('projectStore.resetProject', () => {

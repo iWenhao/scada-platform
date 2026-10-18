@@ -5,9 +5,11 @@
  * 所以断言集中在最终落盘的物理路径上，而不是 fileFor 返回的字符串。
  */
 import { mkdtemp, rm, writeFile, mkdir, readdir } from 'node:fs/promises'
+// 与 lib/kv.mjs 取同一个 promises 对象，spyOn 才能作用到它实际调用的 fs.rm
+import { promises as fsPromises } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
   GLOBAL_SCOPE,
   MAX_KEY_LENGTH,
@@ -121,13 +123,35 @@ describe('listKeys / readValue / removeValue', () => {
     expect(await listKeys(dataDir, 'u/not-exist/')).toEqual([])
   })
 
-  it('读取不存在的键返回 null，删除后再读也是 null', async () => {
+  it('删不存在的键不该抛错（removeValue 用 force: true）', async () => {
     expect(await readValue(dataDir, 'gone', listScope)).toBeNull()
     await writeValue(dataDir, 'gone', listScope, '"v"')
     await removeValue(dataDir, 'gone', listScope)
     expect(await readValue(dataDir, 'gone', listScope)).toBeNull()
-    // 删不存在的键不该抛错（removeValue 用 force: true）
     await expect(removeValue(dataDir, 'never-existed', listScope)).resolves.toBeUndefined()
+  })
+
+  it('删除撞 Windows 瞬时占用时重试到成功，而不是回一条 500', async () => {
+    // 真实场景：自动草稿每 30 秒重写，正式保存后紧接着删，句柄还没释放 → EPERM
+    await writeValue(dataDir, 'draft', listScope, '{"v":1}')
+    const real = fsPromises.rm
+    const rmSpy = vi.spyOn(fsPromises, 'rm')
+    let calls = 0
+    rmSpy.mockImplementation((async (target, opts) => {
+      calls += 1
+      if (calls === 1) {
+        throw Object.assign(new Error('EPERM: operation not permitted'), { code: 'EPERM' })
+      }
+      return real(target, opts)
+    }) as typeof fsPromises.rm)
+
+    try {
+      await expect(removeValue(dataDir, 'draft', listScope)).resolves.toBeUndefined()
+      expect(calls).toBe(2)
+      expect(await readValue(dataDir, 'draft', listScope)).toBeNull()
+    } finally {
+      rmSpy.mockRestore()
+    }
   })
 
   it('写入是原子的：过程文件不残留', async () => {
