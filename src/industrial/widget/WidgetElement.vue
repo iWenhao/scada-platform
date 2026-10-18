@@ -72,16 +72,36 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in filteredRows" :key="row.variable">
+            <tr v-for="row in pagedRows" :key="row.variable">
               <td :style="cellStyle">{{ row.variable }}</td>
               <td :style="cellStyle" :class="{ 'wg-alarm': row.alarm }">{{ row.text }}</td>
               <td :style="cellStyle">{{ row.unit }}</td>
             </tr>
-            <tr v-if="!filteredRows.length">
+            <tr v-if="!pagedRows.length">
               <td :style="cellStyle" colspan="3">无匹配项</td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <!-- 翻页：行数跟着绑定变量长，长了大屏上没法看，滚动条也不好操作 -->
+      <div v-if="pagerVisible" class="wg-pager" :style="pagerStyle">
+        <button
+          type="button"
+          class="wg-pager-btn"
+          :style="pagerBtnStyle"
+          :disabled="safePage <= 0"
+          @mousedown.stop
+          @click.stop="prevPage"
+        >‹</button>
+        <span :style="pagerTextStyle">{{ safePage + 1 }} / {{ pageCount }}（共 {{ filteredRows.length }}）</span>
+        <button
+          type="button"
+          class="wg-pager-btn"
+          :style="pagerBtnStyle"
+          :disabled="safePage >= pageCount - 1"
+          @mousedown.stop
+          @click.stop="nextPage"
+        >›</button>
       </div>
     </div>
 
@@ -405,8 +425,70 @@ const filteredRows = computed(() => {
         alarm: v > num(prop('alarmAbove', Infinity), Infinity),
       }
     })
-    .filter(r => !kw || r.variable.toLowerCase().includes(kw))
+        .filter(r => !kw || r.variable.toLowerCase().includes(kw))
 })
+
+/* ---------- 表格分页 ---------- */
+
+/** 每页行数：0 表示不分页（超出容器的行靠滚动条看） */
+const pageSize = computed(() => Math.min(Math.max(num(prop('pageSize', 0), 0), 0), 100))
+/** 当前页码，组件内状态——刷新后回到第一页，符合运行端的预期 */
+const page = ref(0)
+
+const pageCount = computed(() =>
+  pageSize.value > 0 ? Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value)) : 1,
+)
+
+/** 绑定变量增删或搜索后旧页码可能越界，统一由这里夹回有效范围 */
+const safePage = computed(() => Math.min(Math.max(page.value, 0), pageCount.value - 1))
+
+const pagedRows = computed(() => {
+  if (pageSize.value <= 0) return filteredRows.value
+  const start = safePage.value * pageSize.value
+  return filteredRows.value.slice(start, start + pageSize.value)
+})
+
+const pagerVisible = computed(() => pageSize.value > 0 && pageCount.value > 1)
+
+function prevPage() {
+  page.value = Math.max(0, safePage.value - 1)
+}
+
+function nextPage() {
+  page.value = Math.min(pageCount.value - 1, safePage.value + 1)
+}
+
+// 搜索条件变了就从第一页看起
+watch(keyword, () => {
+  page.value = 0
+})
+
+const pagerStyle = computed(() => ({
+  // overlay 容器是 pointer-events: none 且该属性会继承，翻页条要显式恢复
+  pointerEvents: 'auto' as const,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: `${8 * z.value}px`,
+  paddingTop: `${2 * z.value}px`,
+  color: '#8a9bb0',
+}))
+
+const pagerBtnStyle = computed(() => ({
+  fontSize: `${13 * z.value}px`,
+  lineHeight: 1,
+  padding: `${2 * z.value}px ${8 * z.value}px`,
+  background: 'rgba(120,140,170,0.12)',
+  border: `1px solid rgba(120,140,170,0.3)`,
+  borderRadius: `${4 * z.value}px`,
+  color: '#c8d4e2',
+  cursor: 'pointer',
+}))
+
+const pagerTextStyle = computed(() => ({
+  fontSize: `${Math.max(10, 11 * z.value)}px`,
+  fontVariantNumeric: 'tabular-nums' as const,
+}))
 
 /* ---------- 日期 / 时间 ---------- */
 
@@ -566,6 +648,24 @@ onUnmounted(stopTick)
   .wg-table-wrap {
     flex: 1;
     min-height: 0;
+  }
+}
+
+.wg-pager {
+  flex: none;
+
+  &-btn {
+    font: inherit;
+    appearance: none;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    &:not(:disabled):hover {
+      border-color: rgba(120, 140, 170, 0.55);
+    }
   }
 }
 

@@ -201,6 +201,18 @@ export const FilterTableDefinition = widgetDef(
     { key: 'unit', label: '数值单位', type: 'string', default: '', group: '表格' },
     { key: 'alarmAbove', label: '报警阈值（大于）', type: 'number', default: 0, min: 0, group: '表格' },
     { key: 'decimals', label: '小数位', type: 'number', default: 1, min: 0, max: 3, group: '表格' },
+    {
+      key: 'pageSize',
+      label: '每页行数（0=不分页）',
+      type: 'number',
+      default: 0,
+      min: 0,
+      max: 100,
+      hint:
+        '行数随绑定变量增长，配了每页行数后底部出现翻页条（编辑态与运行端都能点）。' +
+        '0 表示不分页，超出容器的行靠滚动条看。',
+      group: '表格',
+    },
   ],
   { capabilities: DATA_DRIVEN_CAPS },
 )
