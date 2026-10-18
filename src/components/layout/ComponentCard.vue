@@ -1,9 +1,19 @@
 <template>
   <!--
     说明气泡：只在定义里写了 description 时启用（无说明的组件保留原生 title 显示名称）。
-    placement 用 left——组件库面板贴着窗口右侧，向右弹会顶出可视区。
+    - placement 用 left——组件库面板贴着窗口右侧，向右弹会顶出可视区
+    - effect 用 light 而不是 EP 默认的 dark：dark 是写死的 #303133 深灰，不吃
+      element-plus 的暗色变量，在本项目的暗色主题下反而比画布亮；light 走
+      --el-bg-color-overlay / --el-text-color-regular，跟着 html.dark 一起变
+    - 鼠标移到右上角红叉上时 suppressed 置真，先关气泡再谈删除，避免气泡压住按钮
   -->
-  <el-tooltip :disabled="!description" placement="left" :show-after="350">
+  <el-tooltip
+    :disabled="!description || suppressed"
+    effect="light"
+    popper-class="card-tip-popper"
+    placement="left"
+    :show-after="350"
+  >
     <template #content>
       <div class="card-tip">
         <div class="card-tip-name">{{ name }}</div>
@@ -12,12 +22,21 @@
     </template>
     <div
       class="component-item"
+      :class="{ dragging }"
       :title="name"
       draggable="true"
+      @mousedown="dragging = true"
+      @mouseup="dragging = false"
+      @dragend="dragging = false"
+      @mouseleave="dragging = false"
       @dragstart="emit('dragstart', $event)"
     >
     <!-- 次级操作：默认隐藏，悬停/键盘聚焦卡片才出现（否则满屏红叉） -->
-    <div class="card-actions">
+    <div
+      class="card-actions"
+      @mouseenter="suppressed = true"
+      @mouseleave="suppressed = false"
+    >
       <button
         v-if="editable"
         class="item-action edit"
@@ -48,6 +67,13 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+
+/** 按下卡片即置真：拖拽影像快照前把右上角红叉收起来 */
+const dragging = ref(false)
+/** 鼠标停在红叉/编辑按钮上时置真：关掉说明气泡，别让它压住操作按钮 */
+const suppressed = ref(false)
+
 withDefaults(
   defineProps<{
     name: string

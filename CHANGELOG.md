@@ -46,6 +46,11 @@
 
 ### 修复
 
+- 组件卡片说明气泡的三处观感问题（偏亮 / 拖影带红叉 / 红叉上还弹气泡）
+  - **气泡在暗色主题下发亮**：EP 的 `el-tooltip` 默认 `effect="dark"`，那是写死的 `#303133` 深灰，不吃 element-plus 的暗色变量，在本项目更深的画布底色上反而显得亮。改成 `effect="light"` 后走 `--el-bg-color-overlay` / `--el-text-color-regular`，跟着 `html.dark` 一起变。实测：暗色 `rgb(22,33,62)`、浅色 `rgb(255,255,255)`
+  - **拖拽影像里带着删除红叉**：浏览器的拖拽影像在 **mousedown 之后、dragstart 之前**快照，而开始拖拽必然先 hover（红叉此刻正显示），所以在 dragstart 里改样式已经来不及。改为卡片上记 `dragging` 状态（mousedown 置真，mouseup / dragend / mouseleave 复位），`&.dragging .card-actions { opacity: 0 }` 写在 `:hover` 规则之后、靠同特异性后来者胜出
+  - **鼠标移到红叉上仍弹气泡**：给 `.card-actions` 加 mouseenter / mouseleave 置 `suppressed`，tooltip 的 `:disabled` 多挂这一条——先关气泡再谈删除，不让气泡压住操作按钮
+  - 实测：暗色气泡背景 rgb(22,33,62)、浅色纯白；鼠标停在红叉上可见气泡数 0；按下卡片后红叉 opacity 0；0 页面错误
 - 缩放组件后选中框回弹到原尺寸，与图形对不上
   - 现象：拖变换器锚点缩放设备，松手后组件按新尺寸渲染，四周的选中框却回到原来的位置和大小，要取消选中再点一次才跳回来
   - 根因：Transformer 量框用的是被绑节点的**子节点**包围盒（`Container.getClientRect` 只并集子节点，Group 自身的 width/height 不参与），而它只监听被绑节点自身的 `widthChange/heightChange/scaleXChange/…`（`TRANSFORM_CHANGE_STR`）+ `absoluteTransformChange`，Group 的 `_attrsAffectingSize` 为空——子节点尺寸变化不派发任何事件。`onTransformEnd`（`src/core/canvas/useElementDrag.ts:141`）写 store 后立即 `node.scaleX(1)`，这次 `scaleXChange` 触发的 `update()` 量到的仍是旧子节点（新宽高要等 Vue flush 才落到节点上）；flush 后子节点真正长成新尺寸时没有任何事件通知它 → 框永久停在旧尺寸

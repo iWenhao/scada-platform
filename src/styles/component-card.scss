@@ -101,6 +101,14 @@
       transform: none;
     }
 
+    /* 按下就收起红叉：浏览器的拖拽影像是在 mousedown 之后、dragstart 之前
+       快照的，而开始拖拽必然先 hover（红叉此时正显示），不提前收起来
+       拖影里就会带着一个红叉。放在 :hover 规则之后，靠同特异性后来者胜出。 */
+    &.dragging .card-actions {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .item-action {
       display: grid;
       place-items: center;
