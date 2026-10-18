@@ -23,7 +23,7 @@ function nameProperty(defaultName: string) {
 
 export const ChartTrendDefinition: ComponentDefinition = {
   type: 'chart-trend',
-  name: '趋势图',
+  name: '折线图',
   group: 'chart',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="3">
@@ -39,7 +39,7 @@ export const ChartTrendDefinition: ComponentDefinition = {
   statusRules: [],
   dataBindings: [],
   properties: [
-    nameProperty('趋势图'),
+    nameProperty('折线图'),
     {
       key: 'historyPoints',
       label: '显示点数',
