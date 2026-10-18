@@ -9,6 +9,8 @@ build/
 .next/
 .nuxt/
 .output/
+# Vite 加载 TS 配置时现场转译出的临时文件（正常会自删，进程被杀就留下）
+vite.config.ts.timestamp-*.mjs
 
 # Environment
 .env
