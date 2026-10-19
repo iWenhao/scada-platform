@@ -35,6 +35,26 @@ export async function addCustomComponent(def: ComponentDefinition): Promise<void
   await getStorage().set(STORAGE_KEY, JSON.stringify(list))
 }
 
+let loadPromise: Promise<ComponentDefinition[]> | null = null
+
+/**
+ * 幂等加载：整个会话只从存储读一次，之后直接命中缓存。
+ *
+ * 为什么不能挪到 main.ts 挂载前：远程存储的隔离由**登录 token** 决定（服务端 scope），
+ * 挂载前还没登录，这次读取只会拿到 401 / 空数组——而且不会报错，表现为「组件库面板
+ * 里自定义组件全部消失」。必须在登录完成、进入具体页面之后再加载，所以挂在两个
+ * 入口的 onMounted 上（编辑器的组件面板 + 预览页），靠这里的缓存保证只跑一次。
+ */
+export function ensureCustomComponentsLoaded(): Promise<ComponentDefinition[]> {
+  if (!loadPromise) loadPromise = loadCustomComponents()
+  return loadPromise
+}
+
+/** 登出 / 切换账号后调用：清掉缓存，下一次进入页面按新身份重新加载 */
+export function resetCustomComponentsCache(): void {
+  loadPromise = null
+}
+
 /** 当前全部自定义组件（来自注册表） */
 export function getCustomComponents(): ComponentDefinition[] {
   return getAllComponents().filter(c => c.group === 'custom')

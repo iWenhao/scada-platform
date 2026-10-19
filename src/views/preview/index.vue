@@ -67,6 +67,7 @@ import { useAlarmStore } from '@/stores/alarmStore'
 import { useUiStore } from '@/stores/uiStore'
 import { usePageStore } from '@/stores/pageStore'
 import { useHistory } from '@/core/canvas/useHistory'
+import { ensureCustomComponentsLoaded } from '@/industrial/customLibrary'
 import TrendChartDialog from '@/components/dialogs/TrendChartDialog.vue'
 import AuditLogDialog from '@/components/dialogs/AuditLogDialog.vue'
 import WriteValueDialog from './WriteValueDialog.vue'
@@ -241,6 +242,9 @@ function retryLoad() {
 onMounted(async () => {
   // 快照必须在装载工程之前抓，否则抓到的已是预览要显示的那份内容
   if (uiStore.hasEditSession) editorSnapshot = projectStore.snapshotEditorSession()
+  // 自定义组件定义必须先于工程装载注册，画布上的实例才能取到图标与状态规则；
+  // 预览页不挂组件库面板，这里的幂等加载是它唯一的注册入口
+  await ensureCustomComponentsLoaded()
   await loadPreviewProject()
 
   deviceStore.initDataSource(projectStore.dataSourceConfig)

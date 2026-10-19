@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import type { useDeviceStore } from '@/stores/deviceStore'
 import type { useLayerStore } from '@/stores/layerStore'
 import { getIconImage } from './iconImage'
-import { DEFAULT_ELEMENT_COLOR, evaluateElementColor } from './elementStatus'
+import { evaluateElementState, type ElementStateResult } from './elementStatus'
 import { loadUserImage, fitRect } from './userImage'
 import { getComponentDefinition, getElementCapabilities } from '@/industrial/registry'
 import { isNameShown, isValueShown } from './elementChrome'
@@ -30,23 +30,36 @@ export function useElementVisuals(options: {
   const { deviceStore, layerStore } = options
   const readViewMode = options.viewMode ?? (() => '2d' as ViewMode)
 
-  // 获取元素状态颜色（求值逻辑抽为纯函数，编辑器与预览页共用，见 elementStatus.ts）
-  function getElementColor(element: ComponentInstance): string {
-    return evaluateElementColor(
+  /**
+   * 元素当前状态：先判「未绑定」，再按用户规则首匹配。
+   *
+   * 未绑定的口径与数值显示 `--` 完全一致（见 isBoundDataUsable）：没有任何一个绑定
+   * 变量取到可信数据——包括压根没绑定、绑了但设备没有该变量、以及数据陈旧/脏值。
+   * 未绑定是系统档，用户规则里配不出这一档，也盖不掉它。
+   */
+  function resolveElementState(element: ComponentInstance): ElementStateResult {
+    const deviceId = element.deviceId || element.id
+    const usable = (element.dataBindings ?? []).some(
+      (b) => b.variable && deviceStore.isDataUsable(deviceId, b.variable),
+    )
+    return evaluateElementState(
       element.statusRules,
-      deviceStore.getDeviceData(element.deviceId || element.id),
+      usable ? deviceStore.getDeviceData(deviceId) : null,
     )
   }
 
+  // 获取元素状态颜色（求值逻辑抽为纯函数，编辑器与预览页共用，见 elementStatus.ts）
+  function getElementColor(element: ComponentInstance): string {
+    return resolveElementState(element).color
+  }
+
   /**
-   * 设备线条颜色：有状态规则时用状态色（与 getElementColor 一致），
-   * 没有规则时用默认青绿（和画布网格/边框保持协调）。
+   * 设备线条颜色：状态色（含未绑定灰），无状态规则时为默认青绿。
    *
    * 画布是纯图形形态，这条颜色就是元素唯一的「状态表达通道」。
    */
   function getIconStrokeColor(element: ComponentInstance): string {
-    if (!element.statusRules?.length) return DEFAULT_ELEMENT_COLOR
-    return getElementColor(element)
+    return resolveElementState(element).color
   }
 
   /**
@@ -245,15 +258,24 @@ export function useElementVisuals(options: {
   /**
    * 设备运转动效状态；null 表示该元素没有可动件，或用户关掉了动效。
    *
-   * 「运转中」判定与 statusRules 同口径（驱动变量 > 阈值，缺省 0.1）。
-   * 两条边界与管道流动保持一致：
-   * - 未绑定数据源 → 视为运转：组态阶段拖进来就能看到效果，不必先接上数据源；
-   * - 数据陈旧/脏值 → 停住：不能拿过期信号让操作员以为设备还在转。
+   * 判定顺序：可动件声明 → animate 开关 → **状态接管** → 驱动变量阈值。
+   *
+   * 「状态接管」是这里唯一与状态规则耦合的一步，也是修正一条老毛病的：动效原本只做
+   * 数值阈值判定，与状态完全无关，于是 `state = 2`（报警）照样满足 `> 0.1`，故障的
+   * 设备在画面上还在转。两种情况直接停转：
+   * - 未绑定（灰）：画面上不该出现「灰着还在转」的设备；
+   * - 命中的规则标了 `stopMotion`：故障/停机这类状态由用户显式声明停机。
+   *
+   * 无状态组件（`statusRules` 为空）没有未绑定这一档，动效按自身开关一直转——
+   * 装饰风车一类的纯装饰用途不需要接数据。
    */
   function getElementMotion(element: ComponentInstance): { running: boolean; speed: number } | null {
     const motion = getComponentDefinition(element.type)?.motion
     if (!motion || !(motion.rotors?.length || motion.belts?.length)) return null
     if (element.properties?.animate === false) return null
+
+    const state = resolveElementState(element)
+    if (state.unbound || state.rule?.stopMotion) return { running: false, speed: 0 }
 
     const binding = motion.driveVariable
       ? element.dataBindings?.find(b => b.variable === motion.driveVariable)
@@ -324,6 +346,7 @@ export function useElementVisuals(options: {
   return {
     getElementColor,
     getIconStrokeColor,
+    resolveElementState,
     isPipeFlowing,
     getElementMotion,
     getElementValueText,

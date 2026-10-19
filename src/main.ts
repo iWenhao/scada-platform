@@ -56,6 +56,9 @@ initStorage(undefined, resolveLocalNamespace())
     if (saved === 'light' || saved === 'dark') applyTheme(saved)
     // 挂载前加载站点品牌并同步标题/favicon：登录页等未鉴权页面也能显示部署品牌
     await useBrandingStore().init()
+    // 自定义组件不在这里加载：远程存储的隔离靠登录 token，挂载前还没登录，
+    // 读回来只会是空数组。入口在 customLibrary.ensureCustomComponentsLoaded()，
+    // 由组件库面板与预览页的 onMounted 触发（登录之后才发生）
   })
   .catch(() => {})
   .finally(() => {

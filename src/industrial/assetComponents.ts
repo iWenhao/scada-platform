@@ -63,6 +63,9 @@ export const STATE_RULES: StatusRule[] = [
     severity: 'critical',
     condition: { type: 'compare', variable: 'state', operator: '=', value: 2 },
     priority: 1,
+    // 报警必须停转：动效的运转判定只看驱动变量的绝对值，`state = 2` 照样过 0.1 阈值，
+    // 不给这一条的话故障设备会在画面上继续转（见 useElementVisuals.getElementMotion）
+    stopMotion: true,
   },
   {
     id: 'running',
@@ -79,6 +82,7 @@ export const STATE_RULES: StatusRule[] = [
     severity: 'normal',
     condition: { type: 'compare', variable: 'state', operator: '=', value: 0 },
     priority: 3,
+    stopMotion: true,
   },
 ]
 

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { roleAtLeast, type LoginUser, type Role } from '@/types/auth'
 import { syncLocalNamespace } from '@/storage'
+import { resetCustomComponentsCache } from '@/industrial/customLibrary'
 import {
   readSessionCache,
   writeSessionCache,
@@ -54,11 +55,13 @@ export const useAuthStore = defineStore('auth', () => {
       if (!res.ok) {
         setSessionToken(null)
         clearSessionCache()
+        resetCustomComponentsCache()
         syncLocalNamespace(null)
         return
       }
       const body = await res.json()
       user.value = body.user
+      resetCustomComponentsCache()
       syncLocalNamespace(user.value?.id)
     } catch {
       // 后端不可用时保留本地用户缓存，便于内网离线演示（写接口会 401）。
@@ -66,6 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
       // 并同步到该用户的键空间——若落到匿名命名空间，看到的会是别人的数据
       if (saved?.user?.id) {
         user.value = saved.user
+        resetCustomComponentsCache()
         syncLocalNamespace(saved.user.id)
       }
     }
@@ -88,6 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = body.user
       setSessionToken(body.token)
       writeSessionCache(JSON.stringify({ user: body.user, token: body.token }))
+      resetCustomComponentsCache()
       syncLocalNamespace(user.value?.id)
       return true
     } catch (e) {
@@ -110,6 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
     setSessionToken(null)
     user.value = null
     clearSessionCache()
+    resetCustomComponentsCache()
     syncLocalNamespace(null)
   }
 

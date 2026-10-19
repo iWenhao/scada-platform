@@ -139,7 +139,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { getComponentsByGroup } from '@/industrial/registry'
-import { updateCustomComponent, removeCustomComponent, loadCustomComponents, addCustomComponent } from '@/industrial/customLibrary'
+import { updateCustomComponent, removeCustomComponent, ensureCustomComponentsLoaded, addCustomComponent } from '@/industrial/customLibrary'
 import { loadDeviceTemplates, removeDeviceTemplate } from '@/industrial/templateLibrary'
 import { BASIC_GROUPS, INDUSTRY_GROUPS, getGroupName } from '@/industrial/panelRegistry'
 import { useComponentSearch, type PanelTabKey } from '@/composables/useComponentSearch'
@@ -208,7 +208,8 @@ function onTabClick(key: PanelTabKey, e: MouseEvent) {
 }
 
 onMounted(async () => {
-  customDefs.value = await loadCustomComponents()
+  // 自定义组件在登录之后才能按用户命名空间读到，这里统一走幂等加载（预览页共用同一份缓存）
+  customDefs.value = await ensureCustomComponentsLoaded()
   deviceTemplates.value = await loadDeviceTemplates()
   await refreshHidden()
   window.addEventListener('scada-templates-changed', refreshTemplates)

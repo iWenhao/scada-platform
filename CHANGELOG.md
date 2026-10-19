@@ -10,6 +10,24 @@
 
 ### 功能
 
+- 自定义组件支持「无状态 / 有状态」，有状态组件可自定义状态表（颜色 + 判定条件 + 报警等级 + 动效）
+  - 背景：创建对话框原本只有名称/形状/宽高/颜色，`statusRules` 恒为空数组——用户自建的组件永远不变色，也永远进不了报警面板
+  - 状态模型：无状态组件不变色；有状态组件按状态表自上而下首匹配变色；「未绑定」是系统固定档（灰、不动），优先级高于一切用户规则，用户配不出也盖不掉
+  - 未绑定为什么不能交给用户配：条件求值把缺失变量强转成 0（`Number(data[v] ?? 0)`），「没绑数据」和「变量等于 0」在引擎眼里是同一件事，用户写不出区分条件。以前 132 个图元未绑定显灰只是 `state = 0` 规则的巧合，换成 `temp > 80` 就会掉到兜底青绿
+  - 报警等级必填：报警面板只收 warning/critical，而 `resolveSeverity` 按颜色兜底只认 `#ff4757`/`#ffa502` 两色，用户自定义颜色几乎必然落 normal，会出现「画面红了但报警列表一条没有」
+  - 动效：新增 `StatusRule.stopMotion`，命中故障档强制停转（原先动效只看驱动变量阈值，`state = 2` 照样过 0.1，故障设备还在画面上转）；设备图元的报警/停机两档已补上该标记。旋转部件需用户从主图元里删掉后单独贴进来——主图元是整张位图，位图里的圆无法单独旋转
+  - SVG 预处理（新 `src/industrial/customComponent.ts`）：自动给 id 加唯一前缀并同步改引用（多张图标 v-html 进同一文档时同名 id 只有第一个生效）、`xlink:href` 转 `href`、去脚本与 `on*` 事件属性；不含 `currentColor` 时给出告警（多色填充稿不会变色）
+  - 动了：`CustomComponentDialog.vue`（重写）、`CustomStateTable.vue`（新）、`customComponent.ts`（新）、`elementStatus.ts`、`useElementVisuals.ts`、`assetComponents.ts`、`types/scada.ts`
+
+### 修复
+
+- 自定义组件改为「登录后」幂等加载：`/preview` 直接打开也认自定义组件
+  - 背景：原先只在组件库面板 `onMounted` 时注册，直接打开 `/preview` 一律取不到定义、画布空白
+  - 改法：新增幂等 `ensureCustomComponentsLoaded()`（会话内只读一次）+ `resetCustomComponentsCache()`（挂 `authStore` 五处身份变更点），由组件面板与预览页各自在 `onMounted` 触发，预览页放在 `loadPreviewProject()` 之前
+  - ⚠️ 不能挪到 `main.ts` 挂载前：远程存储的隔离靠登录 token（`scopeOf(authn)` → `u/<userId>/`），挂载前还没登录，读回来只会是空数组。**实测踩过这个回归**——组件库面板里自定义组件全部消失
+  - 浏览器实测（Playwright + 系统 Chrome，独立端口 5180 + 独立数据目录，不碰开发机上的实例）：对话框渲染、有状态状态表、创建后跨会话从存储恢复、拖入画布未绑定显灰、`/preview` 直接打开也能渲染自定义组件，全部通过；全程无 `pageerror`
+  - 动了：`customLibrary.ts`、`authStore.ts`、`main.ts`、`ComponentPanel.vue`、`preview/index.vue`
+
 ### 文档
 
 - AGENTS.md 并行改动规则外移到 `docs/PARALLEL_WORK.md`，字节预算从 29.6KB 降到 27.4KB

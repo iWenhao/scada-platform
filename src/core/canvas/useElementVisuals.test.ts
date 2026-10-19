@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { watchEffect } from 'vue'
 import type { ComponentInstance } from '@/types/scada'
 import { useElementVisuals } from './useElementVisuals'
+import { DEFAULT_ELEMENT_COLOR, UNBOUND_ELEMENT_COLOR } from './elementStatus'
 import { registerComponents } from '@/industrial/registry'
 import { generalComponents } from '@/industrial/general'
 
@@ -62,6 +63,35 @@ function makeElement(overrides: Partial<ComponentInstance> = {}): ComponentInsta
     dataBindings: [],
     ...overrides,
   }
+}
+
+/** 带可动件的测试图元：只有它是没法测「状态接管动效」的 */
+const MOTOR_TYPE = 'test_motor'
+registerComponents([
+  {
+    type: MOTOR_TYPE,
+    name: '测试电机',
+    group: 'general',
+    icon: '<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8"/></svg>',
+    defaultWidth: 10,
+    defaultHeight: 10,
+    defaultConfig: {},
+    statusRules: [],
+    dataBindings: [],
+    properties: [],
+    motion: { rotors: [{ svg: '<circle cx="5" cy="5" r="2"/>', cx: 5, cy: 5 }] },
+  },
+])
+
+/** 按给定的「数据可信性 / 数据内容」造一组 visuals */
+function makeVisuals(opts: { usable?: boolean; data?: Record<string, any> } = {}) {
+  return useElementVisuals({
+    deviceStore: {
+      getDeviceData: () => opts.data ?? {},
+      isDataUsable: () => opts.usable ?? false,
+    } as any,
+    layerStore,
+  })
 }
 
 /** 把一个读函数包进同步 watchEffect，返回它被求值的次数与停止函数 */
@@ -137,5 +167,60 @@ describe('useElementVisuals · 图标异步加载的重绘链路', () => {
     expect(tracked.runs).toBe(2)
 
     tracked.stop()
+  })
+})
+
+describe('useElementVisuals · 未绑定与故障停转', () => {
+  const RULES = [
+    {
+      id: 'fault',
+      name: '故障',
+      color: '#ff4d4f',
+      severity: 'critical' as const,
+      stopMotion: true,
+      condition: { type: 'compare' as const, variable: 'state', operator: '=' as const, value: 2 },
+      priority: 1,
+    },
+  ]
+
+  it('有状态组件接不到可信数据时显示未绑定灰', () => {
+    const { getIconStrokeColor } = makeVisuals({ usable: false })
+    const el = makeElement({ type: MOTOR_TYPE, statusRules: RULES, dataBindings: [{ property: 'state', variable: 'state' }] })
+    expect(getIconStrokeColor(el)).toBe(UNBOUND_ELEMENT_COLOR)
+  })
+
+  it('无状态组件不参与未绑定，恒为默认色', () => {
+    const { getIconStrokeColor } = makeVisuals({ usable: false })
+    expect(getIconStrokeColor(makeElement({ type: MOTOR_TYPE }))).toBe(DEFAULT_ELEMENT_COLOR)
+  })
+
+  it('无状态组件的装饰动效未绑定也照转（装饰风车一类的用途）', () => {
+    const { getElementMotion } = makeVisuals({ usable: false })
+    expect(getElementMotion(makeElement({ type: MOTOR_TYPE }))?.running).toBe(true)
+  })
+
+  it('有状态组件未绑定时停转：画面上不该有灰着还在转的设备', () => {
+    const { getElementMotion } = makeVisuals({ usable: false })
+    const el = makeElement({ type: MOTOR_TYPE, statusRules: RULES, dataBindings: [{ property: 'state', variable: 'state' }] })
+    expect(getElementMotion(el)).toEqual({ running: false, speed: 0 })
+  })
+
+  it('命中故障规则时停转——动效原本只看阈值，state=2 照样过 0.1', () => {
+    const { getElementMotion } = makeVisuals({ usable: true, data: { state: 2 } })
+    const el = makeElement({ type: MOTOR_TYPE, statusRules: RULES, dataBindings: [{ property: 'state', variable: 'state' }] })
+    expect(getElementMotion(el)).toEqual({ running: false, speed: 0 })
+  })
+
+  it('未命中停机类规则时按阈值照常运转', () => {
+    const { getElementMotion } = makeVisuals({
+      usable: true,
+      data: { state: 1 },
+    })
+    const el = makeElement({
+      type: MOTOR_TYPE,
+      statusRules: [{ ...RULES[0], stopMotion: false }],
+      dataBindings: [{ property: 'state', variable: 'state' }],
+    })
+    expect(getElementMotion(el)?.running).toBe(true)
   })
 })
