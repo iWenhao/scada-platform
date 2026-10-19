@@ -51,6 +51,13 @@
 
 ### 修复
 
+- 报警通知弹窗「测试」不再静默保存全量配置，新增取消不再残留空通道
+  - 背景：旧 `handleTest` 先 `saveNotifyConfig` 落盘全部内存改动、再按服务端返回的通道找 id 发测试——点一下「测试」等于替用户按了一次保存，未保存的开关/删除/节流全部被静默持久化；另外「添加通道」是先 `push` 进列表再开编辑框，取消编辑后列表残留一条空通道
+  - 服务端 `/api/notify/test` 本就支持内联通道对象（`routes/notify.mjs` 按 `payload.id ? 查已存 : payload.channel` 分支），客户端把 `testNotifyChannel(id)` 改为 `testNotifyChannel(channel)` 直传草稿即可，不需要先保存
+  - 新增通道改由编辑子组件持有草稿，「确定」才 push 回列表；通道删除与发送记录清空补上二次确认（此前只有删用户有确认，破坏性操作门槛不一致）
+  - 动了：`src/notify/notifyClient.ts`、`src/components/dialogs/NotifyConfigDialog.vue`
+  - 实测：浏览器网络面板里点「测试」（webhook url 为空）只出现 `POST /notify/test` 502，无 PUT 跟随，测试后脏标记仍在（改动未被吃掉）；新增→取消后列表 0 行；错误 toast 直显服务端中文「webhook url 为空」
+
 - 报警通知对话框首次打开不拉配置，已存通道显示为「尚未配置通知通道」
   - 背景：父组件用 `v-if="showNotifyConfig" v-model="showNotifyConfig"` 挂载它（懒加载 + 打开才挂载），挂载时 `props.modelValue` 已经是 true，之后不再有 false→true 变化，而 `refresh()` 只挂在非 immediate 的 `watch(() => props.modelValue)` 上——于是首次打开根本不发 GET
   - 症状：`GET /api/notify/channels` 明明返回了通道，界面却是空表；只有当场手动「添加通道」才看得到行，保存后重开又变空。与本次响应格式改造无关（`git diff` 里这个文件只动了 `handleTest`），是浏览器实测通知路径时才撞出来的
@@ -100,6 +107,17 @@
   - 动了：`styles/dialog.scss`（新）、`styles/index.scss`
 
 ### 优化
+
+- 用户管理 / 报警通知弹窗交互与视觉精修（先出对比 mockup 选定「方案 A：不动表格结构，只补层次」）
+  - 未保存改动可见化：两个弹窗都按「上次加载/保存后的快照」比对出 `dirty`——报警通知 footer 左侧挂「● 有未保存改动」胶囊，保存按钮无改动时禁用，脏时关闭（×/遮罩/ESC/关闭按钮都走 `before-close`/`requestClose` 同一判据）询问「关闭将丢弃这些改动」；此前拨个开关不点保存就关窗是静默丢失的
+  - 报警通知列表补「触发时机」列（notifyOn 原先只在编辑框里可见，同级别不同时的两个通道无法一眼区分）；类型前加色点（Webhook 青 / 企微钉钉蓝 / 邮件琥珀 / 短信红，全取主题语义色变量）；级别改为报警红、预警琥珀的圆角胶囊；未启用整行压暗 45%；节流数字框收进「触发节流 N 秒 · 同通道去重」胶囊（`:controls=false`）
+  - 发送记录 tab：级别/通道/结果三个客户端筛选 + 「显示 N/M 条」计数；「保存配置」按钮在该 tab 隐藏（保存只作用于通道配置，此前语义错位）
+  - 用户管理：用户名+显示名两列合并为「用户」列（头像首字 + 显示名 + @用户名 + 「当前登录」胶囊）；自己的行删除禁用之外，编辑自己时角色下拉同样禁用并显示原因（防 admin 自我降权后失去管理入口）；「改口令」独立弹窗并入编辑弹窗，编辑时留空 = 不修改；校验从两处手写 `ElMessage.warning` 改为 `el-form` rules（新建必填 ≥4 位、编辑填了才校验）；加搜索、表格 max-height 360、`v-loading`
+  - 标题区两行结构（主标题 + 副标说明）经 `#header` 插槽实现，公共样式落 `styles/dialog.scss` 的 `.dlg-title-block`，两个弹窗不各自复制一份
+  - 拆分：`NotifyConfigDialog.vue` 加完新功能到 407 行超阈值，按「对话框按区块拆子组件」拆出 `NotifyLogPanel.vue`（发送记录，筛选/确认/加载都收进子组件，父组件经 `defineExpose` 的 `load()` 驱动）与 `NotifyChannelEditorDialog.vue`（通道编辑，持有本地草稿、`submit` 回传成品通道）；两者与主弹窗以 `src=` scoped 方式共用 `notify-config.scss`（新增胶囊/色点/脏提示样式都放这一份）
+  - 外层弹窗关闭时联动收起嵌套的编辑弹窗（此前 append-to-body 子弹窗不会自己收）
+  - 动了：`UserManageDialog.vue`、`NotifyConfigDialog.vue`、`NotifyLogPanel.vue`（新）、`NotifyChannelEditorDialog.vue`（新）、`notify-config.scss`、`styles/dialog.scss`、`src/notify/notifyClient.ts`
+  - 实测：独立端口隔离环境（临时前端 5175 + 临时后端 5185 + 独立 DATA_DIR，跑完停进程并删目录，未触碰在跑的 5173/5174）走全部改动路径——搜索/徽标/禁用项、编辑自己角色下拉 disabled、口令 placeholder、新增取消 0 残留、开关双向脏/恢复干净、删除与清空确认文案、日志 tab 筛选×3 无保存按钮、脏关闭守卫确认后收起；控制台无 Vue 警告（`v-loading` 经 unplugin resolver 正常解析）。`npx vitest run notify` 6 例过、`vue-tsc --noEmit` 干净、`check-long-files` OK、4 个改动 vue 文件 eslint 0 警告（主弹窗历史 html-indent 警告随 `--fix` 清零）
 
 - 登录按钮去掉 `→` 箭头
   - 改法：删除 `btn-arrow` 的 span 与对应样式，按钮只保留文字「进入系统」

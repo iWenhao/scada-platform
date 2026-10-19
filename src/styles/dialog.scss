@@ -27,3 +27,26 @@
     overflow: auto;
   }
 }
+
+/*
+ * 弹窗标题区两行结构（主标题 + 副标说明）：用户管理/报警通知等配置类弹窗共用。
+ * 走全局是为了两个弹窗不在各自 scoped 里重复一份（EP 默认 header 只有单行标题，
+ * 副标需要用 #header 插槽自定义这块 DOM）。
+ */
+.el-dialog .dlg-title-block {
+  line-height: 1.35;
+
+  .t {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--el-dialog-title-color, var(--text-primary));
+  }
+
+  .sub {
+    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+}
+

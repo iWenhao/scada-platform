@@ -1,29 +1,46 @@
 <template>
   <el-dialog
     :model-value="modelValue"
-    title="用户管理"
     width="640px"
     @update:model-value="emit('update:modelValue', $event)"
   >
+    <template #header>
+      <div class="dlg-title-block">
+        <div class="t">用户管理</div>
+        <div class="sub">账号 · 角色 · 口令</div>
+      </div>
+    </template>
     <div class="user-toolbar">
       <el-button type="primary" size="small" @click="openCreate">
         <el-icon><Plus /></el-icon>
         新建用户
       </el-button>
+      <el-input
+        v-model="search"
+        size="small"
+        class="user-search"
+        placeholder="搜索用户名 / 显示名"
+        clearable
+      />
     </div>
 
-    <el-table :data="users" size="small" empty-text="暂无用户">
-      <el-table-column prop="username" label="用户名" width="120" />
-      <el-table-column prop="displayName" label="显示名" width="120" />
-      <el-table-column label="角色" width="110">
+    <el-table v-loading="loading" :data="filteredUsers" size="small" max-height="360" empty-text="暂无用户">
+      <el-table-column label="用户" min-width="200">
         <template #default="{ row }">
-          <el-tag size="small" :type="roleTag(row.role)">{{ roleLabel(row.role) }}</el-tag>
+          <span class="avatar">{{ (row.displayName || row.username).charAt(0) }}</span>
+          <span class="uname">{{ row.displayName || row.username }}</span>
+          <span class="uname-sub">@{{ row.username }}</span>
+          <span v-if="row.id === authStore.user?.id" class="you-badge">当前登录</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column label="角色" width="110">
+        <template #default="{ row }">
+          <el-tag size="small" class="role-tag" :type="roleTag(row.role)">{{ roleLabel(row.role) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" align="right">
         <template #default="{ row }">
           <el-button size="small" text type="primary" @click="openEdit(row)">编辑</el-button>
-          <el-button size="small" text @click="openPassword(row)">改口令</el-button>
           <el-button
             size="small"
             text
@@ -43,20 +60,30 @@
       width="420px"
       append-to-body
     >
-      <el-form label-width="80px">
-        <el-form-item label="用户名">
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="80px">
+        <el-form-item label="用户名" prop="username">
           <el-input v-model="form.username" :disabled="!!editingId" />
         </el-form-item>
-        <el-form-item label="显示名">
+        <el-form-item label="显示名" prop="displayName">
           <el-input v-model="form.displayName" />
         </el-form-item>
-        <el-form-item label="角色">
-          <el-select v-model="form.role" class="w-full">
+        <el-form-item label="角色" prop="role">
+          <!-- 禁止改自己的角色：admin 把自己降权后当场失去管理入口，和「不能删自己」同级 -->
+          <el-select v-model="form.role" class="w-full" :disabled="editingSelf">
             <el-option v-for="r in roles" :key="r" :label="roleLabel(r)" :value="r" />
           </el-select>
         </el-form-item>
-        <el-form-item v-if="!editingId" label="口令">
-          <el-input v-model="form.password" type="password" show-password />
+        <el-form-item v-if="editingSelf" label=" ">
+          <span class="role-note">不能修改当前登录账号的角色</span>
+        </el-form-item>
+        <!-- 改口令并入编辑弹窗：新建必填，编辑留空表示不修改 -->
+        <el-form-item label="口令" prop="password">
+          <el-input
+            v-model="form.password"
+            type="password"
+            show-password
+            :placeholder="editingId ? '留空则不修改口令' : ''"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -64,24 +91,12 @@
         <el-button type="primary" @click="handleSave">保存</el-button>
       </template>
     </el-dialog>
-
-    <el-dialog v-model="pwdVisible" title="修改口令" width="420px" append-to-body>
-      <el-form label-width="80px">
-        <el-form-item label="新口令">
-          <el-input v-model="newPassword" type="password" show-password />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="pwdVisible = false">取消</el-button>
-        <el-button type="primary" @click="handlePassword">确定</el-button>
-      </template>
-    </el-dialog>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { computed, onMounted, ref, watch } from 'vue'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
 import { apiData, apiFetch } from '@/api/client'
 import { ROLE_LABELS, type Role } from '@/types/auth'
@@ -99,14 +114,32 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 const authStore = useAuthStore()
 const users = ref<AdminUser[]>([])
 const roles: Role[] = ['viewer', 'operator', 'engineer', 'admin']
+const search = ref('')
+const loading = ref(false)
 
 const editVisible = ref(false)
 const editingId = ref<string | null>(null)
 const form = ref({ username: '', displayName: '', role: 'operator' as Role, password: '' })
+const formRef = ref<FormInstance | null>(null)
 
-const pwdVisible = ref(false)
-const pwdUserId = ref('')
-const newPassword = ref('')
+// 正在编辑自己：角色下拉禁用，防止 admin 自我降权后失去管理入口
+const editingSelf = computed(() => !!editingId.value && editingId.value === authStore.user?.id)
+
+const formRules = computed<FormRules>(() => ({
+  username: [{ required: true, message: '用户名必填', trigger: 'blur' }],
+  // 编辑时留空 = 不改口令；填了才校验长度（与新建同一判据，不再两处手写检查）
+  password: editingId.value
+    ? [{ min: 4, message: '口令至少 4 位', trigger: 'blur' }]
+    : [{ required: true, min: 4, message: '新建用户口令至少 4 位', trigger: 'blur' }],
+}))
+
+const filteredUsers = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  if (!q) return users.value
+  return users.value.filter(
+    (u) => u.username.toLowerCase().includes(q) || u.displayName.toLowerCase().includes(q),
+  )
+})
 
 function roleLabel(r: Role) {
   return ROLE_LABELS[r] || r
@@ -120,18 +153,26 @@ function roleTag(r: Role) {
 }
 
 async function refresh() {
+  loading.value = true
   try {
     const list = await apiData<AdminUser[]>('/auth/users')
     users.value = Array.isArray(list) ? list : []
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '加载用户失败')
+  } finally {
+    loading.value = false
   }
 }
 
 watch(
   () => props.modelValue,
   (v) => {
-    if (v) void refresh()
+    if (v) {
+      void refresh()
+    } else {
+      // 外层关闭时嵌套的编辑弹窗不会自己收起，须联动关掉
+      editVisible.value = false
+    }
   },
 )
 
@@ -157,21 +198,26 @@ function openEdit(row: AdminUser) {
 }
 
 async function handleSave() {
+  if (!formRef.value) return
+  try {
+    await formRef.value.validate()
+  } catch {
+    return
+  }
   try {
     if (editingId.value) {
+      const patch: Record<string, string> = {
+        id: editingId.value,
+        displayName: form.value.displayName.trim() || form.value.username,
+        role: form.value.role,
+      }
+      // 口令并入编辑：留空表示不修改，服务端 PATCH 只在给了 password 时更新
+      if (form.value.password) patch.password = form.value.password
       await apiFetch('/auth/users', {
         method: 'PATCH',
-        body: JSON.stringify({
-          id: editingId.value,
-          displayName: form.value.displayName,
-          role: form.value.role,
-        }),
+        body: JSON.stringify(patch),
       })
     } else {
-      if (!form.value.username.trim() || form.value.password.length < 4) {
-        ElMessage.warning('用户名必填，口令至少 4 位')
-        return
-      }
       await apiFetch('/auth/users', {
         method: 'POST',
         body: JSON.stringify({
@@ -187,29 +233,6 @@ async function handleSave() {
     ElMessage.success('已保存')
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '保存失败')
-  }
-}
-
-function openPassword(row: AdminUser) {
-  pwdUserId.value = row.id
-  newPassword.value = ''
-  pwdVisible.value = true
-}
-
-async function handlePassword() {
-  if (newPassword.value.length < 4) {
-    ElMessage.warning('口令至少 4 位')
-    return
-  }
-  try {
-    await apiFetch('/auth/users', {
-      method: 'PATCH',
-      body: JSON.stringify({ id: pwdUserId.value, password: newPassword.value }),
-    })
-    pwdVisible.value = false
-    ElMessage.success('口令已更新')
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : '更新失败')
   }
 }
 
@@ -234,10 +257,66 @@ async function handleRemove(row: AdminUser) {
 
 <style scoped lang="scss">
 .user-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+.user-search {
+  width: 180px;
+  margin-left: auto;
 }
 
 .w-full {
   width: 100%;
+}
+
+.role-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* —— 方案 A 视觉精修 —— */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--accent-primary);
+  font-size: 12px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.uname {
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.uname-sub {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.you-badge {
+  margin-left: 8px;
+  font-size: 10px;
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-secondary);
+  border-radius: 999px;
+  padding: 1px 7px;
+  vertical-align: middle;
+}
+
+// 角色标签统一成胶囊，颜色仍走 el-tag 的语义 type
+.role-tag {
+  border-radius: 999px;
 }
 </style>

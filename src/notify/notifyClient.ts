@@ -19,13 +19,15 @@ export function saveNotifyConfig(config: NotifyConfig): Promise<NotifyConfig> {
 }
 
 /**
- * 连通性测试。通道发不出去时服务端返回 502 + code=channel_send_failed，
+ * 连通性测试。整通道对象内联传给服务端（/api/notify/test 支持 payload.channel），
+ * 未保存的新通道也能直接测——不再需要「先保存配置」这一隐性副作用。
+ * 通道发不出去时服务端返回 502 + code=channel_send_failed，
  * 这里以抛错表达失败（message 已是「哪个环节没通」的人话），成功只需 resolve。
  */
-export async function testNotifyChannel(id: string): Promise<void> {
+export async function testNotifyChannel(channel: NotifyChannel): Promise<void> {
   await apiFetch('/notify/test', {
     method: 'POST',
-    body: JSON.stringify({ id }),
+    body: JSON.stringify({ channel }),
   })
 }
 

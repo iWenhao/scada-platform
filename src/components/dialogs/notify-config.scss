@@ -8,6 +8,11 @@
     width: 140px;
   }
 
+  // 发送记录筛选下拉（NotifyLogPanel 与主弹窗共用本样式文件）
+  .filter-select {
+    width: 110px;
+  }
+
   .spacer {
     flex: 1;
   }
@@ -18,8 +23,99 @@
   }
 }
 
-.lvl {
+/* —— 方案 A 视觉精修（NotifyConfigDialog 与子面板共用，均为 scoped 引入本文件） —— */
+
+// 通道类型色点：一眼区分五种通道，颜色取主题语义色，亮暗两套都成立
+.tdot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: 1px;
+
+  &.webhook { background: var(--accent-primary); }
+  &.wecom,
+  &.dingtalk { background: var(--accent-info); }
+  &.email { background: var(--accent-warning); }
+  &.sms { background: var(--accent-danger); }
+}
+
+// 级别/时机胶囊：报警红、预警琥珀，替代原 el-tag 的默认配色
+.chip {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
   margin-right: 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
+
+  &.crit {
+    color: var(--accent-danger);
+    border-color: rgba(255, 71, 87, 0.4);
+    background: rgba(255, 71, 87, 0.08);
+  }
+
+  &.warn {
+    color: var(--accent-warning);
+    border-color: rgba(255, 165, 2, 0.4);
+    background: rgba(255, 165, 2, 0.08);
+  }
+}
+
+// 节流设置的工具条胶囊：把「数字 + 单位 + 说明」收进同一个容器
+.pill-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+
+  // 数字框在胶囊内去掉自身边框底色，视觉上与容器一体
+  .interval-input {
+    width: 64px;
+
+    :deep(.el-input__wrapper) {
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    :deep(.el-input__inner) {
+      color: var(--accent-primary);
+      text-align: center;
+      font-weight: 600;
+    }
+  }
+}
+
+// footer 左侧的未保存提示（EP footer 默认右对齐，flex 后由脏 pill 占左）
+.dlg-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dirty-pill {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--accent-warning);
+  border: 1px solid rgba(255, 165, 2, 0.4);
+  background: rgba(255, 165, 2, 0.08);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+// 未启用通道整行压暗（el-table 行类名，scoped 下需 :deep 命中内部 DOM）
+:deep(.row-off) {
+  opacity: 0.45;
 }
 
 .ml {
