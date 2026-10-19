@@ -43,6 +43,14 @@
 
 ### 修复
 
+- 报警通知对话框首次打开不拉配置，已存通道显示为「尚未配置通知通道」
+  - 背景：父组件用 `v-if="showNotifyConfig" v-model="showNotifyConfig"` 挂载它（懒加载 + 打开才挂载），挂载时 `props.modelValue` 已经是 true，之后不再有 false→true 变化，而 `refresh()` 只挂在非 immediate 的 `watch(() => props.modelValue)` 上——于是首次打开根本不发 GET
+  - 症状：`GET /api/notify/channels` 明明返回了通道，界面却是空表；只有当场手动「添加通道」才看得到行，保存后重开又变空。与本次响应格式改造无关（`git diff` 里这个文件只动了 `handleTest`），是浏览器实测通知路径时才撞出来的
+  - 改法：给该 watch 加 `{ immediate: true }`，挂载即 `refresh()`（`activeTab === 'log'` 时一并刷发送记录，逻辑不变）
+  - 同类写法说明：`CanvasConfigDialog` / `StatusRuleDialog` / `CustomComponentDialog` 也是非 immediate 的 `modelValue` watch，但它们的数据全部由 props 同步传入、无异步加载，故不受影响；本次只动确实坏掉的那一处
+  - 动了：`src/components/dialogs/NotifyConfigDialog.vue`
+  - 实测：`vue-tsc --noEmit` 干净；浏览器里重开「系统设置 → 通知通道」直接显示已保存的 Webhook 行，点「测试」显示 `502 channel_send_failed` 的中文原因「目标为内网/保留地址，已拒绝」
+
 - 接管 Element Plus 主色，亮色主题下 EP 控件不再显示为蓝
   - 背景：`--el-color-primary` 从来没被接管过，EP 默认蓝 `#409eff` 全站生效。暗色靠 `dark-theme.scss` 用 `!important` 逐组件打补丁（switch/button/slider…），**亮色一处都没补**——所以同一个开关暗色是青、亮色是蓝。新建自定义组件对话框把 `el-radio-button` / `el-switch` / `el-checkbox` 三个填充型控件堆在一起，蓝色整块出现，格外扎眼
   - 改法：`styles/variables.scss` 新增 `html:root` 块，覆盖 `--el-color-primary` 及派生变量 light-3/5/7/8/9 + dark-2

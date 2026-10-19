@@ -304,6 +304,10 @@ watch(
       if (activeTab.value === 'log') void refreshLog()
     }
   },
+  // immediate 必须有：父组件用 `v-if` + `v-model` 挂载本组件，挂载时 modelValue 已经是 true，
+  // 不会再来一次 false→true 变化。没有 immediate 时首次打开根本不拉配置，
+  // 已存在的通道恒显示「尚未配置通知通道」，只有手动添加一条才看得见。
+  { immediate: true },
 )
 
 function addChannel() {
