@@ -50,3 +50,8 @@ lpt[1-9]
 # 设计沙箱的构建产物：esbuild 输出，每个都内嵌一份 src 模块快照，
 # 且 scene/models 两份各自重复打包了 three.js；一改 src 即过期，故只留源文件（design/ 下的 html 与入口 .ts）
 design/probe/*bundle.js
+
+# unplugin 自动生成的全局组件/API 类型声明：dev/build 启动时重新扫描生成，
+# 冷启动扫描结果不稳定（漏扫/多扫个别 EP 组件），提交即反复漂移，故不跟踪
+components.d.ts
+auto-imports.d.ts

@@ -10,6 +10,13 @@
 
 ### 功能
 
+### 清理
+
+- `components.d.ts` / `auto-imports.d.ts` 不再跟踪，根治每次 dev 后反复漂移
+  - 背景：这两个文件是 unplugin-vue-components / unplugin-auto-import 在 dev server 启动时扫描 .vue 模板自动生成的全局组件/API 类型声明。扫描基于 Vite 模块图，每次冷启动模块图重建，结果不稳定——历史上出现过两次漂移：漏扫实际在用的 ElCheckbox/ElRadio/ElTabs/ElUpload，或残留已删除的 ElButtonGroup/ElColorPicker/ElSlider。之前每次都是手动 `git checkout --` 还原
+  - 改法：加入 `.gitignore`，`git rm --cached` 停止跟踪。dev/build 启动时 unplugin 自动重新生成，vue-tsc 在 dev/build 之后跑、d.ts 已存在；全新 clone 后 `pnpm install && pnpm dev` 第一步即生成，不影响开发。AGENTS.md 里"跟随相关改动一起提交"那条规则同步改为"已加入 gitignore，dev/build 自动重生"
+  - 动了：`.gitignore`、`AGENTS.md`、`components.d.ts`（停止跟踪）、`auto-imports.d.ts`（停止跟踪）
+
 ### 重构
 
 - 抽出 `useSearchBox` composable，两个搜索盒共用展开/收起状态机

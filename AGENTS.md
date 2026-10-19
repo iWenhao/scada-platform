@@ -226,4 +226,4 @@ pnpm lint               # ESLint
 - **版本号**：从 `0.0.1` 起步，末位每次 +1，满 10 进位（0.0.9 → 0.0.10 → 0.1.0）；发版时版本号后附当天日期 YYMMDD（如 `0.0.2-260928`，CHANGELOG 标题与 tag 使用），`package.json` 保留三段数字并同步修改。**只在用户明确说"发版"时**才更新版本号（改 `package.json` + 把 `[Unreleased]` 定稿为新版本号）；平时提交一律不动版本号，新内容只写入 `[Unreleased]`。
 - **不提交**：`node_modules/`、`dist/`、诊断用的临时代码（如 index.html 里的错误钩子）。下列几类已在 `.gitignore` 里，但最容易在 `git add -A` 时被顺手带进来，提交前扫一眼暂存区：存储后端运行时数据 `server/data/`、本目录的会话记忆 `.workbuddy/`、设计沙箱的构建产物 `design/probe/*bundle.js`。
 - **UI 交互约定**：新功能必须有可见 UI 入口——只有快捷键没有按钮等同没做。次级操作图标默认隐藏、悬停显示或收进「⋯ 更多」类菜单，按钮放显眼位置（如面板标题右侧）；不做视觉冗余的堆砌，普通用户的标准是"看得到、找得到、用得顺"。
-- `components.d.ts` / `auto-imports.d.ts` 是 unplugin 自动生成的，跟随相关改动一起提交即可。
+- `components.d.ts` / `auto-imports.d.ts` 是 unplugin 自动生成的，已加入 `.gitignore`（冷启动扫描结果不稳定，提交即反复漂移）；dev/build 启动时自动重生，无需手动维护。
