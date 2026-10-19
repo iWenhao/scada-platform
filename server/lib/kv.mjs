@@ -4,6 +4,7 @@
  */
 import path from 'node:path'
 import { promises as fs } from 'node:fs'
+import { ApiError } from './apiError.mjs'
 import { writeFileAtomic, withTransientRetry } from './atomicWrite.mjs'
 
 /**
@@ -36,16 +37,32 @@ export const SITE_BRANDING_KEY = 'site:branding'
 export const MAX_KEY_LENGTH = 200
 
 /**
- * 键名是否可用。不可用返回英文错误文案（路由层直接作为 `error` 返回），可用返回 null。
+ * 键名问题归类（纯函数，不抛错）：返回机器码 `'missing' | 'invalid' | 'too_long'`，可用时返回 null。
+ * 返回码而不是文案：文案是给客户端读的，判据留在服务端内部，改措辞不会改语义。
  */
-export function keyError(key) {
+export function keyProblem(key) {
   const k = String(key ?? '')
-  if (!k) return 'missing key'
-  if (k.includes('\0')) return 'invalid key'
-  if (encodeURIComponent(k).length > MAX_KEY_LENGTH) {
-    return `key too long (max ${MAX_KEY_LENGTH} after encoding)`
-  }
+  if (!k) return 'missing'
+  if (k.includes('\0')) return 'invalid'
+  if (encodeURIComponent(k).length > MAX_KEY_LENGTH) return 'too_long'
   return null
+}
+
+/** 键名问题的中文说明（进 error.message，供用户直接看） */
+const KEY_PROBLEM_MESSAGES = {
+  missing: '缺少 key 参数',
+  invalid: 'key 含非法字符',
+  too_long: `key 过长（URL 编码后最多 ${MAX_KEY_LENGTH} 字符）`,
+}
+
+/**
+ * 键名校验，不合法抛 400 ApiError（code=invalid_key），由顶层 catch 出统一失败形状。
+ * 超长键必须在这里拦：不拦的话 fs 抛 ENAMETOOLONG，客户端只看到一条无意义的 500，
+ * 而这明明是客户端传错参数。
+ */
+export function assertKey(key) {
+  const problem = keyProblem(key)
+  if (problem) throw new ApiError(400, 'invalid_key', KEY_PROBLEM_MESSAGES[problem])
 }
 
 /** 键名 → 安全文件路径（含用户命名空间） */

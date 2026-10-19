@@ -8,6 +8,7 @@ import {
   resetHistorian,
 } from './historian'
 import { setStorage, MemoryStorageAdapter, getStorage, initStorage, storageMode } from '@/storage'
+import { ApiRequestError } from '@/api/client'
 
 describe('historian', () => {
   let fetchMock: ReturnType<typeof vi.fn>
@@ -71,7 +72,7 @@ describe('historian', () => {
     async function switchToRemote() {
       fetchMock.mockImplementation(async (url: string) => {
         if (String(url).endsWith('/health')) return { ok: true }
-        return { ok: true, json: async () => ({ ok: true, points: [] }) }
+        return { ok: true, status: 200, json: async () => ({ data: [] }) }
       })
       await initStorage()
       expect(storageMode()).toBe('remote')
@@ -129,13 +130,19 @@ describe('historian', () => {
       expect(after).toBe(before)
     })
 
-    it('查询失败时抛错', async () => {
+    it('查询失败时抛 ApiRequestError（带服务端 code，供上层区分故障类型）', async () => {
       await switchToRemote()
       fetchMock.mockImplementation(async (url: string) => {
         if (String(url).endsWith('/health')) return { ok: true }
-        return { ok: false, status: 500 }
+        return {
+          ok: false,
+          status: 500,
+          json: async () => ({ error: { code: 'internal_error', message: '服务内部错误' } }),
+        }
       })
-      await expect(queryHistory('k', 0, 1)).rejects.toThrow('历史查询失败')
+      const err = await queryHistory('k', 0, 1).catch((e) => e)
+      expect(err).toBeInstanceOf(ApiRequestError)
+      expect({ status: err.status, code: err.code }).toEqual({ status: 500, code: 'internal_error' })
     })
   })
 })

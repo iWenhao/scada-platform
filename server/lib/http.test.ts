@@ -1,11 +1,23 @@
 // @vitest-environment node
 /**
- * HTTP 门禁层：CORS、Bearer 解析、请求体上限、角色判定。
- * 这些是「谁能进来、能进到哪」的唯一判口，路由层直接依赖，所以逐条钉死。
+ * HTTP 门禁层：CORS、Bearer 解析、请求体上限、角色判定、统一响应体形状。
+ * 这些是「谁能进来、能进到哪、回来长什么样」的唯一判口，路由层直接依赖，所以逐条钉死。
  */
 import { describe, expect, it } from 'vitest'
 import { roleAtLeast } from '../auth.mjs'
-import { authenticateRequest, bearer, makeCorsHeaders, readBody, requireRole, sendJson } from './http.mjs'
+import { ApiError } from './apiError.mjs'
+import {
+  authenticateRequest,
+  bearer,
+  errorEnvelope,
+  makeCorsHeaders,
+  readBody,
+  requireRole,
+  sendData,
+  sendFail,
+  sendJson,
+  successEnvelope,
+} from './http.mjs'
 
 /** 造一个记录 headers、体可被 for-await 逐块读出的假请求 */
 function fakeReq(headers = {}, chunks = []) {
@@ -79,11 +91,19 @@ describe('bearer 与 readBody', () => {
     expect(await readBody(fakeReq({}, []), 1024)).toBe('')
   })
 
-  it('超过上限抛 413，由路由层原样回给客户端', async () => {
+  it('超过上限抛 413 的 payload_too_large，客户端按 code 分支、按 message 展示', async () => {
     const big = Buffer.alloc(64, 0x61)
     await expect(readBody(fakeReq({}, [big, big]), 100)).rejects.toMatchObject({
       status: 413,
-      message: 'payload too large',
+      code: 'payload_too_large',
+      message: '请求体超过上限 100 字节',
+    })
+    // 按上限量级选单位：KB/MB 级的上限不该报成「1048576 字节」这种看不懂的数字
+    await expect(readBody(fakeReq({}, [Buffer.alloc(2 * 1024)]), 1024)).rejects.toMatchObject({
+      message: '请求体超过上限 1 KB',
+    })
+    await expect(readBody(fakeReq({}, [Buffer.alloc(2 * 1024 * 1024)]), 1024 * 1024)).rejects.toMatchObject({
+      message: '请求体超过上限 1 MB',
     })
     // 恰好等于上限放行：边界是「超过」而不是「达到」
     await expect(readBody(fakeReq({}, [big, big]), 128)).resolves.toHaveLength(128)
@@ -135,5 +155,50 @@ describe('sendJson', () => {
     expect(res.headers['access-control-allow-origin']).toBe('https://a.example')
     expect(res.ended).toBe(true)
     expect(JSON.parse(res.body)).toEqual({ ok: true, 名称: '水泵' })
+  })
+})
+
+describe('响应体形状（全服务唯一的两种形状）', () => {
+  const cors = makeCorsHeaders('https://a.example')
+
+  it('successEnvelope：data 恒为键，空 meta 整个省略', () => {
+    expect(successEnvelope(null)).toEqual({ data: null })
+    expect(successEnvelope(undefined)).toEqual({ data: null })
+    expect(successEnvelope('abc', { etag: null })).toEqual({ data: 'abc', meta: { etag: null } })
+    expect(successEnvelope('abc', {})).toEqual({ data: 'abc' })
+  })
+
+  it('errorEnvelope：code 与 message 分离，meta 只在有内容时出现', () => {
+    expect(errorEnvelope('version_stale', '该工程在别处已被修改')).toEqual({
+      error: { code: 'version_stale', message: '该工程在别处已被修改' },
+    })
+    expect(errorEnvelope('channel_send_failed', '超时', { id: 'ch_1' }).error.meta).toEqual({ id: 'ch_1' })
+    expect(errorEnvelope('forbidden', '无权', {}).error.meta).toBeUndefined()
+  })
+
+  it('sendData / sendFail 与 sendJson 同一条出口：状态码 + CORS + UTF-8', () => {
+    const req = fakeReq({ origin: 'https://a.example' })
+
+    const okRes = fakeRes()
+    sendData(okRes, req, 200, { 名称: '水泵' }, { total: 3 }, cors)
+    expect(okRes.status).toBe(200)
+    expect(JSON.parse(okRes.body)).toEqual({ data: { 名称: '水泵' }, meta: { total: 3 } })
+
+    const failRes = fakeRes()
+    sendFail(failRes, req, 401, 'unauthorized', '请先登录', undefined, cors)
+    expect(failRes.status).toBe(401)
+    expect(JSON.parse(failRes.body)).toEqual({ error: { code: 'unauthorized', message: '请先登录' } })
+    expect(failRes.headers['access-control-allow-origin']).toBe('https://a.example')
+  })
+
+  it('ApiError 带 status/code/message/meta，顶层 catch 据此出形状（不靠文案判断）', () => {
+    const e = new ApiError(409, 'key_exists', '该名称已存在', { key: 'a' })
+    expect(e).toBeInstanceOf(Error)
+    expect({ status: e.status, code: e.code, message: e.message, meta: e.meta }).toEqual({
+      status: 409,
+      code: 'key_exists',
+      message: '该名称已存在',
+      meta: { key: 'a' },
+    })
   })
 })

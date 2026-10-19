@@ -14,7 +14,8 @@ import {
   GLOBAL_SCOPE,
   MAX_KEY_LENGTH,
   fileFor,
-  keyError,
+  keyProblem,
+  assertKey,
   listKeys,
   readValue,
   readValueWithEtag,
@@ -53,23 +54,33 @@ describe('scopeOf', () => {
   })
 })
 
-describe('keyError', () => {
-  it('空键与 NUL 字节直接拒绝', () => {
-    expect(keyError('')).toContain('missing')
-    expect(keyError(undefined)).toContain('missing')
-    expect(keyError('a\0b')).toBe('invalid key')
+describe('keyProblem / assertKey', () => {
+  it('空键与 NUL 字节直接拒绝，归类成机器码而不是文案', () => {
+    expect(keyProblem('')).toBe('missing')
+    expect(keyProblem(undefined)).toBe('missing')
+    expect(keyProblem('a\0b')).toBe('invalid')
   })
 
   it('长度按编码后计算，中文键膨胀 9 倍同样受限', () => {
     // 一个汉字 encodeURIComponent 后是 9 个字符（泵 → %E6%B3%B5）
-    expect(keyError('泵'.repeat(22))).toBeNull()
-    expect(keyError('泵'.repeat(23))).toContain('too long')
+    expect(keyProblem('泵'.repeat(22))).toBeNull()
+    expect(keyProblem('泵'.repeat(23))).toBe('too_long')
     expect(MAX_KEY_LENGTH).toBe(200)
   })
 
   it('恰好卡在编码后上限的 ASCII 键仍然放行', () => {
-    expect(keyError('k'.repeat(MAX_KEY_LENGTH))).toBeNull()
-    expect(keyError('k'.repeat(MAX_KEY_LENGTH + 1))).toContain('too long')
+    expect(keyProblem('k'.repeat(MAX_KEY_LENGTH))).toBeNull()
+    expect(keyProblem('k'.repeat(MAX_KEY_LENGTH + 1))).toBe('too_long')
+  })
+
+  it('assertKey 抛 400 invalid_key：超长键由此拦成 400，不让 fs 抛 ENAMETOOLONG 变 500', () => {
+    expect(() => assertKey('')).toThrowError(
+      expect.objectContaining({ status: 400, code: 'invalid_key', message: '缺少 key 参数' }),
+    )
+    expect(() => assertKey('泵'.repeat(23))).toThrowError(
+      expect.objectContaining({ code: 'invalid_key', message: expect.stringContaining('过长') }),
+    )
+    expect(() => assertKey('scada_project_测试')).not.toThrow()
   })
 })
 

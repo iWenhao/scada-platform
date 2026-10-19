@@ -78,18 +78,18 @@ node server/index.mjs
 
 ```bash
 curl -sS http://127.0.0.1:5174/api/health
-# 未设 AUTH_TOKEN: {"ok":true}
-# 已设 AUTH_TOKEN 且不带头: {"error":"unauthorized"}  (HTTP 401)
+# 未设 AUTH_TOKEN: {"data":{"status":"ok"}}
+# 已设 AUTH_TOKEN 且不带头: {"error":{"code":"unauthorized","message":"请先登录"}}  (HTTP 401)
 
 curl -sS -H "Authorization: Bearer change-me" http://127.0.0.1:5174/api/health
-# {"ok":true}
+# {"data":{"status":"ok"}}
 
 # 登录取会话 Token（种子账号，仅首次验证用）
 # 口令取首启日志里「初始口令:」那一行的值；部署时用 SEED_PASSWORD 固定过就用你设定的那个
 curl -sS -X POST http://127.0.0.1:5174/api/auth/login \
   -H 'content-type: application/json' \
   -d '{"username":"admin","password":"<初始口令>"}'
-# {"token":"...","user":{...}}
+# {"data":{"token":"...","expiresAt":...,"user":{...}}}
 ```
 
 ### 3.2 前端构建
@@ -271,10 +271,42 @@ curl -sS -D - -o /dev/null -X OPTIONS \
 
 ### 5.3 接口一览
 
+**响应只有两种形状**（服务端唯一出口 `server/lib/http.mjs` 的 `sendData` / `sendFail`，前端唯一入口 `src/api/client.ts` 的 `apiFetch`）：
+
+| 情形 | HTTP | 响应体 |
+|------|------|--------|
+| 成功 | 2xx | `{ "data": <负载>, "meta": { … } }` — `meta` 为空时整个键省略 |
+| 失败 | 4xx / 5xx | `{ "error": { "code": "<机器码>", "message": "<中文说明>" } }` |
+
+- **成功与否只看 HTTP 状态码**，响应体里不再有 `ok` 字段，也不再有「200 但 body 带 error」这种要拆开才知道结果的情况。
+- `data` 这个键**永远存在**（无负载时是 `null`）；etag、分页统计、写入条数这类附属信息一律放 `meta`，不混进 `data`。
+- `code` 是稳定英文机器码，客户端按它分支；`message` 是给人看的中文，改措辞不该改逻辑。前端拿不到信封时（反向代理返回 HTML、进程刚崩）回落成 `http_error`。
+- 5xx 的 `message` 固定为「服务内部错误」——fs 错误的原始 message 带绝对路径，不回显给客户端，详情进服务端日志。
+
+常见错误码：
+
+| code | HTTP | 含义 |
+|------|------|------|
+| `unauthorized` | 401 | 未登录 / 会话过期 |
+| `login_failed` | 401 | 用户名或口令错误（也用于账号被限流，避免枚举） |
+| `forbidden` | 403 | 角色不足 |
+| `not_found` | 404 | 路径未匹配 |
+| `invalid_json` | 400 | 请求体不是合法 JSON |
+| `invalid_key` | 400 | 缺少 `key` 参数或 key 非法/过长 |
+| `payload_too_large` | 413 | 请求体超过 `MAX_BODY_BYTES` |
+| `key_exists` | 409 | `?mode=create` 撞名，未覆盖 |
+| `version_stale` | 409 | `?ifMatch=` 版本落后，工程在别处被改过 |
+| `username_exists` / `last_admin` | 409 | 用户名重复 / 不能删掉或降级最后一名管理员 |
+| `user_not_found` | 404 | 用户不存在 |
+| `password_too_short` / `old_password_incorrect` | 400 | 新口令过短 / 旧口令不对 |
+| `channel_not_found` | 400 | 测试/外发时该通道未配置 |
+| `channel_send_failed` | 502 | 通知外发失败（`meta` 带通道 id 与名称） |
+| `internal_error` | 500 | 服务内部错误 |
+
 | 方法 | 路径 | 说明 | 所需角色 |
 |------|------|------|----------|
-| GET | `/api/health` | 健康检查 → `{ ok: true }` | 无 |
-| POST | `/api/auth/login` | 登录，发行会话 Token | 无 |
+| GET | `/api/health` | 健康检查 → `data:{ status:"ok" }` | 无 |
+| POST | `/api/auth/login` | 登录，`data` 为 `{ token, expiresAt, user }` | 无 |
 | POST | `/api/auth/logout` | 注销当前会话 | 登录 |
 | GET | `/api/auth/me` | 当前登录用户与角色 | 登录 |
 | POST | `/api/auth/password` | 修改自己的口令 | 登录 |
@@ -284,16 +316,17 @@ curl -sS -D - -o /dev/null -X OPTIONS \
 | GET/DELETE | `/api/notify/log` | 通知发送记录（最近 500 条） | engineer+ |
 | POST | `/api/notify/send` | 服务端主动外发（报警扇出） | 内部 |
 | POST/GET | `/api/audit` | 写值审计（写入/查询），操作者由会话注入、不可伪造 | 登录 |
-| GET | `/api/keys` | 列出**当前用户空间**的全部 key | 登录 |
-| GET | `/api/storage/get?key=` | 读取 | 登录 |
-| PUT | `/api/storage/set?key=` | 写入（body 为文本） | engineer+ |
+| GET | `/api/keys` | 列出**当前用户空间**的全部 key → `data: string[]` | 登录 |
+| GET | `/api/storage/get?key=` | 读取 → `data` 为文本值，`meta.etag` 为版本指纹 | 登录 |
+| PUT | `/api/storage/set?key=` | 写入（body 为文本）→ `meta.etag` 为新版本；`?mode=create` 撞名回 409 `key_exists`，`?ifMatch=` 版本落后回 409 `version_stale` | engineer+ |
 | DELETE | `/api/storage/remove?key=` | 删除 | engineer+ |
-| POST | `/api/history/write` | 批量追加时序采样 | operator+ |
-| GET | `/api/history/query?key=&from=&to=&maxPoints=` | 区间查询（服务端抽稀） | 登录 |
+| GET | `/api/storage/projects?limit=&offset=&keyword=` | 工程列表分页摘要 → `data` 为摘要数组，`meta` 带 `total` / `publishedTotal` / `matchedTotal` | 登录 |
+| POST | `/api/history/write` | 批量追加时序采样 → `meta.written` 为写入点数 | operator+ |
+| GET | `/api/history/query?key=&from=&to=&maxPoints=` | 区间查询（服务端抽稀）→ `data` 为采样数组 | 登录 |
 
 说明：
 
-- 未登录访问受保护接口返回 401；角色不足返回 403
+- 未登录访问受保护接口返回 401 `unauthorized`；角色不足返回 403 `forbidden`
 - 持有 `AUTH_TOKEN`（服务主密钥）时跳过角色检查，按全权限处理
 - `OPTIONS` 预检永不鉴权
 

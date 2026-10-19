@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getStorage } from '@/storage'
-import { resolveApiBase } from '@/storage/config'
-import { authHeaders } from '@/auth/session'
+import { apiFetch } from '@/api/client'
 
 /**
  * 写值审计日志。
@@ -69,9 +68,8 @@ export const useAuditStore = defineStore('audit', () => {
       .set(STORE_KEY, JSON.stringify(entries.value))
       .catch(e => console.warn('[auditStore] 审计日志落盘失败', e))
     // 服务端审计：操作者以后端会话为准，前端不能伪造
-    void fetch(`${resolveApiBase()}/audit`, {
+    void apiFetch('/audit', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         deviceId: full.deviceId,
         variable: full.variable,

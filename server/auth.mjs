@@ -22,6 +22,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { writeFileAtomic } from './lib/atomicWrite.mjs'
 import { hashPassword, sessionKey, verifyPassword } from './lib/credentials.mjs'
 import { createLoginGuard } from './lib/loginGuard.mjs'
+import { ApiError, badRequest, conflict } from './lib/apiError.mjs'
 
 /** 角色等级：数字越大权限越高（与前端 types/auth.ts 保持一致） */
 export const ROLE_RANK = {
@@ -242,18 +243,19 @@ export function createAuthStore(dataDir) {
   }
 
   /**
-   * 新建用户。用户名重复或参数非法时返回 { error }。
-   * @returns {Promise<{ user?: object, error?: string }>}
+   * 新建用户。参数不合法 / 重名时抛出 ApiError（不再返回 `{ error }` 文本，
+   * 客户端按 code 分支、按 message 展示）。
+   * @returns {Promise<object>} 脱敏后的用户
    */
   async function createUser({ username, displayName, role, password }) {
     // 用户名先去空格再查重：查重用原始值、落库用 trim 后的值，
     // 等于让「 admin」绕过重名检查建出第二个 admin——后者的登录名会被前者抢占，账号不可达。
     const name = String(username ?? '').trim()
     if (!name || !password || String(password).length < 4) {
-      return { error: 'username/password invalid' }
+      throw badRequest('invalid_user', '用户名不能为空，口令至少 4 位')
     }
-    if (ROLE_RANK[role] === undefined) return { error: 'invalid role' }
-    if (users.some(u => u.username === name)) return { error: 'username exists' }
+    if (ROLE_RANK[role] === undefined) throw badRequest('invalid_role', '角色不合法')
+    if (users.some(u => u.username === name)) throw conflict('username_exists', '该用户名已存在')
 
     const user = {
       id: `usr_${randomUUID().slice(0, 8)}`,
@@ -265,42 +267,43 @@ export function createAuthStore(dataDir) {
     }
     users.push(user)
     await persistUsers()
-    return { user: publicUser(user) }
+    return publicUser(user)
   }
 
   /**
    * 更新用户资料/角色/口令。
    * 角色降级时保护：不能把最后一名 admin 降掉。
+   * @returns {Promise<object>} 脱敏后的用户
    */
   async function updateUser(id, { displayName, role, password }) {
     const user = users.find(u => u.id === id)
-    if (!user) return { error: 'not found' }
+    if (!user) throw new ApiError(404, 'user_not_found', '用户不存在')
 
     if (displayName !== undefined) {
       user.displayName = String(displayName).trim() || user.displayName
     }
     if (role !== undefined) {
-      if (ROLE_RANK[role] === undefined) return { error: 'invalid role' }
+      if (ROLE_RANK[role] === undefined) throw badRequest('invalid_role', '角色不合法')
       if (user.role === 'admin' && role !== 'admin') {
         const admins = users.filter(u => u.role === 'admin' && u.id !== id)
-        if (admins.length === 0) return { error: 'cannot demote last admin' }
+        if (admins.length === 0) throw conflict('last_admin', '系统必须保留至少一名管理员')
       }
       user.role = role
     }
     if (password !== undefined) {
-      if (String(password).length < 4) return { error: 'password too short' }
+      if (String(password).length < 4) throw badRequest('password_too_short', '口令至少 4 位')
       user.passwordHash = hashPassword(password)
     }
     await persistUsers()
-    return { user: publicUser(user) }
+    return publicUser(user)
   }
 
   /** 删除用户；至少保留一名 admin；同时踢掉该用户全部会话 */
   async function removeUser(id) {
     const user = users.find(u => u.id === id)
-    if (!user) return { error: 'not found' }
+    if (!user) throw new ApiError(404, 'user_not_found', '用户不存在')
     if (user.role === 'admin' && users.filter(u => u.role === 'admin').length <= 1) {
-      return { error: 'cannot remove last admin' }
+      throw conflict('last_admin', '系统必须保留至少一名管理员')
     }
     users = users.filter(u => u.id !== id)
     for (const [token, s] of sessions) {
@@ -308,7 +311,6 @@ export function createAuthStore(dataDir) {
     }
     await persistUsers()
     await persistSessions()
-    return { ok: true }
   }
 
   /**
@@ -317,14 +319,13 @@ export function createAuthStore(dataDir) {
    */
   async function changeOwnPassword(userId, oldPassword, newPassword) {
     const user = users.find(u => u.id === userId)
-    if (!user) return { error: 'not found' }
+    if (!user) throw new ApiError(404, 'user_not_found', '用户不存在')
     if (!verifyPassword(oldPassword, user.passwordHash)) {
-      return { error: 'old password incorrect' }
+      throw badRequest('old_password_incorrect', '旧口令不正确')
     }
-    if (String(newPassword).length < 4) return { error: 'password too short' }
+    if (String(newPassword).length < 4) throw badRequest('password_too_short', '新口令至少 4 位')
     user.passwordHash = hashPassword(newPassword)
     await persistUsers()
-    return { ok: true }
   }
 
   /** 列出全部用户（已脱敏，不含口令字段） */

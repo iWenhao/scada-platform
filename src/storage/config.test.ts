@@ -36,7 +36,8 @@ describe('RemoteStorageAdapter', () => {
   it('配置 Token 时应带上 Authorization 头', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ ok: true, keys: [] }),
+      status: 200,
+      json: async () => ({ data: [] }),
     })
     vi.stubGlobal('fetch', fetchMock)
     setSessionToken('tok-1')
@@ -52,7 +53,8 @@ describe('RemoteStorageAdapter', () => {
   it('无 Token 时不带 Authorization 头', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ ok: true, value: null }),
+      status: 200,
+      json: async () => ({ data: null }),
     })
     vi.stubGlobal('fetch', fetchMock)
     setSessionToken(null)

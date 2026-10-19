@@ -13,8 +13,8 @@
  */
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getStorage, SITE_BRANDING_KEY, resolveApiBase, storageMode } from '@/storage'
-import { authHeaders } from '@/auth/session'
+import { getStorage, SITE_BRANDING_KEY, storageMode } from '@/storage'
+import { ApiRequestError, apiData, apiFetch } from '@/api/client'
 
 /** 默认品牌：与 index.html 的静态标题保持一致，挂载后由品牌设置接管 */
 export const DEFAULT_BRAND_NAME = 'SCADA Platform'
@@ -77,10 +77,11 @@ export const useBrandingStore = defineStore('branding', () => {
     try {
       if (storageMode() === 'remote') {
         // 远程模式必须走公开接口：KV 按用户隔离，而品牌是部署级的（未登录也要可读）
-        const res = await fetch(resolveApiBase() + '/branding', {
-          signal: AbortSignal.timeout(3000),
-        })
-        normalize(res.ok ? ((await res.json()) as { value: string | null }).value : null)
+        normalize(
+          await apiData<string | null>('/branding', { signal: AbortSignal.timeout(3000) }).catch(
+            () => null,
+          ),
+        )
       } else {
         normalize(await getStorage().get(SITE_BRANDING_KEY))
       }
@@ -99,13 +100,16 @@ export const useBrandingStore = defineStore('branding', () => {
     }
     const body = JSON.stringify(payload)
     if (storageMode() === 'remote') {
-      const res = await fetch(resolveApiBase() + '/branding', {
-        method: 'PUT',
-        headers: { ...authHeaders(), 'content-type': 'text/plain; charset=utf-8' },
-        body,
-      })
-      if (!res.ok) {
-        throw new Error(res.status === 403 ? '仅管理员可修改站点品牌' : `保存失败（HTTP ${res.status}）`)
+      try {
+        await apiFetch('/branding', {
+          method: 'PUT',
+          headers: { 'content-type': 'text/plain; charset=utf-8' },
+          body,
+        })
+      } catch (e) {
+        // 品牌是部署级设置，服务端把权限提高到 admin；403 单独给一句人话
+        if (ApiRequestError.is(e, 'forbidden')) throw new Error('仅管理员可修改站点品牌')
+        throw e
       }
     } else {
       await getStorage().set(SITE_BRANDING_KEY, body)

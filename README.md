@@ -316,6 +316,8 @@ pnpm server             # http://localhost:5174，数据落 server/data/*.json
 
 前端经 `/api/storage/*` 访问后端（Vite 已代理 `/api`）；**后端不在线时自动回落 localStorage**，纯前端试用可以不起它。要登录账号、用户隔离、时序历史与报警外发则需要起后端——环境变量与种子账号见 [docs/DEPLOY.md](docs/DEPLOY.md)。改 `vite.config.ts` 代理或 server 路由后需重启 dev server。
 
+所有接口只有一种响应形状：成功 2xx 是 `{ data, meta? }`（值在 `data`，etag、分页统计、写入条数等附属信息在 `meta`），失败是 `{ error: { code, message } }`，成功与否只看 HTTP 状态码。前端唯一入口是 `src/api/client.ts` 的 `apiFetch`，业务代码按 `code`（如 `version_stale` / `key_exists`）分支、不按中文 `message` 分支。完整接口与错误码见 [docs/DEPLOY.md §5.3](docs/DEPLOY.md)。
+
 一份 `DATA_DIR` 只允许跑**一个**后端实例：启动时会抢 `DATA_DIR/.lock`，抢不到就以退出码 1 拒绝启动并说明持锁方是谁。因为写入串行化与账号/会话表都是进程内的，两个实例共用同一目录的后果不是报错而是静默覆盖数据（判活与接管规则见 [docs/DEPLOY.md §5.6](docs/DEPLOY.md)）。
 
 ### 容器一键起全站
@@ -366,7 +368,7 @@ scada-platform/
 ├── server/                             # 零依赖存储后端（pnpm server，可选）
 │   ├── index.mjs                       # 入口：路由装配与初始化
 │   ├── auth.mjs / notify.mjs           # 会话鉴权 / 通知编排
-│   ├── lib/                            # kv、jsonl、history、atomicWrite、http、credentials…
+│   ├── lib/                            # kv、jsonl、history、atomicWrite、http、apiError、credentials…
 │   ├── routes/                         # auth、storage、history、notify、audit、public
 │   ├── notify/                         # email、webhook、bots、sms、common
 │   └── data/                           # 运行时数据（*.json / *.jsonl，不提交）
@@ -397,6 +399,7 @@ scada-platform/
     ├── alarm/ notify/                  # 报警引擎 / 通知客户端
     ├── history/ export/                # 时序历史缓冲 / CSV 导出
     ├── auth/                           # 会话与种子账号
+    ├── api/                            # client.ts：唯一的后端请求出口（拆统一响应信封、按 code 分派）
     ├── storage/                        # getStorage() 抽象：remote + localStorage + 内存降级
     ├── stores/                         # Pinia：canvas / device / connection / layer / page / project…
     ├── composables/                    # 自动草稿、组件搜索、最常使用、隐藏组件、主题等

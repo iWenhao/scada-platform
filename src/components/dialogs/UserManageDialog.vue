@@ -83,8 +83,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
-import { resolveApiBase } from '@/storage/config'
-import { authHeaders } from '@/auth/session'
+import { apiData, apiFetch } from '@/api/client'
 import { ROLE_LABELS, type Role } from '@/types/auth'
 
 interface AdminUser {
@@ -120,24 +119,10 @@ function roleTag(r: Role) {
   return 'info'
 }
 
-async function api(path: string, init?: RequestInit) {
-  const res = await fetch(`${resolveApiBase()}${path}`, {
-    ...init,
-    headers: {
-      ...authHeaders(),
-      ...(init?.body ? { 'content-type': 'application/json' } : {}),
-      ...(init?.headers || {}),
-    },
-  })
-  const body = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`)
-  return body
-}
-
 async function refresh() {
   try {
-    const body = await api('/auth/users')
-    users.value = body.users || []
+    const list = await apiData<AdminUser[]>('/auth/users')
+    users.value = Array.isArray(list) ? list : []
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '加载用户失败')
   }
@@ -174,7 +159,7 @@ function openEdit(row: AdminUser) {
 async function handleSave() {
   try {
     if (editingId.value) {
-      await api('/auth/users', {
+      await apiFetch('/auth/users', {
         method: 'PATCH',
         body: JSON.stringify({
           id: editingId.value,
@@ -187,7 +172,7 @@ async function handleSave() {
         ElMessage.warning('用户名必填，口令至少 4 位')
         return
       }
-      await api('/auth/users', {
+      await apiFetch('/auth/users', {
         method: 'POST',
         body: JSON.stringify({
           username: form.value.username.trim(),
@@ -217,7 +202,7 @@ async function handlePassword() {
     return
   }
   try {
-    await api('/auth/users', {
+    await apiFetch('/auth/users', {
       method: 'PATCH',
       body: JSON.stringify({ id: pwdUserId.value, password: newPassword.value }),
     })
@@ -239,7 +224,7 @@ async function handleRemove(row: AdminUser) {
     return
   }
   try {
-    await api(`/auth/users?id=${encodeURIComponent(row.id)}`, { method: 'DELETE' })
+    await apiFetch(`/auth/users?id=${encodeURIComponent(row.id)}`, { method: 'DELETE' })
     await refresh()
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '删除失败')

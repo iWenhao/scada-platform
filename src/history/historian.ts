@@ -12,8 +12,7 @@
  * 失败策略：远程模式连续多次失败后本次会话内停止远程上报（画面照常运行，
  * 恢复能力随下次刷新回来），但不影响本地降级路径。
  */
-import { resolveApiBase } from '@/storage/config'
-import { authHeaders } from '@/auth/session'
+import { apiData, apiFetch } from '@/api/client'
 import { getStorage, storageMode } from '@/storage'
 
 export interface SamplePoint {
@@ -96,12 +95,7 @@ export async function flush(): Promise<boolean> {
   }
 
   try {
-    const res = await fetch(`${resolveApiBase()}/history/write`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(payload),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    await apiFetch('/history/write', { method: 'POST', body: JSON.stringify(payload) })
     queue.clear()
     failCount = 0
     return true
@@ -192,12 +186,8 @@ async function queryRemote(
     params.set('agg', options.agg)
     params.set('window', String(Math.round(options.windowMs)))
   }
-  const res = await fetch(`${resolveApiBase()}/history/query?${params}`, {
-    headers: authHeaders(),
-  })
-  if (!res.ok) throw new Error(`历史查询失败: HTTP ${res.status}`)
-  const data = await res.json()
-  return Array.isArray(data?.points) ? data.points : []
+  const points = await apiData<SamplePoint[]>(`/history/query?${params}`)
+  return Array.isArray(points) ? points : []
 }
 
 /** 本地查询：只读与区间相交的分片（与服务端一致的按天组织） */

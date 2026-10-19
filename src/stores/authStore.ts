@@ -8,8 +8,8 @@ import {
   writeSessionCache,
   clearSessionCache,
 } from '@/storage/sessionKey'
-import { resolveApiBase } from '@/storage/config'
-import { setSessionToken, authHeaders } from '@/auth/session'
+import { ApiRequestError, apiData, apiFetch } from '@/api/client'
+import { setSessionToken } from '@/auth/session'
 
 interface SessionPayload {
   user: LoginUser
@@ -48,24 +48,21 @@ export const useAuthStore = defineStore('auth', () => {
       saved = JSON.parse(raw) as SessionPayload
       if (!saved?.token || !saved?.user?.id) return
       setSessionToken(saved.token)
-      const res = await fetch(`${resolveApiBase()}/auth/me`, {
-        headers: authHeaders(),
-        signal: AbortSignal.timeout(3000),
-      })
-      if (!res.ok) {
+      const me = await apiData<LoginUser>('/auth/me', { signal: AbortSignal.timeout(3000) })
+      user.value = me
+      resetCustomComponentsCache()
+      syncLocalNamespace(user.value?.id)
+    } catch (e) {
+      // 服务端明确拒绝（会话过期、账号被删）：本地登录态已无效，清掉回登录页
+      if (e instanceof ApiRequestError) {
         setSessionToken(null)
         clearSessionCache()
         resetCustomComponentsCache()
         syncLocalNamespace(null)
         return
       }
-      const body = await res.json()
-      user.value = body.user
-      resetCustomComponentsCache()
-      syncLocalNamespace(user.value?.id)
-    } catch {
       // 后端不可用时保留本地用户缓存，便于内网离线演示（写接口会 401）。
-      // token 在 fetch 之前已置位；此处把缓存里的 user 还原到 store，
+      // token 在请求之前已置位；此处把缓存里的 user 还原到 store，
       // 并同步到该用户的键空间——若落到匿名命名空间，看到的会是别人的数据
       if (saved?.user?.id) {
         user.value = saved.user
@@ -79,23 +76,22 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     loginError.value = ''
     try {
-      const res = await fetch(`${resolveApiBase()}/auth/login`, {
+      const session = await apiData<SessionPayload>('/auth/login', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ username, password }),
       })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok || !body.token) {
-        loginError.value = body.error || '登录失败'
+      if (!session?.token) {
+        loginError.value = '登录失败'
         return false
       }
-      user.value = body.user
-      setSessionToken(body.token)
-      writeSessionCache(JSON.stringify({ user: body.user, token: body.token }))
+      user.value = session.user
+      setSessionToken(session.token)
+      writeSessionCache(JSON.stringify({ user: session.user, token: session.token }))
       resetCustomComponentsCache()
       syncLocalNamespace(user.value?.id)
       return true
     } catch (e) {
+      // ApiRequestError.message 就是服务端给的中文说明（用户名或口令错误 / 尝试过于频繁…）
       loginError.value = e instanceof Error ? e.message : String(e)
       return false
     } finally {
@@ -105,12 +101,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout(): Promise<void> {
     try {
-      await fetch(`${resolveApiBase()}/auth/logout`, {
-        method: 'POST',
-        headers: authHeaders(),
-      })
+      await apiFetch('/auth/logout', { method: 'POST' })
     } catch {
-      // ignore
+      // ignore：登出失败也要把本地登录态清掉
     }
     setSessionToken(null)
     user.value = null

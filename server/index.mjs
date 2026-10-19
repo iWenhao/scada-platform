@@ -16,14 +16,20 @@
 //   GET    /api/auth/me
 //   GET/POST/PATCH/DELETE /api/auth/users
 //   GET    /api/keys | /api/storage/keys
-//   GET    /api/storage/projects        工程列表分页摘要（?limit=&offset=&keyword=，含 total/publishedTotal/matchedTotal）
-//   GET    /api/storage/get?key=
-//   PUT    /api/storage/set?key=    (engineer+; 带 ?mode=create 时键已存在返回 409，不覆盖)
+//   GET    /api/storage/projects        工程列表分页摘要（?limit=&offset=&keyword=，摘要在 data、统计在 meta）
+//   GET    /api/storage/get?key=        值在 data、版本指纹在 meta.etag
+//   PUT    /api/storage/set?key=    (engineer+; 带 ?mode=create 时键已存在返回 409 code=key_exists，
+//                                    带 ?ifMatch= 时版本不符返回 409 code=version_stale)
 //   DELETE /api/storage/remove?key= (engineer+)
 //   POST   /api/history/write       (operator+)
 //   GET    /api/history/query
 //   POST/GET/DELETE /api/audit
 //   GET/PUT /api/notify/channels    POST /api/notify/test|send   GET/DELETE /api/notify/log
+//
+// 响应体约定（全服务只此两种形状，见 lib/http.mjs 的 successEnvelope/errorEnvelope）：
+//   成功 2xx → { data, meta? }
+//   失败     → { error: { code, message, meta? } }
+// 成败以 HTTP status 判定；客户端只按 error.code 分支，error.message 是给人看的中文、可随意改文案。
 import { createServer } from 'node:http'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -31,14 +37,17 @@ import { fileURLToPath } from 'node:url'
 // 启动横幅：与前端（浏览器控制台 / pnpm dev 终端）共用同一份布局，本文件只提供后端自身的信息。
 // 注意：这让 server/ 依赖仓库根的 shared/ 目录，分发时要连 shared 一起带上，不能只拷 server/。
 import { buildBannerModel, renderAnsi, renderPlain, supportsColor } from '../shared/consoleBanner.mjs'
-import { createAuthStore } from './auth.mjs'
+import { createAuthStore, roleAtLeast } from './auth.mjs'
+import { ApiError, forbidden, notFound } from './lib/apiError.mjs'
 import { scopeOf } from './lib/kv.mjs'
 import { historyDirFor, cleanupExpiredShards } from './lib/history.mjs'
 import { acquireInstanceLock, describeHolder } from './lib/singleInstanceLock.mjs'
 import {
   makeCorsHeaders,
-  sendJson,
+  sendData,
+  sendFail,
   authenticateRequest,
+  requireRole,
 } from './lib/http.mjs'
 import { handlePublic } from './routes/public.mjs'
 import { handleAuth } from './routes/auth.mjs'
@@ -112,8 +121,12 @@ async function shutdown(code = 0) {
 process.on('SIGINT', () => void shutdown(0))
 process.on('SIGTERM', () => void shutdown(0))
 
-function ok(res, req, status, body) {
-  sendJson(res, req, status, body, corsHeaders)
+/** 响应出口：路由只用 send/fail/guard，不手拼响应体 */
+function makeResponder(res, req) {
+  return {
+    send: (status, data, meta) => sendData(res, req, status, data, meta, corsHeaders),
+    fail: (status, code, message, meta) => sendFail(res, req, status, code, message, meta, corsHeaders),
+  }
 }
 
 const server = createServer(async (req, res) => {
@@ -124,6 +137,7 @@ const server = createServer(async (req, res) => {
   }
 
   const url = new URL(req.url, `http://localhost:${PORT}`)
+  const { send, fail } = makeResponder(res, req)
 
   try {
     // 各路由模块共用的上下文：请求、响应出口、存储定位与运行时依赖。
@@ -132,7 +146,8 @@ const server = createServer(async (req, res) => {
       req,
       res,
       url,
-      ok,
+      send,
+      fail,
       auth,
       authn: null,
       dataDir: DATA_DIR,
@@ -146,7 +161,7 @@ const server = createServer(async (req, res) => {
 
     const authn = authenticateRequest(req, { auth, authToken: AUTH_TOKEN })
     if (!authn) {
-      return ok(res, req, 401, { error: 'unauthorized' })
+      return fail(401, 'unauthorized', '请先登录')
     }
 
     const scope = scopeOf(authn)
@@ -155,6 +170,10 @@ const server = createServer(async (req, res) => {
       authn,
       scope,
       historyDir: historyDirFor(HISTORY_DIR, scope),
+      /** 角色门禁：不足直接抛 forbidden，由顶层 catch 统一出 403 形状（不在每个路由重复写 if） */
+      guard: minRole => {
+        if (!requireRole(authn, minRole, roleAtLeast)) throw forbidden()
+      },
     }
 
     // 顺序与原单体实现一致：账号 → 通知 → 审计 → 存储 → 工程索引 → 历史
@@ -165,10 +184,15 @@ const server = createServer(async (req, res) => {
     if (await handleProjects(ctx)) return
     if (await handleHistory(ctx)) return
 
-    return ok(res, req, 404, { error: 'not found' })
+    throw notFound()
   } catch (e) {
+    // 唯一的错误出口：带 code 的 ApiError 原样翻译；其余按状态码归类。
+    if (e instanceof ApiError) {
+      if (e.status >= 500) console.error('[scada-server] 请求失败', e)
+      return fail(e.status, e.code, e.message, e.meta)
+    }
     if (e instanceof SyntaxError) {
-      return ok(res, req, 400, { error: 'invalid json' })
+      return fail(400, 'invalid_json', '请求体不是合法 JSON')
     }
     const status = Number(e?.status) || 500
     // 5xx 不回显 e.message：fs 错误的 message 形如
@@ -176,9 +200,9 @@ const server = createServer(async (req, res) => {
     // 详情进服务端日志，客户端只拿状态码与泛化文案。
     if (status >= 500) {
       console.error('[scada-server] 请求处理失败', e)
-      return ok(res, req, status, { error: 'internal error' })
+      return fail(500, 'internal_error', '服务内部错误')
     }
-    return ok(res, req, status, { error: String(e?.message || e) })
+    return fail(status, 'bad_request', String(e?.message || e))
   }
 })
 

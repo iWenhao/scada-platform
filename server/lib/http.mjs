@@ -1,7 +1,13 @@
 /**
  * HTTP 响应与鉴权辅助（零依赖）。
  * 路由模块共用：CORS、JSON 响应、Bearer 解析、角色门禁。
+ *
+ * 响应体只有两种形状（由 index.mjs 注入的 ctx.send / ctx.fail 产出，路由不手拼）：
+ *   成功 2xx → { data, meta? }                 data 是负载本体，meta 放 etag/total/written 这类附属信息
+ *   失败     → { error: { code, message, meta? } }   code 供客户端分支，message 直接展示
+ * 成败一律以 HTTP status 判定，body 内不再重复放 ok 字段。
  */
+import { ApiError } from './apiError.mjs'
 
 /**
  * 构造 CORS 响应头。
@@ -38,6 +44,33 @@ export function sendJson(res, req, status, body, corsHeaders) {
   res.end(JSON.stringify(body))
 }
 
+/**
+ * 成功响应体。`data` 恒为键（缺省 null），客户端可无条件读；
+ * `meta` 为空对象或 undefined 时整个键省略，避免 `{ data, meta: {} }` 这种噪声。
+ */
+export function successEnvelope(data, meta) {
+  const body = { data: data ?? null }
+  if (meta && Object.keys(meta).length > 0) body.meta = meta
+  return body
+}
+
+/** 失败响应体：code 是给客户端比对的稳定标识，message 是给人看的中文 */
+export function errorEnvelope(code, message, meta) {
+  const error = { code, message }
+  if (meta && Object.keys(meta).length > 0) error.meta = meta
+  return { error }
+}
+
+/** 发送成功响应 */
+export function sendData(res, req, status, data, meta, corsHeaders) {
+  sendJson(res, req, status, successEnvelope(data, meta), corsHeaders)
+}
+
+/** 发送失败响应 */
+export function sendFail(res, req, status, code, message, meta, corsHeaders) {
+  sendJson(res, req, status, errorEnvelope(code, message, meta), corsHeaders)
+}
+
 /** 从 Authorization 头取出 Bearer token（无则空串） */
 export function bearer(req) {
   const h = req.headers.authorization || ''
@@ -45,7 +78,7 @@ export function bearer(req) {
 }
 
 /**
- * 读取请求体为字符串；超过 limit 抛 status=413。
+ * 读取请求体为字符串；超过 limit 抛 413 的 ApiError（由顶层 catch 翻译为失败响应）。
  */
 export async function readBody(req, limit) {
   let size = 0
@@ -53,11 +86,14 @@ export async function readBody(req, limit) {
   for await (const chunk of req) {
     size += chunk.length
     if (size > limit) {
-      // status 由路由层读取后作为响应码；标准 Error 上没有这个字段，靠类型断言补上
-      /** @type {Error & { status?: number }} */
-      const err = new Error('payload too large')
-      err.status = 413
-      throw err
+      // 按上限量级选单位：测试用的百字节上限报「0 MB」等于没报
+      const text =
+        limit >= 1024 * 1024
+          ? `${(limit / 1024 / 1024).toFixed(0)} MB`
+          : limit >= 1024
+            ? `${(limit / 1024).toFixed(0)} KB`
+            : `${limit} 字节`
+      throw new ApiError(413, 'payload_too_large', `请求体超过上限 ${text}`)
     }
     chunks.push(chunk)
   }

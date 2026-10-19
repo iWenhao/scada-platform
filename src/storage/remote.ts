@@ -1,23 +1,20 @@
 import type { StorageAdapter, ProjectQuery, ProjectIndexPage } from './index'
 import { StorageConflictError } from './errors'
-import { authHeaders } from '@/auth/session'
+import { apiFetch, ApiRequestError, type ApiResult } from '@/api/client'
 
 /**
  * 远程存储适配器：对接 server/index.mjs 提供的 KV 存储服务。
  * 使项目/自定义组件持久化到服务端文件，而非浏览器 localStorage。
+ *
+ * 响应拆解统一走 @/api/client：本类只负责「KV 语义 → 存储层语义」的映射，
+ * 比如把服务端的 409 code 翻成 StorageConflictError 的 reason。
  */
 export class RemoteStorageAdapter implements StorageAdapter {
-  private get headers(): Record<string, string> {
-    return authHeaders()
-  }
-
   constructor(private base = '/api/storage') {}
 
   async keys(): Promise<string[]> {
-    const res = await fetch(this.base + '/keys', { headers: this.headers })
-    if (!res.ok) throw new Error(`keys failed: HTTP ${res.status}`)
-    const body = await res.json()
-    return body.keys ?? []
+    const { data } = await apiFetch<string[]>('/keys', { base: this.base })
+    return Array.isArray(data) ? data : []
   }
 
   /**
@@ -30,33 +27,39 @@ export class RemoteStorageAdapter implements StorageAdapter {
     if (query.limit != null) params.set('limit', String(query.limit))
     if (query.offset) params.set('offset', String(query.offset))
     const qs = params.toString()
-    const res = await fetch(this.base + '/projects' + (qs ? `?${qs}` : ''), { headers: this.headers })
-    if (!res.ok) throw new Error(`projects failed: HTTP ${res.status}`)
-    const body = await res.json()
+    const { data, meta } = await apiFetch<ProjectIndexPage['projects']>(
+      '/projects' + (qs ? `?${qs}` : ''),
+      { base: this.base },
+    )
     return {
-      projects: body.projects ?? [],
-      total: Number(body.total) || 0,
-      publishedTotal: Number(body.publishedTotal) || 0,
-      matchedTotal: Number(body.matchedTotal) || 0,
+      projects: Array.isArray(data) ? data : [],
+      total: Number(meta.total) || 0,
+      publishedTotal: Number(meta.publishedTotal) || 0,
+      matchedTotal: Number(meta.matchedTotal) || 0,
     }
   }
 
   async get(key: string): Promise<string | null> {
-    const res = await fetch(`${this.base}/get?key=${encodeURIComponent(key)}`, {
-      headers: this.headers,
-    })
-    if (!res.ok) return null
-    const body = await res.json()
-    return body.value ?? null
+    const { data } = await this.read(key)
+    return (data ?? null) as string | null
   }
 
   async getWithMeta(key: string): Promise<{ value: string | null; etag: string | null }> {
-    const res = await fetch(`${this.base}/get?key=${encodeURIComponent(key)}`, {
-      headers: this.headers,
-    })
-    if (!res.ok) return { value: null, etag: null }
-    const body = await res.json()
-    return { value: body.value ?? null, etag: body.etag ?? null }
+    const { data, meta } = await this.read(key)
+    return { value: (data ?? null) as string | null, etag: (meta.etag as string) ?? null }
+  }
+
+  /**
+   * 读一个键。后端把值放 data、版本指纹放 meta.etag（改造前两者平铺在顶层）。
+   * 读失败一律按「无数据」返回而不抛错：启动期的键探测（主题/画布/连线/工程列表）
+   * 都依赖这个语义，后端明确报错也不能把整个编辑器卡在加载页上。
+   */
+  private async read(key: string): Promise<ApiResult<string | null>> {
+    try {
+      return await apiFetch<string>(`/get?key=${encodeURIComponent(key)}`, { base: this.base })
+    } catch {
+      return { data: null, meta: {} }
+    }
   }
 
   async set(
@@ -65,31 +68,29 @@ export class RemoteStorageAdapter implements StorageAdapter {
     options?: { ifAbsent?: boolean; ifMatch?: string | null },
   ): Promise<string | null> {
     const params = new URLSearchParams({ key })
-    // ifAbsent → 服务端 ?mode=create：判重交后端一次原子写，撞名回 409（reason=exists）
+    // ifAbsent → 服务端 ?mode=create：判重交后端一次原子写，撞名回 409 key_exists
     if (options?.ifAbsent) params.set('mode', 'create')
-    // ifMatch → 服务端 ?ifMatch=<etag>：仅当服务端版本一致时才写，不一致回 409（reason=stale）
+    // ifMatch → 服务端 ?ifMatch=<etag>：仅当服务端版本一致时才写，不一致回 409 version_stale
     if (options?.ifMatch) params.set('ifMatch', options.ifMatch)
-    const res = await fetch(`${this.base}/set?${params.toString()}`, {
-      method: 'PUT',
-      headers: { ...this.headers, 'content-type': 'text/plain; charset=utf-8' },
-      body: value,
-    })
-    if (res.status === 409) {
-      // 服务端在 body.error 里区分 exists（撞名）与 stale（版本旧）
-      const body = await res.json().catch(() => ({}))
-      throw new StorageConflictError(body.error === 'stale' ? 'stale' : 'exists')
+    try {
+      const { meta } = await apiFetch<null>(`/set?${params.toString()}`, {
+        base: this.base,
+        method: 'PUT',
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+        body: value,
+      })
+      // 返回服务端写入后的新 etag，供上层推进 loadedEtag
+      return typeof meta.etag === 'string' ? meta.etag : null
+    } catch (e) {
+      // 409 是并发语义而非故障：转成 StorageConflictError，上层据此走改名/刷新提示
+      if (e instanceof ApiRequestError && e.status === 409) {
+        throw new StorageConflictError(e.code === 'version_stale' ? 'stale' : 'exists', e.message)
+      }
+      throw e
     }
-    if (!res.ok) throw new Error(`set failed: HTTP ${res.status}`)
-    const body = await res.json().catch(() => ({}))
-    // 返回服务端写入后的新 etag，供上层推进 loadedEtag
-    return typeof body.etag === 'string' ? body.etag : null
   }
 
   async remove(key: string): Promise<void> {
-    const res = await fetch(`${this.base}/remove?key=${encodeURIComponent(key)}`, {
-      method: 'DELETE',
-      headers: this.headers,
-    })
-    if (!res.ok) throw new Error(`remove failed: HTTP ${res.status}`)
+    await apiFetch(`/remove?key=${encodeURIComponent(key)}`, { base: this.base, method: 'DELETE' })
   }
 }

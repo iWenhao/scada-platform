@@ -94,7 +94,11 @@ describe('authStore.restoreSession', () => {
     expect(activePrefix()).toBe('u/u1/')
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => ({ ok: false, status: 401 })),
+      vi.fn(async () => ({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: { code: 'unauthorized', message: '请先登录' } }),
+      })),
     )
 
     const store = useAuthStore()
@@ -113,7 +117,8 @@ describe('authStore.restoreSession', () => {
       'fetch',
       vi.fn(async () => ({
         ok: true,
-        json: async () => ({ user: { ...alice, displayName: 'Alice·服务端', role: 'admin' as const } }),
+        status: 200,
+        json: async () => ({ data: { ...alice, displayName: 'Alice·服务端', role: 'admin' as const } }),
       })),
     )
 
@@ -127,7 +132,7 @@ describe('authStore.restoreSession', () => {
 
   it('无会话缓存时不应发请求', async () => {
     await enterLocalMode()
-    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ user: alice }) }))
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: alice }) }))
     vi.stubGlobal('fetch', fetchMock)
 
     const store = useAuthStore()
@@ -140,7 +145,7 @@ describe('authStore.restoreSession', () => {
   it('缓存损坏（缺 token）时不应发请求且不抛错', async () => {
     await enterLocalMode()
     localStorage.setItem('scada_session', JSON.stringify({ user: alice }))
-    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ user: alice }) }))
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: alice }) }))
     vi.stubGlobal('fetch', fetchMock)
 
     const store = useAuthStore()

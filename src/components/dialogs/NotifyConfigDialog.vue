@@ -345,9 +345,9 @@ async function handleTest(row: NotifyChannel) {
       minIntervalMs: minIntervalSec.value * 1000,
     })
     const target = cfg.channels.find(c => c.name === row.name && c.type === row.type) || row
-    const result = await testNotifyChannel(target.id)
-    if (result.ok) ElMessage.success(`「${row.name}」发送成功`)
-    else ElMessage.error(result.error || '发送失败')
+    // 发送失败时 testNotifyChannel 抛错，服务端给的中文原因由下面的 catch 直接展示
+    await testNotifyChannel(target.id)
+    ElMessage.success(`「${row.name}」发送成功`)
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '测试失败')
   }

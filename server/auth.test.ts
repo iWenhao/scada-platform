@@ -155,7 +155,7 @@ describe('登录与令牌', () => {
     const { auth } = await newStore()
     const created = await auth.createUser({ username: 'temp', displayName: '', role: 'engineer', password: 'pass123' })
     const { token } = await auth.login('temp', 'pass123', '10.0.0.5')
-    expect(await auth.removeUser(created.user.id)).toEqual({ ok: true })
+    await expect(auth.removeUser(created.id)).resolves.toBeUndefined()
     expect(auth.resolveToken(token)).toBeNull()
   })
 })
@@ -285,45 +285,60 @@ describe('登录失败限流', () => {
 })
 
 describe('账号管理', () => {
-  it('新建账号校验口令长度、角色合法与用户名不重复', async () => {
+  it('新建账号校验口令长度、角色合法与用户名不重复（抛 ApiError，按 code 断言）', async () => {
     const { auth } = await newStore()
-    expect(await auth.createUser({ username: 'x', displayName: '', role: 'viewer', password: '123' }))
-      .toEqual({ error: 'username/password invalid' })
-    expect(await auth.createUser({ username: 'x', displayName: '', role: 'superuser', password: 'pass123' }))
-      .toEqual({ error: 'invalid role' })
-    expect(await auth.createUser({ username: 'admin', displayName: '', role: 'viewer', password: 'pass123' }))
-      .toEqual({ error: 'username exists' })
+    await expect(auth.createUser({ username: 'x', displayName: '', role: 'viewer', password: '123' }))
+      .rejects.toMatchObject({ status: 400, code: 'invalid_user' })
+    await expect(auth.createUser({ username: 'x', displayName: '', role: 'superuser', password: 'pass123' }))
+      .rejects.toMatchObject({ status: 400, code: 'invalid_role' })
+    await expect(auth.createUser({ username: 'admin', displayName: '', role: 'viewer', password: 'pass123' }))
+      .rejects.toMatchObject({ status: 409, code: 'username_exists' })
   })
 
   it('用户名前后空格不算新账号，避免和已有账号重名', async () => {
     const { auth } = await newStore()
-    expect(await auth.createUser({ username: '  admin  ', displayName: '', role: 'viewer', password: 'pass123' }))
-      .toEqual({ error: 'username exists' })
-    expect(await auth.createUser({ username: '   ', displayName: '', role: 'viewer', password: 'pass123' }))
-      .toEqual({ error: 'username/password invalid' })
+    await expect(auth.createUser({ username: '  admin  ', displayName: '', role: 'viewer', password: 'pass123' }))
+      .rejects.toMatchObject({ code: 'username_exists' })
+    await expect(auth.createUser({ username: '   ', displayName: '', role: 'viewer', password: 'pass123' }))
+      .rejects.toMatchObject({ code: 'invalid_user' })
   })
 
   it('不允许降级或删除最后一名管理员，补上第二名之后才放行', async () => {
     const { auth } = await newStore()
     const admin = auth.findByUsername('admin')
-    expect(await auth.updateUser(admin.id, { role: 'engineer' })).toEqual({ error: 'cannot demote last admin' })
-    expect(await auth.removeUser(admin.id)).toEqual({ error: 'cannot remove last admin' })
+    await expect(auth.updateUser(admin.id, { role: 'engineer' })).rejects.toMatchObject({
+      status: 409,
+      code: 'last_admin',
+    })
+    await expect(auth.removeUser(admin.id)).rejects.toMatchObject({ status: 409, code: 'last_admin' })
     expect(auth.getUser(admin.id).role).toBe('admin')
 
     // 补两名管理员：降级与删除都还有余地
     const second = await auth.createUser({ username: 'admin2', displayName: '', role: 'admin', password: 'pass123' })
     await auth.createUser({ username: 'admin3', displayName: '', role: 'admin', password: 'pass123' })
-    expect(await auth.updateUser(admin.id, { role: 'engineer' })).toMatchObject({ user: { role: 'engineer' } })
-    expect(await auth.removeUser(second.user.id)).toEqual({ ok: true })
+    expect(await auth.updateUser(admin.id, { role: 'engineer' })).toMatchObject({ role: 'engineer' })
+    await expect(auth.removeUser(second.id)).resolves.toBeUndefined()
     // 此时只剩 admin3，回到「最后一名」状态
-    expect(await auth.removeUser(auth.findByUsername('admin3').id)).toEqual({ error: 'cannot remove last admin' })
+    await expect(auth.removeUser(auth.findByUsername('admin3').id)).rejects.toMatchObject({ code: 'last_admin' })
+  })
+
+  it('不存在的用户按 404 user_not_found 失败（原先统一 400，客户端无法区分打错 id 与参数不合法）', async () => {
+    const { auth } = await newStore()
+    await expect(auth.updateUser('usr_missing', { displayName: 'x' })).rejects.toMatchObject({
+      status: 404,
+      code: 'user_not_found',
+    })
+    await expect(auth.removeUser('usr_missing')).rejects.toMatchObject({ status: 404, code: 'user_not_found' })
   })
 
   it('管理员重置口令后旧口令立即失效，过短口令拒绝', async () => {
     const { auth } = await newStore()
     const u = auth.findByUsername('viewer')
-    expect(await auth.updateUser(u.id, { password: '123' })).toEqual({ error: 'password too short' })
-    expect(await auth.updateUser(u.id, { password: 'brand-new' })).toMatchObject({ user: { username: 'viewer' } })
+    await expect(auth.updateUser(u.id, { password: '123' })).rejects.toMatchObject({
+      status: 400,
+      code: 'password_too_short',
+    })
+    expect(await auth.updateUser(u.id, { password: 'brand-new' })).toMatchObject({ username: 'viewer' })
     expect(await auth.login('viewer', SEED, '10.0.1.1')).toBeNull()
     expect(await auth.login('viewer', 'brand-new', '10.0.1.2')).not.toBeNull()
   })
@@ -331,13 +346,17 @@ describe('账号管理', () => {
   it('自助改口令需验证旧口令，新用户同样走这套校验', async () => {
     const { auth } = await newStore()
     const created = await auth.createUser({ username: 'self', displayName: '自助', role: 'operator', password: 'pass123' })
-    expect(await auth.changeOwnPassword(created.user.id, 'wrong', 'other123'))
-      .toEqual({ error: 'old password incorrect' })
-    expect(await auth.changeOwnPassword(created.user.id, 'pass123', '1'))
-      .toEqual({ error: 'password too short' })
-    expect(await auth.changeOwnPassword('usr_missing', 'pass123', 'other123'))
-      .toEqual({ error: 'not found' })
-    expect(await auth.changeOwnPassword(created.user.id, 'pass123', 'other123')).toEqual({ ok: true })
+    await expect(auth.changeOwnPassword(created.id, 'wrong', 'other123')).rejects.toMatchObject({
+      status: 400,
+      code: 'old_password_incorrect',
+    })
+    await expect(auth.changeOwnPassword(created.id, 'pass123', '1')).rejects.toMatchObject({
+      code: 'password_too_short',
+    })
+    await expect(auth.changeOwnPassword('usr_missing', 'pass123', 'other123')).rejects.toMatchObject({
+      code: 'user_not_found',
+    })
+    await expect(auth.changeOwnPassword(created.id, 'pass123', 'other123')).resolves.toBeUndefined()
     expect(await auth.login('self', 'pass123', '10.0.1.3')).toBeNull()
     expect(await auth.login('self', 'other123', '10.0.1.4')).not.toBeNull()
   })
