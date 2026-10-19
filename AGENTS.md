@@ -1,7 +1,7 @@
 # AGENTS.md — AI 编码代理工作指南
 
 > 本文件供 AI 编码代理（以及新加入的开发者）在本仓库工作时遵循。这里的每一条都对**任何机器、任何 agent、任何协作者**成立；只在本机成立的诊断细节已外移到 [docs/ENV_NOTES.md](docs/ENV_NOTES.md)。
-> 文档地图：[README.md](README.md)（架构图与二次开发指南）、[docs/USER_GUIDE.md](docs/USER_GUIDE.md)（使用者操作手册）、[docs/DEPLOY.md](docs/DEPLOY.md)（部署）、[docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)（图元绘制规范，触发即必读）、[docs/ENV_NOTES.md](docs/ENV_NOTES.md)（本机环境诊断细节，出现症状才读）、[UI_DESIGN_GUIDE.md](UI_DESIGN_GUIDE.md)（UI 设计稿，历史参考）。
+> 文档地图：[README.md](README.md)（架构图与二次开发指南）、[docs/USER_GUIDE.md](docs/USER_GUIDE.md)（使用者操作手册）、[docs/DEPLOY.md](docs/DEPLOY.md)（部署）、[docs/2.5D_ILLUSTRATION_GUIDE.md](docs/2.5D_ILLUSTRATION_GUIDE.md)（图元绘制规范，触发即必读）、[docs/PARALLEL_WORK.md](docs/PARALLEL_WORK.md)（多会话并行改动隔离，多人协作才读）、[docs/ENV_NOTES.md](docs/ENV_NOTES.md)（本机环境诊断细节，出现症状才读）、[UI_DESIGN_GUIDE.md](UI_DESIGN_GUIDE.md)（UI 设计稿，历史参考）。
 
 ## 字节预算（新增规则前先核）
 
@@ -202,13 +202,7 @@ pnpm lint               # ESLint
 ## 工作流约定
 
 - **分支**：日常开发提交到 `dev` 分支并推送 `origin dev`；master 用于发布合并。
-- **并行改动（多个会话 / Agent 同时动本仓库）**：判据顺序，能用上一层就不往下一层退。
-  1. **环境有原生 worktree 隔离**（派子任务时能指定「隔离的工作树」这类参数）→ 用它，通常还会自动清理没改动的副本；
-  2. **没有原生能力** → 手工开：`git worktree add ../scada-wt-<slug> -b wt/<slug> dev`（新目录 + 新分支，`dev` 仍归主工作树），进去后 `pnpm install`（`node_modules/` 不跟着工作树走）。收尾 `git worktree remove ../scada-wt-<slug>`（分支留着等合并），全清完再 `git worktree prune`；
-  3. **连独立目录都不方便**（同一工作树跑多个会话）→ 三条硬规矩：按模块切分工（一个会话只碰 `src/industrial/**`，另一个只碰 `server/**`）、**绝不 `git add -A` / `git commit -a`**（只 add 自己动过的文件）、开工先 `git status --short` 且把他人的改动原样留着不动。
-  - git 禁止同一个分支被两个工作树同时检出（实测会 `fatal: 'dev' is already used by worktree`），所以每个并行工作树必须各自 `-b` 新分支、最后逐层合回 `dev`。
-  - **工作树只隔离磁盘编辑与暂存区**，两类东西它管不了：① 语义冲突（两边用不同方式改同一个函数；`CHANGELOG.md` 的 `[Unreleased]` 每人都追加在同一位置，这是**必然冲突点**，合并时按提交时间手工接）；② git 之外的共享状态，本仓库三处必须逐个错开——`server/data/`（并行实例一律自备 `DATA_DIR`，否则跨进程竞态写同一批 JSON）、端口（`5173` 只归主工作树，并行用 `npx vite --port 5180` / `PORT=5178`）、正在被浏览器占用的登录会话与 localStorage。
-  - 第 3 层为什么必须「只 add 自己动过的文件」：`git add` 拿的是**当时整个工作树的快照**，会把他人的 WIP 卷进自己的提交；本项目发生过另一会话的 4 个文件混进来、靠提交后 `git show --stat` 才确认没被带进去。
+- **并行改动（多个会话 / Agent 同时动本仓库）**：三层判据（原生 worktree → 手工 `git worktree add` → 同树按模块切分 + 只 add 自己文件）与 git 之外三处共享状态（`server/data/`、端口、登录会话）的错开方式详见 [docs/PARALLEL_WORK.md](docs/PARALLEL_WORK.md)；单人开发不读。
 - **提交粒度**：一个功能/修复一个提交。
 - **提交信息**：中文；首行标题 **≤ 30 字符**（含前缀），细节一律写进 `CHANGELOG.md`，提交本身不带长正文。
   - 前缀白名单：`功能:` `修复:` `优化:` `重构:` `清理:` `文档:` `测试:` `构建:` `发版:`；Git 自动生成的 `Merge` / `Revert` / `fixup!` / `squash!` 不受限。

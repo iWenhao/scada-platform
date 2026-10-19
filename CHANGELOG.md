@@ -10,6 +10,13 @@
 
 ### 功能
 
+### 文档
+
+- AGENTS.md 并行改动规则外移到 `docs/PARALLEL_WORK.md`，字节预算从 29.6KB 降到 27.4KB
+  - 背景：AGENTS.md 有 32 KiB 硬上限（Codex `project_doc_max_bytes`），之前 29.6KB 只剩 3.1KB 余量，继续加新规则很快会被尾部静默截断
+  - 改法：把「并行改动三层隔离判据」整段（~1.5KB，单人开发时用不到）外移到 `docs/PARALLEL_WORK.md`，AGENTS.md 正文留一行摘要 + 指针；顶部文档地图同步加该文件
+  - 动了：`docs/PARALLEL_WORK.md`（新）、`AGENTS.md`
+
 ### 清理
 
 - `components.d.ts` / `auto-imports.d.ts` 不再跟踪，根治每次 dev 后反复漂移
