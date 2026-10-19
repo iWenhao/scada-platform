@@ -72,18 +72,19 @@ pnpm lint               # ESLint
 | 一批改动（未提交的也算） | `npx vitest run --changed`（只跑受 git 改动影响的文件） |
 | 几条特定用例 | `npx vitest run -t "关键词"` |
 
-下表的「准备提交或交付」一行**就是提交前的底线（唯一权威定义）**；过程中的检查按改动范围挑着跑——各检查的实际价值并不均等，全跑一遍往往既慢又稀释信号：
+门槛分两级：**每次提交跑轻量集，每次推送由 `scripts/hooks/pre-push` 强制跑全量集**。全量的权威时机在推送而不在提交——没有 CI 的仓库，「每次提交跑全量」等于把集成检查提前到每一小步改动，逻辑单元越小越浪费；提交之间的 HEAD 允许个别坏提交，但不出机器。过程中的检查按改动范围挑着跑——各检查的实际价值并不均等，全跑一遍往往既慢又稀释信号：
 
 | 改动情形 | 该跑什么 | 为什么 |
 | --- | --- | --- |
 | **迭代中（还没改完）——最常见** | **只跑刚动的那个测试文件**（或 `--changed`） | 全量慢，且中途失败多为半成品状态，噪声大于信息 |
 | 改了 `server/**` 或 `shared/**` | 加跑 `pnpm typecheck:server`（`tsc -p tsconfig.server.json`） | 前端那套 `vue-tsc` 的 include 只覆盖 `src/`，服务端 `.mjs` 不在其中；这条是服务端唯一的类型检查入口，不跑等于服务端改动零类型把关 |
 | 跨模块重构 / 改了类型签名与导出 | 加跑 `vue-tsc --noEmit` | 跨文件重构的错误类型检查最灵（`Record` 缺键、接口字段漏传这类单测看不出来） |
-| 准备提交或交付 | 全量 `vitest run` + `vue-tsc --noEmit` + `pnpm build` + `scripts/check-long-files.ps1` | 项目底线，不可跳过。`pnpm build` 覆盖类型检查看不见的静态资源与分包问题；行数检查单测与类型检查都抓不到。全量结果按上一节的判据算数 |
+| 每次提交（轻量集，分钟级以内） | 改动路径相关的测试 + `vue-tsc --noEmit` + `scripts/check-long-files.ps1` | 小改动最易踩的是跨文件类型错，`vue-tsc` 最灵且便宜；全量与 build 留到推送 |
+| 每次推送（`pre-push` 强制，全量的唯一权威时机） | 全量 `vitest run`（钩子内失败自动重试一次，应对沙箱 EPERM 抖动）+ `vue-tsc --noEmit` + `vite build --emptyOutDir=false` + `scripts/check-long-files.ps1` | 项目底线。本仓库没有 CI，这就是唯一的 CI；全量结果按上一节的判据算数 |
 | 引入新文件或改动文件较多 | 加跑**改动文件**的 `eslint` | 全量 eslint 会被仓库既有 `.vue` 报警（`vue/html-indent`、`no-mutating-props` 等）淹没，信号被稀释 |
 | 影响用户可见的输出（UI / 控制台 / 日志格式） | **必须真跑一次并看结果**，优先级排在上面全部静态检查之前 | 见「测试」一节 |
 
-**本仓库没有 CI**（`.github/` 不存在），钩子只有 `scripts/hooks/commit-msg` 且只管标题格式——上表全部靠这段正文约束，它被截断或删薄，门槛就等于取消。
+**本仓库没有 CI**（`.github/` 不存在）。全量门槛由 `scripts/hooks/pre-push` 机器强制（标题格式仍由 `commit-msg` 管）——该钩子被删、或 `core.hooksPath` 失效，全量门槛就只剩这段正文约束，它被截断或删薄即等于取消。
 
 ## 测试
 

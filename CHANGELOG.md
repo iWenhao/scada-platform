@@ -44,6 +44,13 @@
   - 顺带删掉首页的「打开项目」`el-dialog`：`showOpenDialog` 全仓库只有 `= false` 与初始值两处赋值，没有任何入口能打开它（卡片上的打开走 `@open`），属死代码；连带清理 `.open-project-*` 样式
   - 实测：`vue-tsc --noEmit` 零输出、`vitest run --changed` 10 文件 / 113 用例通过、改动文件 eslint 零告警、`pnpm build` 通过、超长文件检查 OK（`index.vue` 399 行、`dashboard.scss` 454 行）。**浏览器肉眼核对未完成**：自动模式拦下代填登录凭据，验证停在未登录跳转页
 
+- 首页「预览」改为新开标签的独立运行端，该标签不再显示「编辑器」入口
+  - 场景：首页点预览是在当前标签里跳走，看完想回项目列表还得再返回一次；而这一页内存里没有编辑现场，顶栏那枚「编辑器」点下去是个空工程，属误导
+  - 改法：`dashboard/index.vue` 的 `previewProject()` 由 `router.push` 改 `window.open(router.resolve(...).href, '_blank')`，首页标签留在项目列表；预览页把 `uiStore.hasEditSession` 透传成新 prop `showBack`（`PreviewHeader.vue`，`withDefaults` 默认 true，编辑器工具栏入口行为不变）控制按钮显隐。加载失败占位页里的「返回编辑器」同一判据隐藏，「重试 / 返回首页」保留
+  - 为什么复用 `hasEditSession` 而不是新加 `?from=home`：这个开关的语义本来就是「本标签页有需要保护的编辑现场」（编辑器 setup 置位、首页挂载复位），预览页早已用它决定要不要快照/还原工程；再加一个来源参数等于给同一件事第二份真相，且手输 URL、观察员被守卫踢进预览（`src/router/index.ts:58`）两种入口都带不上它。观察员进预览同样隐藏该按钮，正好对上他无编辑权限的事实
+  - 文档：README「交互流程 → 预览」补两个入口的差别；`docs/USER_GUIDE.md`「预览模式」首段原写「点击"返回编辑器"回到编辑状态」已不成立，改成分入口描述
+  - 实测：`vue-tsc --noEmit` 零输出、`vitest run --changed` 通过、改动文件 eslint 0 错误、超长文件检查 OK（`dashboard/index.vue` 压到 400 行，注释占一行以免顶破阈值）。另用临时挂载用例确认 `showBack=false` 时 HUD 里没有「编辑器」而其余按钮仍在，跑完即删。**浏览器肉眼核对未完成**：`window.open` 的新标签需要登录态，自动模式拦下代填凭据，验证停在未登录跳转页
+
 ### 优化
 
 - 预览页「上一画面」改名并挂上说明气泡
@@ -52,6 +59,21 @@
   - 两个坑：① 气泡必须挂在包装 `span.hud-btn-host` 上而不是按钮本身——`disabled` 的 button 不派发鼠标事件，`el-tooltip` 挂上去永远弹不出来，配套让按钮 `pointer-events: none`、由外层接住 hover；② `effect` 要显式写 `light`，EP 默认的 `dark` 档在暗色主题下会被变量反转成白底（`is-dark` 背景取 `--el-text-color-primary`），浮在黑 HUD 上很突兀；`light` 档亮色主题走 EP 默认白底、暗色主题由 `dark-theme.scss` 的 `.el-popper.is-light` 统一刷成品牌深色，跟随 HUD 一起换肤
   - 动了：`src/views/preview/PreviewHeader.vue`、`preview-header.scss`（`.hud-btn-host`）、新增 `PreviewHeader.test.ts`
   - 实测：挂载测试 2 例通过——禁用态 hover 宿主 span 能弹层且文案含「还没有画面跳转记录」，可用态文案为「回到刚才看的那张画面」且浮层带 `is-light`；`vue-tsc --noEmit` 0 错、`pnpm build` 通过
+- 掘进机图元按采煤机素材的画法重绘（线条稿，不走面基）
+  - 背景：`roadheader` 的图标是早期占位（6 个图元：车架矩形 + 两个轮 + 机身矩形 + 一根悬臂线 + 一个截割头圆），和同一面板里素材导入的采煤机摆在一起明显糙。用户点名的对照基准就是采煤机，要求「按那个精致的画面优化」
+  - 与规范的取舍（**这是有意偏离 AGENTS.md「新写设备图元一律按插画级（面基）写」**）：先按面基画了 2:1 二点五等轴测候选，`data-face` 展开后顶面 `stop-opacity 0.9` + 描边 `0.45`，缩到图元尺寸就是一坨青色色块——机器结构完全读不出，也读不出「和采煤机一家」。而采煤机素材本身是**单色描边、内部留空、立体感全靠线条密度**的侧视线稿（`stroke-width="2"`、`fill="none"`、滚筒按正圆 + 密集辐射截齿画）。基准是线稿，就不该把对照物画成色块，故本次按用户点名的基准走，并留此记录以免下次被当成「忘了地面基」
+  - 改法（`src/industrial/coal/index.ts` 的 `RoadheaderDefinition.icon`）：整机侧视画法——后支撑、履带装置（外廓 + 驱动轮/张紧轮/三支重轮 + 履带板齿）、主车架、液压油箱（加油口 + 液位计 + 散热筋）、电气控制箱（门缝 + 指示灯 + 急停）、电机（散热筋 + 风扇罩）、司机护棚与操作台、回转台、前倾收窄的截割臂、升降油缸（缸体粗线 + 活塞杆 + 两端耳环）、前铲板、截割头滚筒（外圈 + 叶片环 + 轮毂）。层次全靠线宽分级（主轮廓 1.6、次要件 1.1-1.2、筋板 0.9-1.0 + `stroke-opacity` 0.55-0.7），不写 `fill`、不写 `data-face`，`styleIcon()` 原样透传，2D/2.5D 观感一致
+  - 截齿转子同步重写：4 支 → 16 支（对齐采煤机滚筒的齿密度），齿根半径略大于滚筒外圈（8.8 vs 8.5，留 0.3 余量），转动时齿根不会压在线上；截割头圆心从 `(16,33)` 一路挪到 `(13,56)`——先抬高脱离铲板（旧齿圈贴在底边上，读起来像一只掉在地板上的齿轮），再随第二轮重排搬到滚筒真实圆心。`degPerUnit: 120`、驱动变量 `cutting`、状态色与 `animate` 开关一字未动
+  - 第二轮（用户反馈「整体看起来很多线条都重叠在一起了」）：不靠肉眼猜，临时写个诊断脚本按注释分组算各部件包围盒与两两交集占比，把「看着挤」变成可排序的数字（脚本不入库）。据此收掉四类：
+    - **共边不重描**：履带顶边与车架下沿、deck 上五个箱体的底边与车架顶线，本来就是同一条线，各画一遍就是双线。履带改成开口路径（只画底线与两端圆弧），箱体改成开口朝下，底边交给车架顶线收口；顶边那排履带板齿与臂内三条滑轨一并删掉
+    - **删纯重叠**：内喷雾水管整段 77% 落在悬臂框内，删线
+    - **让位**：回转台从「骑在车架前沿、被升降油缸穿过」改成收进臂根当铰接凸台，油缸走它下方；操作台与油箱（重叠 50%）、后支撑与驱动轮（30%）、铲板与张紧轮（17%）各自退开。铲板与履带的连接梁走 y=94 这条共线（铲板底边 → 履带前端点）而不是斜穿过去——斜线到 (32,74) 与张紧轮罩圆弧的最近距离只有 0.73 个单位，缩到 90px 就是一条糊线
+    - **补回密度**：删干净后车架成了一块 62×16 的大空白板，反倒成了全图最抢眼的东西——补一条腰线与三条分舱竖线（对齐上方各箱体的接缝）。这不是把删掉的重复线加回来，新线全在部件内部
+  - 顺带修掉一个真实的画法错误：履带右端圆弧的 `sweep-flag` 写成 1，整条弧翻到履带内部（左端是 0 才朝外鼓）——同向绕行的圆角必须同 sweep。这条是诊断脚本按 SVG 规范 F.6.5 反解圆心、把弧按角度采样才暴露的：只取弧端点会把两端鼓出去的 10 个单位算丢，重叠判据跟着一起失真
+  - 补一条定义层自检（`elementMotion.test.ts`）：每支齿的两端都必须在「与该设备旋转中心同心的最大圆」之外。滚筒与齿圈是两处图形，只改一处半径就会出现「齿长在鼓里」，静态检查和肉眼都不一定看得见
+  - 尺寸边界：新图标内容包围盒 97.7×74.7（aspect 1.308，含 `stroke-width 3.2` 油缸带来的 2.1 描边余量），比旧的线条稿方正得多，默认 `100×60` 下名称/数值两行会把图形区压到 92×28、实绘只剩 38×28——几十个图元糊成一团。默认尺寸按「图形区 + 两行文字」反推到 `170×120`（实绘 94×72，两行都在；未绑定设备只显名称时 120×92）。已放置的元素只换图形、尺寸不变
+  - 实测：`elementMotion` 23 用例 + `assetComponents` 14 用例通过；临时页复用**仓库真实函数**（`styleIcon` / `tightenIconSvg` / `getIconBounds` / `computeElementLayout` / `fitIconRect` / `makeIconFrame` / `placeRotor`）画 8 组：100×60 停机灰与运转青、齿角 0°/45°（齿圈与滚筒保持同心，旋转中心不偏）、200×120 2d、320×190 25d 持续旋转、过载橙、64×38 面板缩略观感，另附未改动的皮带机做对照；第二轮把 520/300/170/140/120/90 六档尺寸 × 静止/转 22° 两态一次截全，并把采煤机素材并排放在同一页比线条密度（5180 备用 dev server，未动 5173/5174，临时页与实例用完即删即停）
+  - 全量门槛：`npx vitest run --reporter=verbose` 66 文件 / 618 用例零失败（与 `git ls-files | grep -c '\.test\.ts$'` = 66 对齐，汇总行无 `Errors`）
 - 首页项目卡片操作栏改成单行常驻，配置项收进「⋯」
   - 背景：三个问题叠在一起。① 6 个控件用 `flex-wrap` 排在 `minmax(320px,1fr)` 的栅格里，已发布态「取消发布」比「发布」宽 24px，最小列宽下必然换成两行，卡片高度跟着发布状态跳；② 操作栏 `opacity:0` 只在悬停时淡入，未悬停时是一块点不着的空白，触屏与键盘用户永远够不到；③ `html.dark .el-button--primary` 的品牌青覆盖只管暗色，亮色主题下主按钮仍是 Element Plus 默认蓝，同一张卡两套主题两种强调色，加上 success/warning plain 的绿与橙，一行五种视觉重量
   - 改法：`ProjectCard.vue` 操作栏收成「打开编辑 / 预览 / 发布（取消发布）/ ⋯」，数据源·报警·点表三项并进 ⋯，组件内按命令分流回 `config` 与 `more` 两个事件，`dashboard/index.vue` 的契约一字未改。`project-card.scss` 用 `nowrap` + `gap:2px` + 顶部 hairline + `padding-top:10px` 定出恒定 35px 单行，取消悬停才显示的透明度门（层级改由配色承担：整行只有一个实心态）；主按钮不再用 `type="primary"`，直接消费 `--accent-primary`，两套主题同色；次级按钮统一透明底 + 细边框 + 次要文字；⋯ 靠 `margin-left:6px` 补足与左侧的 8px，读起来不像第五个平级按钮
@@ -81,15 +103,20 @@
   - 根因：vue-konva 的容器节点（Group/Layer/Label/FastLayer）返回的是插槽片段，根节点不是元素，模板上的 `@click` 等监听无法被「自动继承」；vue-konva 会在 setup 里把 vnode.props 的 on* 键合进 applyNodeProps，所以功能不受影响，但 dev 下每个元素一条警告
   - 改法：CanvasElements.vue 的分组配置（含 8 个事件）整体搬进脚本 `groupConfig()` 并通过 `:config="item.group"` 传入（`onClick`/`onDragstart`…，applyNodeProps 对 on* 键做同样的 `node.on()` 注册，功能一致）；PreviewStage.vue 的 `@click` 同改进 config。ConnectionLine.vue 本就是 config 写法，未动
   - 实测：playwright + 系统 Chrome 进编辑器拖入设备与雷达图，控制台 0 条 Extraneous 警告；点选元素后属性面板正常显示坐标（onClick 生效）；全量 `npx vitest run` 65 文件 / 596 用例零失败，`vue-tsc --noEmit` 零输出
+- 首页只滚动「最近项目」区，顶栏 / 欢迎语 / 统计卡 / 标题行钉住不动
+  - 背景：原来整页一起滚，项目一多往下拖，「最近项目」标题和它的计数、搜索框就滚出画面，四张统计卡也在第一屏之后变成纯占位
+  - 改法：`dashboard.scss` 把 `.dashboard-container` 由 `min-height:100vh` 改成 `height:100vh` + flex 列 + `overflow:hidden`，`.dashboard-content` 转为 flex 列（`flex:1; min-height:0`），新增 `.project-scroll` 承载网格 + 空态 + 底部提示（`flex:1; min-height:0; overflow-y:auto`）。底部留白从 `.dashboard-content` 的 padding 挪进滚动区，否则末尾卡片会被 padding 吃掉一截
+  - 一个容易忽略的裁剪问题：`overflow-y:auto` 会让浏览器把同一元素的 `overflow-x` 由 `visible` 按 `auto` 处理，卡片悬停的 `translateY(-4px)` 与阴影会在上、左边缘被切掉。解法是四边各留 8px padding 缓冲 + 等量负 margin 抵掉位移，保持网格与标题行左边线对齐
+  - 短屏兜底：`@media (max-height: 620px)` 退回整页滚动。固定区自己就超过一屏时继续锁死会把网格挤到看不见；固定区那几个块靠默认 `min-height:auto` 不会被 flex 压扁，高度不足全部由滚动区吸收
+  - 实测：静态门槛同「首页搜索」一条（typecheck / `--changed` 单测 / eslint / build / 超长文件检查全过）。**滚动手感与两档主题下的搜索框配色待肉眼核对**（同上，未登录）
 
 ### 修复
 
-- 后端不可达时登录态丢失（`restoreSession` 的 catch 分支名不副实）
-  - 根因：catch 分支注释写「后端不可用时保留本地用户缓存」，代码却只调了 `syncLocalNamespace(undefined)`——既没把缓存里的 user 置回 store，命名空间还落到匿名区。fetch 抛错（断网 / 超时 / CORS）时 `isLoggedIn` 保持 false，路由守卫直接把用户弹去登录页；即便当时置回了 user，`u/anonymous/` 下的数据也不是本人的
-  - 改法：`saved` 提升到 try 外声明（`JSON.parse` 留在 try 内，缓存损坏仍被接住、`saved` 保持 null），catch 分支 `user.value = saved.user` + `syncLocalNamespace(saved.user.id)`。token 在 fetch 之前已置位，离线演示的写接口照旧带 Bearer；服务端 401（`!res.ok`）路径不变——清缓存、踢回匿名
-  - 新增 `src/stores/authStore.test.ts` 7 用例：fetch 抛错还原登录态与命名空间、TimeoutError 同走离线还原、401 清缓存保持未登、服务端可达以服务端 user 为准、无缓存不发请求、缓存损坏不发请求不抛错
-  - 变异验证：把 catch 分支临时改回旧行为，3 条断言（还原登录态 ×2 + 命名空间）如期失败，恢复后 7/7 通过
-  - 实测：`vue-tsc --noEmit` 0 错、eslint（改动文件）0 告警、行数检查通过（authStore.ts 136 行、测试 152 行）
+- 预览页 HUD 右侧图标按钮的悬停提示不随主题变色
+  - 根因：报警 / 写值锁定 / 轮播 / 全屏 / 写值审计 / 主题切换 6 个按钮用的是原生 `title`，气泡由浏览器绘制，CSS 选不中，暗色主题下仍是白底，和左侧 `el-tooltip` 的深蓝气泡对不上
+  - 改法：一律换成 `<el-tooltip effect="light" placement="bottom">`，随状态变的文案改绑 `:content`（`activeAlarmCount` / `writeLocked` / `autoRotate` / ThemeToggle 的 `tip`）；light 档在亮色主题走 EP 默认白底，暗色主题由 `dark-theme.scss` 的 `html.dark .el-popper.is-light` 上色，与「返回上一画面」同一条通道
+  - 动了：`src/views/preview/PreviewHeader.vue`、`src/views/preview/PreviewHeader.test.ts`（新增右侧按钮用例）
+  - 实测：挂载断言 6 个按钮无 `title`、hover 报警按钮出的气泡带 `is-light`；页面内探针读计算样式，`.el-popper.is-light` 暗色为 #16213e 底 / #e0e0e0 字、亮色为 #fff 底 / #303133 字。全量 67 文件 / 628 用例通过（汇总行无 `Errors`），`pnpm build`、eslint（改动文件）、超长文件检查通过
 
 - 新建项目保存会静默覆盖同名工程（撞名无校验）
   - 根因：查重只长在「重命名」上（`renameProject` / `renameSavedProject` 走 `isProjectTaken`），「新建项目 → 首次保存」这条路径没有任何检查：首页「新建项目」只 `resetProject()`（默认名「未命名项目」），`saveProject()` 直接写 `scada_project_<当前名>`。第二个未命名项目一保存就悄悄吃掉第一个；导入工程固定名「导入的项目」同样撞。用户看到的不是报错，是自己的旧工程凭空消失
@@ -105,12 +132,6 @@
   - 改法一（`useProjectActions.handlePreview`）：编辑器的「预览」带 `?source=draft`——按钮语义是「看我刚存的东西」，运行版入口（首页卡片预览）仍默认读发布快照。同步修正工具栏那枚 tooltip（原文案写死「默认显示发布版」，现在不成立了）
   - 改法二（兜住「读发布版」这类入口）：`projectStore` 新增 `snapshotEditorSession()` / `restoreEditorSession()`，预览页挂载前抓现场、卸载时还原并 `clearHistory()`（否则回编辑器一按 Ctrl+Z 会把预览那份内容撤销进来）。还原要显式开关：`uiStore.hasEditSession` 由编辑器 setup 置位、首页挂载复位——从首页直接进预览时内存里是空工程，还原反而会把刚加载好的工程抹掉
   - 动了：`src/components/layout/toolbar/useProjectActions.ts`、`src/components/layout/Toolbar.vue`（文案）、`src/stores/projectStore.ts`、`src/stores/uiStore.ts`、`src/views/preview/index.vue`、`src/views/editor/index.vue`、`src/views/dashboard/index.vue`、`src/stores/projectStore.test.ts`
-- 首页只滚动「最近项目」区，顶栏 / 欢迎语 / 统计卡 / 标题行钉住不动
-  - 背景：原来整页一起滚，项目一多往下拖，「最近项目」标题和它的计数、搜索框就滚出画面，四张统计卡也在第一屏之后变成纯占位
-  - 改法：`dashboard.scss` 把 `.dashboard-container` 由 `min-height:100vh` 改成 `height:100vh` + flex 列 + `overflow:hidden`，`.dashboard-content` 转为 flex 列（`flex:1; min-height:0`），新增 `.project-scroll` 承载网格 + 空态 + 底部提示（`flex:1; min-height:0; overflow-y:auto`）。底部留白从 `.dashboard-content` 的 padding 挪进滚动区，否则末尾卡片会被 padding 吃掉一截
-  - 一个容易忽略的裁剪问题：`overflow-y:auto` 会让浏览器把同一元素的 `overflow-x` 由 `visible` 按 `auto` 处理，卡片悬停的 `translateY(-4px)` 与阴影会在上、左边缘被切掉。解法是四边各留 8px padding 缓冲 + 等量负 margin 抵掉位移，保持网格与标题行左边线对齐
-  - 短屏兜底：`@media (max-height: 620px)` 退回整页滚动。固定区自己就超过一屏时继续锁死会把网格挤到看不见；固定区那几个块靠默认 `min-height:auto` 不会被 flex 压扁，高度不足全部由滚动区吸收
-  - 实测：静态门槛同「首页搜索」一条（typecheck / `--changed` 单测 / eslint / build / 超长文件检查全过）。**滚动手感与两档主题下的搜索框配色待肉眼核对**（同上，未登录）
   - 实测：新增 2 条 store 用例——① 1 画面发布 → 内存加到 3 画面 → `loadPublishedProject()` 确认被顶回 1 张 → 还原后画面名依次为主页/画面 2/画面 3、activePageId 回到画面 3、`hasUnsavedChanges` 一起回来；② 快照与后续编辑隔离（改工作区元素名后还原仍是旧名，验证深拷贝，同 `useHistory` 的引用穿透教训）。全量 `npx vitest run --reporter=verbose` 66 文件 / 618 用例通过（与磁盘 `git ls-files | grep -c '\.test\.ts$'` = 66 对齐，汇总行无 `Errors`）；`vue-tsc --noEmit`、`pnpm build`、超长文件检查均通过
   - 浏览器实机：在临时端口对（5180 前端 + 5178 独立 `DATA_DIR`，避开正在跑的 5173/5174）走通「编辑器加 3 张画面 → 点预览」，确认 URL 带 `source=draft` 且预览 HUD 的画面胶囊是 3 张（改前读发布版是 1 张）。**改法二的还原没能实机点到**：内嵌浏览器标签处于 hidden 状态，`<RouterView>` 的 `mode="out-in"` 过渡依赖 rAF，隐藏标签里不推进，路由停在 `page-fade-leave-active`；`hasEditSession` 开关与 onUnmounted 还原仅由上述 store 用例覆盖，建议手动点一次（进预览 → 点「编辑器」）
 - 报表拖到画布上默认就带一条竖向滚动条
