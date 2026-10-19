@@ -52,6 +52,13 @@ pnpm lint               # ESLint
 - 后端支持 `PORT` / `DATA_DIR` / `MAX_BODY_BYTES` / `CORS_ORIGIN` / `AUTH_TOKEN`（见 `.env.example`），便于前后端分开部署
 - 改 `vite.config.ts` 代理或 server 路由后**需重启 dev server**
 
+### 接口响应约定（新增任何端点都走这一条，不要手拼 body）
+
+- 形状只有两种：成功 `2xx` = `{data, meta?}`（etag/分页统计进 `meta`，空 `meta` 整个键省略），失败 = `{error:{code,message}}`。成败唯一判据是 HTTP 状态码，响应体里没有 `ok`
+- 服务端出口唯一：`server/lib/http.mjs` 的 `sendData/sendFail`；失败只抛 `lib/apiError.mjs` 的 `ApiError(status, code, message, meta)`，由 `index.mjs` 顶层 catch 翻译，路由不再各自判返回值里有没有 error
+- 前端入口唯一：`src/api/client.ts` 的 `apiFetch/apiData`（拼 base、带 Bearer、拆信封、非 2xx 抛 `ApiRequestError`）。两个例外：`storage/index.ts` 的 health 探测只看状态码、`HttpPollingAdapter` 连的是第三方数据源
+- **只比 `code`，永不比 `message`**：改一句中文提示不该动到冲突/并发语义（旧代码判 `body.error === 'stale'` 就是反例）。码表与逐端点归属见 `docs/DEPLOY.md` §5.3
+
 ## 验证节奏（按改动范围分级，不必每次全跑）
 
 **先记住这条硬约束：改完代码后的默认动作是「跑受影响的测试」，不是「跑全量」。**
