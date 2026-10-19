@@ -10,6 +10,12 @@
 
 ### 功能
 
+- 保存撞名交给服务端一次原子创建（409），消除同名覆盖竞态
+  - 背景：`projectPersistence.saveProject` 原先靠「先 get 判重、再 set 写入」拦新建/导入时用默认名「未命名项目」静默覆盖别人同名工程——这是 read-check-write，两个标签/两台设备同时新建同名会双双判到「未占用」，后写的把先写的盖掉（补记 `d7a8f03e`，该提交当时未落 CHANGELOG）
+  - 改法：底层加「仅当不存在时创建」语义，判重交服务端一次原子写。`atomicWrite` 支持 `ifAbsent`（同路径串行槽内、rename 前 `fs.access`，命中抛 `EEXIST`），`kv` 导出 `writeValueIfAbsent`，`/api/storage/set?mode=create` 撞已存在回 409；新增 `StorageConflictError`（独立 `errors.ts`，避开 index↔remote 值循环依赖），`RemoteStorageAdapter`/`LocalStorage`/`Memory` 的 `set` 加可选 `ifAbsent`；`saveProject` 对本会话未认领的名字带 `ifAbsent` 写，撞名回滚工程名并返回 `false` 交上层弹改名框
+  - 边界：仅单进程原子——多进程共享同一 `DATA_DIR` 时 `access` 与 `rename` 之间仍有窗口（注释里写明，真要跨进程需 `wx` 落正式名或引锁/DB）；覆盖自己已认领的工程仍走不带 `ifAbsent` 的正常写
+  - 动了：`server/lib/{atomicWrite,kv}.mjs`、`server/routes/storage.mjs`、`src/storage/{errors,index,remote}.ts`、`src/stores/projectPersistence.ts`
+  - 实测：`kv`/`index`/`remote`/`projectStore` 的 409 相关用例通过（含「两个并发 create 同名只赢一个」「两会话同名新建第二个被拒、不覆盖第一个」）；`node --check` 服务端模块通过
 - 组件库卡片悬停显示用途说明
   - 背景：报表 / 表格 / 网格图同为表格长相，光看名字分不清——报表是固定行列、格子里只有值，表格是一行一个点位带搜索与阈值变色，网格图是一格一个点位。名字不动（「点表」在 UI 里已被 TagTableDialog 占用，改名会撞），改用一句话说明区分
   - 改法：`ComponentDefinition` 新增可选 `description`；`ComponentCard.vue` 用 `el-tooltip` 包一层（placement 用 left——面板贴窗口右侧，向右弹会顶出可视区；没写说明的组件 `:disabled` 关掉气泡，仍保留原生 title 显示名称）。气泡内容是「名称 + 说明」两行，随 teleport 走但 scoped 属性跟着元素，样式照常生效
