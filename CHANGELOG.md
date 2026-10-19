@@ -21,6 +21,15 @@
 
 ### 修复
 
+- 接管 Element Plus 主色，亮色主题下 EP 控件不再显示为蓝
+  - 背景：`--el-color-primary` 从来没被接管过，EP 默认蓝 `#409eff` 全站生效。暗色靠 `dark-theme.scss` 用 `!important` 逐组件打补丁（switch/button/slider…），**亮色一处都没补**——所以同一个开关暗色是青、亮色是蓝。新建自定义组件对话框把 `el-radio-button` / `el-switch` / `el-checkbox` 三个填充型控件堆在一起，蓝色整块出现，格外扎眼
+  - 改法：`styles/variables.scss` 新增 `html:root` 块，覆盖 `--el-color-primary` 及派生变量 light-3/5/7/8/9 + dark-2
+  - ⚠️ 派生变量必须一起给：EP 的 hover/active/浅底走的是 light-3/5/7/8/9 与 dark-2，只覆盖 primary 一个的话 hover 仍是蓝的（最常见的半吊子修法）。取值按 EP 算法：light-N = mix(#fff, primary, N*10%)、dark-2 = mix(#000, primary, 20%)
+  - ⚠️ 选择器用 `html:root`（0,1,1）而非 `:root`（0,1,0）：EP 的变量也定义在 `:root` 上，同特异性时谁生效取决于按需引入的注入顺序，不保证在我们之后
+  - 实测（独立端口 + 独立数据目录的隔离环境，读计算样式而非目测）：亮/暗两套主题下 `--el-color-primary` 均为 `#00d4aa`，switch 轨道 / radio-button 选中 / checkbox 勾选的 `backgroundColor` 全部 `rgb(0,212,170)`
+  - 遗留未修：`DEFAULT_ELEMENT_COLOR = '#8fe6d3'` 是为暗色画布设计的，亮色画布（#e8eaee）与预览框（#f5f7fa）上几乎不可见；EP 的 success/warning/info 仍是默认色
+  - 动了：`styles/variables.scss`
+
 - 自定义组件改为「登录后」幂等加载：`/preview` 直接打开也认自定义组件
   - 背景：原先只在组件库面板 `onMounted` 时注册，直接打开 `/preview` 一律取不到定义、画布空白
   - 改法：新增幂等 `ensureCustomComponentsLoaded()`（会话内只读一次）+ `resetCustomComponentsCache()`（挂 `authStore` 五处身份变更点），由组件面板与预览页各自在 `onMounted` 触发，预览页放在 `loadPreviewProject()` 之前
