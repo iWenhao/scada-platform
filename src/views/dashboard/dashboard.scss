@@ -148,9 +148,9 @@ html[data-theme='light'] .sys-chip {
 .dashboard-content {
   max-width: 1200px;
   margin: 0 auto;
-  // 底部留白改由 .project-scroll 提供：留在这里会被滚动区吃掉，末尾卡片永远差一截
-  padding: 36px 40px 0;
-  // 固定区（hero / 统计卡 / 标题行）+ 一个可滚区，纵向由 flex 分配剩余高度
+  // 底部 padding 留给固定在页底的 footer-hint；中部留白改由 .project-scroll 自己提供
+  padding: 36px 40px 24px;
+  // 固定区（hero / 统计卡 / 标题行）+ 一个可滚区 + 页底说明，纵向由 flex 分配剩余高度
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -276,7 +276,7 @@ html[data-theme='light'] .sys-chip {
   }
 }
 
-// 首页唯一的滚动区：网格 + 空态 + 底部提示，顶栏/欢迎语/统计卡/标题行都不进这里。
+// 首页唯一的滚动区：只装卡片网格与空态；页底说明固定在本区之外，不跟着滚。
 // overflow-y:auto 会让浏览器把同一元素的 overflow-x 由 visible 按 auto 处理，
 // 卡片悬停的 translateY(-4px) 与阴影会被上、左边缘裁切，故四边各留 8px 缓冲，
 // 再用等量负 margin 把缓冲抵掉，保持网格与上方标题行左边线对齐。
@@ -285,7 +285,7 @@ html[data-theme='light'] .sys-chip {
   min-height: 0;
   overflow-y: auto;
   margin: -8px;
-  padding: 8px 8px 48px;
+  padding: 8px;
 }
 
 // 标题行右侧的工程搜索：宽窗口常驻输入框，窄窗口退成圆钮（点击展开、失焦即收回）。
@@ -426,8 +426,11 @@ html[data-theme='light'] .sys-chip {
   gap: 10px;
 }
 
+// 页底说明：固定在卡片滚动区之外，常驻内容区底部；不允许被 flex 压缩。
+// 视口高 < 620px 的兜底模式下（整页滚动）它只是排在卡片列表后的普通一行。
 .footer-hint {
-  margin-top: 36px;
+  flex: none;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border-primary);
 

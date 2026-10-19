@@ -116,10 +116,11 @@
             <el-button @click="importProject">导入 JSON</el-button>
           </div>
         </div>
+      </div>
 
-        <div class="footer-hint">
-          <p>提示：发布后的工程才会出现在预览 / 运行端；草稿改动不影响值班画面。</p>
-        </div>
+      <!-- 底部说明固定在滚动区之外：只让中间卡片列表滚，提示常驻页底 -->
+      <div class="footer-hint">
+        <p>提示：发布后的工程才会出现在预览 / 运行端；草稿改动不影响值班画面。</p>
       </div>
     </div>
 
