@@ -32,6 +32,15 @@
   - SVG 预处理（新 `src/industrial/customComponent.ts`）：自动给 id 加唯一前缀并同步改引用（多张图标 v-html 进同一文档时同名 id 只有第一个生效）、`xlink:href` 转 `href`、去脚本与 `on*` 事件属性；不含 `currentColor` 时给出告警（多色填充稿不会变色）
   - 动了：`CustomComponentDialog.vue`（重写）、`CustomStateTable.vue`（新）、`customComponent.ts`（新）、`elementStatus.ts`、`useElementVisuals.ts`、`assetComponents.ts`、`types/scada.ts`
 
+- 自定义组件支持上传 SVG 图标文件（只收 SVG，位图会被拒）
+  - 背景：图标只能手贴 SVG 源码，用户手里往往是设计工具导出的 .svg 文件，没有上传入口
+  - 为什么只收 SVG：状态变色靠 `iconImage.ts` 把 SVG 里的 `currentColor` 字符串替换成状态色，位图（PNG/JPG）里没有这个占位符，传上去也不会变色——上传一个永远定死颜色的图，比不给上传更糟
+  - 两段式校验：`validateSvgUpload`（类型关：MIME 或扩展名是 svg、非空、≤100KB）→ `normalizeCustomIconSvg`（内容关：必须有 `<svg>` 外壳、去脚本与 `on*` 事件）。改扩展名的位图能过类型关，但内容关会拦下并提示——两层各自分工，错误信息说清楚是哪一关
+  - `MIME` 缺失或为 `text/xml` 时按扩展名放行：设计工具导出常不带正确 MIME
+  - 对话框按职责拆成 `CustomIconFields.vue`（图标区：textarea + 上传 + 告警列表）与 `CustomMotionFields.vue`（动效区，七个字段走多 `defineModel` 逐字段 `v-model:xxx`，父组件仍是唯一数据源），`CustomComponentDialog.vue` 447 → 305 行
+  - 动了：`CustomIconFields.vue`（新）、`CustomMotionFields.vue`（新）、`custom-component.scss`（新，三个 SFC 共用）、`CustomComponentDialog.vue`、`customComponent.ts`
+  - 实测（Playwright + 系统 Chrome，独立端口 + 独立数据目录）：PNG 被拒且提示原因、SVG 载入后 textarea 与 viewBox 自动带出、面板卡片渲染、存储定义 id 前缀化、拖入画布渲染成功（无状态 → 默认薄荷绿）；单测 24 例全绿
+
 ### 修复
 
 - 接管 Element Plus 主色，亮色主题下 EP 控件不再显示为蓝
@@ -50,6 +59,14 @@
   - ⚠️ `--el-radio-button-checked-text-color` 写在根上不生效：EP 在 `.el-radio-button` 元素级声明了它（`var(--el-color-white)`），元素级声明盖过继承值，必须写 `html.dark .el-radio-button`
   - 实测（隔离环境读计算样式，非目测）：暗色下 light-9 = `#003b30`、`el-tag--primary` 底 = `rgb(0,59,48)`、单选选中文字 = `rgb(11,31,26)`、开关旋钮 = `rgb(232,241,240)`、主按钮文字 = `rgb(11,31,26)`；亮色主题原样未动（仍青底白字、light-9 = `#e6fbf7`）
   - 动了：`styles/variables.scss`、`styles/dark-theme.scss`
+
+- 自定义组件旋转部件被静默丢弃：配了运转动效，元件从来不动
+  - 背景：旋转部件是**片段**（一个 circle/path，消费侧 `elementMotion.wrapFragment` 会包 `<svg viewBox="0 0 100 100">` 外壳），而创建对话框调用 `normalizeCustomIconSvg` 时走的是完整 SVG 分支、要求 `<svg>` 标签——片段永远过不了，`rotor.svg` 恒为空，`motionDef` 恒为 undefined。用户以为配了动效，其实存储里根本没有，且没有任何报错
+  - 改法：`normalizeCustomIconSvg` 加 `fragment` 模式（跳过外壳校验，但**反过来拒掉带外壳的输入**——包壳是消费侧的职责，轮不到用户贴）；片段里的 id 与引用同样加前缀
+  - ⚠️ 归一化失败必须拦下来给用户反馈，不能再静默：确认时 `rotorRaw` 非空而 `rotor.svg` 为空即 `ElMessage.error` 并中止创建
+  - 排查过程：e2e 发现 motion 没装配 → 读对话框实例状态证明多 `v-model` 绑定完全正常（enabled/svg/cx 都对）→ 才定位到是归一化的外壳要求，不是绑定问题
+  - 动了：`customComponent.ts`、`CustomComponentDialog.vue`
+  - 实测：浏览器端到端复跑，存储里 `motion` 完整装配（`rotors[0].svg` = 片段原文、`cx/cy`、`degPerUnit`、`defaultConfig.animate`）；单测补 4 例片段模式用例（含「带外壳被拒」「空片段报错原因」）
 
 - 自定义组件改为「登录后」幂等加载：`/preview` 直接打开也认自定义组件
   - 背景：原先只在组件库面板 `onMounted` 时注册，直接打开 `/preview` 一律取不到定义、画布空白

@@ -1,0 +1,71 @@
+/*
+ * 创建/编辑自定义组件对话框家族共用样式。
+ * 被三个 SFC 各自 scoped 引用：CustomComponentDialog（父）、CustomIconFields（图标区）、
+ * CustomMotionFields（动效区）。.tip 三处都用，放这里避免复制三份。
+ */
+
+.tip {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+
+  code {
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+  }
+
+  b {
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+}
+
+/* 上传按钮与说明同行：el-upload 默认 inline-block，flex 对齐即可 */
+.svg-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.svg-hint {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.warn-list {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-color-warning);
+}
+
+.motion-block {
+  margin: 0 0 18px 88px;
+
+  .motion-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    :deep(.el-input-number),
+    :deep(.el-select) {
+      width: 92px;
+    }
+
+    :deep(.el-input) {
+      width: 140px;
+    }
+  }
+}

@@ -13,6 +13,34 @@ import type { AlarmSeverity, StatusRule } from '@/types/scada'
 export const CUSTOM_SIZE_MIN = 20
 export const CUSTOM_SIZE_MAX = 400
 
+/**
+ * 上传 SVG 文件的体积上限，与站点品牌上传（BrandingDialog）的 SVG 档一致：
+ * 图标是整份源码存在 KV/本地存储里的，超大矢量没有意义。
+ */
+export const CUSTOM_SVG_MAX_BYTES = 100 * 1024
+
+/**
+ * 上传 SVG 文件的前置校验。返回 null 表示通过，否则是可直接展示给用户的原因。
+ *
+ * 类型按 MIME 与扩展名双判：部分设计工具导出的 .svg 带的是 `text/xml` 或空 MIME，
+ * 只判 MIME 会把合法文件误拦；只判扩展名又拦不住改扩展名的其他文件。
+ */
+export function validateSvgUpload(file: {
+  name?: string
+  type?: string
+  size?: number
+}): string | null {
+  const name = file.name ?? ''
+  const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(name)
+  if (!isSvg) return '只支持 SVG 文件（.svg）；位图无法随状态变色'
+  const size = file.size ?? 0
+  if (size === 0) return '文件是空的'
+  if (size > CUSTOM_SVG_MAX_BYTES) {
+    return `SVG 请控制在 ${CUSTOM_SVG_MAX_BYTES / 1024}KB 以内（当前 ${Math.round(size / 1024)}KB）`
+  }
+  return null
+}
+
 /** 从 SVG 里读出默认宽高：优先 viewBox，其次 width/height 属性 */
 export function parseSvgSize(svg: string): { width: number; height: number } | null {
   const viewBox = svg.match(/viewBox\s*=\s*(?:"([^"]*)"|'([^']*)')/i)
@@ -92,12 +120,24 @@ export interface CustomIconResult {
  * 后插入的渐变/遮罩会全部指向第一张的定义——表现为「第二张图标的颜色不对」，
  * 而且不报任何错。同理 `url(#g)` 一旦悬空，整块图形不可见也不报错，所以只按
  * `defined` 集合改引用，绝不删 id。
+ *
+ * `fragment: true` 跳过 `<svg>` 外壳校验——旋转部件是片段（一个 circle/path），
+ * 由渲染侧 `wrapFragment` 包壳。⚠️ 调用方必须检查返回的 `svg` 是否为空：片段
+ * 过不了其他校验时也要给用户反馈，不能静默丢弃（动效件曾被这样静默丢掉过）。
  */
-export function normalizeCustomIconSvg(svg: string, idPrefix: string): CustomIconResult {
+export function normalizeCustomIconSvg(
+  svg: string,
+  idPrefix: string,
+  opts: { fragment?: boolean } = {},
+): CustomIconResult {
   const warnings: string[] = []
   const source = (svg || '').trim()
   if (!source) return { svg: '', warnings: ['SVG 内容为空'] }
-  if (!/<svg[\s>]/i.test(source)) {
+  if (opts.fragment) {
+    if (/<svg[\s>]/i.test(source)) {
+      return { svg: '', warnings: ['旋转部件请贴片段（一个 circle/path），不要带 <svg> 外壳'] }
+    }
+  } else if (!/<svg[\s>]/i.test(source)) {
     return { svg: '', warnings: ['内容里没有 <svg> 标签，请粘贴完整的 SVG 源码'] }
   }
 

@@ -2,10 +2,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildCustomStatusRules,
+  CUSTOM_SVG_MAX_BYTES,
   defaultCustomStates,
   normalizeCustomIconSvg,
   parseCustomStates,
   parseSvgSize,
+  validateSvgUpload,
 } from './customComponent'
 
 describe('parseSvgSize', () => {
@@ -24,6 +26,40 @@ describe('parseSvgSize', () => {
   it('读不出来返回 null（由对话框保留原值）', () => {
     expect(parseSvgSize('<svg></svg>')).toBeNull()
     expect(parseSvgSize('')).toBeNull()
+  })
+})
+
+describe('validateSvgUpload', () => {
+  const ok = { name: 'fan.svg', type: 'image/svg+xml', size: 2048 }
+
+  it('合法 SVG 通过', () => {
+    expect(validateSvgUpload(ok)).toBeNull()
+  })
+
+  it('位图被拒（没有 currentColor，无法随状态变色）', () => {
+    expect(validateSvgUpload({ name: 'fan.png', type: 'image/png', size: 2048 })).toContain('只支持 SVG')
+    expect(validateSvgUpload({ name: 'fan.jpg', type: 'image/jpeg', size: 2048 })).toContain('只支持 SVG')
+  })
+
+  it('MIME 缺失/是 text-xml 时按扩展名放行（设计工具的常见导出）', () => {
+    expect(validateSvgUpload({ name: 'fan.svg', type: '', size: 2048 })).toBeNull()
+    expect(validateSvgUpload({ name: 'fan.svg', type: 'text/xml', size: 2048 })).toBeNull()
+  })
+
+  it('改扩展名的位图能过类型关，但由内容闸门拦住（两段式）', () => {
+    // 扩展名说 svg、MIME 说 png：按扩展名放行，交给 normalizeCustomIconSvg 的内容校验
+    expect(validateSvgUpload({ name: 'fake.svg', type: 'image/png', size: 2048 })).toBeNull()
+    const { svg, warnings } = normalizeCustomIconSvg('\x89PNG\x00\x1af\x98binary garbage', 'p')
+    expect(svg).toBe('')
+    expect(warnings[0]).toContain('<svg>')
+  })
+
+  it('空文件与超体积被拒', () => {
+    expect(validateSvgUpload({ name: 'fan.svg', type: 'image/svg+xml', size: 0 })).toContain('空')
+    const big = { name: 'fan.svg', type: 'image/svg+xml', size: CUSTOM_SVG_MAX_BYTES + 1 }
+    expect(validateSvgUpload(big)).toContain('100KB')
+    // 边界值本身放行
+    expect(validateSvgUpload({ name: 'fan.svg', type: 'image/svg+xml', size: CUSTOM_SVG_MAX_BYTES })).toBeNull()
   })
 })
 
@@ -72,6 +108,43 @@ describe('normalizeCustomIconSvg', () => {
     const { svg, warnings } = normalizeCustomIconSvg('<div>hello</div>', 'p')
     expect(svg).toBe('')
     expect(warnings.join()).toContain('<svg>')
+  })
+})
+
+describe('normalizeCustomIconSvg 片段模式（旋转部件）', () => {
+  it('片段能过校验并加 id 前缀', () => {
+    const { svg, warnings } = normalizeCustomIconSvg(
+      '<circle cx="50" cy="50" r="14" stroke="currentColor" fill="none" />',
+      'custom_1-rotor',
+      { fragment: true },
+    )
+    expect(svg).toContain('<circle')
+    expect(warnings).toEqual([])
+  })
+
+  it('片段里的 id 与引用同样被前缀化', () => {
+    const { svg } = normalizeCustomIconSvg(
+      '<g id="blade"><path d="M0 0 L10 10"/></g><use href="#blade"/>',
+      'p-rotor',
+      { fragment: true },
+    )
+    expect(svg).toContain('id="p-rotor-blade"')
+    expect(svg).toContain('href="#p-rotor-blade"')
+  })
+
+  it('带了 <svg> 外壳反而被拒（消费侧 wrapFragment 会包壳，不需要外层）', () => {
+    const { svg, warnings } = normalizeCustomIconSvg(
+      '<svg viewBox="0 0 10 10"><circle r="4"/></svg>',
+      'p',
+      { fragment: true },
+    )
+    expect(svg).toBe('')
+    expect(warnings[0]).toContain('不要带')
+  })
+
+  it('空片段返回空并给出原因（调用方必须拦，不能静默丢弃）', () => {
+    expect(normalizeCustomIconSvg('   ', 'p', { fragment: true }).svg).toBe('')
+    expect(normalizeCustomIconSvg('', 'p', { fragment: true }).warnings[0]).toContain('为空')
   })
 })
 

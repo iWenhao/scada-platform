@@ -10,22 +10,7 @@
         <el-input v-model="form.name" placeholder="例如：高位水箱" maxlength="12" style="width: 200px" />
       </el-form-item>
 
-      <el-form-item label="图标 SVG">
-        <el-input
-          v-model="form.svg"
-          type="textarea"
-          :rows="5"
-          spellcheck="false"
-          placeholder='<svg viewBox="0 0 100 100">…</svg>'
-        />
-        <p class="tip">
-          粘贴完整 SVG 源码。要能随状态变色，描边/填充必须写成
-          <code>currentColor</code>；多色填充稿不会变色。
-        </p>
-        <ul v-if="warnings.length" class="warn-list">
-          <li v-for="(w, i) in warnings" :key="i">{{ w }}</li>
-        </ul>
-      </el-form-item>
+      <CustomIconFields v-model="form.svg" :warnings="warnings" />
 
       <el-form-item label="尺寸">
         <el-input-number v-model="form.width" :min="20" :max="400" :step="10" />
@@ -50,43 +35,15 @@
         <CustomStateTable v-model="states" />
       </el-form-item>
 
-      <el-form-item label="运转动效">
-        <el-switch v-model="motionEnabled" active-text="有旋转部件" />
-        <p v-if="motionEnabled" class="tip">
-          把旋转部件从上面的主图元里<b>删掉</b>，再贴到这里——主图元是一整张位图，
-          位图里的某个圆无法单独旋转，留在主图元里会出现「静止件 + 转动件」重影。
-        </p>
-      </el-form-item>
-
-      <div v-if="motionEnabled" class="motion-block">
-        <el-input
-          v-model="motion.svg"
-          type="textarea"
-          :rows="2"
-          spellcheck="false"
-          placeholder='旋转部件片段，例如 <circle cx="50" cy="50" r="14" stroke="currentColor" fill="none" />'
-        />
-        <div class="motion-fields">
-          <label>圆心 X
-            <el-input-number v-model="motion.cx" :controls="false" size="small" />
-          </label>
-          <label>圆心 Y
-            <el-input-number v-model="motion.cy" :controls="false" size="small" />
-          </label>
-          <label>方向
-            <el-select v-model="motion.direction" size="small">
-              <el-option label="顺时针" :value="1" />
-              <el-option label="逆时针" :value="-1" />
-            </el-select>
-          </label>
-          <label>角速度
-            <el-input-number v-model="motion.degPerUnit" :controls="false" size="small" />
-          </label>
-          <label>驱动变量
-            <el-input v-model="motion.driveVariable" size="small" placeholder="留空取第一个绑定" />
-          </label>
-        </div>
-      </div>
+      <CustomMotionFields
+        v-model:enabled="motion.enabled"
+        v-model:svg="motion.svg"
+        v-model:cx="motion.cx"
+        v-model:cy="motion.cy"
+        v-model:direction="motion.direction"
+        v-model:degPerUnit="motion.degPerUnit"
+        v-model:driveVariable="motion.driveVariable"
+      />
 
       <el-form-item label="预览">
         <div class="preview-row">
@@ -109,6 +66,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import CustomStateTable from './CustomStateTable.vue'
+import CustomIconFields from './CustomIconFields.vue'
+import CustomMotionFields from './CustomMotionFields.vue'
 import {
   buildCustomStatusRules,
   defaultCustomStates,
@@ -152,8 +111,9 @@ const form = reactive({
 })
 
 const states = ref<CustomStateRow[]>(defaultCustomStates())
-const motionEnabled = ref(false)
+// 动效件整块状态（enabled 与各字段同源，交给 CustomMotionFields 多 v-model 绑定）
 const motion = reactive({
+  enabled: false,
   svg: '',
   cx: 50,
   cy: 50,
@@ -220,7 +180,7 @@ watch(() => props.modelValue, (val) => {
     form.stateful = (editing.statusRules?.length ?? 0) > 0
     states.value = parseCustomStates(editing.statusRules ?? [])
     const rotor = editing.motion?.rotors?.[0]
-    motionEnabled.value = !!rotor
+    motion.enabled = !!rotor
     if (rotor) {
       motion.svg = rotor.svg
       motion.cx = rotor.cx
@@ -234,7 +194,7 @@ watch(() => props.modelValue, (val) => {
     form.svg = STARTER_SVG
     newType.value = `custom_${Date.now()}`
     states.value = defaultCustomStates()
-    motionEnabled.value = false
+    motion.enabled = false
     motion.svg = ''
   }
   previewKey.value = form.stateful ? 'unbound' : 'default'
@@ -258,9 +218,18 @@ function handleConfirm() {
     return
   }
 
-  // 旋转部件：片段里的 id 同样要加前缀，否则与主图元的 id 撞车
-  const rotorRaw = motionEnabled.value ? motion.svg.trim() : ''
-  const rotor = rotorRaw ? normalizeCustomIconSvg(rotorRaw, `${typeKey.value}-rotor`) : null
+  // 旋转部件：片段里的 id 同样要加前缀，否则与主图元的 id 撞车。
+  // 片段模式跳过 <svg> 外壳校验（消费侧 elementMotion.wrapFragment 会包壳）。
+  // ⚠️ 归一化失败必须拦下来：曾因这里要求 <svg> 而片段永远过不了，motion 被
+  // 静默丢弃——用户以为配了动效，其实从来没有。宁可报错也不要静默。
+  const rotorRaw = motion.enabled ? motion.svg.trim() : ''
+  const rotor = rotorRaw
+    ? normalizeCustomIconSvg(rotorRaw, `${typeKey.value}-rotor`, { fragment: true })
+    : null
+  if (rotorRaw && !rotor?.svg) {
+    ElMessage.error(`旋转部件无效：${rotor?.warnings[0] || '无法解析该片段'}`)
+    return
+  }
   const motionDef =
     rotor?.svg && rotorRaw
       ? {
@@ -312,64 +281,12 @@ function handleConfirm() {
 }
 </script>
 
+<style src="./custom-component.scss" scoped lang="scss"></style>
 <style scoped lang="scss">
 .unit {
   margin: 0 10px 0 4px;
   color: var(--text-secondary);
   font-size: 13px;
-}
-
-.tip {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text-tertiary);
-
-  code {
-    font-family: var(--font-mono);
-    color: var(--text-secondary);
-  }
-
-  b {
-    font-weight: 500;
-    color: var(--text-secondary);
-  }
-}
-
-.warn-list {
-  margin: 6px 0 0;
-  padding-left: 16px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--el-color-warning);
-}
-
-.motion-block {
-  margin: 0 0 18px 88px;
-
-  .motion-fields {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--text-secondary);
-
-    label {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    :deep(.el-input-number),
-    :deep(.el-select) {
-      width: 92px;
-    }
-
-    :deep(.el-input) {
-      width: 140px;
-    }
-  }
 }
 
 .preview-row {
