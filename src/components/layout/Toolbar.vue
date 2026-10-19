@@ -279,6 +279,7 @@ const UserManageDialog = defineAsyncComponent(() => import('@/components/dialogs
 import { useEditClipboard } from '@/core/canvas/useEditClipboard'
 import { useProjectActions } from './toolbar/useProjectActions'
 import { useToolbarShortcuts } from './toolbar/useToolbarShortcuts'
+import { useUserMenu } from './toolbar/useUserMenu'
 import { useAuthStore } from '@/stores/authStore'
 import { useBrandingStore } from '@/stores/brandingStore'
 
@@ -292,20 +293,11 @@ const branding = useBrandingStore()
 const { canUndo, canRedo, undo, redo, saveState } = useHistory()
 
 const showCanvasConfig = ref(false)
-const showUserManage = ref(false)
 
 // 「更多」菜单里的主题项：图标与文案与顶栏按钮同源，避免再写一份三元表达式
 const { icon: themeIcon, tip: themeTip, toggle: toggleTheme } = useThemeToggle()
 
-
-async function handleUserCommand(cmd: string) {
-  if (cmd === 'users') {
-    showUserManage.value = true
-  } else if (cmd === 'logout') {
-    await authStore.logout()
-    window.location.href = '/login'
-  }
-}
+const { showUserManage, handleUserCommand } = useUserMenu()
 
 /** 「更多」下拉：窄屏时替代被收起的次要按钮，动作与原按钮一一对应 */
 function handleMoreCommand(cmd: string) {

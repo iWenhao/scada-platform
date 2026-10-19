@@ -210,6 +210,15 @@ function handleSystemCommand(cmd: string) {
 async function handleUserCommand(cmd: string) {
   if (cmd === 'users') showUserManage.value = true
   else if (cmd === 'logout') {
+    try {
+      await ElMessageBox.confirm('退出登录？', '退出登录', {
+        type: 'warning',
+        confirmButtonText: '退出',
+        cancelButtonText: '取消',
+      })
+    } catch {
+      return
+    }
     await authStore.logout()
     window.location.href = '/login'
   }

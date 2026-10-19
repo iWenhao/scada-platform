@@ -41,6 +41,14 @@
   - 动了：`CustomIconFields.vue`（新）、`CustomMotionFields.vue`（新）、`custom-component.scss`（新，三个 SFC 共用）、`CustomComponentDialog.vue`、`customComponent.ts`
   - 实测（Playwright + 系统 Chrome，独立端口 + 独立数据目录）：PNG 被拒且提示原因、SVG 载入后 textarea 与 viewBox 自动带出、面板卡片渲染、存储定义 id 前缀化、拖入画布渲染成功（无状态 → 默认薄荷绿）；单测 24 例全绿
 
+- 退出登录补二次确认，编辑器侧把「未保存改动会丢」写进文案
+  - 背景：编辑器与首页的「退出登录」都是下拉菜单项直接 `authStore.logout()` + `window.location.href = '/login'`，点一下就退。退登是整页跳转，编辑现场（未保存改动 + `useHistory` 的历史栈）必然丢失，而这条路径完全绕过了「返回主页」里那个「未保存的更改」确认框——用户从工具栏返回会被问，从右上角退登不会
+  - 改法：按仓库既有约定用 `ElMessageBox.confirm`（`type: 'warning'`，按钮「取消 / 退出」，取消走 catch 返回不做任何事）；`projectStore.hasUnsavedChanges` 为真时文案追加「当前项目有未保存的更改，退出后将丢失。」
+  - 拆文件：编辑器侧逻辑收进新的 `toolbar/useUserMenu.ts`（与 `useProjectActions` / `useToolbarShortcuts` 同构），`Toolbar.vue` 415 → 393 行回到阈值内。**没有**把用户下拉的模板拆成子组件——`.user-chip` 的样式写在 `toolbar.scss` 的 scoped 块里，靠「slot 内容带父组件 scopeId」才命中，拆出去会丢内边距与 cursor
+  - 首页入口（`views/dashboard/index.vue`，由 `TopNav.vue` 转发 user 事件）单独写一份确认而不是共用：它不读 `projectStore`，而从编辑器返回首页时脏标记可能是上一会话的残留（`goHome` 选「不保存，直接返回」不会清标记），共用会把「有未保存的更改」说给只看得到项目列表的用户。两处文案就此分叉，第三处出现时再收敛
+  - 动了：`src/components/layout/toolbar/useUserMenu.ts`（新）、`src/components/layout/toolbar/useUserMenu.test.ts`（新）、`src/components/layout/Toolbar.vue`、`src/views/dashboard/index.vue`
+  - 实测：单测 4 例（`users` 只开对话框不碰会话 / 取消后不调 `logout` 也不跳转 / 确认后登出并跳 `/login` / 脏状态文案含「未保存的更改」）。浏览器两个入口都点过：编辑器侧（复用他正在跑的 5173，只点「取消」）下拉→退出登录→弹框标题「退出登录」、正文「退出登录？」、按钮「取消 / 退出」，点取消后仍停在 `/editor`、会话未失效；首页侧由本人在浏览器手动确认同样弹框且不点退出即不掉登录。「未保存改动」那条分支只在单测里覆盖——真去编辑器触发它要写脏标记与自动草稿，会动到他 5174 的数据目录
+
 ### 修复
 
 - 报警通知对话框首次打开不拉配置，已存通道显示为「尚未配置通知通道」
