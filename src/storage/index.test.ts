@@ -6,6 +6,7 @@ import {
   getStorage,
   setStorage,
   SITE_BRANDING_KEY,
+  StorageConflictError,
 } from './index'
 import { useProjectStore } from '@/stores/projectStore'
 
@@ -65,6 +66,35 @@ describe('LocalStorageAdapter', () => {
     await alice.set('scada_theme', 'dark')
     expect(localStorage.getItem('u/alice/scada_theme')).toBe('dark')
     expect(localStorage.getItem('scada_theme')).toBeNull()
+  })
+})
+
+describe('set(ifAbsent) 创建模式：目标已存在时抛冲突、不覆盖', () => {
+  it('MemoryStorageAdapter：不存在则写入，存在则冲突', async () => {
+    const storage = new MemoryStorageAdapter()
+
+    await expect(storage.set('k', 'new', { ifAbsent: true })).resolves.toBeUndefined()
+    expect(await storage.get('k')).toBe('new')
+
+    await expect(storage.set('k', 'dup', { ifAbsent: true })).rejects.toBeInstanceOf(
+      StorageConflictError,
+    )
+    expect(await storage.get('k')).toBe('new')
+  })
+
+  it('LocalStorageAdapter：按命名空间判存在，冲突时保留原值', async () => {
+    localStorage.clear()
+    const storage = new LocalStorageAdapter('u/1/')
+
+    await storage.set('scada_project_A', 'first', { ifAbsent: true })
+    await expect(storage.set('scada_project_A', 'second', { ifAbsent: true })).rejects.toBeInstanceOf(
+      StorageConflictError,
+    )
+    expect(localStorage.getItem('u/1/scada_project_A')).toBe('first')
+
+    // 不带 ifAbsent 时仍可覆盖（保存自己已认领的工程走这条）
+    await storage.set('scada_project_A', 'update')
+    expect(localStorage.getItem('u/1/scada_project_A')).toBe('update')
   })
 })
 

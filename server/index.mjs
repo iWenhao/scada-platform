@@ -13,7 +13,7 @@
 //   GET/POST/PATCH/DELETE /api/auth/users
 //   GET    /api/keys | /api/storage/keys
 //   GET    /api/storage/get?key=
-//   PUT    /api/storage/set?key=    (engineer+)
+//   PUT    /api/storage/set?key=    (engineer+; 带 ?mode=create 时键已存在返回 409，不覆盖)
 //   DELETE /api/storage/remove?key= (engineer+)
 //   POST   /api/history/write       (operator+)
 //   GET    /api/history/query

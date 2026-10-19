@@ -1,4 +1,5 @@
 import type { StorageAdapter } from './index'
+import { StorageConflictError } from './errors'
 import { authHeaders } from '@/auth/session'
 
 /**
@@ -28,12 +29,15 @@ export class RemoteStorageAdapter implements StorageAdapter {
     return body.value ?? null
   }
 
-  async set(key: string, value: string): Promise<void> {
-    const res = await fetch(`${this.base}/set?key=${encodeURIComponent(key)}`, {
+  async set(key: string, value: string, options?: { ifAbsent?: boolean }): Promise<void> {
+    // ifAbsent → 服务端 ?mode=create：判重交后端一次原子写，撞名回 409（与网络故障区分）
+    const mode = options?.ifAbsent ? '&mode=create' : ''
+    const res = await fetch(`${this.base}/set?key=${encodeURIComponent(key)}${mode}`, {
       method: 'PUT',
       headers: { ...this.headers, 'content-type': 'text/plain; charset=utf-8' },
       body: value,
     })
+    if (res.status === 409) throw new StorageConflictError()
     if (!res.ok) throw new Error(`set failed: HTTP ${res.status}`)
   }
 

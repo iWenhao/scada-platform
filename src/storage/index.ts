@@ -9,15 +9,21 @@ import { RemoteStorageAdapter } from './remote'
 import { resolveApiBase } from './config'
 import { resolveLocalNamespace, namespaceForUser } from './namespace'
 import { LOCAL_SESSION_KEY } from './sessionKey'
+import { StorageConflictError } from './errors'
 
 // re-export 远程适配器与连接配置, 供 main.ts / 部署环境使用
 export { RemoteStorageAdapter } from './remote'
 export { resolveApiBase, resolveApiToken } from './config'
 export { resolveLocalNamespace, namespaceForUser, ANONYMOUS_NAMESPACE } from './namespace'
+export { StorageConflictError } from './errors'
 
 export interface StorageAdapter {
   get(key: string): Promise<string | null>
-  set(key: string, value: string): Promise<void>
+  /**
+   * 写入。options.ifAbsent=true 表示「仅当键不存在时创建」：
+   * 目标已存在时抛 StorageConflictError（不覆盖），用于把保存时的撞名判重交给底层原子完成。
+   */
+  set(key: string, value: string, options?: { ifAbsent?: boolean }): Promise<void>
   remove(key: string): Promise<void>
   /** 枚举当前存储的全部键 */
   keys(): Promise<string[]>
@@ -62,7 +68,12 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
-  async set(key: string, value: string): Promise<void> {
+  async set(key: string, value: string, options?: { ifAbsent?: boolean }): Promise<void> {
+    // JS 单线程 + localStorage.setItem 同步：get 判存在与 setItem 之间不会有别的写插进来，
+    // 所以 ifAbsent 在一个 tick 内即无竞态（跨设备/多进程不在此模式覆盖范围内）。
+    if (options?.ifAbsent && localStorage.getItem(this.full(key)) !== null) {
+      throw new StorageConflictError()
+    }
     localStorage.setItem(this.full(key), value)
   }
 
@@ -127,7 +138,10 @@ export class MemoryStorageAdapter implements StorageAdapter {
     return this.map.get(key) ?? null
   }
 
-  async set(key: string, value: string): Promise<void> {
+  async set(key: string, value: string, options?: { ifAbsent?: boolean }): Promise<void> {
+    if (options?.ifAbsent && this.map.has(key)) {
+      throw new StorageConflictError()
+    }
     this.map.set(key, value)
   }
 

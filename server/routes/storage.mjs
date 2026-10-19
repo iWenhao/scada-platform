@@ -8,6 +8,7 @@ import {
   listKeys,
   readValue,
   writeValue,
+  writeValueIfAbsent,
   removeValue,
   keyError,
   GLOBAL_SCOPE,
@@ -49,7 +50,22 @@ export async function handleStorage(ctx) {
       ok(res, req, 400, { error: bad })
       return true
     }
-    await writeValue(dataDir, key, scope, await readBody(req, maxBodyBytes))
+    const body = await readBody(req, maxBodyBytes)
+    // mode=create：把「判重」从客户端挪到服务端一次原子写，消掉 read-check-write 竞态。
+    // 目标已存在时 writeValueIfAbsent 抛 EEXIST → 回 409，前端据此走改名提示。
+    if (url.searchParams.get('mode') === 'create') {
+      try {
+        await writeValueIfAbsent(dataDir, key, scope, body)
+      } catch (e) {
+        if (e?.code === 'EEXIST') {
+          ok(res, req, 409, { error: 'exists' })
+          return true
+        }
+        throw e
+      }
+    } else {
+      await writeValue(dataDir, key, scope, body)
+    }
     ok(res, req, 200, { ok: true })
     return true
   }

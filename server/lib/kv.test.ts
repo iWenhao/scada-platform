@@ -21,6 +21,7 @@ import {
   scopeDir,
   scopeOf,
   writeValue,
+  writeValueIfAbsent,
 } from './kv.mjs'
 
 let dataDir = ''
@@ -159,5 +160,39 @@ describe('listKeys / readValue / removeValue', () => {
     const files = await readdir(scopeDir(dataDir, listScope))
     // 临时文件名形如 <key>.json.<pid>.<ts>.tmp（见 lib/atomicWrite.mjs），rename 后不该留下
     expect(files.filter(f => f.startsWith('.') && f.endsWith('.tmp'))).toEqual([])
+  })
+})
+
+describe('writeValueIfAbsent（仅不存在时创建）', () => {
+  const absScope = 'u/if-absent/'
+
+  it('目标不存在时写入成功', async () => {
+    await writeValueIfAbsent(dataDir, 'fresh', absScope, '"new"')
+    expect(await readValue(dataDir, 'fresh', absScope)).toBe('"new"')
+  })
+
+  it('目标已存在时抛 EEXIST 且不覆盖旧值', async () => {
+    await writeValue(dataDir, 'taken', absScope, '"old"')
+    await expect(writeValueIfAbsent(dataDir, 'taken', absScope, '"new"')).rejects.toMatchObject({
+      code: 'EEXIST',
+    })
+    // 关键：冲突后旧数据原样保留，不是先覆盖再报错
+    expect(await readValue(dataDir, 'taken', absScope)).toBe('"old"')
+  })
+
+  it('两个并发 create 同名只有一个成功，另一个拿 EEXIST', async () => {
+    // 消掉前端 read-check-write 竞态的落点：判重在同路径串行槽内、rename 之前完成
+    const results = await Promise.allSettled([
+      writeValueIfAbsent(dataDir, 'race', absScope, '"A"'),
+      writeValueIfAbsent(dataDir, 'race', absScope, '"B"'),
+    ])
+    const fulfilled = results.filter(r => r.status === 'fulfilled')
+    const rejected = results.filter(
+      r => r.status === 'rejected' && (r.reason as { code?: string }).code === 'EEXIST',
+    )
+    expect(fulfilled).toHaveLength(1)
+    expect(rejected).toHaveLength(1)
+    // 最终值是两个竞争写入之一，且没被半途写坏
+    expect(['"A"', '"B"']).toContain(await readValue(dataDir, 'race', absScope))
   })
 })

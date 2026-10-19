@@ -169,12 +169,21 @@ describe('projectStore 保存查重', () => {
     expect(await getStorage().get('scada_project_新名')).not.toBeNull()
   })
 
-  it('publishProject 撞名应拒绝，不覆盖别人的发布版', async () => {
-    await occupy('A')
-    store.resetProject()
+  it('两个独立会话用同名新建，第二个保存被拒且不覆盖第一个的数据', async () => {
+    // 会话 A 新建并保存「并发工程」
+    await store.saveProject('并发工程')
+    const bytesAfterA = await getStorage().get('scada_project_并发工程')
 
-    expect(await store.publishProject('A')).toBe(false)
-    expect(await getStorage().get('scada_published_A')).toBeNull()
+    // 会话 B：全新 pinia，没打开过也没认领过该名字（模拟另一台设备/另一个标签）
+    setActivePinia(createPinia())
+    const storeB = useProjectStore()
+    storeB.markDirty()
+
+    // 判重交给底层一次原子写，B 拿不到覆盖权
+    expect(await storeB.saveProject('并发工程')).toBe(false)
+    expect(storeB.projectName).toBe('未命名项目')
+    // A 的数据原样还在
+    expect(await getStorage().get('scada_project_并发工程')).toBe(bytesAfterA)
   })
 })
 

@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import { getStorage } from '@/storage'
+import { getStorage, StorageConflictError } from '@/storage'
 import {
   isProjectTaken,
   projectKey,
@@ -46,23 +46,31 @@ export function createProjectPersistence(ctx: {
   /**
    * 保存项目到存储。
    *
-   * 撞名保护：目标工程名已被占用、且不是本会话认领的项目时拒绝保存（返回 false，
-   * 不写存储）。没有这道 guard，新建项目用默认名「未命名项目」一保存就会静默
-   * 覆盖同名工程——用户看到的不是报错，是自己的旧工程凭空消失。
-   * 存储故障仍走抛异常路径，与既有行为一致。
+   * 撞名保护改由底层一次原子写完成：本会话没认领过这个工程名（新建/导入后改名等）时，
+   * 带 ifAbsent 写入——目标已存在则存储层抛 StorageConflictError，这里返回 false（不写存储）。
+   * 判重不再走「先 get 查一次、再 set 写」，消掉了两个会话/两台设备同时新建同名工程时
+   * 双双判到「未占用」、后写的静默覆盖先写的竞态。远程模式由服务端 ?mode=create 原子化，
+   * 本地/内存模式在同一 tick 内判存在，均不回覆盖。存储故障仍走抛异常路径，与既有行为一致。
    */
   async function saveProject(name?: string): Promise<boolean> {
     const target = name || state.projectName.value
-
-    if (target !== state.ownedProjectName.value && (await isProjectTaken(target))) {
-      return false
-    }
-
-    // 通过检查再改名：被拒绝时不动 projectName，编辑器留在原状态
+    const isNew = target !== state.ownedProjectName.value
+    // buildProjectData 取的是 projectName.value，必须先落名才能把正确的 name 写进工程数据；
+    // 撞名时再回滚成 prevName，保证「被拒绝时编辑器留在原状态」
+    const prevName = state.projectName.value
     state.projectName.value = target
-
     const json = JSON.stringify(ctx.buildProjectData())
-    await getStorage().set(projectKey(target), json)
+
+    try {
+      await getStorage().set(projectKey(target), json, { ifAbsent: isNew })
+    } catch (e) {
+      // 撞名：回滚名字、返回 false，交给上层 saveWithNameGuard 弹改名框；存储故障仍抛异常
+      if (e instanceof StorageConflictError) {
+        state.projectName.value = prevName
+        return false
+      }
+      throw e
+    }
 
     // 已正式落盘，自动草稿不再需要。但清理失败不能算保存失败：项目数据已经写好了，
     // 这里抛出去会让「保存」报未处理异常、「预览」直接不跳转，用户以为没存上。

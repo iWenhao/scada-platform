@@ -26,9 +26,29 @@ function tmpPathFor(filePath) {
   return path.join(dir, `.${base}.${process.pid}.${Date.now()}.${++tmpSeq}.tmp`)
 }
 
-/** 「写临时文件 + rename 覆盖」；rename 遇瞬时占用时重试 */
-async function writeOnce(filePath, data, encoding) {
+/**
+ * 「写临时文件 + rename 覆盖」；rename 遇瞬时占用时重试。
+ *
+ * ifAbsent 用于「仅在目标不存在时创建」：存在性检查必须放在同路径串行槽位内、
+ * rename 之前做，才不会与另一路对同一目标的 rename 交错（否则判完「不存在」的
+ * 瞬间被对方抢先写入，仍是 last-write-wins）。fs.access 成功即存在→抛 EEXIST；
+ * ENOENT 即不存在→吞掉继续写；其它错误（如权限）原样抛出。
+ * 判据用目标文件本身而非临时文件的 'wx'：临时文件名唯一，'wx' 只会永远成功。
+ */
+async function writeOnce(filePath, data, encoding, ifAbsent) {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
+  if (ifAbsent) {
+    try {
+      await fs.access(filePath)
+      // 标准 Error 上没有 code，靠类型断言补上（对齐 http.mjs readBody 的 status 写法）
+      /** @type {Error & { code?: string }} */
+      const exists = new Error('target already exists')
+      exists.code = 'EEXIST'
+      throw exists
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e
+    }
+  }
   const tmp = tmpPathFor(filePath)
   try {
     await fs.writeFile(tmp, data, encoding)
@@ -89,11 +109,13 @@ const tails = new Map()
  * @param {string} filePath
  * @param {string|Buffer} data
  * @param {BufferEncoding} [encoding]
+ * @param {{ ifAbsent?: boolean }} [opts] ifAbsent=true 时目标已存在会抛 code='EEXIST'
  */
-export function writeFileAtomic(filePath, data, encoding = 'utf8') {
+export function writeFileAtomic(filePath, data, encoding = 'utf8', opts = {}) {
   const key = path.resolve(filePath)
+  const ifAbsent = opts.ifAbsent === true
   // 队尾恒为已 settle 的 tail（异常被吞），所以一次写失败不会让后续写排队中断
-  const run = (tails.get(key) ?? Promise.resolve()).then(() => writeOnce(filePath, data, encoding))
+  const run = (tails.get(key) ?? Promise.resolve()).then(() => writeOnce(filePath, data, encoding, ifAbsent))
   const tail = run.then(
     () => {},
     () => {},

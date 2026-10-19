@@ -85,6 +85,17 @@ export async function writeValue(dataDir, key, scope, value) {
   await writeFileAtomic(fileFor(dataDir, key, scope), value, 'utf8')
 }
 
+/**
+ * 仅当键不存在时写入（乐观并发里的「创建」语义）。
+ * 存在性检查在同路径串行槽内、rename 之前完成，所以两个并发 create 只有一个能成功。
+ * 目标已存在时抛出 `code='EEXIST'` 的错误，由路由层映射为 409；其余错误原样抛出。
+ * 注意：只在单进程下成立——多进程共享同一 DATA_DIR 时 access 与 rename 之间仍有窗口，
+ * 真要跨进程防需要把 'wx' 落到正式文件名或引入锁/DB（当前部署形态为单进程）。
+ */
+export async function writeValueIfAbsent(dataDir, key, scope, value) {
+  await writeFileAtomic(fileFor(dataDir, key, scope), value, 'utf8', { ifAbsent: true })
+}
+
 export async function removeValue(dataDir, key, scope) {
   // 自动草稿每 30 秒重写一次，正式保存后紧接着删最容易撞上 Windows 的句柄未释放（EPERM/EBUSY）；
   // force 只吞 ENOENT，不重试就是一条 500 打到前端
