@@ -12,6 +12,7 @@
         :last-update-time="lastUpdateTime"
         :can-go-back="navStack.canBack"
         :auto-rotate="autoRotate"
+        :show-back="uiStore.hasEditSession"
         @back="backToEditor"
         @nav-back="goBackPage"
         @switch-page="switchPage"
@@ -49,7 +50,8 @@
       <div class="status-actions">
         <el-button type="primary" @click="retryLoad">重试</el-button>
         <el-button @click="router.push('/')">返回首页</el-button>
-        <el-button @click="router.push('/editor')">返回编辑器</el-button>
+        <!-- 独立标签打开的运行端没有编辑现场，「返回编辑器」无意义 -->
+        <el-button v-if="uiStore.hasEditSession" @click="router.push('/editor')">返回编辑器</el-button>
       </div>
     </div>
   </div>

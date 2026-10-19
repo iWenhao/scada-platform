@@ -2,7 +2,7 @@
   <div class="hud-bar">
     <!-- 左：导航与画面 -->
     <div class="hud-left">
-      <button class="hud-btn ghost" type="button" @click="emit('back')">
+      <button v-if="showBack" class="hud-btn ghost" type="button" @click="emit('back')">
         <ToolIcon name="back" />
         <span>编辑器</span>
       </button>
@@ -120,18 +120,23 @@ import { connectionStatusView } from '@/status/connection'
 // 品牌图标读全局设置（默认回落 public/logo.svg）
 const branding = useBrandingStore()
 
-const props = defineProps<{
-  projectName: string
-  pages: ScadaPage[]
-  activePageId: string
-  writeLocked: boolean
-  unackedCount: number
-  activeAlarmCount: number
-  connectionStatus: 'connected' | 'error' | 'connecting' | string
-  lastUpdateTime: string
-  canGoBack: boolean
-  autoRotate?: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    projectName: string
+    pages: ScadaPage[]
+    activePageId: string
+    writeLocked: boolean
+    unackedCount: number
+    activeAlarmCount: number
+    connectionStatus: 'connected' | 'error' | 'connecting' | string
+    lastUpdateTime: string
+    canGoBack: boolean
+    autoRotate?: boolean
+    /** 「编辑器」入口只在本站有编辑现场时显示；运行端标签页里它是死路 */
+    showBack?: boolean
+  }>(),
+  { showBack: true },
+)
 
 const emit = defineEmits<{
   back: []

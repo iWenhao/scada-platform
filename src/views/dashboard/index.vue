@@ -338,7 +338,8 @@ function goToEditor() {
 }
 
 function previewProject(name: string) {
-  router.push({ path: '/preview', query: { project: name } })
+  // 首页预览是运行端入口：新开标签页，本标签留在项目列表；新标签没有编辑现场，预览页据此隐藏「编辑器」按钮
+  window.open(router.resolve({ path: '/preview', query: { project: name } }).href, '_blank')
 }
 
 function importProject() {
