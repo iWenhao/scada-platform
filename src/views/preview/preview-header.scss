@@ -20,6 +20,20 @@
   min-width: 0;
 }
 
+/* 需要挂气泡的 HUD 按钮宿主：disabled 的 button 不派发鼠标事件，
+   所以让按钮自身对鼠标穿透，由外层 span 接住 hover */
+.hud-btn-host {
+  display: inline-flex;
+
+  &.is-disabled {
+    cursor: not-allowed;
+
+    > .hud-btn {
+      pointer-events: none;
+    }
+  }
+}
+
 .hud-btn {
   display: inline-flex;
   align-items: center;

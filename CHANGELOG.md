@@ -46,6 +46,12 @@
 
 ### 优化
 
+- 预览页「上一画面」改名并挂上说明气泡
+  - 背景：这个按钮在没有任何画面跳转记录时是灰的，用户看不出它是干什么的、也看不出为什么点不动，连问两次「用来干啥」。名字本身也有歧义——「上一画面」像是"上一张画面标签"，实际是浏览器后退那种**回退到刚才看的那张**
+  - 改法：标签改「返回上一画面」（与属性面板里 `navigateTo=__back__` 那个选项同一口径）；灰掉时气泡说明「还没有画面跳转记录」，可用时说明「回到刚才看的那张画面」。措辞按实际压栈口径写：切画面就压栈，点标签、组件跳转、自动轮播都算
+  - 两个坑：① 气泡必须挂在包装 `span.hud-btn-host` 上而不是按钮本身——`disabled` 的 button 不派发鼠标事件，`el-tooltip` 挂上去永远弹不出来，配套让按钮 `pointer-events: none`、由外层接住 hover；② `effect` 要显式写 `light`，EP 默认的 `dark` 档在暗色主题下会被变量反转成白底（`is-dark` 背景取 `--el-text-color-primary`），浮在黑 HUD 上很突兀；`light` 档亮色主题走 EP 默认白底、暗色主题由 `dark-theme.scss` 的 `.el-popper.is-light` 统一刷成品牌深色，跟随 HUD 一起换肤
+  - 动了：`src/views/preview/PreviewHeader.vue`、`preview-header.scss`（`.hud-btn-host`）、新增 `PreviewHeader.test.ts`
+  - 实测：挂载测试 2 例通过——禁用态 hover 宿主 span 能弹层且文案含「还没有画面跳转记录」，可用态文案为「回到刚才看的那张画面」且浮层带 `is-light`；`vue-tsc --noEmit` 0 错、`pnpm build` 通过
 - 首页项目卡片操作栏改成单行常驻，配置项收进「⋯」
   - 背景：三个问题叠在一起。① 6 个控件用 `flex-wrap` 排在 `minmax(320px,1fr)` 的栅格里，已发布态「取消发布」比「发布」宽 24px，最小列宽下必然换成两行，卡片高度跟着发布状态跳；② 操作栏 `opacity:0` 只在悬停时淡入，未悬停时是一块点不着的空白，触屏与键盘用户永远够不到；③ `html.dark .el-button--primary` 的品牌青覆盖只管暗色，亮色主题下主按钮仍是 Element Plus 默认蓝，同一张卡两套主题两种强调色，加上 success/warning plain 的绿与橙，一行五种视觉重量
   - 改法：`ProjectCard.vue` 操作栏收成「打开编辑 / 预览 / 发布（取消发布）/ ⋯」，数据源·报警·点表三项并进 ⋯，组件内按命令分流回 `config` 与 `more` 两个事件，`dashboard/index.vue` 的契约一字未改。`project-card.scss` 用 `nowrap` + `gap:2px` + 顶部 hairline + `padding-top:10px` 定出恒定 35px 单行，取消悬停才显示的透明度门（层级改由配色承担：整行只有一个实心态）；主按钮不再用 `type="primary"`，直接消费 `--accent-primary`，两套主题同色；次级按钮统一透明底 + 细边框 + 次要文字；⋯ 靠 `margin-left:6px` 补足与左侧的 8px，读起来不像第五个平级按钮

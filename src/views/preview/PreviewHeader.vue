@@ -6,15 +6,22 @@
         <ToolIcon name="back" />
         <span>编辑器</span>
       </button>
-      <button
-        class="hud-btn ghost"
-        type="button"
-        :disabled="!canGoBack"
-        @click="emit('nav-back')"
-      >
-        <ToolIcon name="prev-page" />
-        <span>上一画面</span>
-      </button>
+      <!-- 气泡宿主必须是包装 span：disabled 的 button 不派发鼠标事件，挂在按钮上永远弹不出来。
+           effect 用 light：EP 的 dark 气泡在暗色主题下会被变量反转成白底，HUD 上很突兀；
+           light 气泡在亮色主题走 EP 默认白底，暗色主题由 dark-theme.scss 的 .el-popper.is-light 统一上色 -->
+      <el-tooltip :content="backTip" placement="bottom" effect="light">
+        <span class="hud-btn-host" :class="{ 'is-disabled': !canGoBack }">
+          <button
+            class="hud-btn ghost"
+            type="button"
+            :disabled="!canGoBack"
+            @click="emit('nav-back')"
+          >
+            <ToolIcon name="prev-page" />
+            <span>返回上一画面</span>
+          </button>
+        </span>
+      </el-tooltip>
 
       <div class="hud-brand">
         <img :src="branding.displayIcon" alt="" class="brand-logo" />
@@ -141,6 +148,13 @@ const alarmOpen = ref(false)
 const connView = computed(() => connectionStatusView(props.connectionStatus))
 const connClass = computed(() => connView.value.cls)
 const connText = computed(() => connView.value.text)
+
+// 只要切过画面就压栈（点标签、组件跳转、轮播都算），返回时按倒序一层层退回去
+const backTip = computed(() =>
+  props.canGoBack
+    ? '回到刚才看的那张画面'
+    : '还没有画面跳转记录：切换过画面之后，这里可以退回到上一张',
+)
 </script>
 
 <style scoped lang="scss">
