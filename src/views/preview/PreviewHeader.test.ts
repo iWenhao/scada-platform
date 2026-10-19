@@ -50,3 +50,36 @@ describe('预览页 HUD 返回上一画面', () => {
     expect(popper?.classList.contains('is-light')).toBe(true)
   })
 })
+
+/**
+ * 右侧图标按钮的提示曾经用原生 title：浏览器绘制的气泡不受 CSS 管，
+ * 暗色主题下依旧是白底，和左侧气泡对不上。这里守住「不用 title」+「走 light 档」。
+ */
+describe('预览页 HUD 右侧图标按钮', () => {
+  it('提示全部交给 el-tooltip，没有残留原生 title', async () => {
+    document.querySelectorAll('.el-popper').forEach(node => node.remove())
+    const wrapper = mount(PreviewHeader, {
+      props: {
+        projectName: '测试工程',
+        pages: [],
+        activePageId: '',
+        writeLocked: true,
+        unackedCount: 0,
+        activeAlarmCount: 3,
+        connectionStatus: 'connected',
+        lastUpdateTime: '',
+        canGoBack: true,
+      },
+      global: { plugins: [ElementPlus, createPinia()] },
+    })
+    const buttons = wrapper.findAll('.hud-right .hud-btn')
+    expect(buttons.length).toBeGreaterThanOrEqual(6)
+    buttons.forEach(btn => expect(btn.attributes('title')).toBeUndefined())
+
+    await buttons[0].trigger('mouseenter')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    const popper = document.querySelector<HTMLElement>('.el-popper')
+    expect(popper?.textContent).toContain('3 条活跃报警')
+    expect(popper?.classList.contains('is-light')).toBe(true)
+  })
+})

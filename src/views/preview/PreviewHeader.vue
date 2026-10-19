@@ -57,47 +57,50 @@
         <span class="chip-value mono">{{ lastUpdateTime || '--:--:--' }}</span>
       </div>
 
-      <button
-        class="hud-btn icon"
-        type="button"
-        :class="{ danger: activeAlarmCount > 0 }"
-        :title="`${activeAlarmCount} 条活跃报警`"
-        @click="alarmOpen = !alarmOpen"
-      >
-        <ToolIcon name="bell" />
-        <span v-if="unackedCount" class="badge">{{ unackedCount }}</span>
-      </button>
+      <!-- HUD 上的提示一律用 el-tooltip effect="light"，不要用原生 title：
+           title 的气泡由浏览器绘制，CSS 碰不到，暗色主题下仍是白底 -->
+      <el-tooltip :content="`${activeAlarmCount} 条活跃报警`" placement="bottom" effect="light">
+        <button class="hud-btn icon" type="button" :class="{ danger: activeAlarmCount > 0 }" @click="alarmOpen = !alarmOpen">
+          <ToolIcon name="bell" />
+          <span v-if="unackedCount" class="badge">{{ unackedCount }}</span>
+        </button>
+      </el-tooltip>
 
-      <button
-        class="hud-btn icon"
-        type="button"
-        :class="{ locked: writeLocked }"
-        :title="writeLocked ? '写值已锁定' : '写值未锁定'"
-        @click="emit('toggle-write-lock')"
-      >
-        <ToolIcon :name="writeLocked ? 'lock' : 'unlock'" />
-      </button>
+      <el-tooltip :content="writeLocked ? '写值已锁定' : '写值未锁定'" placement="bottom" effect="light">
+        <button
+          class="hud-btn icon"
+          type="button"
+          :class="{ locked: writeLocked }"
+          @click="emit('toggle-write-lock')"
+        >
+          <ToolIcon :name="writeLocked ? 'lock' : 'unlock'" />
+        </button>
+      </el-tooltip>
 
-      <button
-        class="hud-btn icon"
-        type="button"
-        :class="{ on: autoRotate }"
-        :title="autoRotate ? '停止轮播' : '自动轮播画面'"
-        @click="emit('toggle-rotate')"
-      >
-        <ToolIcon name="rotate" />
-      </button>
-      <button class="hud-btn icon" type="button" title="全屏" @click="emit('fullscreen')">
-        <ToolIcon name="fullscreen" />
-      </button>
-      <button class="hud-btn icon" type="button" title="写值审计" @click="emit('open-audit')">
-        <ToolIcon name="audit" />
-      </button>
+      <el-tooltip :content="autoRotate ? '停止轮播' : '自动轮播画面'" placement="bottom" effect="light">
+        <button class="hud-btn icon" type="button" :class="{ on: autoRotate }" @click="emit('toggle-rotate')">
+          <ToolIcon name="rotate" />
+        </button>
+      </el-tooltip>
+
+      <el-tooltip content="全屏" placement="bottom" effect="light">
+        <button class="hud-btn icon" type="button" @click="emit('fullscreen')">
+          <ToolIcon name="fullscreen" />
+        </button>
+      </el-tooltip>
+
+      <el-tooltip content="写值审计" placement="bottom" effect="light">
+        <button class="hud-btn icon" type="button" @click="emit('open-audit')">
+          <ToolIcon name="audit" />
+        </button>
+      </el-tooltip>
 
       <ThemeToggle v-slot="{ tip, icon, toggle }">
-        <button class="hud-btn icon" type="button" :title="tip" @click="toggle">
-          <ToolIcon :name="icon" />
-        </button>
+        <el-tooltip :content="tip" placement="bottom" effect="light">
+          <button class="hud-btn icon" type="button" @click="toggle">
+            <ToolIcon :name="icon" />
+          </button>
+        </el-tooltip>
       </ThemeToggle>
     </div>
 
