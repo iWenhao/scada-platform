@@ -75,6 +75,12 @@
   - 浏览器实测（Playwright + 系统 Chrome，独立端口 5180 + 独立数据目录，不碰开发机上的实例）：对话框渲染、有状态状态表、创建后跨会话从存储恢复、拖入画布未绑定显灰、`/preview` 直接打开也能渲染自定义组件，全部通过；全程无 `pageerror`
   - 动了：`customLibrary.ts`、`authStore.ts`、`main.ts`、`ComponentPanel.vue`、`preview/index.vue`
 
+### 优化
+
+- 登录按钮去掉 `→` 箭头
+  - 改法：删除 `btn-arrow` 的 span 与对应样式，按钮只保留文字「进入系统」
+  - 动了：`src/views/login/index.vue`、`src/views/login/login.scss`
+
 ### 文档
 
 - AGENTS.md 并行改动规则外移到 `docs/PARALLEL_WORK.md`，字节预算从 29.6KB 降到 27.4KB

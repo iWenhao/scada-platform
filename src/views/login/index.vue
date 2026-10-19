@@ -81,7 +81,6 @@
               <span class="btn-text">
                 {{ authStore.loading ? '登录中…' : '进入系统' }}
               </span>
-              <span class="btn-arrow">→</span>
             </button>
           </form>
 
