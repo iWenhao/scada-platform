@@ -12,6 +12,7 @@
 //   GET    /api/auth/me
 //   GET/POST/PATCH/DELETE /api/auth/users
 //   GET    /api/keys | /api/storage/keys
+//   GET    /api/storage/projects        工程列表摘要（首页「最近项目」，一次返回避免 N×get 拉全量 JSON）
 //   GET    /api/storage/get?key=
 //   PUT    /api/storage/set?key=    (engineer+; 带 ?mode=create 时键已存在返回 409，不覆盖)
 //   DELETE /api/storage/remove?key= (engineer+)
@@ -39,6 +40,7 @@ import { handleAuth } from './routes/auth.mjs'
 import { handleNotify } from './routes/notify.mjs'
 import { handleAudit } from './routes/audit.mjs'
 import { handleStorage } from './routes/storage.mjs'
+import { handleProjects } from './routes/projects.mjs'
 import { handleHistory } from './routes/history.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -111,11 +113,12 @@ const server = createServer(async (req, res) => {
       historyDir: historyDirFor(HISTORY_DIR, scope),
     }
 
-    // 顺序与原单体实现一致：账号 → 通知 → 审计 → 存储 → 历史
+    // 顺序与原单体实现一致：账号 → 通知 → 审计 → 存储 → 工程索引 → 历史
     if (await handleAuth(ctx)) return
     if (await handleNotify(ctx)) return
     if (await handleAudit(ctx)) return
     if (await handleStorage(ctx)) return
+    if (await handleProjects(ctx)) return
     if (await handleHistory(ctx)) return
 
     return ok(res, req, 404, { error: 'not found' })

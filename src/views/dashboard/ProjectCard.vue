@@ -1,5 +1,5 @@
 <template>
-  <div class="project-card" :class="{ published: !!project.publishedAt }">
+  <div ref="cardEl" class="project-card" :class="{ published: !!project.publishedAt }">
     <div class="thumb">
       <img v-if="project.thumbnail" :src="project.thumbnail" class="thumb-img" :alt="project.name" />
       <div v-else class="thumb-scene">
@@ -69,9 +69,10 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onBeforeUnmount, onMounted } from 'vue'
 import type { ProjectRow } from './types'
 
-defineProps<{
+const props = defineProps<{
   project: ProjectRow
   editing?: boolean
   modelValue?: string
@@ -88,6 +89,7 @@ const emit = defineEmits<{
   'confirm-rename': []
   'cancel-rename': []
   'update:modelValue': [v: string]
+  loadThumb: []
 }>()
 
 // 「⋯ 更多」同时承载配置项与卡片操作，按命令分流回原有两个事件，父组件契约不变
@@ -101,6 +103,27 @@ function handleCommand(cmd: string) {
 function formatTime(t: number) {
   return new Date(t).toLocaleString()
 }
+
+// 缩略图按需加载：卡片进入视口（提前 200px 预取）才通知父组件拉取，触发一次即解绑。
+// 长列表里一屏只渲染几张，避免为不可见卡片各发一次 get 把 base64 全拉回来。
+const cardEl = ref<HTMLElement>()
+let thumbObserver: IntersectionObserver | null = null
+onMounted(() => {
+  if (!props.project.hasThumbnail || props.project.thumbnail) return
+  if (typeof IntersectionObserver === 'undefined' || !cardEl.value) return
+  thumbObserver = new IntersectionObserver(
+    entries => {
+      if (entries.some(e => e.isIntersecting)) {
+        emit('loadThumb')
+        thumbObserver?.disconnect()
+        thumbObserver = null
+      }
+    },
+    { rootMargin: '200px' },
+  )
+  thumbObserver.observe(cardEl.value)
+})
+onBeforeUnmount(() => thumbObserver?.disconnect())
 </script>
 
 <style scoped>

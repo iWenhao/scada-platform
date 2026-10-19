@@ -53,6 +53,13 @@
 
 ### 优化
 
+- 首页「最近项目」从每工程 3 次全量 GET 收敛为一次索引请求 + 缩略图懒加载
+  - 背景：`loadRecentProjects` 对每个工程并发发 3 次 `getStorage().get()`（工作副本、发布快照、缩略图各一次），且**每次都拉回整份 JSON**——读一个时间戳和画面数却把全部配置传一遍。N 个工程 = 3N 个网络往返，远程存储下一多项目首页就整屏转圈；`Promise.all` 一次性全并发还会把浏览器同域连接池（HTTP/1.1 约 6 条）排队打满。缩略图是 canvas `toDataURL` 的 base64，单张可达几百 KB，是最贵的一块
+  - 改法：新增服务端索引接口 `GET /api/storage/projects`（`server/lib/projectIndex.mjs` + `server/routes/projects.mjs`），读盘解析放服务端（本地、几乎零成本），网络上只回 `{ name, timestamp, pageCount, publishedAt, hasThumbnail }` 紧凑摘要，按修改时间倒序。前端 `StorageAdapter` 加**可选** `projectIndex()` 能力（仅 `RemoteStorageAdapter` 实现），`projectStorage.getProjectSummaries()` 优先走它、本地/内存模式与索引偶发失败时回落到原有 `keys()+get()` 逐条读（那种模式下 get 是同步内存读，无网络放大）。缩略图不进列表请求，改由 `ProjectCard` 用 `IntersectionObserver`（提前 200px）滚入视口才 emit `load-thumb`、父组件按名字取一张
+  - 判过的一条边界：**不做服务端截断成「最近 N」**——这个列表同时承担重命名/删除/发布/搜索的完整管理职责，客户端搜索是对全量过滤的，砍掉旧项目会让它们从管理界面消失。真正的收益是「不传全量 JSON」而不是「少几项」
+  - 没走 `<img src>` 直供图：缩略图接口在 Bearer 鉴权之后，`<img>` 带不上 Authorization 头，改成图片 URL 会牵动鉴权模型，得不偿失；懒加载已把「一屏只取可见几张」的收益拿到
+  - 动了：新增 `server/lib/projectIndex.mjs`、`server/routes/projects.mjs`，`server/index.mjs` 接线与头部接口清单；`src/storage/{index,remote}.ts`、`src/stores/{projectStorage,projectStore}.ts`、`src/views/dashboard/{index.vue,ProjectCard.vue,types.ts}`
+  - 实测：`projectIndex` / `remote` / `projectStorage` / `index` 相关 4 文件 30 用例通过；`tsc -p tsconfig.server.json`、`vue-tsc --noEmit`、超长文件检查全绿；备用端口 5178 + 系统临时数据目录真起后端灌 5 个键，`GET /api/storage/projects` 返回「乙(ts 900,published 950) → 甲(ts 100,2 画面,hasThumb)」倒序正确、草稿键不入列、无鉴权回 401；改动的前端文件 ESLint 0 error
 - 预览页「上一画面」改名并挂上说明气泡
   - 背景：这个按钮在没有任何画面跳转记录时是灰的，用户看不出它是干什么的、也看不出为什么点不动，连问两次「用来干啥」。名字本身也有歧义——「上一画面」像是"上一张画面标签"，实际是浏览器后退那种**回退到刚才看的那张**
   - 改法：标签改「返回上一画面」（与属性面板里 `navigateTo=__back__` 那个选项同一口径）；灰掉时气泡说明「还没有画面跳转记录」，可用时说明「回到刚才看的那张画面」。措辞按实际压栈口径写：切画面就压栈，点标签、组件跳转、自动轮播都算
@@ -111,6 +118,13 @@
   - 实测：静态门槛同「首页搜索」一条（typecheck / `--changed` 单测 / eslint / build / 超长文件检查全过）。**滚动手感与两档主题下的搜索框配色待肉眼核对**（同上，未登录）
 
 ### 修复
+
+- 多用户/多标签同时新建同名工程仍可互相覆盖（前端判重非原子）
+  - 根因：上一条「静默覆盖」修复把查重放在前端 `saveProject` 的 `isProjectTaken(target)` → 再 `set`，是**读—判—写**三步。用户之间靠服务端按 token 分的命名空间（`u/<userId>/`）本来就不会互相看到，但**同一账号的两个标签 / 两台设备**同时新建同名工程时，两边都判到「未占用」→ 都写 → 后写的静默覆盖先写的（lost update）。判重留在客户端，绕开 SPA 直接打 `PUT /api/storage/set` 也能跳过它
+  - 改法：把「新建（本会话未认领）」的保存改成一次**原子的「仅当不存在则创建」**写。① 存储接口 `set` 加可选 `options.ifAbsent`，冲突统一抛新类型 `StorageConflictError`（`src/storage/errors.ts` 单独成文件，避开 index↔remote 值循环）；② 远程适配器 `ifAbsent` → `PUT .../set?key=&mode=create`，服务端 409 映射成 `StorageConflictError`，其它非 2xx 仍是普通 Error；③ 本地/内存适配器在同一 tick 内判存在后抛冲突（JS 单线程即无竞态）；④ 服务端 `atomicWrite.writeFileAtomic` 加 `{ ifAbsent }`——存在性检查放进**同路径串行槽内、rename 之前**，`fs.access` 命中即抛 `EEXIST`；`kv.mjs` 出 `writeValueIfAbsent`；`routes/storage.mjs` 的 set 认 `?mode=create`、`EEXIST`→`409 {error:'exists'}`（角色门禁与 `keyError` 不变）。`saveProject` 据此把「非 own」的保存带 `ifAbsent`，捕获冲突即返回 false，编辑器状态与认领标志都不动
+  - 边界与代价：只保证**单进程** Node 下原子（当前部署形态）；多进程共享同一 `DATA_DIR` 时 access 与 rename 之间仍有极小窗口，要再防得把 `wx` 落到正式文件名或引锁/DB，已在函数注释里写明。**已拥有工程的「更新覆盖」这次不做**（需 ETag/版本号的乐观并发，改动更大，留作后续）；`publishProject` 的判重语义与写入键不同（查工作副本、写发布快照），且真实流程里保存已先行原子判重，故保持原样不改，避免语义漂移。离线回落 localStorage 时按单浏览器隔离，本就无跨设备竞态
+  - 动了：`server/lib/atomicWrite.mjs`、`server/lib/kv.mjs`、`server/routes/storage.mjs`、`server/index.mjs`（接口注释）、`src/storage/{index,errors,remote}.ts`、`src/stores/projectPersistence.ts`、测试 `server/lib/kv.test.ts`、`src/storage/index.test.ts`、新增 `src/storage/remote.test.ts`、`src/stores/projectStore.test.ts`
+  - 实测：新增 10 条用例——`kv` 3（create-on-absent 成功 / create-on-exists 抛 `EEXIST` 且旧值不动 / 两路并发 `Promise.allSettled` 只有一个 fulfilled）、`index` 2（Memory 与 LocalStorage 的 `ifAbsent` 冲突与不带 flag 时可覆盖）、`remote` 4（ifAbsent→URL 带 `mode=create`、409→`StorageConflictError`、非 409 故障仍抛普通 Error、不带 flag 不加 mode）、`projectStore` 1（两个独立 store 同名新建，第二个返回 false、名字回滚、第一个数据原样）。定向 `npx vitest run` 5 文件 / 67 用例全绿（无 `Errors`）；`pnpm typecheck:server`、`vue-tsc --noEmit`、`check-long-files.ps1`（OK，无超限）均通过。**后端端到端**（临时 5178 + 独立 temp `DATA_DIR` + `AUTH_TOKEN`，不碰 5173/5174）：`mode=create` 首写 200 → 同键再 create 得 `409 {error:exists}` 且原值保持 `FIRST` → 不带 mode 的写 200 覆盖成 `THIRD`，确认「冲突不覆盖 / 默认写不受影响」。前端 409→`StorageConflictError`→`saveProject` 返回 false 的映射由 `remote` 用例覆盖；未做双标签浏览器实机（该竞态在 server/adapter/store 三层已逐项验证）
 
 - 预览页 HUD 右侧图标按钮的悬停提示不随主题变色
   - 根因：报警 / 写值锁定 / 轮播 / 全屏 / 写值审计 / 主题切换 6 个按钮用的是原生 `title`，气泡由浏览器绘制，CSS 选不中，暗色主题下仍是白底，和左侧 `el-tooltip` 的深蓝气泡对不上

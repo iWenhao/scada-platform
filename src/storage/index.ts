@@ -17,6 +17,18 @@ export { resolveApiBase, resolveApiToken } from './config'
 export { resolveLocalNamespace, namespaceForUser, ANONYMOUS_NAMESPACE } from './namespace'
 export { StorageConflictError } from './errors'
 
+/**
+ * 工程列表摘要：远程索引接口一次性返回，替代「每个工程逐条 get 整份 JSON」。
+ * 字段口径与 server/lib/projectIndex.mjs 对齐。
+ */
+export interface ProjectSummary {
+  name: string
+  timestamp: number
+  pageCount: number
+  publishedAt: number | null
+  hasThumbnail: boolean
+}
+
 export interface StorageAdapter {
   get(key: string): Promise<string | null>
   /**
@@ -27,6 +39,12 @@ export interface StorageAdapter {
   remove(key: string): Promise<void>
   /** 枚举当前存储的全部键 */
   keys(): Promise<string[]>
+  /**
+   * 可选能力：一次性返回工程列表摘要（仅远程存储实现）。
+   * 缺省时上层 projectStorage.getProjectSummaries 回落到 keys()+get() 逐条拼装——
+   * 本地/内存模式下 get 是同步内存读，回落路径没有网络放大问题。
+   */
+  projectIndex?(): Promise<ProjectSummary[]>
 }
 
 /** 本地迁移完成标志（键名刻意不以 scada_ 开头，避免被误判为待迁移数据） */

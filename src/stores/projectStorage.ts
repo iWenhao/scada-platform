@@ -3,7 +3,8 @@
  * 从 projectStore 拆出：store 只负责状态与组装，存储键的命名/迁移/清理集中在这里，
  * 便于独立单测而不必挂起整个 store。
  */
-import { getStorage } from '@/storage'
+import { getStorage, type ProjectSummary } from '@/storage'
+import { thumbKey } from '@/core/canvas/thumbnail'
 import { publishedKey as pubKey, parsePublishedAt } from './projectPublish'
 
 /** 工作副本存储键 */
@@ -48,6 +49,48 @@ export async function listSavedProjects(): Promise<string[]> {
   return keys
     .filter(key => key.startsWith('scada_project_'))
     .map(key => key.replace('scada_project_', ''))
+}
+
+/**
+ * 工程列表摘要：首页「最近项目」的数据源。
+ * 远程存储走一次性索引接口（1 个请求）；本地/内存模式没有该能力，回落到 keys()+get() 逐条拼装——
+ * 那种模式下 get 是同步内存读，不存在网络放大，逐条也无妨。索引接口偶发失败也走回落，保证列表能出。
+ */
+export async function getProjectSummaries(): Promise<ProjectSummary[]> {
+  const storage = getStorage()
+  if (storage.projectIndex) {
+    try {
+      return await storage.projectIndex()
+    } catch {
+      // 落到下方逐条读，宁可慢也不给首页一条空列表
+    }
+  }
+
+  const keys = await storage.keys()
+  const keySet = new Set(keys)
+  const names = keys
+    .filter(key => key.startsWith('scada_project_'))
+    .map(key => key.slice('scada_project_'.length))
+
+  const rows = await Promise.all(
+    names.map(async name => {
+      let timestamp = 0
+      let pageCount = 1
+      try {
+        const raw = await storage.get(projectKey(name))
+        const data = raw ? JSON.parse(raw) : null
+        timestamp = Number(data?.timestamp) || 0
+        pageCount = Array.isArray(data?.pages) ? data.pages.length : 1
+      } catch {
+        // 坏 JSON 按「未知」处理，不影响其余工程
+      }
+      const publishedAt = await getPublishedSnapshotAt(name)
+      return { name, timestamp, pageCount, publishedAt, hasThumbnail: keySet.has(thumbKey(name)) }
+    }),
+  )
+
+  rows.sort((a, b) => b.timestamp - a.timestamp)
+  return rows
 }
 
 /** 删除工程的工作副本、发布快照与草稿 */

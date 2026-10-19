@@ -71,6 +71,7 @@
               :editing="editingName === row.name"
               :model-value="editingValue"
               @update:model-value="editingValue = $event"
+              @load-thumb="loadThumbnail(row)"
               @open="loadProject(row.name)"
               @preview="previewProject(row.name)"
               @publish="publishProject(row.name)"
@@ -262,40 +263,30 @@ onMounted(() => {
 async function loadRecentProjects() {
   loadingProjects.value = true
   try {
-    const names = await projectStore.getSavedProjects()
-    const rows = await Promise.all(
-      names.map(async name => {
-        try {
-          const raw = await getStorage().get(`scada_project_${name}`)
-          const data = raw ? JSON.parse(raw) : null
-          const publishedAt = await projectStore.getPublishedAt(name)
-          const pageCount = Array.isArray(data?.pages) ? data.pages.length : 1
-          const thumb = await getStorage().get(thumbKey(name))
-          return {
-            name,
-            lastModified: data?.timestamp ? new Date(data.timestamp).toLocaleString() : '未知',
-            publishedAt,
-            pageCount,
-            timestamp: data?.timestamp || 0,
-            thumbnail: thumb || null,
-          }
-        } catch {
-          return {
-            name,
-            lastModified: '未知',
-            publishedAt: null,
-            pageCount: 1,
-            timestamp: 0,
-            thumbnail: null,
-          }
-        }
-      }),
-    )
-    rows.sort((a, b) => b.timestamp - a.timestamp)
-    recentProjects.value = rows
+    // 远程存储时这是一次索引请求；缩略图不进列表请求，改由卡片进视口后按需加载
+    const summaries = await projectStore.getProjectList()
+    recentProjects.value = summaries.map(s => ({
+      name: s.name,
+      lastModified: s.timestamp ? new Date(s.timestamp).toLocaleString() : '未知',
+      publishedAt: s.publishedAt,
+      pageCount: s.pageCount,
+      timestamp: s.timestamp,
+      hasThumbnail: s.hasThumbnail,
+      thumbnail: null,
+    }))
   } finally {
     loadingProjects.value = false
   }
+}
+
+/**
+ * 卡片滚入视口后才取缩略图：base64 是大头，一屏也就几张，避免为不可见的卡片各发一次 get。
+ * recentProjects 的项是 ref 深层代理，直接改 row.thumbnail 即可驱动卡片重渲染。
+ */
+async function loadThumbnail(row: ProjectRow) {
+  if (!row.hasThumbnail || row.thumbnail) return
+  const thumb = await getStorage().get(thumbKey(row.name))
+  row.thumbnail = thumb || null
 }
 
 async function publishProject(name: string) {

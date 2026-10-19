@@ -63,3 +63,37 @@ describe('RemoteStorageAdapter.set 创建模式', () => {
     )
   })
 })
+
+describe('RemoteStorageAdapter.projectIndex', () => {
+  function stubFetchJson(status: number, body: unknown) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init: RequestInit) => {
+        captured.push({ url, init })
+        return { status, ok: status >= 200 && status < 300, json: async () => body } as Response
+      }),
+    )
+  }
+
+  it('GET 到 /storage/projects 并回传 projects 数组', async () => {
+    const projects = [{ name: 'A', timestamp: 1, pageCount: 2, publishedAt: null, hasThumbnail: true }]
+    stubFetchJson(200, { projects })
+    const storage = new RemoteStorageAdapter('/api/storage')
+
+    expect(await storage.projectIndex()).toEqual(projects)
+    expect(captured[0].url).toBe('/api/storage/projects')
+    expect(captured[0].init.method ?? undefined).toBeUndefined()
+  })
+
+  it('响应缺 projects 字段时回落空数组，而不是 undefined', async () => {
+    stubFetchJson(200, {})
+    const storage = new RemoteStorageAdapter('/api/storage')
+    expect(await storage.projectIndex()).toEqual([])
+  })
+
+  it('非 2xx 抛错，交由上层回落到逐条读', async () => {
+    stubFetchJson(500, {})
+    const storage = new RemoteStorageAdapter('/api/storage')
+    await expect(storage.projectIndex()).rejects.toThrow(/projects failed: HTTP 500/)
+  })
+})

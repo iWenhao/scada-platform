@@ -1,4 +1,4 @@
-import type { StorageAdapter } from './index'
+import type { StorageAdapter, ProjectSummary } from './index'
 import { StorageConflictError } from './errors'
 import { authHeaders } from '@/auth/session'
 
@@ -18,6 +18,17 @@ export class RemoteStorageAdapter implements StorageAdapter {
     if (!res.ok) throw new Error(`keys failed: HTTP ${res.status}`)
     const body = await res.json()
     return body.keys ?? []
+  }
+
+  /**
+   * 工程列表摘要：一次 GET 拿全，替代首页「每个工程 3 次 get 整份 JSON」。
+   * 失败时抛错，由上层 projectStorage.getProjectSummaries 决定是否回落逐条读。
+   */
+  async projectIndex(): Promise<ProjectSummary[]> {
+    const res = await fetch(this.base + '/projects', { headers: this.headers })
+    if (!res.ok) throw new Error(`projects failed: HTTP ${res.status}`)
+    const body = await res.json()
+    return body.projects ?? []
   }
 
   async get(key: string): Promise<string | null> {
