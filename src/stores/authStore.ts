@@ -37,11 +37,14 @@ export const useAuthStore = defineStore('auth', () => {
   const canManageUsers = computed(() => can('admin'))
 
   async function restoreSession(): Promise<void> {
+    // saved 提升到 try 外：catch 分支（后端不可达）也要靠它还原登录态。
+    // JSON.parse 仍留在 try 内——缓存损坏时抛错被这里接住，saved 保持 null。
+    let saved: SessionPayload | null = null
     try {
       // 会话固定读 localStorage（不走命名空间存储），刷新后才能在鉴权前恢复
       const raw = readSessionCache()
       if (!raw) return
-      const saved = JSON.parse(raw) as SessionPayload
+      saved = JSON.parse(raw) as SessionPayload
       if (!saved?.token || !saved?.user?.id) return
       setSessionToken(saved.token)
       const res = await fetch(`${resolveApiBase()}/auth/me`, {
@@ -58,8 +61,13 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = body.user
       syncLocalNamespace(user.value?.id)
     } catch {
-      // 后端不可用时保留本地用户缓存，便于内网离线演示（写接口会 401）
-      syncLocalNamespace(undefined)
+      // 后端不可用时保留本地用户缓存，便于内网离线演示（写接口会 401）。
+      // token 在 fetch 之前已置位；此处把缓存里的 user 还原到 store，
+      // 并同步到该用户的键空间——若落到匿名命名空间，看到的会是别人的数据
+      if (saved?.user?.id) {
+        user.value = saved.user
+        syncLocalNamespace(saved.user.id)
+      }
     }
   }
 

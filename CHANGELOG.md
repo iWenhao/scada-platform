@@ -84,6 +84,13 @@
 
 ### 修复
 
+- 后端不可达时登录态丢失（`restoreSession` 的 catch 分支名不副实）
+  - 根因：catch 分支注释写「后端不可用时保留本地用户缓存」，代码却只调了 `syncLocalNamespace(undefined)`——既没把缓存里的 user 置回 store，命名空间还落到匿名区。fetch 抛错（断网 / 超时 / CORS）时 `isLoggedIn` 保持 false，路由守卫直接把用户弹去登录页；即便当时置回了 user，`u/anonymous/` 下的数据也不是本人的
+  - 改法：`saved` 提升到 try 外声明（`JSON.parse` 留在 try 内，缓存损坏仍被接住、`saved` 保持 null），catch 分支 `user.value = saved.user` + `syncLocalNamespace(saved.user.id)`。token 在 fetch 之前已置位，离线演示的写接口照旧带 Bearer；服务端 401（`!res.ok`）路径不变——清缓存、踢回匿名
+  - 新增 `src/stores/authStore.test.ts` 7 用例：fetch 抛错还原登录态与命名空间、TimeoutError 同走离线还原、401 清缓存保持未登、服务端可达以服务端 user 为准、无缓存不发请求、缓存损坏不发请求不抛错
+  - 变异验证：把 catch 分支临时改回旧行为，3 条断言（还原登录态 ×2 + 命名空间）如期失败，恢复后 7/7 通过
+  - 实测：`vue-tsc --noEmit` 0 错、eslint（改动文件）0 告警、行数检查通过（authStore.ts 136 行、测试 152 行）
+
 - 新建项目保存会静默覆盖同名工程（撞名无校验）
   - 根因：查重只长在「重命名」上（`renameProject` / `renameSavedProject` 走 `isProjectTaken`），「新建项目 → 首次保存」这条路径没有任何检查：首页「新建项目」只 `resetProject()`（默认名「未命名项目」），`saveProject()` 直接写 `scada_project_<当前名>`。第二个未命名项目一保存就悄悄吃掉第一个；导入工程固定名「导入的项目」同样撞。用户看到的不是报错，是自己的旧工程凭空消失
   - 改法（`projectPersistence.ts`）：`saveProject` / `publishProject` 写入前查重——目标工程名已被占用、且非本会话认领时返回 false，不写存储。认领标志 `ownedProjectName` 由 `loadProject` 打开成功、保存/发布成功置位，`resetProject` / 导入时清除，`renameProject` / `renameSavedProject` 随键迁移同步，编辑器会话快照（预览页往返）也带上它——少任何一处都会把「覆盖自己的旧版本」误判成撞名
