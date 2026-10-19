@@ -43,6 +43,14 @@
   - 遗留未修：`DEFAULT_ELEMENT_COLOR = '#8fe6d3'` 是为暗色画布设计的，亮色画布（#e8eaee）与预览框（#f5f7fa）上几乎不可见；EP 的 success/warning/info 仍是默认色
   - 动了：`styles/variables.scss`
 
+- 暗色主题下 EP 主色派生值与「青底白字」整改
+  - 背景（上一条引入的回归）：`html:root` 接管 EP 主色后，暗色主题里 `--el-color-primary-light-*` 仍是混白的浅色值——EP 的暗色变量定义在 `html.dark` 上，与 `html:root` 特异性相同（都是 0,1,1），谁在源码里靠后谁赢，而我们的样式导入排在 EP 暗色变量之后。症状：`el-tag--primary`（图层管理「标注」标签）、`el-message`、plain 主按钮的浅底全部变成亮薄荷绿 `#e6fbf7`，暗色下一大片刺眼高亮
+  - 改法一：`variables.scss` 补 `html.dark` 块，给暗色专用的派生值（light-N 混黑、dark-2 混白），且必须排在 `html:root` 之后
+  - 改法二（用户反馈「暗色模式里面有很多按钮是那种很亮的白色」）：青底填充件不再用纯白——`el-button--primary` 文字与单选按钮组选中文字改 `#0b1f1a`（项目自有的「青底深字」，与组件库激活页签一致；白字对 `#00d4aa` 只有约 1.9:1 对比度，深字 9:1 以上），开关旋钮由纯白改近白 `#e8f1f0`
+  - ⚠️ `--el-radio-button-checked-text-color` 写在根上不生效：EP 在 `.el-radio-button` 元素级声明了它（`var(--el-color-white)`），元素级声明盖过继承值，必须写 `html.dark .el-radio-button`
+  - 实测（隔离环境读计算样式，非目测）：暗色下 light-9 = `#003b30`、`el-tag--primary` 底 = `rgb(0,59,48)`、单选选中文字 = `rgb(11,31,26)`、开关旋钮 = `rgb(232,241,240)`、主按钮文字 = `rgb(11,31,26)`；亮色主题原样未动（仍青底白字、light-9 = `#e6fbf7`）
+  - 动了：`styles/variables.scss`、`styles/dark-theme.scss`
+
 - 自定义组件改为「登录后」幂等加载：`/preview` 直接打开也认自定义组件
   - 背景：原先只在组件库面板 `onMounted` 时注册，直接打开 `/preview` 一律取不到定义、画布空白
   - 改法：新增幂等 `ensureCustomComponentsLoaded()`（会话内只读一次）+ `resetCustomComponentsCache()`（挂 `authStore` 五处身份变更点），由组件面板与预览页各自在 `onMounted` 触发，预览页放在 `loadPreviewProject()` 之前

@@ -109,6 +109,23 @@ html:root {
   --el-color-primary-dark-2: #00aa88;
 }
 
+// 暗色主题下的 EP 主色派生值。EP 的暗色变量定义在 html.dark 上，与上面的 html:root
+// 特异性相同（都是 0,1,1），谁在源码里靠后谁赢——所以这个块必须放在 html:root 之后。
+// 少了它，亮色的 light-N（混白）会漏进暗色主题：el-tag--primary / el-message /
+// plain 主按钮的浅底全部变成亮薄荷绿，暗色下一大片刺眼高亮（2026-10-20 实测抓到）。
+// 取值方向与亮色相反：light-N 混黑（越"浅"越暗），dark-2 混白（按下提亮）。
+// 消费方参考：light-9 = 标签/消息/浮层的浅底，light-3 = 主按钮 hover 底，
+// dark-2 = 主按钮 active 底。
+html.dark {
+  --el-color-primary: #00d4aa;
+  --el-color-primary-light-3: #00a585;
+  --el-color-primary-light-5: #008a6e;
+  --el-color-primary-light-7: #006e58;
+  --el-color-primary-light-8: #005c48;
+  --el-color-primary-light-9: #003b30;
+  --el-color-primary-dark-2: #4de1c4;
+}
+
 // 亮色主题变量（暗色为 :root 默认，通过 html[data-theme] 切换）
 html[data-theme='light'] {
   // 背景色

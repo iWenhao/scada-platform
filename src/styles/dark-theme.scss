@@ -103,7 +103,10 @@ html.dark {
 .el-button--primary {
   background-color: var(--accent-primary) !important;
   border-color: var(--accent-primary) !important;
-  color: #fff !important;
+  // 青底不用纯白字：暗色下一整块亮白很刺眼，且白字对 #00d4aa 只有约 1.9:1 的
+  // 对比度。改用项目自有的「青底深字」（#0b1f1a，与组件库激活页签一致），
+  // 对比度提升到 9:1 以上。
+  color: #0b1f1a !important;
 
   &:hover,
   &:focus {
@@ -128,6 +131,13 @@ html.dark {
   color: var(--text-primary) !important;
 }
 
+// 单选按钮组选中态：EP 在 .el-radio-button 元素上把 checked-text-color 声明为
+// var(--el-color-white)，写在根上会被元素级声明盖过，必须在这里覆盖。
+// 青底纯白字在暗色下既刺眼又只有约 1.9:1 对比度，改用项目自有的「青底深字」。
+.el-radio-button {
+  --el-radio-button-checked-text-color: #0b1f1a;
+}
+
 .el-switch__core {
   background-color: var(--border-secondary) !important;
   border-color: var(--border-primary) !important;
@@ -136,6 +146,13 @@ html.dark {
 .el-switch.is-checked .el-switch__core {
   background-color: var(--accent-primary) !important;
   border-color: var(--accent-primary) !important;
+}
+
+// 开关旋钮：EP 默认 var(--el-color-white) 纯白，在暗色的青底/深灰底上都太抢眼
+// （用户 2026-10-20 反馈「很亮的白色」）。改用项目自有的近白色 #e8f1f0，
+// 保留旋钮辨识度但不刺眼。
+.el-switch__action {
+  background-color: #e8f1f0 !important;
 }
 
 .el-slider__runway {
