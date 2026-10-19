@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 import { getStorage } from '@/storage'
 import {
+  isProjectTaken,
   projectKey,
   draftKey,
   publishedKey,
@@ -20,6 +21,11 @@ export interface ProjectPersistenceState {
   projectName: Ref<string>
   lastSaveTime: Ref<number | null>
   hasUnsavedChanges: Ref<boolean>
+  /**
+   * 本会话已「认领」的工程名：打开过或保存/发布成功后置位。
+   * 保存查重靠它区分「覆盖自己的旧版本」（放行）与「新建撞名」（拒绝）。
+   */
+  ownedProjectName: Ref<string | null>
 }
 
 export function createProjectPersistence(ctx: {
@@ -38,15 +44,25 @@ export function createProjectPersistence(ctx: {
   const { state } = ctx
 
   /**
-   * 保存项目到存储
+   * 保存项目到存储。
+   *
+   * 撞名保护：目标工程名已被占用、且不是本会话认领的项目时拒绝保存（返回 false，
+   * 不写存储）。没有这道 guard，新建项目用默认名「未命名项目」一保存就会静默
+   * 覆盖同名工程——用户看到的不是报错，是自己的旧工程凭空消失。
+   * 存储故障仍走抛异常路径，与既有行为一致。
    */
-  async function saveProject(name?: string) {
-    if (name) {
-      state.projectName.value = name
+  async function saveProject(name?: string): Promise<boolean> {
+    const target = name || state.projectName.value
+
+    if (target !== state.ownedProjectName.value && (await isProjectTaken(target))) {
+      return false
     }
 
+    // 通过检查再改名：被拒绝时不动 projectName，编辑器留在原状态
+    state.projectName.value = target
+
     const json = JSON.stringify(ctx.buildProjectData())
-    await getStorage().set(projectKey(state.projectName.value), json)
+    await getStorage().set(projectKey(target), json)
 
     // 已正式落盘，自动草稿不再需要。但清理失败不能算保存失败：项目数据已经写好了，
     // 这里抛出去会让「保存」报未处理异常、「预览」直接不跳转，用户以为没存上。
@@ -59,6 +75,8 @@ export function createProjectPersistence(ctx: {
 
     state.lastSaveTime.value = Date.now()
     state.hasUnsavedChanges.value = false
+    // 保存成功即认领该工程名：后续反复保存是覆盖自己的旧版本，放行
+    state.ownedProjectName.value = target
 
     return true
   }
@@ -66,14 +84,22 @@ export function createProjectPersistence(ctx: {
   /**
    * 发布当前工程：把工作副本快照为发布版。
    * 发布后编辑草稿不影响预览，直到再次发布。
+   * 与 saveProject 同样做撞名保护：不允许把别人的工程覆盖成自己的发布版。
    */
   async function publishProject(name?: string): Promise<boolean> {
-    if (name) state.projectName.value = name
+    const target = name || state.projectName.value
+
+    if (target !== state.ownedProjectName.value && (await isProjectTaken(target))) {
+      return false
+    }
+
+    state.projectName.value = target
     const data = {
       ...ctx.buildProjectData(),
       publishedAt: Date.now(),
     }
-    await getStorage().set(publishedKey(state.projectName.value), JSON.stringify(data))
+    await getStorage().set(publishedKey(target), JSON.stringify(data))
+    state.ownedProjectName.value = target
     return true
   }
 
@@ -117,6 +143,8 @@ export function createProjectPersistence(ctx: {
     try {
       const projectData = JSON.parse(json)
       ctx.applyLoadedProject(projectData, name, projectData.timestamp)
+      // 打开成功即认领：之后保存允许覆盖这个工程自己的旧版本
+      state.ownedProjectName.value = name
       return true
     } catch (e) {
       console.error('Failed to load project:', e)

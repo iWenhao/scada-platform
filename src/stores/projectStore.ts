@@ -28,6 +28,13 @@ export const useProjectStore = defineStore('project', () => {
   // 是否有未保存的更改
   const hasUnsavedChanges = ref<boolean>(false)
 
+  /**
+   * 本会话已「认领」的工程名：loadProject 打开过、或 saveProject/publishProject
+   * 成功后置位；resetProject / 导入时清除。保存查重（projectPersistence 的
+   * saveProject）靠它区分「覆盖自己的旧版本」与「新建撞名」。
+   */
+  const ownedProjectName = ref<string | null>(null)
+
   // 数据源配置：属于工程的一部分，必须随工程一起持久化，
   // 否则保存后重开就没有数据源可用，预览只能退回 mock。
   const dataSourceConfig = ref<DataSourceConfig>({ type: 'mock', name: 'default' })
@@ -136,6 +143,7 @@ export const useProjectStore = defineStore('project', () => {
       projectDescription: projectDescription.value,
       lastSaveTime: lastSaveTime.value,
       hasUnsavedChanges: hasUnsavedChanges.value,
+      ownedProjectName: ownedProjectName.value,
     }
   }
 
@@ -146,12 +154,14 @@ export const useProjectStore = defineStore('project', () => {
     applyProjectData(snapshot.projectData)
     lastSaveTime.value = snapshot.lastSaveTime
     hasUnsavedChanges.value = snapshot.hasUnsavedChanges
+    // 认领标志也要还原：否则预览页往返后「自己的工程」会被当成新建工程拒存
+    ownedProjectName.value = snapshot.ownedProjectName
   }
 
   // 正式保存 / 发布 / 加载 / 导入 / 自动草稿：都只是「工程数据 ↔ 存储」的往返，
   // 拆到 projectPersistence.ts，靠注入的 state 与三个数据动作拿到所需依赖
   const persistence = createProjectPersistence({
-    state: { projectName, lastSaveTime, hasUnsavedChanges },
+    state: { projectName, lastSaveTime, hasUnsavedChanges, ownedProjectName },
     buildProjectData,
     applyProjectData,
     applyLoadedProject,
@@ -188,6 +198,8 @@ export const useProjectStore = defineStore('project', () => {
     if (wasSaved) await renameProjectKeys(projectName.value, trimmed)
 
     projectName.value = trimmed
+    // 认领标志跟着改名：键已迁到新名，之后保存是覆盖自己的工程，不能当成撞名拒掉
+    ownedProjectName.value = trimmed
     hasUnsavedChanges.value = !wasSaved
     return true
   }
@@ -204,6 +216,10 @@ export const useProjectStore = defineStore('project', () => {
     if (!(await renameProjectKeys(oldName, trimmed))) return false
     if (projectName.value === oldName) {
       projectName.value = trimmed
+    }
+    // 被改名的恰好是本会话认领的工程时，认领标志同步迁移
+    if (ownedProjectName.value === oldName) {
+      ownedProjectName.value = trimmed
     }
     return true
   }
@@ -269,6 +285,8 @@ export const useProjectStore = defineStore('project', () => {
     projectDescription.value = ''
     lastSaveTime.value = null
     hasUnsavedChanges.value = false
+    // 新建项目 = 放弃对任何工程名的认领：此后保存撞名必须被拒，不能覆盖别人的工程
+    ownedProjectName.value = null
     dataSourceConfig.value = { type: 'mock', name: 'default' }
     alarmDefs.value = []
     writePolicy.value = 'allow'

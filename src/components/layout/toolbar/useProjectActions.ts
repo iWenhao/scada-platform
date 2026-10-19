@@ -38,7 +38,11 @@ export function useProjectActions() {
         distinguishCancelAndClose: true,
       })
         .then(async () => {
-          await projectStore.saveProject()
+          // 撞名时走改名重试；用户放弃改名则不返回，留在编辑器避免丢改动
+          if (!(await saveWithNameGuard())) {
+            ElMessage.error('保存未完成：项目名与已有项目冲突，请改名后重试')
+            return
+          }
           router.push('/')
         })
         .catch((action) => {
@@ -53,8 +57,41 @@ export function useProjectActions() {
 
   async function handleSave() {
     saveState()
-    await projectStore.saveProject()
+    if (!(await saveWithNameGuard())) {
+      ElMessage.error('保存未完成：项目名与已有项目冲突，请改名后重试')
+      return
+    }
     await saveThumbnail()
+  }
+
+  /**
+   * 带撞名保护的保存：目标工程名已被别人占用时 saveProject 返回 false，
+   * 此时弹框请用户改名，改名后重试；用户取消则中止，绝不静默覆盖别人的工程。
+   * 保存 / 保存并返回 / 预览前自动保存 / 发布前保存四个入口共用。
+   */
+  async function saveWithNameGuard(): Promise<boolean> {
+    if (await projectStore.saveProject()) return true
+
+    for (;;) {
+      let newName: string | null = null
+      try {
+        ({ value: newName } = await ElMessageBox.prompt(
+          `已存在同名项目「${projectStore.projectName}」，继续保存会覆盖它的数据。\n请输入新的项目名称：`,
+          '项目名已被占用',
+          {
+            inputValue: projectStore.projectName,
+            inputPattern: /\S+/,
+            inputErrorMessage: '名称不能为空',
+            confirmButtonText: '改名并保存',
+            cancelButtonText: '取消',
+          },
+        ))
+      } catch {
+        return false
+      }
+      // saveProject 内部会再查重：新名字仍然撞名则带着它循环再问
+      if (newName && (await projectStore.saveProject(newName))) return true
+    }
   }
 
   /** 保存后截一张画布缩略图，供首页卡片展示 */
@@ -119,7 +156,10 @@ export function useProjectActions() {
    * 运行端入口（首页卡片预览）仍默认读发布版。
    */
   async function handlePreview() {
-    await projectStore.saveProject()
+    if (!(await saveWithNameGuard())) {
+      ElMessage.error('保存未完成：项目名与已有项目冲突，请改名后重试')
+      return
+    }
     router.push({ path: '/preview', query: { project: projectStore.projectName, source: 'draft' } })
   }
 
@@ -146,7 +186,11 @@ export function useProjectActions() {
     } catch {
       return
     }
-    await projectStore.saveProject()
+    // 发布前先落盘工作副本：撞名时同样走改名重试，通过后才生成发布快照
+    if (!(await saveWithNameGuard())) {
+      ElMessage.error('发布未完成：项目名与已有项目冲突，请改名后重试')
+      return
+    }
     await projectStore.publishProject()
     await saveThumbnail()
     ElMessage.success('已发布，预览将显示该版本')

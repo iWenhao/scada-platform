@@ -78,6 +78,15 @@
 
 ### 修复
 
+- 新建项目保存会静默覆盖同名工程（撞名无校验）
+  - 根因：查重只长在「重命名」上（`renameProject` / `renameSavedProject` 走 `isProjectTaken`），「新建项目 → 首次保存」这条路径没有任何检查：首页「新建项目」只 `resetProject()`（默认名「未命名项目」），`saveProject()` 直接写 `scada_project_<当前名>`。第二个未命名项目一保存就悄悄吃掉第一个；导入工程固定名「导入的项目」同样撞。用户看到的不是报错，是自己的旧工程凭空消失
+  - 改法（`projectPersistence.ts`）：`saveProject` / `publishProject` 写入前查重——目标工程名已被占用、且非本会话认领时返回 false，不写存储。认领标志 `ownedProjectName` 由 `loadProject` 打开成功、保存/发布成功置位，`resetProject` / 导入时清除，`renameProject` / `renameSavedProject` 随键迁移同步，编辑器会话快照（预览页往返）也带上它——少任何一处都会把「覆盖自己的旧版本」误判成撞名
+  - 交互（`useProjectActions.ts`）：保存 / 保存并返回 / 预览 / 发布前保存四个入口共用 `saveWithNameGuard()`，撞名时弹框请用户改名、改名后重试（新名字仍撞则循环再问），取消则中止并提示，不再有静默覆盖
+  - 为什么不在后端做：`server/index.mjs` 是领域无关的 KV 存储，既不知道「工程名」的语义，也拿不到「是不是本会话打开的」这个判断依据；且后端不在线时回落 localStorage，规则只放后端会离线失效
+  - 动了：`src/stores/projectPersistence.ts`、`src/stores/projectStore.ts`、`src/components/layout/toolbar/useProjectActions.ts`、`src/stores/projectStore.test.ts`
+  - 实测：新增 7 条 store 用例——新建默认名 / 指定名 / 导入后撞名均拒绝且旧数据与脏标记不动，打开过或保存过的工程再存放行，重命名后认领随键迁移（漏同步则改名后再存被误拒），`publishProject` 撞名不覆盖别人发布版。全量 `npx vitest run --reporter=verbose` 67 文件 / 628 用例通过（66 个入库 + 1 个未入库的 `PreviewHeader.test.ts`，汇总行无 `Errors`）；`vue-tsc --noEmit`、`vite build`、超长文件检查均通过
+  - 浏览器实测（dist 静态伺服 + 系统 Chrome，`/api` 全阻断隔离、`/auth/me` 伪造 200，不碰用户后端与 5173/5174）：建第一个项目（默认名）直接存成功 → 再新建一个同默认名项目点保存 → 弹出「项目名已被占用」并带覆盖警告与预填旧名 → 改「第二个项目」确认后存成功 → 首页两卡并存且旧项目修改时间原样（08:24:36 未被顶掉）；取消路径再弹一次、点取消出现错误提示并留在编辑器。10/10 通过
+
 - 编辑器点「预览」再返回，新增的画面 2 / 画面 3 没了
   - 根因：预览与编辑器是同一份 Pinia store。工具栏「预览」先 `saveProject()` 再 `router.push('/preview?project=…')`，而预览页默认读**发布快照**，`applyProjectData → pageStore.setPages()` 是整表替换，把内存里那张旧发布版（只有主页）灌进编辑会话；返回 `/editor` 不重新读盘，于是画面 2/3「消失」。若此时再点一次保存，回退结果就被写回工作副本（本机实测：`scada_published_未命名项目` 与 `scada_project_未命名项目` 都只剩 1 张画面，时间戳相差 10 分钟，正对应这条链）
   - 改法一（`useProjectActions.handlePreview`）：编辑器的「预览」带 `?source=draft`——按钮语义是「看我刚存的东西」，运行版入口（首页卡片预览）仍默认读发布快照。同步修正工具栏那枚 tooltip（原文案写死「默认显示发布版」，现在不成立了）
