@@ -10,6 +10,13 @@
 
 ### 功能
 
+### 重构
+
+- 抽出 `useSearchBox` composable，两个搜索盒共用展开/收起状态机
+  - 背景：`ProjectSearchBox`（首页）与 `LibrarySearchBox`（组件库面板）各自实现了一遍「有 query 时强制展开 / expand / collapse」三件套；此前注释明确「第 3 个搜索盒出现必须收敛」，现在先抽
+  - 改法：新增 `src/composables/useSearchBox.ts`，接收外部受控的 `query` 与 `open` ref，返回 `visible / expand / collapse`；`clearOnCollapse` 选项区分编辑器搜索（收起即清空 query）与首页搜索（收起保留 query）。两个组件接入后删掉各自的 visible/expand/collapse 重复实现，特殊逻辑（首页窄窗口断点 `matchMedia`、编辑器面板内 mousedown 例外、placeholder 跑马灯）留在组件里不动
+  - 动了：`src/composables/useSearchBox.ts`（新）、`src/views/dashboard/ProjectSearchBox.vue`、`src/components/layout/LibrarySearchBox.vue`
+  - 实测：`vue-tsc --noEmit` 0 错；`projectStore/storage` 73 用例通过
 - 覆盖保存加乐观并发（ETag），堵住同账号两标签后写覆盖先写
   - 背景：上一轮加的 `ifAbsent` 原子写只挡「新建撞名」，对**本会话已认领工程**的反复保存没有版本检查——A、B 两标签同时打开同一工程，A 改完保存后 B 再保存，B 会静默盖掉 A 的改动（B 内存里还是加载时的旧数据）
   - 改法：存储层引入版本指纹 `etag`（服务端取文件 `mtimeMs` 字符串）。`kv` 新增 `readValueWithEtag`/`writeValueIfMatch`/`statEtag`：写入前比对当前 etag 与客户端传入值，不一致抛 `EVERSION`；`/api/storage/get` 回包带 `etag`，`/api/storage/set?ifMatch=<etag>` 不匹配回 409 + `error:'stale'`（与 `mode=create` 的 409 `error:'exists'` 区分开）。写入成功后响应里回传新 etag，前端推进 `loadedEtag`

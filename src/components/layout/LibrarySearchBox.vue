@@ -10,7 +10,7 @@
           title="收起搜索"
           aria-label="收起搜索"
           @mousedown.prevent
-          @click="collapseSearch"
+          @click="collapse"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7" />
@@ -23,7 +23,7 @@
           class="search-input"
           type="text"
           aria-label="搜索组件"
-          @keydown.esc="collapseSearch"
+          @keydown.esc="collapse"
           @blur="onBlur"
         />
         <!-- placeholder 跑马灯：文案比可视区宽，原生 placeholder 无法滚动，用覆盖层缓滚展示全文 -->
@@ -37,7 +37,7 @@
           title="清除并收起搜索"
           aria-label="清除并收起搜索"
           @mousedown.prevent
-          @click="collapseSearch"
+          @click="collapse"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
@@ -47,7 +47,7 @@
       <!-- 收起态：圆形图标按钮（与「+」同款），点击展开 -->
       <div v-else key="toggle" class="search-toggle-slot">
         <el-tooltip content="搜索组件" placement="bottom">
-          <el-button size="small" circle @click="expandSearch">
+          <el-button size="small" circle @click="expand">
             <el-icon><Search /></el-icon>
           </el-button>
         </el-tooltip>
@@ -60,8 +60,10 @@
 /**
  * 组件库的搜索盒（从 ComponentPanel.vue 拆出）：只负责展开/收起与 placeholder 跑马灯，
  * 查询文本与过滤结果都归父组件的 useComponentSearch——这里不复制一份匹配逻辑。
+ * 展开/收起状态机复用 composables/useSearchBox。
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useSearchBox } from '@/composables/useSearchBox'
 
 const props = defineProps<{
   query: string
@@ -78,9 +80,13 @@ const query = computed({
   get: () => props.query,
   set: val => emit('update:query', val),
 })
+const open = computed({
+  get: () => props.open,
+  set: val => emit('update:open', val),
+})
 
-/** 有查询时强制展开：避免筛了却看不到筛选原因 */
-const visible = computed(() => props.open || props.query.trim().length > 0)
+// 收起即清空：避免输入框看不见了、过滤却还在生效
+const { visible, expand, collapse } = useSearchBox(query, open, { clearOnCollapse: true })
 
 const searchInputRef = ref<HTMLInputElement | null>(null)
 
@@ -107,16 +113,6 @@ watch([visible, () => props.query === ''], ([isVisible, empty]) => {
   if (isVisible && empty) nextTick(measurePhShift)
 })
 
-function expandSearch() {
-  emit('update:open', true)
-}
-
-/** 收起即清除：避免输入框看不见了、过滤却还在生效 */
-function collapseSearch() {
-  emit('update:open', false)
-  emit('update:query', '')
-}
-
 /**
  * 「失焦收起」的例外：切 Tab / 点卡片都在组件库面板内部，属于还在用搜索，
  * 一收起就把查询清了——另一 Tab 下的命中项（搜索时 Tab 上有圆点提示）会跟着消失。
@@ -137,7 +133,7 @@ function onBlur() {
   const inside = downInsidePanel
   downInsidePanel = false
   if (inside) return
-  collapseSearch()
+  collapse()
 }
 
 // 供面板在搜索态下切 Tab 后把焦点还回来：否则 Esc / 继续输入都失效（焦点已不在框内）

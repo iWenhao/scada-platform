@@ -40,8 +40,10 @@
  * 首页「最近项目」标题行右侧的搜索盒：只负责展开/收起与输入，
  * 过滤结果与计数归 dashboard/index.vue（这里不碰项目数据）。
  * 收起与否由视口宽度决定，不是用户能主动折的——宽窗口下它一直在。
+ * 展开/收起状态机复用 composables/useSearchBox（本组件收起时不清空 query）。
  */
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { useSearchBox } from '@/composables/useSearchBox'
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
@@ -54,15 +56,25 @@ const narrow = ref(false)
 const expanded = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
 
+const modelValue = computed({
+  get: () => props.modelValue,
+  set: v => emit('update:modelValue', v),
+})
+
+const { visible: baseVisible, expand: doExpand } = useSearchBox(modelValue, expanded, {
+  // 首页搜索收起后不清空 query：宽窗口常驻，窄窗口失焦收回时保留查询
+  clearOnCollapse: false,
+})
+
 /** 有查询时强制展开：筛了却看不见筛选条件，只会让人以为项目自己变少了 */
-const visible = computed(() => !narrow.value || expanded.value || props.modelValue.trim().length > 0)
+const visible = computed(() => !narrow.value || baseVisible.value)
 
 function onInput(e: Event) {
   emit('update:modelValue', (e.target as HTMLInputElement).value)
 }
 
 function expand() {
-  expanded.value = true
+  doExpand()
   nextTick(() => inputRef.value?.focus())
 }
 
