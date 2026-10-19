@@ -67,6 +67,12 @@
   - 没走 `<img src>` 直供图：缩略图接口在 Bearer 鉴权之后，`<img>` 带不上 Authorization 头，改成图片 URL 会牵动鉴权模型，得不偿失；懒加载已把"一屏只取可见几张"的收益拿到
   - 动了：新增 `server/lib/projectIndex.mjs`、`server/routes/projects.mjs`（本次加分页），`src/views/dashboard/useProjectPaging.ts`；`server/index.mjs` 接口清单、`src/storage/{index,remote}.ts`、`src/stores/{projectStorage,projectStore}.ts`、`src/views/dashboard/{index.vue,ProjectCard.vue,types.ts,dashboard.scss}`
   - 实测：`projectIndex`(11，含分页/越界/limit 夹取) + `remote`(8，含 query 拼接) + `projectStorage`(11，含本地切片/回落) + `index.test`(8) = 38 用例通过；`tsc -p tsconfig.server.json`、`vue-tsc --noEmit`、超长文件检查全绿；备用端口 5179 + 系统临时数据目录灌 15 个工程（2 发布、1 带图）真起后端，`?limit=12`→12 条 proj15..proj4、`offset=12`→3 条 proj3..proj1、`keyword=proj1`→命中 7 条且 `total=15/publishedTotal=2` 不变、`offset` 越界回空页 `matchedTotal=7`、`limit=1000` 夹到 ≤100 仍返回 15 条
+- 首页缩略图改为随列表摘要一次带回，拆掉逐卡 GET 的 IntersectionObserver 懒加载
+  - 背景：上一条（分页索引）当时按「缩略图 base64 单张几百 KB、是大头」的假设，让 `ProjectCard` 用 `IntersectionObserver` 滚进视口才 emit `load-thumb` 逐单发一次 `getStorage().get(thumbKey)`。实测 `server/data` 现存 12 张缩略图：单张仅 2.4~10.3 KB、合计 54 KB——空白画布 JPEG 压完才 2~4 KB，最满的示例工程也才 10.3 KB，"大头"假设不成立；真实代价反而是一屏 12 个 HTTP 往返（HTTP/1.1 同域 6 路并发还得排两批）去传总共 54 KB
+  - 改法：服务端 `queryProjectIndex` slice 出当前页后逐个 `readValue` 读 `scada_thumb_<name>`，把 data URL 直接塞进摘要行 `thumbnail`（读不到为 null）；`buildProjectIndex` 全量统计与排序阶段仍不读缩略图文件（`thumbnail` 一律占位 null），只对一页 ~12 个项目补值。前端 `ProjectSummary`/`ProjectRow` 用 `thumbnail: string|null` 替换布尔 `hasThumbnail`；删 `useProjectPaging.loadThumbnail` 与 `thumbKey` 引入、`ProjectCard` 的 IntersectionObserver/`loadThumb` emit/`cardEl` ref、`index.vue` 的 `@load-thumb` 接线；本地/内存回落路径 `buildLocalIndex` 直接 `storage.get(thumbKey)` 透传（get 是同步内存读，无网络放大）
+  - 为什么不再保留懒加载：54 KB/页 远小于一次工程 JSON，一次请求连图带回比攒批合并请求更简单，前端连视口监听都不用；`<img src>` 直供图方案仍不可行（缩略图接口在 Bearer 鉴权之后，`<img>` 带不上 Authorization 头）
+  - 动了：`server/lib/projectIndex.mjs`、`src/storage/index.ts`、`src/stores/projectStorage.ts`、`src/views/dashboard/{useProjectPaging.ts,index.vue,ProjectCard.vue,types.ts}`、`server/lib/projectIndex.test.ts`、`src/stores/projectStorage.test.ts`
+  - 实测：受影响两文件 24 用例通过（新增「当前页行直接带 data URL、无图为 null」「翻页后第二页各自补值」「buildProjectIndex 不读缩略图文件」）；`vue-tsc --noEmit`、`tsc -p tsconfig.server.json`、`check-long-files.ps1` 全绿
 - 预览页「上一画面」改名并挂上说明气泡
   - 背景：这个按钮在没有任何画面跳转记录时是灰的，用户看不出它是干什么的、也看不出为什么点不动，连问两次「用来干啥」。名字本身也有歧义——「上一画面」像是"上一张画面标签"，实际是浏览器后退那种**回退到刚才看的那张**
   - 改法：标签改「返回上一画面」（与属性面板里 `navigateTo=__back__` 那个选项同一口径）；灰掉时气泡说明「还没有画面跳转记录」，可用时说明「回到刚才看的那张画面」。措辞按实际压栈口径写：切画面就压栈，点标签、组件跳转、自动轮播都算

@@ -71,7 +71,6 @@
               :editing="editingName === row.name"
               :model-value="editingValue"
               @update:model-value="editingValue = $event"
-              @load-thumb="loadThumbnail(row)"
               @open="loadProject(row.name)"
               @preview="previewProject(row.name)"
               @publish="publishProject(row.name)"
@@ -178,7 +177,6 @@ const {
   hasMore,
   listSummary,
   reloadWindow,
-  loadThumbnail,
 } = useProjectPaging()
 
 const showNotifyConfig = ref(false)

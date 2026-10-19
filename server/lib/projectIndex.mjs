@@ -3,8 +3,11 @@
  *
  * 存在的理由：远程存储下前端原先对每个工程发 3 次 GET，且每次都拉回**整份**工作副本 /
  * 发布快照 JSON，只为读一个时间戳和画面数——项目一多就是 3N 个网络往返 + 全量配置传输。
- * 这里改成一次请求返回全部摘要：磁盘读与解析放在服务端（本地、几乎零成本），
- * 网络上只走紧凑的 { name, timestamp, pageCount, publishedAt, hasThumbnail }。
+ * 这里改成一次请求返回当前页摘要：磁盘读与解析放在服务端（本地、几乎零成本）。
+ *
+ * 缩略图直接随当前页下发：实测单张 2~10 KB、一页 12 张合计 ~54 KB，远小于一次工程 JSON，
+ * 不值得再为每张卡片单发一次 GET。全量统计（total/排序）仍只读工作副本，不为缩略图额外读盘；
+ * 缩略图文件只对「slice 后的当前页」逐个 readValue，一页也就十几个本地读。
  *
  * 这是存储层里唯一「懂工程 JSON 结构」的地方——只抽 timestamp 与 pages.length 两个字段，
  * 不做校验、不解释其余内容。三个前缀常量与前端保持一致（改动需两边同步）：
@@ -35,14 +38,15 @@ function parseObj(raw) {
  * 只统计有工作副本键的工程（与前端 listSavedProjects 口径一致）；草稿/缩略图/发布快照
  * 不单独成项，仅作为对应工程的一个字段。
  *
+ * thumbnail 在此一律占位 null：全量统计与排序不需要图，逐个读缩略图文件是浪费；
+ * 真正补值发生在 queryProjectIndex slice 出当前页之后（一页才十几个本地读）。
+ *
  * @param {string} dataDir 数据根目录
  * @param {string} scope   当前请求的命名空间（多用户隔离由调用方 scopeOf 得出）
- * @returns {Promise<Array<{name: string, timestamp: number, pageCount: number, publishedAt: number|null, hasThumbnail: boolean}>>}
+ * @returns {Promise<Array<{name: string, timestamp: number, pageCount: number, publishedAt: number|null, thumbnail: null}>>}
  */
 export async function buildProjectIndex(dataDir, scope) {
   const keys = await listKeys(dataDir, scope)
-  // hasThumbnail 只做「键是否存在」判断，用集合命中，避免为每张卡片再读一次文件内容
-  const keySet = new Set(keys)
   const names = keys
     .filter(k => k.startsWith(PROJECT_PREFIX))
     .map(k => k.slice(PROJECT_PREFIX.length))
@@ -57,7 +61,7 @@ export async function buildProjectIndex(dataDir, scope) {
         pageCount: Array.isArray(data?.pages) ? data.pages.length : 1,
         // 与前端 parsePublishedAt 同口径：优先 publishedAt，回落工作副本时间戳，都没有则未发布
         publishedAt: pub ? Number(pub.publishedAt) || Number(pub.timestamp) || null : null,
-        hasThumbnail: keySet.has(THUMB_PREFIX + name),
+        thumbnail: null,
       }
     }),
   )
@@ -83,11 +87,14 @@ function matchesKeyword(name, kw) {
 }
 
 /**
- * 分页 + 搜索查询：一次返回某一页的工程摘要，以及**全量准确**的统计口径。
+ * 分页 + 搜索查询：一次返回某一页的工程摘要（含缩略图 data URL），以及**全量准确**的统计口径。
  *
  * 服务端仍要读遍全部工作副本才能算出总数、发布数并按时间排序（磁盘读、本地、几乎零成本），
  * 但网络上只下发当前页；total / publishedTotal / matchedTotal 让前端的统计卡与
  * 「匹配 N / M」在有/无关键词时都精确，不受分页影响。
+ *
+ * 缩略图只对 slice 后的当前页逐个 readValue：实测单张 2~10 KB，一页合计 ~54 KB，
+ * 随摘要一次带回远比前端逐卡单发 GET 划算；读不到（未生成缩略图）即为 null，前端落占位图。
  *
  * @param {string} dataDir
  * @param {string} scope
@@ -103,8 +110,13 @@ export async function queryProjectIndex(dataDir, scope, opts = {}) {
   const publishedTotal = all.reduce((n, r) => (r.publishedAt ? n + 1 : n), 0)
   const matched = kw ? all.filter(r => matchesKeyword(r.name, kw)) : all
   const start = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0
+  const page = matched.slice(start, start + limit)
+  // 只给当前页补缩略图本体：全量行的 thumbnail 仍是 buildProjectIndex 里的 null
+  const projects = await Promise.all(
+    page.map(async r => ({ ...r, thumbnail: await readValue(dataDir, THUMB_PREFIX + r.name, scope) })),
+  )
   return {
-    projects: matched.slice(start, start + limit),
+    projects,
     total,
     publishedTotal,
     matchedTotal: matched.length,

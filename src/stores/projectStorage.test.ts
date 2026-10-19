@@ -92,9 +92,14 @@ describe('projectStorage', () => {
         timestamp: 900,
         pageCount: 1,
         publishedAt: 950,
-        hasThumbnail: false,
+        thumbnail: null,
       })
-      expect(page.projects[1]).toMatchObject({ pageCount: 2, publishedAt: null, hasThumbnail: true })
+      // 「旧」写入了 thumbKey('旧')，本地回落路径直接读出 data URL 透传
+      expect(page.projects[1]).toMatchObject({
+        pageCount: 2,
+        publishedAt: null,
+        thumbnail: 'data:image/jpeg;base64,x',
+      })
     })
 
     it('keyword 走服务端同口径的名称子串匹配：命中数与统计随之变，total 不变', async () => {
@@ -157,7 +162,7 @@ describe('projectStorage', () => {
     }
 
     const okPage: ProjectIndexPage = {
-      projects: [{ name: 'A', timestamp: 1, pageCount: 3, publishedAt: null, hasThumbnail: false }],
+      projects: [{ name: 'A', timestamp: 1, pageCount: 3, publishedAt: null, thumbnail: null }],
       total: 40,
       publishedTotal: 5,
       matchedTotal: 40,
@@ -186,7 +191,7 @@ describe('projectStorage', () => {
 
       const page = await getProjectPage({ limit: 1, offset: 0 })
       expect(page.projects).toEqual([
-        { name: 'A', timestamp: 42, pageCount: 3, publishedAt: null, hasThumbnail: false },
+        { name: 'A', timestamp: 42, pageCount: 3, publishedAt: null, thumbnail: null },
       ])
       expect(page.total).toBe(1)
     })

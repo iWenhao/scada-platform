@@ -53,15 +53,16 @@ describe('buildProjectIndex', () => {
     expect(a.publishedAt).toBe(777)
   })
 
-  it('hasThumbnail 只看键是否存在，不读内容', async () => {
+  it('buildProjectIndex 不读缩略图文件，thumbnail 一律占位 null', async () => {
     const s = 'u/thumb/'
     await writeValue(dataDir, PROJECT_PREFIX + '有图', s, JSON.stringify({ timestamp: 1 }))
     await writeValue(dataDir, THUMB_PREFIX + '有图', s, 'data:image/jpeg;base64,....')
     await writeValue(dataDir, PROJECT_PREFIX + '无图', s, JSON.stringify({ timestamp: 2 }))
     const map = Object.fromEntries(
-      (await buildProjectIndex(dataDir, s)).map(r => [r.name, r.hasThumbnail]),
+      (await buildProjectIndex(dataDir, s)).map(r => [r.name, r.thumbnail]),
     )
-    expect(map).toEqual({ 有图: true, 无图: false })
+    // 全量统计与排序阶段不为缩略图读盘：补值发生在 queryProjectIndex slice 之后
+    expect(map).toEqual({ 有图: null, 无图: null })
   })
 
   it('坏 JSON 与非对象值按未知处理，不让整张列表抛错', async () => {
@@ -124,6 +125,20 @@ describe('queryProjectIndex', () => {
     expect(page.total).toBe(5)
     expect(page.publishedTotal).toBe(1)
     expect(page.matchedTotal).toBe(5)
+  })
+
+  it('当前页行直接带缩略图 data URL，无缩略图项目为 null', async () => {
+    const page = await queryProjectIndex(dataDir, s, { limit: 3 })
+    const byName = Object.fromEntries(page.projects.map(r => [r.name, r.thumbnail]))
+    expect(byName['甲A']).toBeNull()
+    expect(byName['乙B']).toBe('x') // beforeAll 写入的 THUMB_PREFIX + '乙B'
+    expect(byName['丙']).toBeNull()
+  })
+
+  it('翻页后第二页行各自补值：未写缩略图的项目 thumbnail 为 null', async () => {
+    const page = await queryProjectIndex(dataDir, s, { limit: 3, offset: 3 })
+    expect(page.projects.map(r => r.name)).toEqual(['丁', '戊'])
+    for (const r of page.projects) expect(r.thumbnail).toBeNull()
   })
 
   it('offset 翻页：第二页接在后面，matchedTotal 保持全命中数', async () => {

@@ -20,13 +20,14 @@ export { StorageConflictError } from './errors'
 /**
  * 工程列表摘要：远程索引接口返回，替代「每个工程逐条 get 整份 JSON」。
  * 字段口径与 server/lib/projectIndex.mjs 对齐。
+ * thumbnail 是卡片缩略图 data URL，随当前页一次带回；无缩略图为 null（前端落占位示意图）。
  */
 export interface ProjectSummary {
   name: string
   timestamp: number
   pageCount: number
   publishedAt: number | null
-  hasThumbnail: boolean
+  thumbnail: string | null
 }
 
 /** 分页/搜索查询参数（缺省即「第一页、无关键词、默认条数」） */

@@ -5,8 +5,6 @@ export interface ProjectRow {
   publishedAt: number | null
   pageCount: number
   timestamp: number
-  /** 是否有缩略图：列表摘要给出，卡片据此决定是否值得懒加载 */
-  hasThumbnail?: boolean
-  /** 画布缩略图 data URL，无则用占位示意图（进视口后按需加载填充） */
+  /** 画布缩略图 data URL，无则用占位示意图（随列表摘要一次带回，不再逐卡单独请求） */
   thumbnail?: string | null
 }

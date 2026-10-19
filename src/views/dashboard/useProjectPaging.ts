@@ -8,8 +8,7 @@
  * 客户端再过滤会漏掉未加载的项，所以 keyword 变化是「带 keyword 重新查第 1 页」而不是本地筛。
  */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { getStorage, type ProjectIndexPage, type ProjectSummary } from '@/storage'
-import { thumbKey } from '@/core/canvas/thumbnail'
+import type { ProjectIndexPage, ProjectSummary } from '@/storage'
 import { useProjectStore } from '@/stores/projectStore'
 import type { ProjectRow } from './types'
 
@@ -43,7 +42,7 @@ export function useProjectPaging() {
     return `匹配 ${matchedTotal.value} / ${total.value} 个项目`
   })
 
-  /** 摘要 → 卡片行：缩略图先留空，交给卡片进视口后按需取 */
+  /** 摘要 → 卡片行：缩略图已随摘要一次带回，直接透传 */
   function toRow(s: ProjectSummary): ProjectRow {
     return {
       name: s.name,
@@ -51,8 +50,7 @@ export function useProjectPaging() {
       publishedAt: s.publishedAt,
       pageCount: s.pageCount,
       timestamp: s.timestamp,
-      hasThumbnail: s.hasThumbnail,
-      thumbnail: null,
+      thumbnail: s.thumbnail ?? null,
     }
   }
 
@@ -136,16 +134,6 @@ export function useProjectPaging() {
     if (keywordTimer) clearTimeout(keywordTimer)
   })
 
-  /**
-   * 卡片滚入视口后才取缩略图：base64 是大头，一屏也就几张，避免为不可见的卡片各发一次 get。
-   * recentProjects 的项是 ref 深层代理，直接改 row.thumbnail 即可驱动卡片重渲染。
-   */
-  async function loadThumbnail(row: ProjectRow) {
-    if (!row.hasThumbnail || row.thumbnail) return
-    const thumb = await getStorage().get(thumbKey(row.name))
-    row.thumbnail = thumb || null
-  }
-
   return {
     recentProjects,
     loadingProjects,
@@ -160,6 +148,5 @@ export function useProjectPaging() {
     listSummary,
     loadProjects,
     reloadWindow,
-    loadThumbnail,
   }
 }

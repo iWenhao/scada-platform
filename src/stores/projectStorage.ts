@@ -73,7 +73,6 @@ export async function getProjectPage(query: ProjectQuery = {}): Promise<ProjectI
 async function buildLocalIndex(): Promise<ProjectSummary[]> {
   const storage = getStorage()
   const keys = await storage.keys()
-  const keySet = new Set(keys)
   const names = keys
     .filter(key => key.startsWith('scada_project_'))
     .map(key => key.slice('scada_project_'.length))
@@ -91,7 +90,9 @@ async function buildLocalIndex(): Promise<ProjectSummary[]> {
         // 坏 JSON 按「未知」处理，不影响其余工程
       }
       const publishedAt = await getPublishedSnapshotAt(name)
-      return { name, timestamp, pageCount, publishedAt, hasThumbnail: keySet.has(thumbKey(name)) }
+      // 本地/内存模式 get 是同步内存读，全量读缩略图没有网络放大；与服务端「当前页带图」对齐，
+      // applyProjectQuery slice 后返回给前端的行直接带 data URL。
+      return { name, timestamp, pageCount, publishedAt, thumbnail: await storage.get(thumbKey(name)) }
     }),
   )
 
