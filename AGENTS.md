@@ -79,8 +79,8 @@ pnpm lint               # ESLint
 | **迭代中（还没改完）——最常见** | **只跑刚动的那个测试文件**（或 `--changed`） | 全量慢，且中途失败多为半成品状态，噪声大于信息 |
 | 改了 `server/**` 或 `shared/**` | 加跑 `pnpm typecheck:server`（`tsc -p tsconfig.server.json`） | 前端那套 `vue-tsc` 的 include 只覆盖 `src/`，服务端 `.mjs` 不在其中；这条是服务端唯一的类型检查入口，不跑等于服务端改动零类型把关 |
 | 跨模块重构 / 改了类型签名与导出 | 加跑 `vue-tsc --noEmit` | 跨文件重构的错误类型检查最灵（`Record` 缺键、接口字段漏传这类单测看不出来） |
-| 每次提交（轻量集，分钟级以内） | 改动路径相关的测试 + `vue-tsc --noEmit` + `scripts/check-long-files.ps1` | 小改动最易踩的是跨文件类型错，`vue-tsc` 最灵且便宜；全量与 build 留到推送 |
-| 每次推送（`pre-push` 强制，全量的唯一权威时机） | 全量 `vitest run`（钩子内失败自动重试一次，应对沙箱 EPERM 抖动）+ `vue-tsc --noEmit` + `vite build --emptyOutDir=false` + `scripts/check-long-files.ps1` | 项目底线。本仓库没有 CI，这就是唯一的 CI；全量结果按上一节的判据算数 |
+| 每次提交（轻量集，分钟级以内） | 改动路径相关的测试 + `vue-tsc --noEmit` + `node scripts/check-long-files.mjs` | 小改动最易踩的是跨文件类型错，`vue-tsc` 最灵且便宜；全量与 build 留到推送 |
+| 每次推送（`pre-push` 强制，全量的唯一权威时机） | 全量 `vitest run`（钩子内失败自动重试一次，应对沙箱 EPERM 抖动）+ `vue-tsc --noEmit` + `vite build --emptyOutDir=false` + `node scripts/check-long-files.mjs` | 项目底线。本仓库没有 CI，这就是唯一的 CI；全量结果按上一节的判据算数 |
 | 引入新文件或改动文件较多 | 加跑**改动文件**的 `eslint` | 全量 eslint 会被仓库既有 `.vue` 报警（`vue/html-indent`、`no-mutating-props` 等）淹没，信号被稀释 |
 | 影响用户可见的输出（UI / 控制台 / 日志格式） | **必须真跑一次并看结果**，优先级排在上面全部静态检查之前 | 见「测试」一节 |
 
@@ -145,14 +145,14 @@ pnpm lint               # ESLint
   - 参考阈值：Vue SFC **> 400 行**、TS/JS 逻辑文件 **> 400 行**、`server/**/*.mjs` **> 400 行**、单文件 SCSS **> 500 行**；
   - 拆法：对话框/面板按区块拆子组件；样式外置 `*.scss`；逻辑抽 `use*.ts` composable；服务端按域拆 `lib/` 或 `notify/` 类模块；
   - 拆完必须 `vue-tsc --noEmit` + `vitest run` 通过，行为保持不变；
-  - 数据/图标定义类长文件（`src/industrial/**` 组件目录）可例外，不必硬拆；**该例外已内置进检查脚本**（`-Exempt` 参数，默认 `src/industrial/*`），不需人工判断，脚本会在末尾报出跳过的文件数。
+  - 数据/图标定义类长文件（`src/industrial/**` 组件目录）可例外，不必硬拆；**该例外已内置进检查脚本**（默认跳过 `src/industrial/*`），不需人工判断，脚本会在末尾报出跳过的文件数。
 - **收尾硬性检查（必做，不可跳过）**：每次功能改完、准备提交前，必须统计 `src/**` 与 `server/**` 下源码文件的行数；发现超过上述阈值的文件，**当次拆完再提交**，禁止「先提交超长文件以后再拆」。这一条针对**本次改动新增或触及的文件**——脚本报出的既有超限文件属历史欠账，不阻塞与它无关的提交，但**必须在当次汇报里如实列出**，不许默默略过。直接跑：
 
-  ```powershell
-  powershell -ExecutionPolicy Bypass -File scripts/check-long-files.ps1
+  ```bash
+  node scripts/check-long-files.mjs
   ```
 
-  （`.vue`/`.ts`/`.mjs` 阈值 400 行，`.scss` 500 行；无超限文件时脚本输出 `OK`。计行用 `[System.IO.File]::ReadAllLines`，与文件行尾风格无关——**别改成会漏掉空行的 `Measure-Object -Line`**，原因见脚本头注释第 4 条。）
+  （`.vue`/`.ts`/`.mjs` 阈值 400 行，`.scss` 500 行；无超限文件时脚本输出 `OK`。计行按 `readFileSync().split('\n')` 且不计末尾换行，与 CRLF/LF 行尾无关——**别换成 `wc -l`**，它数换行符个数、末行无换行时少算 1，空行/LF 文件会失真 3~25 行，原因见脚本头注释。）
 
 ## 架构与扩展点
 

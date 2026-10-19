@@ -32,7 +32,9 @@ const steps = [
   { name: '类型检查', cmd: 'npx', args: ['vue-tsc', '--noEmit'] },
   // dist 清空会被沙箱拦（与 pnpm build 同款问题），绕开见上注
   { name: '生产构建', cmd: 'npx', args: ['vite', 'build', '--emptyOutDir=false'] },
-  { name: '行数检查', cmd: 'powershell', args: ['-NoProfile', '-File', 'scripts/check-long-files.ps1'] },
+  // 行数检查走 Node 脚本：原 .ps1 只在装了 PowerShell 的 Windows 上能跑，
+  // Mac/Linux 的 pre-push 会 spawn `powershell` 拿 ENOENT 中止推送。
+  { name: '行数检查', cmd: 'node', args: ['scripts/check-long-files.mjs'] },
 ]
 
 const MAX_ATTEMPTS = 2
