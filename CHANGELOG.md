@@ -89,6 +89,14 @@
   - 改法：删除 `btn-arrow` 的 span 与对应样式，按钮只保留文字「进入系统」
   - 动了：`src/views/login/index.vue`、`src/views/login/login.scss`
 
+- 全局滚动条整改：去箭头、thumb 留白不贴边
+  - 背景：用户反馈「滚动条距离左侧太近了，而且上下还有两个尖尖」。实测 Chrome（含系统 Chrome）滚动条为 overlay 浮层模式（`offsetWidth - clientWidth` 恒为 0，含无样式系统滚动条），thumb 直接浮在内容右缘上零间距；两端默认渲染箭头按钮（webkit scrollbar-button）
+  - 改法：`::-webkit-scrollbar-button { display: none }` 去两端箭头；thumb 改 `background-clip: content-box` + `border: 2px solid transparent` 四周留白（thumb 视觉宽 6px，与内容、与边缘各隔 2px）；轨道宽 8 → 10px
+  - ⚠️ `background` 简写会重置 `background-clip`，thumb 的 `background` 一律改 `background-color`，hover 态才不会掉留白
+  - ⚠️ 连坐修复：标签栏两处极细横条（preview-header 3px / PageTabs 4px）的 thumb 必须单独 `border: none` 覆盖，否则被全局 2px×2 transparent border 吃成负高度、thumb 消失
+  - 实测：Playwright + 系统 Chrome 复跑，对话框 body 滚动零回归（body 内滚 967>593、遮罩容器不滚、header 底 192 / footer 底 833 全在视口内、滚到底头尾钉住）；`vite build` 产物含 `scrollbar-button` 与 `background-clip:content-box` 规则
+  - 动了：`styles/dark-theme.scss`、`components/layout/PageTabs.vue`、`views/preview/preview-header.scss`
+
 ### 文档
 
 - AGENTS.md 并行改动规则外移到 `docs/PARALLEL_WORK.md`，字节预算从 29.6KB 降到 27.4KB

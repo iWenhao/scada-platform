@@ -266,8 +266,13 @@ html.dark {
 
 // 滚动条样式
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
+}
+
+// 去掉两端默认的箭头按钮（不写这条，Windows Chrome 会在滚动条上下各渲染一个小三角）
+::-webkit-scrollbar-button {
+  display: none;
 }
 
 ::-webkit-scrollbar-track {
@@ -275,11 +280,13 @@ html.dark {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-secondary);
-  border-radius: 4px;
-  
+  background-color: var(--border-secondary);
+  background-clip: content-box; // 只画内容盒：thumb 四周留白，不贴轨道边缘
+  border: 2px solid transparent;
+  border-radius: 3px;
+
   &:hover {
-    background: var(--border-primary);
+    background-color: var(--border-primary);
   }
 }
 

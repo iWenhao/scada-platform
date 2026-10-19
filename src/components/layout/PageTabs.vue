@@ -175,6 +175,12 @@ async function handleCommand(cmd: string, page: ScadaPage) {
   &::-webkit-scrollbar {
     height: 4px;
   }
+
+  // 极细横条不吃全局 thumb 的 transparent border（会被 2px×2 吃成负高度）
+  &::-webkit-scrollbar-thumb {
+    border: none;
+    border-radius: 2px;
+  }
 }
 
 .page-tab {
