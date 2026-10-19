@@ -316,6 +316,8 @@ pnpm server             # http://localhost:5174，数据落 server/data/*.json
 
 前端经 `/api/storage/*` 访问后端（Vite 已代理 `/api`）；**后端不在线时自动回落 localStorage**，纯前端试用可以不起它。要登录账号、用户隔离、时序历史与报警外发则需要起后端——环境变量与种子账号见 [docs/DEPLOY.md](docs/DEPLOY.md)。改 `vite.config.ts` 代理或 server 路由后需重启 dev server。
 
+一份 `DATA_DIR` 只允许跑**一个**后端实例：启动时会抢 `DATA_DIR/.lock`，抢不到就以退出码 1 拒绝启动并说明持锁方是谁。因为写入串行化与账号/会话表都是进程内的，两个实例共用同一目录的后果不是报错而是静默覆盖数据（判活与接管规则见 [docs/DEPLOY.md §5.6](docs/DEPLOY.md)）。
+
 ### 容器一键起全站
 
 ```bash

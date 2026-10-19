@@ -4,6 +4,9 @@
 #   # 浏览器打开 http://localhost:8080
 #
 # 数据都在 scada-data 卷里（账号、工程、时序历史），重建容器不丢。
+#
+# server 只能是 1 个副本：它按 DATA_DIR 抢单实例锁（docs/DEPLOY.md §5.6），
+# 多副本共用 scada-data 卷时后来者会直接拒绝启动。要横向扩展请先换数据库。
 services:
   server:
     build:
