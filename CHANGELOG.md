@@ -75,6 +75,14 @@
   - 浏览器实测（Playwright + 系统 Chrome，独立端口 5180 + 独立数据目录，不碰开发机上的实例）：对话框渲染、有状态状态表、创建后跨会话从存储恢复、拖入画布未绑定显灰、`/preview` 直接打开也能渲染自定义组件，全部通过；全程无 `pageerror`
   - 动了：`customLibrary.ts`、`authStore.ts`、`main.ts`、`ComponentPanel.vue`、`preview/index.vue`
 
+- 对话框内容超高时改为对话框内部滚动，不再滚动整个遮罩层
+  - 背景：EP 给对话框真正的滚动容器 `.el-overlay-dialog`（`position:fixed;inset:0;overflow:auto`）配了 `overflow:auto`，而 `.el-dialog` 本身没有任何高度上限——内容一超高（状态表、点位表这类可增长表单），用户滚的是整个容器：标题被顶出视口、取消/确认按钮跑出画面。实测（1600×900）修复前容器 `scrollHeight` 1274 > 900，对话框 1089px 高、底部按钮在 y=1224 处视口外
+  - 改法：新增 `styles/dialog.scss`，`.el-dialog` 封顶 `calc(100vh - var(--el-dialog-margin-top, 15vh) - 50px)` 并改成纵向 flex——头/尾保持自然高度，`__body` 吃剩余空间并内部滚动
+  - ⚠️ `__body` 必须显式 `min-height: 0`：flex 子项默认 `min-height: auto`，拒绝收缩到内容高度以下，少了它 body 照样不滚、容器照旧滚
+  - ⚠️ 实测选-element 陷阱：`.el-overlay` 只是蒙版 mask（无子内容，`scrollHeight` 恒等于 `clientHeight`，永远测不出滚动）；真正的滚动容器是对话框的**父级** `.el-overlay-dialog`。探针测错元素会得出「遮罩层没滚」的反结论（本轮先被误导了一轮）
+  - 实测（Playwright + 系统 Chrome，1600×900）：矮对话框保持自然高度（674px、body 不滚）；高对话框封顶 715px、body 内滚、头尾钉在视口内（header 底 192、footer 底 833 ≤ 900）；前后对照 `.el-overlay-dialog` 可滚性 true → false、body 内滚 false → true
+  - 动了：`styles/dialog.scss`（新）、`styles/index.scss`
+
 ### 优化
 
 - 登录按钮去掉 `→` 箭头

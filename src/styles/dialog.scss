@@ -1,0 +1,29 @@
+/*
+ * 对话框高度封顶：内容超高时在 body 内滚动，而不是让整个遮罩层滚动。
+ *
+ * 背景：EP 默认 .el-overlay-dialog { overflow: auto } + .el-dialog 只有
+ * margin: 15vh auto 50px、没有任何高度上限——对话框内容一超高（状态表、
+ * 点位表、用户管理这类可增长表单），用户滚的是整个遮罩层，标题会被顶出
+ * 视口，取消/确认按钮也跟着跑。
+ *
+ * 改法：把 .el-dialog 变成纵向 flex——头/尾保持自然高度，body 吃剩余空间
+ * 并内部滚动。max-height 按 EP 自己的 margin 变量算，正好装满视口。
+ *
+ * ⚠️ min-height: 0 不能省：flex 子项默认 min-height: auto，会拒绝收缩到
+ * 内容高度以下，body 还是不肯滚，遮罩层照旧滚。
+ *
+ * 与 EP 编译产物无属性重叠（EP 不给 .el-dialog 设 display/max-height，
+ * 不给 __body 设 flex/overflow），不受样式注入顺序影响。
+ */
+
+.el-dialog {
+  max-height: calc(100vh - var(--el-dialog-margin-top, 15vh) - 50px);
+  display: flex;
+  flex-direction: column;
+
+  .el-dialog__body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+}
