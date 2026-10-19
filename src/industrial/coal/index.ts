@@ -32,36 +32,110 @@ export const RoadheaderDefinition: ComponentDefinition = {
   name: '掘进机',
   group: 'coal',
   // 截割头的截齿要随截割头转动，已移入 motion.rotors（悬臂与机身保持静止）
+  // 画法对齐综采采煤机素材：单色描边、内部留空、立体感靠线条密度而不是填充，
+  // 因此这里不写 data-face（styleIcon 会原样透传，2D/2.5D 观感一致）
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="40" y="64" width="46" height="16" rx="8" />
-      <circle cx="53" cy="72" r="4" />
-      <circle cx="74" cy="72" r="4" />
-      <rect x="44" y="42" width="34" height="22" />
-      <line x1="44" y1="52" x2="23" y2="38" />
-      <circle cx="16" cy="33" r="11" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <!-- 后支撑：尾板 + 斜撑，整体退到驱动轮之后，不与轮注重叠 -->
+      <path d="M88,94 L88,88 L98,88 L98,94 Z" />
+      <path d="M90,88 L86,74" />
+      <!-- 履带装置：外廓只画底线与两端圆弧——顶边与车架下沿是同一条线，重描一遍就是「双线」；
+           两端圆弧的 sweep 必须同为 0（同向绕行才都朝外鼓），右端写成 1 会翻到履带内部去 -->
+      <path d="M38,74 A10,10 0 0 0 38,94 L74,94 A10,10 0 0 0 74,74" />
+      <circle cx="74" cy="84" r="6.2" />
+      <circle cx="74" cy="84" r="2.1" />
+      <circle cx="38" cy="84" r="5.2" />
+      <circle cx="38" cy="84" r="1.7" />
+      <circle cx="48" cy="88" r="2.8" />
+      <circle cx="56" cy="88" r="2.8" />
+      <circle cx="64" cy="88" r="2.8" />
+      <path d="M42,94 L42,96.5 M47,94 L47,96.5 M52,94 L52,96.5 M57,94 L57,96.5 M62,94 L62,96.5 M67,94 L67,96.5 M72,94 L72,96.5" stroke-width="1.1" />
+      <!-- 主车架：整台机器唯一的顶线与底线，deck 上的箱体都挂它、共边不重描；
+           内部分舱线对齐上方各箱体的接缝——不留线的车架是一块大空白板，反而成了全图最抢眼的东西 -->
+      <path d="M32,58 L94,58 L94,74 L32,74 Z" />
+      <path d="M32,66 L94,66" stroke-width="1" stroke-opacity="0.5" />
+      <path d="M56,58 L56,74 M72,58 L72,74 M84,58 L84,74" stroke-width="1" stroke-opacity="0.55" />
+      <!-- 司机护棚：两根立柱正好落在箱体之间的空档上，不穿过任何轮廓 -->
+      <path d="M34,26 L56,26 L56,30 L34,30 Z" />
+      <path d="M36,30 L36,58" />
+      <path d="M54,30 L54,58" />
+      <!-- 操作台与操作杆（台体开口朝下，底边即车架顶线） -->
+      <path d="M38,58 L38,48 L52,48 L52,58" />
+      <path d="M42,48 L40,41 M48,48 L50,41" stroke-width="1.2" />
+      <circle cx="40" cy="40.5" r="1.2" />
+      <circle cx="50" cy="40.5" r="1.2" />
+      <!-- 电气控制箱：门缝一条，指示灯与急停在门缝下方排开 -->
+      <path d="M56,58 L56,38 L70,38 L70,58" />
+      <path d="M56,45 L70,45" stroke-width="1" stroke-opacity="0.5" />
+      <circle cx="60" cy="51" r="1.4" />
+      <circle cx="64" cy="51" r="1.4" />
+      <circle cx="68" cy="51" r="1.8" stroke-width="1.1" />
+      <!-- 液压油箱：加油口切在顶线上，散热筋与液位计分踞左右、互不交叉 -->
+      <path d="M72,58 L72,44 L82,44 L82,58" />
+      <circle cx="77" cy="42" r="2" />
+      <path d="M74,47 L74,55 M76.5,47 L76.5,55" stroke-width="1" stroke-opacity="0.55" />
+      <path d="M79,47 L80.5,47 L80.5,55 L79,55" stroke-width="1.1" />
+      <!-- 电机：散热筋两条 -->
+      <path d="M84,58 L84,48 L94,48 L94,58" />
+      <path d="M87.5,50 L87.5,56 M91,50 L91,56" stroke-width="1" stroke-opacity="0.55" />
+      <!-- 回转台：支座收在截割臂根部之内当铰接凸台，不再骑在车架前沿上 -->
+      <circle cx="28.5" cy="60" r="4" />
+      <circle cx="28.5" cy="60" r="1.4" />
+      <!-- 截割臂：后缘开口、用车架前沿收边；臂内不再画滑轨——齿圈扫过来必然打架 -->
+      <path d="M32,56 L19,51 L19,61 L32,70" />
+      <!-- 升降油缸：从车架前下角伸到截割臂下沿，走回转台下方，不与圆相交 -->
+      <path d="M34,74 L29,69.5" stroke-width="3.2" stroke-opacity="0.8" />
+      <path d="M29,69.5 L25.5,65.5" stroke-width="1.3" />
+      <circle cx="34" cy="74" r="1.5" stroke-width="1.1" />
+      <circle cx="25.5" cy="65.5" r="1.4" stroke-width="1.1" />
+      <!-- 截割头滚筒：外圈 + 叶片环 + 轮毂三重同心，齿圈见 motion.rotors -->
+      <circle cx="13" cy="56" r="8.5" />
+      <circle cx="13" cy="56" r="5.5" stroke-width="1" stroke-opacity="0.6" />
+      <circle cx="13" cy="56" r="2.6" />
+      <!-- 前铲板：整体退到张紧轮之前，拱筋与台口线各守自己的框；
+           底部连接梁走 y=94 这条共线把铲板接到履带前端——斜穿过去必然刮上张紧轮罩的圆弧 -->
+      <path d="M6,94 L8,85 L24,85 L24,94 Z" />
+      <path d="M9,89 L24,89" stroke-width="1" stroke-opacity="0.55" />
+      <path d="M10,85 A7,7 0 0 1 22,85" stroke-width="1.2" />
+      <path d="M24,94 L38,94" stroke-width="1.2" stroke-opacity="0.8" />
     </g>
   </svg>`,
-  defaultWidth: 100,
-  defaultHeight: 60,
+  // 默认尺寸按「图形区 + 名称/数值两行」反推：图标内容包围盒 97.7×74.7（aspect 1.308，
+  // 含 stroke-width 3.2 油缸带来的 2.1 描边余量），170×120 时两行文字都在，图形仍能以 94×72
+  // 画出来；再小就被文字区挤成糊块（120×90 只剩 63×48）
+  defaultWidth: 170,
+  defaultHeight: 120,
   defaultConfig: {
     cutting: 0,
     load: 0,
     animate: true,
   },
-  // 截齿绕截割头圆心（16,33）转动
+  // 截齿绕截割头圆心（13,56）转动；16 支齿按采煤机滚筒的密度排布，
+  // 齿根半径 8.8 略大于滚筒外圈 8.5，转动时齿才不会压在线上
   motion: {
     driveVariable: 'cutting',
     degPerUnit: 120,
     rotors: [
       {
-        cx: 16,
-        cy: 33,
-        svg: `<g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
-          <line x1="9" y1="25" x2="5" y2="21" />
-          <line x1="23" y1="24" x2="27" y2="20" />
-          <line x1="6" y1="33" x2="1" y2="33" />
-          <line x1="24" y1="41" x2="28" y2="44" />
+        cx: 13,
+        cy: 56,
+        svg: `<g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <line x1="13" y1="47.2" x2="13" y2="44.2" />
+          <line x1="16.4" y1="47.9" x2="17.5" y2="45.1" />
+          <line x1="19.2" y1="49.8" x2="21.3" y2="47.7" />
+          <line x1="21.1" y1="52.6" x2="23.9" y2="51.5" />
+          <line x1="21.8" y1="56" x2="24.8" y2="56" />
+          <line x1="21.1" y1="59.4" x2="23.9" y2="60.5" />
+          <line x1="19.2" y1="62.2" x2="21.3" y2="64.3" />
+          <line x1="16.4" y1="64.1" x2="17.5" y2="66.9" />
+          <line x1="13" y1="64.8" x2="13" y2="67.8" />
+          <line x1="9.6" y1="64.1" x2="8.5" y2="66.9" />
+          <line x1="6.8" y1="62.2" x2="4.7" y2="64.3" />
+          <line x1="4.9" y1="59.4" x2="2.1" y2="60.5" />
+          <line x1="4.2" y1="56" x2="1.2" y2="56" />
+          <line x1="4.9" y1="52.6" x2="2.1" y2="51.5" />
+          <line x1="6.8" y1="49.8" x2="4.7" y2="47.7" />
+          <line x1="9.6" y1="47.9" x2="8.5" y2="45.1" />
         </g>`,
       },
     ],

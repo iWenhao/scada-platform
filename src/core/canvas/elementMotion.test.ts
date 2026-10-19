@@ -261,6 +261,30 @@ describe('内置组件的动效定义', () => {
     }
   })
 
+  it('截齿在滚筒外圈之外，转动时齿根不会被机身吃掉', () => {
+    // 滚筒与齿圈是两处图形（icon 里的圆 + motion.rotors 里的齿），只有一处改半径
+    // 就会出现「齿长在鼓里」——这里用同心的最大圆当鼓身外圈，要求每支齿两端都在其外
+    for (const def of [RoadheaderDefinition]) {
+      for (const rotor of def.motion?.rotors ?? []) {
+        const rim = Math.max(
+          ...[...def.icon.matchAll(/<circle\b[^>]*?cx="([\d.]+)"[^>]*?cy="([\d.]+)"[^>]*?r="([\d.]+)"/g)]
+            .filter(m => parseFloat(m[1]) === rotor.cx && parseFloat(m[2]) === rotor.cy)
+            .map(m => parseFloat(m[3])),
+        )
+        expect(rim, `${def.type} 的图标里没有与旋转中心同心的圆`).toBeGreaterThan(0)
+        for (const m of rotor.svg.matchAll(/x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/g)) {
+          for (const [x, y] of [
+            [parseFloat(m[1]), parseFloat(m[2])],
+            [parseFloat(m[3]), parseFloat(m[4])],
+          ]) {
+            const r = Math.hypot(x - rotor.cx, y - rotor.cy)
+            expect(r, `${def.type} 有一支齿落在滚筒外圈（r=${rim}）之内`).toBeGreaterThan(rim)
+          }
+        }
+      }
+    }
+  })
+
   it('带面标记的高度与位置和图标里的上下带边一致', () => {
     // 滚动标记必须落在真正画出来的两条带边之间；带边在图标里挪了却忘了改配置，
     // 标记就会糊到带面之外——这里把它固化成用例。
