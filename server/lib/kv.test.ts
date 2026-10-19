@@ -17,11 +17,14 @@ import {
   keyError,
   listKeys,
   readValue,
+  readValueWithEtag,
   removeValue,
   scopeDir,
   scopeOf,
   writeValue,
   writeValueIfAbsent,
+  writeValueIfMatch,
+  statEtag,
 } from './kv.mjs'
 
 let dataDir = ''
@@ -194,5 +197,58 @@ describe('writeValueIfAbsent（仅不存在时创建）', () => {
     expect(rejected).toHaveLength(1)
     // 最终值是两个竞争写入之一，且没被半途写坏
     expect(['"A"', '"B"']).toContain(await readValue(dataDir, 'race', absScope))
+  })
+})
+
+describe('writeValueIfMatch（乐观并发）', () => {
+  const etagScope = 'u/if-match/'
+
+  it('etag 匹配时写入成功，且新 etag 与旧值不同', async () => {
+    await writeValue(dataDir, 'doc', etagScope, 'v1')
+    const before = await readValueWithEtag(dataDir, 'doc', etagScope)
+    expect(before.etag).not.toBeNull()
+
+    await writeValueIfMatch(dataDir, 'doc', etagScope, 'v2', before.etag)
+    const after = await readValueWithEtag(dataDir, 'doc', etagScope)
+    expect(after.value).toBe('v2')
+    // 写入会刷新 mtime，etag 必然推进
+    expect(after.etag).not.toBe(before.etag)
+  })
+
+  it('etag 不匹配时抛 EVERSION 且不覆盖旧值', async () => {
+    await writeValue(dataDir, 'stale-doc', etagScope, 'v1')
+    const real = await readValueWithEtag(dataDir, 'stale-doc', etagScope)
+    // 另一会话已写过一次，把 etag 推到 v2
+    await writeValueIfMatch(dataDir, 'stale-doc', etagScope, 'v2', real.etag)
+    const staleEtag = real.etag
+
+    // 第一个会话拿旧 etag 再写：必须被拒，且 v2 原样保留
+    await expect(
+      writeValueIfMatch(dataDir, 'stale-doc', etagScope, 'v3', staleEtag),
+    ).rejects.toMatchObject({ code: 'EVERSION' })
+    expect(await readValue(dataDir, 'stale-doc', etagScope)).toBe('v2')
+  })
+
+  it('etag 为空串/空值时跳过检查，等同普通 writeValue（发布/草稿路径）', async () => {
+    await writeValue(dataDir, 'no-check', etagScope, 'old')
+    await writeValueIfMatch(dataDir, 'no-check', etagScope, 'new', '')
+    expect(await readValue(dataDir, 'no-check', etagScope)).toBe('new')
+    await writeValueIfMatch(dataDir, 'no-check', etagScope, 'newer', null)
+    expect(await readValue(dataDir, 'no-check', etagScope)).toBe('newer')
+  })
+
+  it('目标不存在而带非空 etag：也视为版本过期（客户端以为存在，实际已被删）', async () => {
+    await expect(
+      writeValueIfMatch(dataDir, 'missing', etagScope, 'x', '0.123'),
+    ).rejects.toMatchObject({ code: 'EVERSION' })
+  })
+
+  it('statEtag 返回当前文件版本，文件刚被删时为 null', async () => {
+    await writeValue(dataDir, 'stat', etagScope, 'x')
+    const e = await statEtag(dataDir, 'stat', etagScope)
+    expect(typeof e).toBe('string')
+    expect(Number.isNaN(Number(e))).toBe(false)
+    await removeValue(dataDir, 'stat', etagScope)
+    expect(await statEtag(dataDir, 'stat', etagScope)).toBeNull()
   })
 })

@@ -36,6 +36,13 @@ export const useProjectStore = defineStore('project', () => {
    */
   const ownedProjectName = ref<string | null>(null)
 
+  /**
+   * 本会话加载到的工程版本指纹（etag）：loadProject 记下，覆盖保存时回传做乐观并发，
+   * 避免同账号两标签后写覆盖先写；保存成功后由服务端返回的新值推进。
+   * 预览页往返不跨标签，无需进 snapshot/restore。
+   */
+  const loadedEtag = ref<string | null>(null)
+
   // 数据源配置：属于工程的一部分，必须随工程一起持久化，
   // 否则保存后重开就没有数据源可用，预览只能退回 mock。
   const dataSourceConfig = ref<DataSourceConfig>({ type: 'mock', name: 'default' })
@@ -162,7 +169,7 @@ export const useProjectStore = defineStore('project', () => {
   // 正式保存 / 发布 / 加载 / 导入 / 自动草稿：都只是「工程数据 ↔ 存储」的往返，
   // 拆到 projectPersistence.ts，靠注入的 state 与三个数据动作拿到所需依赖
   const persistence = createProjectPersistence({
-    state: { projectName, lastSaveTime, hasUnsavedChanges, ownedProjectName },
+    state: { projectName, lastSaveTime, hasUnsavedChanges, ownedProjectName, loadedEtag },
     buildProjectData,
     applyProjectData,
     applyLoadedProject,
@@ -289,6 +296,8 @@ export const useProjectStore = defineStore('project', () => {
     hasUnsavedChanges.value = false
     // 新建项目 = 放弃对任何工程名的认领：此后保存撞名必须被拒，不能覆盖别人的工程
     ownedProjectName.value = null
+    // 同时清掉版本指纹：新项目第一次保存走 ifAbsent，不参与乐观并发比对
+    loadedEtag.value = null
     dataSourceConfig.value = { type: 'mock', name: 'default' }
     alarmDefs.value = []
     writePolicy.value = 'allow'

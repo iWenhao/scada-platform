@@ -52,12 +52,26 @@ export interface StorageAdapter {
   get(key: string): Promise<string | null>
   /**
    * 写入。options.ifAbsent=true 表示「仅当键不存在时创建」：
-   * 目标已存在时抛 StorageConflictError（不覆盖），用于把保存时的撞名判重交给底层原子完成。
+   * 目标已存在时抛 StorageConflictError(reason='exists')，用于把保存时的撞名判重交给底层原子完成。
+   * options.ifMatch 传入 getWithMeta 拿到的 etag：仅当服务端当前版本与该 etag 一致时才写，
+   * 否则抛 StorageConflictError(reason='stale')——用于覆盖已认领工程时的乐观并发，
+   * 避免同账号两标签同时改同一工程时后写覆盖先写。
+   * 返回写入后的新 etag（远程模式；本地/内存模式返回 null），供上层推进已加载版本号。
    */
-  set(key: string, value: string, options?: { ifAbsent?: boolean }): Promise<void>
+  set(
+    key: string,
+    value: string,
+    options?: { ifAbsent?: boolean; ifMatch?: string | null },
+  ): Promise<string | null>
   remove(key: string): Promise<void>
   /** 枚举当前存储的全部键 */
   keys(): Promise<string[]>
+  /**
+   * 读值并附带版本指纹（etag）。仅远程存储实现真实版本比对；
+   * 本地/内存模式是单线程同步，不存在跨写者竞态，返回 etag=null 即可。
+   * 上层 projectPersistence 用它在加载时记下版本，保存时回传做乐观并发。
+   */
+  getWithMeta?(key: string): Promise<{ value: string | null; etag: string | null }>
   /**
    * 可选能力：返回一页工程摘要（含分页/搜索/统计，仅远程存储实现）。
    * 缺省时上层 projectStorage.getProjectPage 回落到 keys()+get() 逐条拼装后本地筛选切片——
@@ -105,13 +119,23 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
-  async set(key: string, value: string, options?: { ifAbsent?: boolean }): Promise<void> {
+  async set(
+    key: string,
+    value: string,
+    options?: { ifAbsent?: boolean; ifMatch?: string | null },
+  ): Promise<string | null> {
     // JS 单线程 + localStorage.setItem 同步：get 判存在与 setItem 之间不会有别的写插进来，
     // 所以 ifAbsent 在一个 tick 内即无竞态（跨设备/多进程不在此模式覆盖范围内）。
     if (options?.ifAbsent && localStorage.getItem(this.full(key)) !== null) {
-      throw new StorageConflictError()
+      throw new StorageConflictError('exists')
     }
+    // ifMatch 在本地/单进程模式下无实际并发写者，直接放行（etag 比对由远程层负责）
     localStorage.setItem(this.full(key), value)
+    return null
+  }
+
+  async getWithMeta(key: string): Promise<{ value: string | null; etag: string | null }> {
+    return { value: await this.get(key), etag: null }
   }
 
   async remove(key: string): Promise<void> {
@@ -175,11 +199,20 @@ export class MemoryStorageAdapter implements StorageAdapter {
     return this.map.get(key) ?? null
   }
 
-  async set(key: string, value: string, options?: { ifAbsent?: boolean }): Promise<void> {
+  async set(
+    key: string,
+    value: string,
+    options?: { ifAbsent?: boolean; ifMatch?: string | null },
+  ): Promise<string | null> {
     if (options?.ifAbsent && this.map.has(key)) {
-      throw new StorageConflictError()
+      throw new StorageConflictError('exists')
     }
     this.map.set(key, value)
+    return null
+  }
+
+  async getWithMeta(key: string): Promise<{ value: string | null; etag: string | null }> {
+    return { value: this.map.get(key) ?? null, etag: null }
   }
 
   async remove(key: string): Promise<void> {

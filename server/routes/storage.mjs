@@ -6,10 +6,12 @@ import { readBody, requireRole } from '../lib/http.mjs'
 import { roleAtLeast } from '../auth.mjs'
 import {
   listKeys,
-  readValue,
+  readValueWithEtag,
   writeValue,
   writeValueIfAbsent,
+  writeValueIfMatch,
   removeValue,
+  statEtag,
   keyError,
   GLOBAL_SCOPE,
   SITE_BRANDING_KEY,
@@ -34,7 +36,9 @@ export async function handleStorage(ctx) {
       ok(res, req, 400, { error: bad })
       return true
     }
-    ok(res, req, 200, { value: await readValue(dataDir, key, scope) })
+    // 带上 etag（文件 mtimeMs）：前端保存时回传做乐观并发的版本比对，避免两标签后写覆盖先写
+    const { value, etag } = await readValueWithEtag(dataDir, key, scope)
+    ok(res, req, 200, { value, etag })
     return true
   }
 
@@ -63,10 +67,23 @@ export async function handleStorage(ctx) {
         }
         throw e
       }
+    } else if (url.searchParams.has('ifMatch')) {
+      // 乐观并发：仅当文件当前 etag 与客户端读到的版本一致时才写；
+      // 不一致说明这份工程在别处被改过，回 409 + reason=stale，前端提示刷新后再继续。
+      try {
+        await writeValueIfMatch(dataDir, key, scope, body, url.searchParams.get('ifMatch'))
+      } catch (e) {
+        if (e?.code === 'EVERSION') {
+          ok(res, req, 409, { error: 'stale' })
+          return true
+        }
+        throw e
+      }
     } else {
       await writeValue(dataDir, key, scope, body)
     }
-    ok(res, req, 200, { ok: true })
+    // 写入成功后把新版本 etag 回给前端，推进其 loadedEtag，下次保存仍通过乐观并发检查
+    ok(res, req, 200, { ok: true, etag: await statEtag(dataDir, key, scope) })
     return true
   }
 

@@ -4,16 +4,15 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { RemoteStorageAdapter } from './remote'
-import { StorageConflictError } from './errors'
 
 const captured: { url: string; init: RequestInit }[] = []
 
-function stubFetch(status: number, ok: boolean) {
+function stubFetch(status: number, ok: boolean, body: unknown = { ok: true, etag: 'abc' }) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init: RequestInit) => {
       captured.push({ url, init })
-      return { status, ok } as Response
+      return { status, ok, json: async () => body } as Response
     }),
   )
 }
@@ -46,12 +45,13 @@ describe('RemoteStorageAdapter.set 创建模式', () => {
   })
 
   it('服务端返回 409 抛 StorageConflictError（判为撞名，不是普通故障）', async () => {
-    stubFetch(409, false)
+    stubFetch(409, false, { error: 'exists' })
     const storage = new RemoteStorageAdapter('/api/storage')
 
-    await expect(storage.set('scada_project_A', '{}', { ifAbsent: true })).rejects.toBeInstanceOf(
-      StorageConflictError,
-    )
+    await expect(storage.set('scada_project_A', '{}', { ifAbsent: true })).rejects.toMatchObject({
+      name: 'StorageConflictError',
+      reason: 'exists',
+    })
   })
 
   it('其它非 2xx 仍抛普通 Error，不误判为撞名', async () => {
@@ -61,6 +61,25 @@ describe('RemoteStorageAdapter.set 创建模式', () => {
     await expect(storage.set('scada_project_A', '{}', { ifAbsent: true })).rejects.toThrow(
       /set failed: HTTP 500/,
     )
+  })
+
+  it('ifMatch 时 URL 带 ifMatch 参数，成功后返回服务端回传的新 etag', async () => {
+    stubFetch(200, true, { ok: true, etag: 'v2' })
+    const storage = new RemoteStorageAdapter('/api/storage')
+
+    const newEtag = await storage.set('scada_project_A', '{}', { ifMatch: 'v1' })
+
+    expect(captured[0].url).toContain('ifMatch=v1')
+    expect(newEtag).toBe('v2')
+  })
+
+  it('ifMatch 时服务端 409 判为 stale（版本过期），不是 exists', async () => {
+    stubFetch(409, false, { error: 'stale' })
+    const storage = new RemoteStorageAdapter('/api/storage')
+
+    await expect(
+      storage.set('scada_project_A', '{}', { ifMatch: 'v1' }),
+    ).rejects.toMatchObject({ name: 'StorageConflictError', reason: 'stale' })
   })
 })
 

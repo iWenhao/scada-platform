@@ -50,16 +50,39 @@ export class RemoteStorageAdapter implements StorageAdapter {
     return body.value ?? null
   }
 
-  async set(key: string, value: string, options?: { ifAbsent?: boolean }): Promise<void> {
-    // ifAbsent → 服务端 ?mode=create：判重交后端一次原子写，撞名回 409（与网络故障区分）
-    const mode = options?.ifAbsent ? '&mode=create' : ''
-    const res = await fetch(`${this.base}/set?key=${encodeURIComponent(key)}${mode}`, {
+  async getWithMeta(key: string): Promise<{ value: string | null; etag: string | null }> {
+    const res = await fetch(`${this.base}/get?key=${encodeURIComponent(key)}`, {
+      headers: this.headers,
+    })
+    if (!res.ok) return { value: null, etag: null }
+    const body = await res.json()
+    return { value: body.value ?? null, etag: body.etag ?? null }
+  }
+
+  async set(
+    key: string,
+    value: string,
+    options?: { ifAbsent?: boolean; ifMatch?: string | null },
+  ): Promise<string | null> {
+    const params = new URLSearchParams({ key })
+    // ifAbsent → 服务端 ?mode=create：判重交后端一次原子写，撞名回 409（reason=exists）
+    if (options?.ifAbsent) params.set('mode', 'create')
+    // ifMatch → 服务端 ?ifMatch=<etag>：仅当服务端版本一致时才写，不一致回 409（reason=stale）
+    if (options?.ifMatch) params.set('ifMatch', options.ifMatch)
+    const res = await fetch(`${this.base}/set?${params.toString()}`, {
       method: 'PUT',
       headers: { ...this.headers, 'content-type': 'text/plain; charset=utf-8' },
       body: value,
     })
-    if (res.status === 409) throw new StorageConflictError()
+    if (res.status === 409) {
+      // 服务端在 body.error 里区分 exists（撞名）与 stale（版本旧）
+      const body = await res.json().catch(() => ({}))
+      throw new StorageConflictError(body.error === 'stale' ? 'stale' : 'exists')
+    }
     if (!res.ok) throw new Error(`set failed: HTTP ${res.status}`)
+    const body = await res.json().catch(() => ({}))
+    // 返回服务端写入后的新 etag，供上层推进 loadedEtag
+    return typeof body.etag === 'string' ? body.etag : null
   }
 
   async remove(key: string): Promise<void> {

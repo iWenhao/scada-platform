@@ -106,7 +106,7 @@ describe('projectStore 保存查重', () => {
     await occupy('未命名项目')
     store.markDirty()
 
-    expect(await store.saveProject()).toBe(false)
+    expect(await store.saveProject()).toBe('exists')
     // 旧数据原样保留，编辑器名字与脏标记也不动
     expect(JSON.parse((await getStorage().get('scada_project_未命名项目'))!).timestamp).toBe(1)
     expect(store.projectName).toBe('未命名项目')
@@ -117,7 +117,7 @@ describe('projectStore 保存查重', () => {
     await occupy('A')
     store.resetProject()
 
-    expect(await store.saveProject('A')).toBe(false)
+    expect(await store.saveProject('A')).toBe('exists')
     expect(store.projectName).toBe('未命名项目')
   })
 
@@ -125,7 +125,7 @@ describe('projectStore 保存查重', () => {
     await store.saveProject('A')
     store.resetProject()
 
-    expect(await store.saveProject('A')).toBe(false)
+    expect(await store.saveProject('A')).toBe('exists')
   })
 
   it('打开过的工程再次保存应放行（覆盖自己的旧版本）', async () => {
@@ -158,7 +158,7 @@ describe('projectStore 保存查重', () => {
       ),
     ).toBe(true)
     expect(store.projectName).toBe('已有工程')
-    expect(await store.saveProject()).toBe(false)
+    expect(await store.saveProject()).toBe('exists')
   })
 
   it('重命名已保存项目后再保存应放行（认领标志随键迁移）', async () => {
@@ -180,7 +180,7 @@ describe('projectStore 保存查重', () => {
     storeB.markDirty()
 
     // 判重交给底层一次原子写，B 拿不到覆盖权
-    expect(await storeB.saveProject('并发工程')).toBe(false)
+    expect(await storeB.saveProject('并发工程')).toBe('exists')
     expect(storeB.projectName).toBe('未命名项目')
     // A 的数据原样还在
     expect(await getStorage().get('scada_project_并发工程')).toBe(bytesAfterA)

@@ -11,6 +11,14 @@ import {
 } from './projectStorage'
 
 /**
+ * 保存结果：
+ * - true：保存成功
+ * - 'exists'：撞名（目标工程已被别人占用），上层弹改名框
+ * - 'stale'：乐观并发失败（这份工程在别处被改过），上层提示刷新后再继续
+ */
+export type SaveResult = true | 'exists' | 'stale'
+
+/**
  * 工程持久化动作：正式保存 / 发布 / 加载 / 导入 / 自动草稿。
  *
  * 从 projectStore.ts 拆出来是因为这一组已经让 store 越过 400 行门槛，
@@ -26,6 +34,11 @@ export interface ProjectPersistenceState {
    * 保存查重靠它区分「覆盖自己的旧版本」（放行）与「新建撞名」（拒绝）。
    */
   ownedProjectName: Ref<string | null>
+  /**
+   * 本会话加载到的最新工程版本指纹（etag）。加载时记下，覆盖保存时回传做乐观并发，
+   * 避免同账号两标签同时改同一工程时后写覆盖先写；保存成功后由服务端返回的新 etag 推进。
+   */
+  loadedEtag: Ref<string | null>
 }
 
 export function createProjectPersistence(ctx: {
@@ -47,12 +60,13 @@ export function createProjectPersistence(ctx: {
    * 保存项目到存储。
    *
    * 撞名保护改由底层一次原子写完成：本会话没认领过这个工程名（新建/导入后改名等）时，
-   * 带 ifAbsent 写入——目标已存在则存储层抛 StorageConflictError，这里返回 false（不写存储）。
+   * 带 ifAbsent 写入——目标已存在则存储层抛 StorageConflictError(reason='exists')，这里返回 'exists'。
+   * 已认领工程的覆盖保存带 ifMatch=loadedEtag：服务端发现版本已在别处更新时抛
+   * StorageConflictError(reason='stale')，这里返回 'stale'，上层提示刷新后再继续。
    * 判重不再走「先 get 查一次、再 set 写」，消掉了两个会话/两台设备同时新建同名工程时
-   * 双双判到「未占用」、后写的静默覆盖先写的竞态。远程模式由服务端 ?mode=create 原子化，
-   * 本地/内存模式在同一 tick 内判存在，均不回覆盖。存储故障仍走抛异常路径，与既有行为一致。
+   * 双双判到「未占用」、后写的静默覆盖先写的竞态。存储故障仍走抛异常路径，与既有行为一致。
    */
-  async function saveProject(name?: string): Promise<boolean> {
+  async function saveProject(name?: string): Promise<SaveResult> {
     const target = name || state.projectName.value
     const isNew = target !== state.ownedProjectName.value
     // buildProjectData 取的是 projectName.value，必须先落名才能把正确的 name 写进工程数据；
@@ -62,12 +76,18 @@ export function createProjectPersistence(ctx: {
     const json = JSON.stringify(ctx.buildProjectData())
 
     try {
-      await getStorage().set(projectKey(target), json, { ifAbsent: isNew })
+      // 新建走 ifAbsent 原子判重；覆盖已认领工程走 ifMatch 乐观并发，二者互斥。
+      // ifMatch 仅在有已知版本号时带（本地模式/刚导入等 loadedEtag=null 时不做版本检查）。
+      const newEtag = await getStorage().set(projectKey(target), json, {
+        ifAbsent: isNew,
+        ifMatch: isNew ? null : state.loadedEtag.value,
+      })
+      if (typeof newEtag === 'string') state.loadedEtag.value = newEtag
     } catch (e) {
-      // 撞名：回滚名字、返回 false，交给上层 saveWithNameGuard 弹改名框；存储故障仍抛异常
       if (e instanceof StorageConflictError) {
-        state.projectName.value = prevName
-        return false
+        // 撞名回滚名字；版本旧不回滚（当前名字本来就是对的，只是数据过期）
+        if (e.reason === 'exists') state.projectName.value = prevName
+        return e.reason === 'stale' ? 'stale' : 'exists'
       }
       throw e
     }
@@ -120,17 +140,22 @@ export function createProjectPersistence(ctx: {
    * 加载发布版供预览；无发布版时回落草稿（保证运行端始终有画面可看）。
    */
   async function loadPublishedProject(name: string): Promise<boolean> {
-    const raw = await getStorage().get(publishedKey(name))
-    if (!raw) {
+    const storage = getStorage()
+    const raw = storage.getWithMeta
+      ? await storage.getWithMeta(publishedKey(name))
+      : { value: await storage.get(publishedKey(name)), etag: null }
+    if (!raw.value) {
       return loadProject(name)
     }
     try {
-      const projectData = JSON.parse(raw)
+      const projectData = JSON.parse(raw.value)
       ctx.applyLoadedProject(
         projectData,
         name,
         projectData.publishedAt || projectData.timestamp || null,
       )
+      // 发布版只是预览用，本会话的 loadedEtag 应指向工作副本而非发布快照
+      state.loadedEtag.value = null
       return true
     } catch (e) {
       console.error('Failed to load published project:', e)
@@ -142,17 +167,22 @@ export function createProjectPersistence(ctx: {
    * 从存储加载项目
    */
   async function loadProject(name: string): Promise<boolean> {
-    const json = await getStorage().get(projectKey(name))
-    if (!json) {
+    const storage = getStorage()
+    const meta = storage.getWithMeta
+      ? await storage.getWithMeta(projectKey(name))
+      : { value: await storage.get(projectKey(name)), etag: null }
+    if (!meta.value) {
       console.error(`Project not found: ${name}`)
       return false
     }
 
     try {
-      const projectData = JSON.parse(json)
+      const projectData = JSON.parse(meta.value)
       ctx.applyLoadedProject(projectData, name, projectData.timestamp)
       // 打开成功即认领：之后保存允许覆盖这个工程自己的旧版本
       state.ownedProjectName.value = name
+      // 记下当前版本指纹，下次覆盖保存时回传做乐观并发
+      state.loadedEtag.value = meta.etag
       return true
     } catch (e) {
       console.error('Failed to load project:', e)

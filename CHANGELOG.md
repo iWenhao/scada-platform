@@ -10,6 +10,15 @@
 
 ### 功能
 
+- 覆盖保存加乐观并发（ETag），堵住同账号两标签后写覆盖先写
+  - 背景：上一轮加的 `ifAbsent` 原子写只挡「新建撞名」，对**本会话已认领工程**的反复保存没有版本检查——A、B 两标签同时打开同一工程，A 改完保存后 B 再保存，B 会静默盖掉 A 的改动（B 内存里还是加载时的旧数据）
+  - 改法：存储层引入版本指纹 `etag`（服务端取文件 `mtimeMs` 字符串）。`kv` 新增 `readValueWithEtag`/`writeValueIfMatch`/`statEtag`：写入前比对当前 etag 与客户端传入值，不一致抛 `EVERSION`；`/api/storage/get` 回包带 `etag`，`/api/storage/set?ifMatch=<etag>` 不匹配回 409 + `error:'stale'`（与 `mode=create` 的 409 `error:'exists'` 区分开）。写入成功后响应里回传新 etag，前端推进 `loadedEtag`
+  - 前端：`StorageAdapter` 加可选 `getWithMeta(key)`，`set` options 加 `ifMatch`，返回值从 `void` 改为 `Promise<string|null>`（新 etag，本地/内存模式恒为 null）；`LocalStorage`/`MemoryStorage` 单线程无并发，`ifMatch` 直接放行。`StorageConflictError` 加 `reason:'exists'|'stale'` 字段，区分撞名与版本过期
+  - `projectPersistence.saveProject` 返回值从 `boolean` 改为 `SaveResult=true|'exists'|'stale'`：新建仍走 `ifAbsent`，覆盖已认领工程带 `ifMatch=loadedEtag`；`loadProject`/`loadPublishedProject` 用 `getWithMeta` 记下当前 etag，保存成功后由服务端返回的新值推进；`resetProject` 清掉 `loadedEtag`
+  - `useProjectActions.saveWithNameGuard`：撞名走原有改名循环；`stale` 弹「这份工程已在另一个标签页或设备上被修改，请刷新页面重新加载最新版本后再继续编辑」，不弹改名框——版本过期时再让用户改新名只会制造第二份数据
+  - 发布（`publishProject`）与自动草稿（`saveDraft`）不带 `ifMatch`：发布是从工作副本快照、草稿键独立，且发布版文件正常只由本会话写，引入版本检查反而会误挡
+  - 动了：`server/lib/kv.mjs`、`server/routes/storage.mjs`、`src/storage/{errors,index,remote}.ts`、`src/stores/{projectPersistence,projectStore}.ts`、`src/components/layout/toolbar/useProjectActions.ts`；测试同步更新断言并补 `kv` 的 ifMatch/statEtag 用例（版本匹配写入成功、版本不匹配拒写且保留旧值、空 etag 跳过检查、目标缺失视为过期）
+  - 实测：`vue-tsc --noEmit` 0 错、`pnpm typecheck:server` 通过、`eslint` 0 告警、`check-long-files` OK；受影响测试（`storage/*`、`projectStore`、`kv`）73+21 用例全过
 - 保存撞名交给服务端一次原子创建（409），消除同名覆盖竞态
   - 背景：`projectPersistence.saveProject` 原先靠「先 get 判重、再 set 写入」拦新建/导入时用默认名「未命名项目」静默覆盖别人同名工程——这是 read-check-write，两个标签/两台设备同时新建同名会双双判到「未占用」，后写的把先写的盖掉（补记 `d7a8f03e`，该提交当时未落 CHANGELOG）
   - 改法：底层加「仅当不存在时创建」语义，判重交服务端一次原子写。`atomicWrite` 支持 `ifAbsent`（同路径串行槽内、rename 前 `fs.access`，命中抛 `EEXIST`），`kv` 导出 `writeValueIfAbsent`，`/api/storage/set?mode=create` 撞已存在回 409；新增 `StorageConflictError`（独立 `errors.ts`，避开 index↔remote 值循环依赖），`RemoteStorageAdapter`/`LocalStorage`/`Memory` 的 `set` 加可选 `ifAbsent`；`saveProject` 对本会话未认领的名字带 `ifAbsent` 写，撞名回滚工程名并返回 `false` 交上层弹改名框

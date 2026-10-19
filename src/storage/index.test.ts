@@ -73,7 +73,7 @@ describe('set(ifAbsent) 创建模式：目标已存在时抛冲突、不覆盖',
   it('MemoryStorageAdapter：不存在则写入，存在则冲突', async () => {
     const storage = new MemoryStorageAdapter()
 
-    await expect(storage.set('k', 'new', { ifAbsent: true })).resolves.toBeUndefined()
+    await expect(storage.set('k', 'new', { ifAbsent: true })).resolves.toBeNull()
     expect(await storage.get('k')).toBe('new')
 
     await expect(storage.set('k', 'dup', { ifAbsent: true })).rejects.toBeInstanceOf(

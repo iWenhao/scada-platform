@@ -65,13 +65,31 @@ export function useProjectActions() {
   }
 
   /**
-   * 带撞名保护的保存：目标工程名已被别人占用时 saveProject 返回 false，
+   * 带撞名保护的保存：目标工程名已被别人占用时 saveProject 返回 'exists'，
    * 此时弹框请用户改名，改名后重试；用户取消则中止，绝不静默覆盖别人的工程。
    * 保存 / 保存并返回 / 预览前自动保存 / 发布前保存四个入口共用。
+   *
+   * 'stale'（乐观并发失败）表示这份工程在别处被改过：不弹改名框，直接提示刷新后再继续，
+   * 避免用户改了半天的内容被后写覆盖提醒后还被迫选新名字。
    */
   async function saveWithNameGuard(): Promise<boolean> {
-    if (await projectStore.saveProject()) return true
+    const result = await projectStore.saveProject()
+    if (result === true) return true
 
+    if (result === 'stale') {
+      try {
+        await ElMessageBox.alert(
+          '这份工程已在另一个标签页或设备上被修改。请刷新页面重新加载最新版本后再继续编辑，避免覆盖对方的改动。',
+          '工程版本已过期',
+          { type: 'warning', confirmButtonText: '知道了' },
+        )
+      } catch {
+        // 用户关掉弹窗也算中止保存
+      }
+      return false
+    }
+
+    // result === 'exists'：撞名，弹改名框循环重试
     for (;;) {
       let newName: string | null = null
       try {
@@ -89,8 +107,14 @@ export function useProjectActions() {
       } catch {
         return false
       }
-      // saveProject 内部会再查重：新名字仍然撞名则带着它循环再问
-      if (newName && (await projectStore.saveProject(newName))) return true
+      // saveProject 内部会再查重：新名字仍然撞名则带着它循环再问；
+      // 若新名字仍 stale（极端情况：改名过程中别处又写了原工程），按 stale 处理
+      const r = newName ? await projectStore.saveProject(newName) : 'exists'
+      if (r === true) return true
+      if (r === 'stale') {
+        ElMessage.warning('工程版本已过期，请刷新页面后再继续')
+        return false
+      }
     }
   }
 

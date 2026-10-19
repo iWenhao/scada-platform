@@ -81,6 +81,22 @@ export async function readValue(dataDir, key, scope) {
   }
 }
 
+/**
+ * 读值并附带版本指纹（etag）。etag 取文件 mtimeMs 的字符串：
+ * 内容相同则文件相同、写入会刷新 mtime，两标签同时读到同一版本时 etag 相同，
+ * 其中一个写完后另一个再写就会拿到不同的 etag——正好做乐观并发的比对依据。
+ * 文件不存在时返回 `{ value: null, etag: null }`。
+ */
+export async function readValueWithEtag(dataDir, key, scope) {
+  const p = fileFor(dataDir, key, scope)
+  try {
+    const [value, stat] = await Promise.all([fs.readFile(p, 'utf8'), fs.stat(p)])
+    return { value, etag: String(stat.mtimeMs) }
+  } catch {
+    return { value: null, etag: null }
+  }
+}
+
 export async function writeValue(dataDir, key, scope, value) {
   await writeFileAtomic(fileFor(dataDir, key, scope), value, 'utf8')
 }
@@ -96,8 +112,56 @@ export async function writeValueIfAbsent(dataDir, key, scope, value) {
   await writeFileAtomic(fileFor(dataDir, key, scope), value, 'utf8', { ifAbsent: true })
 }
 
+/**
+ * 带乐观并发版本检查的写入：仅当当前文件的 etag（mtimeMs）与传入 expectedEtag 一致时才写。
+ * 不一致说明这份工程在别处被改过，抛 `code='EVERSION'` 错误，由路由层映射为 409 + reason='stale'。
+ * expectedEtag 为 null/空串时跳过检查（等同普通 writeValue，向后兼容发布/草稿等不需版本检查的路径）。
+ * 目标不存在而 expectedEtag 非空：也视为版本不匹配（客户端以为存在，实际已被删），同样抛 EVERSION。
+ */
+export async function writeValueIfMatch(dataDir, key, scope, value, expectedEtag) {
+  if (!expectedEtag) {
+    await writeFileAtomic(fileFor(dataDir, key, scope), value, 'utf8')
+    return
+  }
+  const p = fileFor(dataDir, key, scope)
+  let currentEtag
+  try {
+    const stat = await fs.stat(p)
+    currentEtag = String(stat.mtimeMs)
+  } catch (e) {
+    if (e?.code === 'ENOENT') {
+      /** @type {Error & { code?: string }} */
+      const err = new Error('version mismatch: target missing')
+      err.code = 'EVERSION'
+      throw err
+    }
+    throw e
+  }
+  if (currentEtag !== String(expectedEtag)) {
+    /** @type {Error & { code?: string }} */
+    const err = new Error(`version mismatch: expected ${expectedEtag}, current ${currentEtag}`)
+    err.code = 'EVERSION'
+    throw err
+  }
+  await writeFileAtomic(p, value, 'utf8')
+}
+
 export async function removeValue(dataDir, key, scope) {
   // 自动草稿每 30 秒重写一次，正式保存后紧接着删最容易撞上 Windows 的句柄未释放（EPERM/EBUSY）；
   // force 只吞 ENOENT，不重试就是一条 500 打到前端
   await withTransientRetry(() => fs.rm(fileFor(dataDir, key, scope), { force: true }))
+}
+
+/**
+ * 取当前文件的 etag（mtimeMs 字符串）。写入成功后调用，把新版本号回给前端，
+ * 让前端 loadedEtag 推进到最新版本，下次保存仍能通过乐观并发检查。
+ * 文件刚被并发删掉时返回 null。
+ */
+export async function statEtag(dataDir, key, scope) {
+  try {
+    const stat = await fs.stat(fileFor(dataDir, key, scope))
+    return String(stat.mtimeMs)
+  } catch {
+    return null
+  }
 }
