@@ -14,12 +14,14 @@
   - 背景：服务的写入串行化是**进程内**的（`atomicWrite` 的同路径队列是一张 `Map`），账号表与会话表在 `auth.init()` 读进内存、之后整份回写。两个实例共用一个数据目录时不会报错，只会 A 的会话 B 不认、两份内存账号表互相覆盖 `_users.json`、`access`+`rename` 之间出现注释里承认过的竞态窗口——症状是"偶尔丢一次保存"，最难查的那种
   - 拦在启动而不是拦在写入：换端口绕不开（两实例可各绑一个端口指向同一目录），所以按数据目录抢锁
   - 判活用两条正向证据：心跳 `updatedAt`（15 秒续期 / 60 秒判陈旧，跨主机共享卷时唯一可用的信号）+ 同机 pid 存活（`process.kill(pid,0)`，EPERM 按存活、ESRCH 按已退出）。pid 已退出即**立刻**接管，避免崩溃残留的锁把重启挡在陈旧窗口外；pid 活着但心跳超期同样接管，避免机器长期运行后 pid 被复用造成"安全检查自己制造起不来的故障"
+  - `createdAt` 只记抢锁那一刻、`updatedAt` 记最近一次续期，两个数必须分开：初版让心跳复用同一条记录，结果两值永远相等，日志里的「启动于 N 秒前」实际是「上次续期 N 秒前」——在真实实例的锁文件里发现（`updatedAt - createdAt = 30043ms` 却两值相同），单测当时没覆盖续期路径，已补一例
   - 边界：这是启动门禁，不是 fencing token。持锁进程被挂起超过 60 秒后锁可能被接管，旧进程发现 `owner` 变了便停止续期并报错，不熔断写入——文件系统层给不出真隔离。确实要多实例并发请换数据库
   - 退出路径统一走 `shutdown()`：正常退出、SIGINT/SIGTERM、以及"抢到锁但端口被占"都放锁。不放锁的代价是下次启动要等判陈旧，restart 策略会连续失败
   - ⚠️ 返回对象两种结果同构（都带 `holder` 与可调用 `release`），不用 `{acquired:true}|{acquired:false}` 判别式：`tsconfig.server.json` 刻意不开 strict，而没有 `strictNullChecks` 时 TS 不按布尔字面量收窄联合类型，调用方读 `reason`/`release` 会报 TS2339
   - 顺带补 `package.json` 的 `engines.node`（此前缺失，README 承诺的 Node ≥ 18 没有任何声明；注意只是声明，pnpm 默认不强制）
   - 动了：`server/lib/singleInstanceLock.mjs`（新）、`server/lib/singleInstanceLock.test.ts`（新）、`server/index.mjs`、`package.json`、`docker-compose.yml`（注释副本约束）、`README.md`、`docs/DEPLOY.md`（新增 §5.6 与 Q7）
-  - 实测：单测 18 例全过（含同进程并发抢锁只有一个赢家、死 pid 接管、跨主机心跳两种判定、被接管后不误删他人锁），`npx vitest run server` = 10 files / 124 tests；`pnpm typecheck:server` 与 `vue-tsc --noEmit` 干净。真起进程（独立端口 5185~5187 + 独立临时数据目录，跑完已清理，未触碰 5173/5174）：同目录第二个实例退出码 1 且日志给出持锁方 pid/主机/锁龄；不同目录第二个正常起（证明锁按目录而非全局）；硬杀持锁实例后重启 **238ms** 即可服务（走死 pid 快路径，未等 60 秒陈旧窗口）；端口被占而退出的实例锁文件无残留
+  - 实测：单测 19 例全过（含同进程并发抢锁只有一个赢家、死 pid 接管、跨主机心跳两种判定、被接管后不误删他人锁、心跳只刷 `updatedAt`），`npx vitest run server` = 10 files / 125 tests；`pnpm typecheck:server` 与 `vue-tsc --noEmit` 干净。真起进程（独立端口 5185~5187 + 独立临时数据目录，跑完已清理）：同目录第二个实例退出码 1 且日志给出持锁方 pid/主机/锁龄；不同目录第二个正常起（证明锁按目录而非全局）；硬杀持锁实例后重启 **238ms** 即可服务（走死 pid 快路径，未等 60 秒陈旧窗口）；端口被占而退出的实例锁文件无残留
+  - 在 5174 的真实实例上复跑（默认 `server/data`，重启前核对旧进程是 `node server/index.mjs` 无自定义环境变量，用同一命令原样起）：`/api/health` 200、`.lock` 的 pid 与监听方一致、再起第二个实例被挡下且锁文件未被改动、`_sessions.json` 2 条会话照常恢复。`.lock` 落在已忽略的 `server/data/` 下，不会被提交
 
 - 自定义组件支持「无状态 / 有状态」，有状态组件可自定义状态表（颜色 + 判定条件 + 报警等级 + 动效）
   - 背景：创建对话框原本只有名称/形状/宽高/颜色，`statusRules` 恒为空数组——用户自建的组件永远不变色，也永远进不了报警面板

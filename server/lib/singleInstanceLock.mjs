@@ -110,13 +110,17 @@ export async function acquireInstanceLock(dataDir, opts = {}) {
   const file = lockFilePath(dataDir)
   /** 本次进程的唯一标识：release 与接管判断都靠它分辨「这锁还是不是我那把」 */
   const owner = randomUUID()
+  /** 抢锁成功那一刻，整个持锁期不变 */
+  const startedAt = now()
   await fs.mkdir(dataDir, { recursive: true })
 
   const record = (t) => ({
     owner,
     pid: process.pid,
     hostname: os.hostname(),
-    createdAt: t,
+    // createdAt 只在创建时定一次：日志里要区分「这个实例起了多久」与「它多久没续期了」，
+    // 两者混成一个数就看不出差别了（心跳曾经直接复用 record，导致启动时间跟着续期一起跳）
+    createdAt: startedAt,
     updatedAt: t,
   })
 

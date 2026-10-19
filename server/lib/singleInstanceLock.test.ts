@@ -143,6 +143,20 @@ describe('acquireInstanceLock', () => {
     const winner = a.acquired ? a : b
     await winner.release()
   })
+
+  it('心跳只刷 updatedAt，createdAt 保持抢锁那一刻', async () => {
+    // 真实实例上抓到的：续期若连 createdAt 一起写，日志里「启动于 N 秒前」其实是
+    // 「上次续期 N 秒前」，两个数永远相等，就再也看不出实例起了多久、多久没续期
+    const at = nextDir()
+    let tick = 1_000
+    const lock = await acquireInstanceLock(at, { now: () => ++tick, intervalMs: 20 })
+    const first = JSON.parse(await readFile(lockFilePath(at), 'utf8'))
+    await new Promise((r) => setTimeout(r, 150))
+    const after = JSON.parse(await readFile(lockFilePath(at), 'utf8'))
+    expect(after.createdAt).toBe(first.createdAt)
+    expect(after.updatedAt).toBeGreaterThan(first.updatedAt)
+    await lock.release()
+  })
 })
 
 describe('release', () => {
