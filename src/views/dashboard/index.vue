@@ -21,7 +21,7 @@
 
       <div class="stats-row">
         <div class="stat-card">
-          <div class="stat-label">工程项目</div>
+          <div class="stat-label">项目总数</div>
           <div class="stat-value">{{ total }}<span class="stat-unit">个</span></div>
         </div>
         <div class="stat-card">
@@ -120,7 +120,7 @@
 
       <!-- 底部说明固定在滚动区之外：只让中间卡片列表滚，提示常驻页底 -->
       <div class="footer-hint">
-        <p>提示：发布后的工程才会出现在预览 / 运行端；草稿改动不影响值班画面。</p>
+        <p>提示：发布后的项目才会出现在预览 / 运行端；草稿改动不影响值班画面。</p>
       </div>
     </div>
 
@@ -197,7 +197,7 @@ const heroSummary = computed(() => {
   const pub = publishedTotal.value
   const parts: string[] = []
   parts.push(alarms ? `今天有 ${alarms} 条未确认报警` : '暂无未确认报警')
-  if (pub) parts.push(`${pub} 个工程已发布`)
+  if (pub) parts.push(`${pub} 个项目已发布`)
   return parts.join(' · ')
 })
 
@@ -261,7 +261,7 @@ async function publishProject(name: string) {
   try {
     await ElMessageBox.confirm(
       `将「${name}」当前内容发布为运行版？预览将显示发布版。`,
-      '发布工程',
+      '发布项目',
       { type: 'warning', confirmButtonText: '发布', cancelButtonText: '取消' },
     )
   } catch {
@@ -326,7 +326,7 @@ function importProject() {
 function importDemo() {
   try {
     if (projectStore.importProject(demoProjectJson)) {
-      ElMessage.success('示例工程已导入')
+      ElMessage.success('示例项目已导入')
       router.push('/editor')
     } else {
       ElMessage.error('示例导入失败')

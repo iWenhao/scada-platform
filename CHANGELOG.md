@@ -59,6 +59,11 @@
 
 ### 优化
 
+- 首页残留「工程」口径统一为「项目」，并补做此前积压的浏览器肉眼核对
+  - 背景：上一轮把空态区的「新建工程 / 组态工程」改成「新建项目 / 组态项目」时，CHANGELOG 自己留了 5 处漏网：统计卡标签「工程项目」、hero 摘要「N 个工程已发布」、底部提示「发布后的工程」、发布确认弹窗标题「发布工程」、导入示例 toast「示例工程已导入」。同一块空态里按钮写「新建项目」而统计卡写「工程项目」是自相矛盾
+  - 改法：`src/views/dashboard/index.vue` 五处用户可见文案逐个对齐——统计卡标签「工程项目」→「项目总数」、hero 摘要「个工程已发布」→「个项目已发布」、底部提示「发布后的工程」→「发布后的项目」、弹窗标题「发布工程」→「发布项目」、toast「示例工程已导入」→「示例项目已导入」。代码注释里的「工程」不改（那是内部术语，不是用户文案）
+  - 顺带：工作区挂着一份 `components.d.ts` 的 -29 行未提交漂移（unplugin 某次扫描漏了 `el-button-group / el-color-picker / el-divider / el-empty / el-slider` 的全局类型声明，但这 5 个组件在 `Toolbar.vue` / `CanvasConfigDialog.vue` / `ElementGeometry.vue` / `HiddenComponentsDialog.vue` 等文件里实际都在用）——判断为脏漂移，直接 `git checkout -- components.d.ts` 还原到 HEAD，不提交
+  - 实测（临时实例，5174 后端 + 5180 dev server + 独立 `DATA_DIR` + 固定 `SEED_PASSWORD=test123`，未动 5173/5174 主实例与 `server/data/`）：登录后首页两档主题下——①搜索框 focus/无命中/计数文案正常，窄窗收松逻辑未在本次实拉窗口宽度复现（matchMedia 分支有既有测试覆盖）；②「预览」按钮新开标签、HUD 右上角无「编辑器」按钮（符合新标签无编辑现场的预期）；③项目卡片操作栏亮色下主按钮为品牌青而非 EP 默认蓝、次级按钮透明底细边框；④「⋯」菜单里「删除」悬停淡红底+红字。`vue-tsc --noEmit` 0 错、改动文件 eslint 0 告警、`check-long-files.mjs` OK
 - 首页「最近项目」改为服务端分页索引 + 缩略图懒加载，消除每工程 3 次全量 GET
   - 背景：`loadRecentProjects` 原先对每个工程并发发 3 次 `getStorage().get()`（工作副本、发布快照、缩略图各一次），且**每次都拉回整份 JSON**——读一个时间戳和画面数却把全部配置传一遍。N 个工程 = 3N 个网络往返，远程存储下一多项目首页就整屏转圈；`Promise.all` 一次性全并发还会把浏览器同域连接池（HTTP/1.1 约 6 条）排队打满。缩略图是 canvas `toDataURL` 的 base64，单张可达几百 KB，是最贵的一块
   - 改法：新增服务端分页索引接口 `GET /api/storage/projects?limit=&offset=&keyword=`（`server/lib/projectIndex.mjs` + `server/routes/projects.mjs`），读遍全部工作副本放在服务端（磁盘读、本地、几乎零成本），网络上每页只回 `{ name, timestamp, pageCount, publishedAt, hasThumbnail }` 的紧凑摘要 + `{ total, publishedTotal, matchedTotal }` 全量统计，按修改时间倒序；`limit` 夹到 [1,100]（缺省 12），`keyword` 走与旧客户端过滤同口径的名称大小写不敏感子串匹配。前端 `StorageAdapter` 加**可选** `projectIndex(query)` 能力（仅 `RemoteStorageAdapter` 实现），`projectStorage.getProjectPage()` 优先走它、本地/内存模式与索引偶发失败时回落到 `keys()+get()` 逐条读后本地同口径筛选切片。首页把分页/搜索/统计/缩略图逻辑抽进 `useProjectPaging.ts`（也让 `index.vue` 从 478 行压回 400 行内），`ProjectCard` 用 `IntersectionObserver` 滚入视口才 emit `load-thumb` 按需取一张 base64
