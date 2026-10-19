@@ -14,19 +14,21 @@
           v-if="pageStore.pages.length > 1 || page.id === pageStore.activePageId"
           trigger="click"
           @command="(cmd: string) => handleCommand(cmd, page)"
+          @visible-change="(open: boolean) => handleMenuVisible(page.id, open)"
           @click.stop
         >
-          <el-icon class="tab-more" @click.stop><ArrowDown /></el-icon>
+          <el-icon class="tab-more" :class="{ 'is-open': openMenuPageId === page.id }" @click.stop><ArrowDown /></el-icon>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item command="rename">重命名</el-dropdown-item>
               <el-dropdown-item command="duplicate">复制画面</el-dropdown-item>
+              <!-- 危险项的红色样式是全局规则（src/styles/index.scss），钩子 class 只能写在内层 span 上 -->
               <el-dropdown-item
                 command="delete"
                 :disabled="pageStore.pages.length <= 1"
                 divided
               >
-                删除画面
+                <span class="menu-danger-label">删除画面</span>
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -75,6 +77,14 @@ onMounted(() => {
 const renameVisible = ref(false)
 const renameValue = ref('')
 const renamingId = ref('')
+// 记录哪张画面的下拉菜单是展开态，用于让小箭头跟着翻转
+const openMenuPageId = ref('')
+
+function handleMenuVisible(id: string, open: boolean) {
+  // 关闭事件可能晚于另一张画面的打开事件到达，无条件清空会把新展开的那个也翻回去
+  if (open) openMenuPageId.value = id
+  else if (openMenuPageId.value === id) openMenuPageId.value = ''
+}
 
 function markDirty() {
   projectStore.markDirty()
@@ -206,9 +216,15 @@ async function handleCommand(cmd: string, page: ScadaPage) {
   opacity: 0.5;
   font-size: 12px;
   padding: 2px;
+  transition: opacity .18s ease, transform .18s ease;
 
   &:hover {
     opacity: 1;
+  }
+
+  &.is-open {
+    opacity: 1;
+    transform: rotate(180deg);
   }
 }
 

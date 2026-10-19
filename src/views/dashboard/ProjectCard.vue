@@ -57,8 +57,9 @@
               <el-dropdown-item command="alarm">报警</el-dropdown-item>
               <el-dropdown-item command="tags">点表</el-dropdown-item>
               <el-dropdown-item command="rename" divided>重命名</el-dropdown-item>
-              <!-- class 写不进 el-dropdown-item 的 li（EP 不透传 attrs），所以用内层 span 做钩子 -->
-              <el-dropdown-item command="delete"><span class="card-menu-danger-label">删除</span></el-dropdown-item>
+              <!-- class 写不进 el-dropdown-item 的 li（EP 不透传 attrs），所以用内层 span 做钩子；
+                   .menu-danger-label 的危险样式是全局规则，见 src/styles/index.scss -->
+              <el-dropdown-item command="delete"><span class="menu-danger-label">删除</span></el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
