@@ -12,7 +12,7 @@
 //   GET    /api/auth/me
 //   GET/POST/PATCH/DELETE /api/auth/users
 //   GET    /api/keys | /api/storage/keys
-//   GET    /api/storage/projects        工程列表摘要（首页「最近项目」，一次返回避免 N×get 拉全量 JSON）
+//   GET    /api/storage/projects        工程列表分页摘要（?limit=&offset=&keyword=，含 total/publishedTotal/matchedTotal）
 //   GET    /api/storage/get?key=
 //   PUT    /api/storage/set?key=    (engineer+; 带 ?mode=create 时键已存在返回 409，不覆盖)
 //   DELETE /api/storage/remove?key= (engineer+)

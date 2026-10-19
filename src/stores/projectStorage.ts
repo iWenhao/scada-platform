@@ -3,7 +3,7 @@
  * 从 projectStore 拆出：store 只负责状态与组装，存储键的命名/迁移/清理集中在这里，
  * 便于独立单测而不必挂起整个 store。
  */
-import { getStorage, type ProjectSummary } from '@/storage'
+import { getStorage, type ProjectQuery, type ProjectSummary, type ProjectIndexPage } from '@/storage'
 import { thumbKey } from '@/core/canvas/thumbnail'
 import { publishedKey as pubKey, parsePublishedAt } from './projectPublish'
 
@@ -52,20 +52,26 @@ export async function listSavedProjects(): Promise<string[]> {
 }
 
 /**
- * 工程列表摘要：首页「最近项目」的数据源。
- * 远程存储走一次性索引接口（1 个请求）；本地/内存模式没有该能力，回落到 keys()+get() 逐条拼装——
- * 那种模式下 get 是同步内存读，不存在网络放大，逐条也无妨。索引接口偶发失败也走回落，保证列表能出。
+ * 工程列表分页摘要：首页「最近项目」的数据源。
+ * 远程存储走分页/搜索/统计都在服务端算好的索引接口（1 个请求/页）；本地/内存模式没有该能力，
+ * 回落到 keys()+get() 逐条拼出全量后本地做同样的筛选/排序/切片——那种模式下 get 是同步内存读，
+ * 不存在网络放大。索引接口偶发失败也走回落，保证列表能出。
  */
-export async function getProjectSummaries(): Promise<ProjectSummary[]> {
+export async function getProjectPage(query: ProjectQuery = {}): Promise<ProjectIndexPage> {
   const storage = getStorage()
   if (storage.projectIndex) {
     try {
-      return await storage.projectIndex()
+      return await storage.projectIndex(query)
     } catch {
       // 落到下方逐条读，宁可慢也不给首页一条空列表
     }
   }
+  return applyProjectQuery(await buildLocalIndex(), query)
+}
 
+/** 本地/内存模式：keys()+get() 逐条拼出全量摘要，按时间倒序（口径与 server buildProjectIndex 一致） */
+async function buildLocalIndex(): Promise<ProjectSummary[]> {
+  const storage = getStorage()
   const keys = await storage.keys()
   const keySet = new Set(keys)
   const names = keys
@@ -91,6 +97,22 @@ export async function getProjectSummaries(): Promise<ProjectSummary[]> {
 
   rows.sort((a, b) => b.timestamp - a.timestamp)
   return rows
+}
+
+/** 对全量摘要套用关键词/分页并计算 total/publishedTotal/matchedTotal（与 server queryProjectIndex 同口径） */
+function applyProjectQuery(all: ProjectSummary[], query: ProjectQuery): ProjectIndexPage {
+  const kw = (query.keyword || '').trim()
+  const total = all.length
+  const publishedTotal = all.reduce((n, r) => (r.publishedAt ? n + 1 : n), 0)
+  const matched = kw ? all.filter(r => r.name.toLowerCase().includes(kw.toLowerCase())) : all
+  const limit = query.limit && query.limit > 0 ? query.limit : 12
+  const start = query.offset && query.offset > 0 ? Math.floor(query.offset) : 0
+  return {
+    projects: matched.slice(start, start + limit),
+    total,
+    publishedTotal,
+    matchedTotal: matched.length,
+  }
 }
 
 /** 删除工程的工作副本、发布快照与草稿 */

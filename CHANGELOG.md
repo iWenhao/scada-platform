@@ -59,13 +59,14 @@
 
 ### 优化
 
-- 首页「最近项目」从每工程 3 次全量 GET 收敛为一次索引请求 + 缩略图懒加载
-  - 背景：`loadRecentProjects` 对每个工程并发发 3 次 `getStorage().get()`（工作副本、发布快照、缩略图各一次），且**每次都拉回整份 JSON**——读一个时间戳和画面数却把全部配置传一遍。N 个工程 = 3N 个网络往返，远程存储下一多项目首页就整屏转圈；`Promise.all` 一次性全并发还会把浏览器同域连接池（HTTP/1.1 约 6 条）排队打满。缩略图是 canvas `toDataURL` 的 base64，单张可达几百 KB，是最贵的一块
-  - 改法：新增服务端索引接口 `GET /api/storage/projects`（`server/lib/projectIndex.mjs` + `server/routes/projects.mjs`），读盘解析放服务端（本地、几乎零成本），网络上只回 `{ name, timestamp, pageCount, publishedAt, hasThumbnail }` 紧凑摘要，按修改时间倒序。前端 `StorageAdapter` 加**可选** `projectIndex()` 能力（仅 `RemoteStorageAdapter` 实现），`projectStorage.getProjectSummaries()` 优先走它、本地/内存模式与索引偶发失败时回落到原有 `keys()+get()` 逐条读（那种模式下 get 是同步内存读，无网络放大）。缩略图不进列表请求，改由 `ProjectCard` 用 `IntersectionObserver`（提前 200px）滚入视口才 emit `load-thumb`、父组件按名字取一张
-  - 判过的一条边界：**不做服务端截断成「最近 N」**——这个列表同时承担重命名/删除/发布/搜索的完整管理职责，客户端搜索是对全量过滤的，砍掉旧项目会让它们从管理界面消失。真正的收益是「不传全量 JSON」而不是「少几项」
-  - 没走 `<img src>` 直供图：缩略图接口在 Bearer 鉴权之后，`<img>` 带不上 Authorization 头，改成图片 URL 会牵动鉴权模型，得不偿失；懒加载已把「一屏只取可见几张」的收益拿到
-  - 动了：新增 `server/lib/projectIndex.mjs`、`server/routes/projects.mjs`，`server/index.mjs` 接线与头部接口清单；`src/storage/{index,remote}.ts`、`src/stores/{projectStorage,projectStore}.ts`、`src/views/dashboard/{index.vue,ProjectCard.vue,types.ts}`
-  - 实测：`projectIndex` / `remote` / `projectStorage` / `index` 相关 4 文件 30 用例通过；`tsc -p tsconfig.server.json`、`vue-tsc --noEmit`、超长文件检查全绿；备用端口 5178 + 系统临时数据目录真起后端灌 5 个键，`GET /api/storage/projects` 返回「乙(ts 900,published 950) → 甲(ts 100,2 画面,hasThumb)」倒序正确、草稿键不入列、无鉴权回 401；改动的前端文件 ESLint 0 error
+- 首页「最近项目」改为服务端分页索引 + 缩略图懒加载，消除每工程 3 次全量 GET
+  - 背景：`loadRecentProjects` 原先对每个工程并发发 3 次 `getStorage().get()`（工作副本、发布快照、缩略图各一次），且**每次都拉回整份 JSON**——读一个时间戳和画面数却把全部配置传一遍。N 个工程 = 3N 个网络往返，远程存储下一多项目首页就整屏转圈；`Promise.all` 一次性全并发还会把浏览器同域连接池（HTTP/1.1 约 6 条）排队打满。缩略图是 canvas `toDataURL` 的 base64，单张可达几百 KB，是最贵的一块
+  - 改法：新增服务端分页索引接口 `GET /api/storage/projects?limit=&offset=&keyword=`（`server/lib/projectIndex.mjs` + `server/routes/projects.mjs`），读遍全部工作副本放在服务端（磁盘读、本地、几乎零成本），网络上每页只回 `{ name, timestamp, pageCount, publishedAt, hasThumbnail }` 的紧凑摘要 + `{ total, publishedTotal, matchedTotal }` 全量统计，按修改时间倒序；`limit` 夹到 [1,100]（缺省 12），`keyword` 走与旧客户端过滤同口径的名称大小写不敏感子串匹配。前端 `StorageAdapter` 加**可选** `projectIndex(query)` 能力（仅 `RemoteStorageAdapter` 实现），`projectStorage.getProjectPage()` 优先走它、本地/内存模式与索引偶发失败时回落到 `keys()+get()` 逐条读后本地同口径筛选切片。首页把分页/搜索/统计/缩略图逻辑抽进 `useProjectPaging.ts`（也让 `index.vue` 从 478 行压回 400 行内），`ProjectCard` 用 `IntersectionObserver` 滚入视口才 emit `load-thumb` 按需取一张 base64
+  - 分页后为什么统计仍准：`total` / `publishedTotal` 由服务端**全量**算、与关键词无关（"我一共有多少工程 / 几个已发布"），`matchedTotal` 是当前关键词下的命中总数（供"匹配 N / M"与 `hasMore` 判断）——前端只持有一页也能报出正确数字
+  - 决策更新：首版（`0b1a7995`）当时选了"不做服务端截断、一次返回全部摘要 + 客户端搜索"，理由是"列表也承担全量管理，砍旧项目会从管理界面消失"。本次按需求改为服务端分页 + 触底自动续拉后，那条理由靠"搜索与统计搬到服务端"重新满足：关键词命中的项目即使不在已加载页里也会被服务端查出来，管理/统计不受分页影响
+  - 没走 `<img src>` 直供图：缩略图接口在 Bearer 鉴权之后，`<img>` 带不上 Authorization 头，改成图片 URL 会牵动鉴权模型，得不偿失；懒加载已把"一屏只取可见几张"的收益拿到
+  - 动了：新增 `server/lib/projectIndex.mjs`、`server/routes/projects.mjs`（本次加分页），`src/views/dashboard/useProjectPaging.ts`；`server/index.mjs` 接口清单、`src/storage/{index,remote}.ts`、`src/stores/{projectStorage,projectStore}.ts`、`src/views/dashboard/{index.vue,ProjectCard.vue,types.ts,dashboard.scss}`
+  - 实测：`projectIndex`(11，含分页/越界/limit 夹取) + `remote`(8，含 query 拼接) + `projectStorage`(11，含本地切片/回落) + `index.test`(8) = 38 用例通过；`tsc -p tsconfig.server.json`、`vue-tsc --noEmit`、超长文件检查全绿；备用端口 5179 + 系统临时数据目录灌 15 个工程（2 发布、1 带图）真起后端，`?limit=12`→12 条 proj15..proj4、`offset=12`→3 条 proj3..proj1、`keyword=proj1`→命中 7 条且 `total=15/publishedTotal=2` 不变、`offset` 越界回空页 `matchedTotal=7`、`limit=1000` 夹到 ≤100 仍返回 15 条
 - 预览页「上一画面」改名并挂上说明气泡
   - 背景：这个按钮在没有任何画面跳转记录时是灰的，用户看不出它是干什么的、也看不出为什么点不动，连问两次「用来干啥」。名字本身也有歧义——「上一画面」像是"上一张画面标签"，实际是浏览器后退那种**回退到刚才看的那张**
   - 改法：标签改「返回上一画面」（与属性面板里 `navigateTo=__back__` 那个选项同一口径）；灰掉时气泡说明「还没有画面跳转记录」，可用时说明「回到刚才看的那张画面」。措辞按实际压栈口径写：切画面就压栈，点标签、组件跳转、自动轮播都算

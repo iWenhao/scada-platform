@@ -18,7 +18,7 @@ export { resolveLocalNamespace, namespaceForUser, ANONYMOUS_NAMESPACE } from './
 export { StorageConflictError } from './errors'
 
 /**
- * 工程列表摘要：远程索引接口一次性返回，替代「每个工程逐条 get 整份 JSON」。
+ * 工程列表摘要：远程索引接口返回，替代「每个工程逐条 get 整份 JSON」。
  * 字段口径与 server/lib/projectIndex.mjs 对齐。
  */
 export interface ProjectSummary {
@@ -27,6 +27,24 @@ export interface ProjectSummary {
   pageCount: number
   publishedAt: number | null
   hasThumbnail: boolean
+}
+
+/** 分页/搜索查询参数（缺省即「第一页、无关键词、默认条数」） */
+export interface ProjectQuery {
+  keyword?: string
+  limit?: number
+  offset?: number
+}
+
+/**
+ * 一页工程摘要 + 全量准确统计：total / publishedTotal 不随关键词变（"我一共有多少"），
+ * matchedTotal 是当前关键词下的命中总数（用于"匹配 N / M"与判断是否还有下一页）。
+ */
+export interface ProjectIndexPage {
+  projects: ProjectSummary[]
+  total: number
+  publishedTotal: number
+  matchedTotal: number
 }
 
 export interface StorageAdapter {
@@ -40,11 +58,11 @@ export interface StorageAdapter {
   /** 枚举当前存储的全部键 */
   keys(): Promise<string[]>
   /**
-   * 可选能力：一次性返回工程列表摘要（仅远程存储实现）。
-   * 缺省时上层 projectStorage.getProjectSummaries 回落到 keys()+get() 逐条拼装——
+   * 可选能力：返回一页工程摘要（含分页/搜索/统计，仅远程存储实现）。
+   * 缺省时上层 projectStorage.getProjectPage 回落到 keys()+get() 逐条拼装后本地筛选切片——
    * 本地/内存模式下 get 是同步内存读，回落路径没有网络放大问题。
    */
-  projectIndex?(): Promise<ProjectSummary[]>
+  projectIndex?(query?: ProjectQuery): Promise<ProjectIndexPage>
 }
 
 /** 本地迁移完成标志（键名刻意不以 scada_ 开头，避免被误判为待迁移数据） */

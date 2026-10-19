@@ -65,3 +65,48 @@ export async function buildProjectIndex(dataDir, scope) {
   rows.sort((a, b) => b.timestamp - a.timestamp)
   return rows
 }
+
+/** 首页每页条数默认值与上限（上限挡住客户端传超大 limit 变相拉全量） */
+export const DEFAULT_PROJECT_PAGE_SIZE = 12
+export const MAX_PROJECT_PAGE_SIZE = 100
+
+/** 把客户端传来的 limit 夹到 [1, MAX]；非法/缺省回落默认值 */
+export function clampProjectLimit(raw) {
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_PROJECT_PAGE_SIZE
+  return Math.min(Math.floor(n), MAX_PROJECT_PAGE_SIZE)
+}
+
+/** 关键词匹配：大小写不敏感的子串命中项目名（与前端原客户端过滤同口径，改名搬到服务端后行为不变） */
+function matchesKeyword(name, kw) {
+  return name.toLowerCase().includes(kw.toLowerCase())
+}
+
+/**
+ * 分页 + 搜索查询：一次返回某一页的工程摘要，以及**全量准确**的统计口径。
+ *
+ * 服务端仍要读遍全部工作副本才能算出总数、发布数并按时间排序（磁盘读、本地、几乎零成本），
+ * 但网络上只下发当前页；total / publishedTotal / matchedTotal 让前端的统计卡与
+ * 「匹配 N / M」在有/无关键词时都精确，不受分页影响。
+ *
+ * @param {string} dataDir
+ * @param {string} scope
+ * @param {{ keyword?: string, limit?: number, offset?: number }} [opts]
+ * @returns {Promise<{ projects: Array, total: number, publishedTotal: number, matchedTotal: number }>}
+ */
+export async function queryProjectIndex(dataDir, scope, opts = {}) {
+  const { keyword = '', limit = DEFAULT_PROJECT_PAGE_SIZE, offset = 0 } = opts
+  const all = await buildProjectIndex(dataDir, scope)
+  const kw = String(keyword).trim()
+  // 统计始终基于全量（total/publishedTotal 不随关键词变，是「我一共有多少」）
+  const total = all.length
+  const publishedTotal = all.reduce((n, r) => (r.publishedAt ? n + 1 : n), 0)
+  const matched = kw ? all.filter(r => matchesKeyword(r.name, kw)) : all
+  const start = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 0
+  return {
+    projects: matched.slice(start, start + limit),
+    total,
+    publishedTotal,
+    matchedTotal: matched.length,
+  }
+}

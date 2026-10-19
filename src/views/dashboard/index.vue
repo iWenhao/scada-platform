@@ -22,12 +22,12 @@
       <div class="stats-row">
         <div class="stat-card">
           <div class="stat-label">工程项目</div>
-          <div class="stat-value">{{ recentProjects.length }}<span class="stat-unit">个</span></div>
+          <div class="stat-value">{{ total }}<span class="stat-unit">个</span></div>
         </div>
         <div class="stat-card">
           <div class="stat-label">已发布</div>
           <div class="stat-value accent">
-            {{ publishedCount }}<span class="stat-unit">运行版生效中</span>
+            {{ publishedTotal }}<span class="stat-unit">运行版生效中</span>
           </div>
         </div>
         <div class="stat-card">
@@ -53,8 +53,8 @@
       </div>
 
       <!-- 页面只有这一段跟着滚：顶栏/欢迎语/统计卡/标题行都钉住，搜索框因此任何一屏都在眼前 -->
-      <div class="project-scroll">
-        <div v-if="loadingProjects" class="project-grid" aria-label="正在加载项目列表">
+      <div ref="scrollEl" class="project-scroll">
+        <div v-if="initialLoading" class="project-grid" aria-label="正在加载项目列表">
           <div v-for="i in 3" :key="i" class="project-card skeleton-card" aria-hidden="true">
             <div class="sk sk-thumb" />
             <div class="sk sk-line" />
@@ -65,7 +65,7 @@
         <template v-else-if="recentProjects.length">
           <div class="project-grid">
             <ProjectCard
-              v-for="row in visibleProjects"
+              v-for="row in recentProjects"
               :key="row.name"
               :project="row"
               :editing="editingName === row.name"
@@ -95,12 +95,17 @@
             </div>
           </div>
 
-          <!-- 空的是搜索结果而不是「没有项目」，所以新建卡保留、下面补一行说明 -->
-          <div v-if="!visibleProjects.length" class="no-match">
-            <span>没有名称包含「{{ keyword.trim() }}」的项目</span>
-            <el-button size="small" @click="keyword = ''">清空搜索</el-button>
+          <!-- 触底自动续拉的可视反馈；剩余数用服务端 matchedTotal 精确计 -->
+          <div v-if="hasMore" class="load-hint" aria-live="polite">
+            <span>{{ loadingMore ? '加载中…' : `继续下滑加载更多（还有 ${matchedTotal - recentProjects.length} 个）` }}</span>
           </div>
         </template>
+
+        <!-- 有项目、只是当前关键词没命中：给可清空的结果说明，而不是「还没有项目」空态 -->
+        <div v-else-if="keyword.trim()" class="no-match">
+          <span>没有名称包含「{{ keyword.trim() }}」的项目</span>
+          <el-button size="small" @click="keyword = ''">清空搜索</el-button>
+        </div>
 
         <div v-else class="empty-state">
           <div class="ghost-plus lg">＋</div>
@@ -137,7 +142,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { useAlarmStore } from '@/stores/alarmStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useUiStore } from '@/stores/uiStore'
-import { getStorage } from '@/storage'
 import { connectionStatusView } from '@/status/connection'
 import { ElMessageBox, ElMessage } from 'element-plus'
 // 配置类对话框按需加载：不随首页 chunk 下发，首次打开时才拉取
@@ -150,8 +154,7 @@ const BrandingDialog = defineAsyncComponent(() => import('@/components/dialogs/B
 import TopNav from './TopNav.vue'
 import ProjectCard from './ProjectCard.vue'
 import ProjectSearchBox from './ProjectSearchBox.vue'
-import type { ProjectRow } from './types'
-import { thumbKey } from '@/core/canvas/thumbnail'
+import { useProjectPaging } from './useProjectPaging'
 import demoProjectJson from '../../../examples/demo-project.json?raw'
 import './dashboard.scss'
 import './project-card.scss'
@@ -162,11 +165,22 @@ const authStore = useAuthStore()
 const alarmStore = useAlarmStore()
 const deviceStore = useDeviceStore()
 
-const recentProjects = ref<ProjectRow[]>([])
-/** 项目列表加载中（远程存储时避免先闪空态再出现卡片） */
-const loadingProjects = ref(true)
-/** 名称关键词：过滤在内存里做，不再打一次存储请求 */
-const keyword = ref('')
+// 列表的分页 / 服务端搜索 / 统计 / 缩略图懒加载全在 composable 里，视图只负责装配与模板
+const {
+  recentProjects,
+  loadingMore,
+  keyword,
+  total,
+  publishedTotal,
+  matchedTotal,
+  scrollEl,
+  initialLoading,
+  hasMore,
+  listSummary,
+  reloadWindow,
+  loadThumbnail,
+} = useProjectPaging()
+
 const showNotifyConfig = ref(false)
 const showUserManage = ref(false)
 const showDataSource = ref(false)
@@ -177,26 +191,11 @@ const showBranding = ref(false)
 const editingName = ref<string | null>(null)
 const editingValue = ref('')
 
-const publishedCount = computed(() => recentProjects.value.filter(p => p.publishedAt).length)
-
-/** 搜索命中项：大小写不敏感的子串匹配（项目名基本是中文，不做分词） */
-const visibleProjects = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  return kw ? recentProjects.value.filter(p => p.name.toLowerCase().includes(kw)) : recentProjects.value
-})
-
-/** 标题行的次级文案：筛选时改成命中数，让人知道列表变短是被筛的而不是丢了 */
-const listSummary = computed(() => {
-  const kw = keyword.value.trim()
-  if (!kw) return '按修改时间排序'
-  return `匹配 ${visibleProjects.value.length} / ${recentProjects.value.length} 个项目`
-})
-
 const dataSourceLabel = computed(() => connectionStatusView(deviceStore.connectionStatus).text)
 
 const heroSummary = computed(() => {
   const alarms = alarmStore.unackedCount
-  const pub = publishedCount.value
+  const pub = publishedTotal.value
   const parts: string[] = []
   parts.push(alarms ? `今天有 ${alarms} 条未确认报警` : '暂无未确认报警')
   if (pub) parts.push(`${pub} 个工程已发布`)
@@ -237,7 +236,7 @@ async function confirmRename(oldName: string) {
   } else {
     ElMessage.error('重命名失败：名称为空或与已有项目重名')
   }
-  await loadRecentProjects()
+  await reloadWindow()
 }
 
 function cancelRename() {
@@ -257,37 +256,7 @@ async function openProjectConfig(name: string, kind: string) {
 onMounted(() => {
   // 回到首页即视为编辑会话结束：预览页此后不再还原现场（否则会把刚加载好的工程抹成空工程）
   useUiStore().clearEditSession()
-  void loadRecentProjects()
 })
-
-async function loadRecentProjects() {
-  loadingProjects.value = true
-  try {
-    // 远程存储时这是一次索引请求；缩略图不进列表请求，改由卡片进视口后按需加载
-    const summaries = await projectStore.getProjectList()
-    recentProjects.value = summaries.map(s => ({
-      name: s.name,
-      lastModified: s.timestamp ? new Date(s.timestamp).toLocaleString() : '未知',
-      publishedAt: s.publishedAt,
-      pageCount: s.pageCount,
-      timestamp: s.timestamp,
-      hasThumbnail: s.hasThumbnail,
-      thumbnail: null,
-    }))
-  } finally {
-    loadingProjects.value = false
-  }
-}
-
-/**
- * 卡片滚入视口后才取缩略图：base64 是大头，一屏也就几张，避免为不可见的卡片各发一次 get。
- * recentProjects 的项是 ref 深层代理，直接改 row.thumbnail 即可驱动卡片重渲染。
- */
-async function loadThumbnail(row: ProjectRow) {
-  if (!row.hasThumbnail || row.thumbnail) return
-  const thumb = await getStorage().get(thumbKey(row.name))
-  row.thumbnail = thumb || null
-}
 
 async function publishProject(name: string) {
   try {
@@ -305,7 +274,7 @@ async function publishProject(name: string) {
   }
   await projectStore.publishProject()
   ElMessage.success('已发布')
-  await loadRecentProjects()
+  await reloadWindow()
 }
 
 async function unpublishProject(name: string) {
@@ -320,7 +289,7 @@ async function unpublishProject(name: string) {
   }
   await projectStore.unpublishProject(name)
   ElMessage.success('已取消发布')
-  await loadRecentProjects()
+  await reloadWindow()
 }
 
 function goToEditor() {
@@ -385,7 +354,7 @@ async function deleteProject(name: string) {
     return
   }
   await projectStore.deleteProject(name)
-  await loadRecentProjects()
+  await reloadWindow()
   ElMessage.success('项目已删除')
 }
 </script>

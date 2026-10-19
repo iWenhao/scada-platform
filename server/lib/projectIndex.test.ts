@@ -8,7 +8,16 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { writeValue } from './kv.mjs'
-import { buildProjectIndex, PROJECT_PREFIX, PUBLISHED_PREFIX, THUMB_PREFIX } from './projectIndex.mjs'
+import {
+  buildProjectIndex,
+  queryProjectIndex,
+  clampProjectLimit,
+  DEFAULT_PROJECT_PAGE_SIZE,
+  MAX_PROJECT_PAGE_SIZE,
+  PROJECT_PREFIX,
+  PUBLISHED_PREFIX,
+  THUMB_PREFIX,
+} from './projectIndex.mjs'
 
 let dataDir = ''
 const scope = 'u/indexer/'
@@ -82,5 +91,59 @@ describe('buildProjectIndex', () => {
     await writeValue(dataDir, PROJECT_PREFIX + 'B', 'u/bob/', JSON.stringify({ timestamp: 1 }))
     expect((await buildProjectIndex(dataDir, 'u/alice/')).map(r => r.name)).toEqual(['A'])
     expect(await buildProjectIndex(dataDir, 'u/empty/')).toEqual([])
+  })
+})
+
+describe('clampProjectLimit', () => {
+  it('非法/缺省回落默认页大小，超上限夹到 MAX，正整数向下取整', () => {
+    expect(clampProjectLimit(undefined)).toBe(DEFAULT_PROJECT_PAGE_SIZE)
+    expect(clampProjectLimit('0')).toBe(DEFAULT_PROJECT_PAGE_SIZE)
+    expect(clampProjectLimit('-5')).toBe(DEFAULT_PROJECT_PAGE_SIZE)
+    expect(clampProjectLimit('abc')).toBe(DEFAULT_PROJECT_PAGE_SIZE)
+    expect(clampProjectLimit('1e9')).toBe(MAX_PROJECT_PAGE_SIZE)
+    expect(clampProjectLimit('25')).toBe(25)
+    expect(clampProjectLimit('7.9')).toBe(7)
+  })
+})
+
+describe('queryProjectIndex', () => {
+  const s = 'u/paging/'
+
+  beforeAll(async () => {
+    // 5 个工程，时间戳 500..100 倒序；其中「甲A」被发布、「乙B」带图，用于验证统计口径
+    for (const [name, ts] of [['甲A', 500], ['乙B', 400], ['丙', 300], ['丁', 200], ['戊', 100]] as const) {
+      await writeValue(dataDir, PROJECT_PREFIX + name, s, JSON.stringify({ timestamp: ts, pages: [1] }))
+    }
+    await writeValue(dataDir, PUBLISHED_PREFIX + '甲A', s, JSON.stringify({ publishedAt: 999 }))
+    await writeValue(dataDir, THUMB_PREFIX + '乙B', s, 'x')
+  })
+
+  it('默认第一页：limit 条 + 全量统计（total/publishedTotal/matchedTotal）', async () => {
+    const page = await queryProjectIndex(dataDir, s, { limit: 3 })
+    expect(page.projects.map(r => r.name)).toEqual(['甲A', '乙B', '丙'])
+    expect(page.total).toBe(5)
+    expect(page.publishedTotal).toBe(1)
+    expect(page.matchedTotal).toBe(5)
+  })
+
+  it('offset 翻页：第二页接在后面，matchedTotal 保持全命中数', async () => {
+    const page = await queryProjectIndex(dataDir, s, { limit: 3, offset: 3 })
+    expect(page.projects.map(r => r.name)).toEqual(['丁', '戊'])
+    expect(page.matchedTotal).toBe(5)
+    expect(page.total).toBe(5)
+  })
+
+  it('keyword 只在命中集内分页；total/publishedTotal 仍是全量口径不缩水', async () => {
+    const page = await queryProjectIndex(dataDir, s, { keyword: '甲' })
+    expect(page.projects.map(r => r.name)).toEqual(['甲A'])
+    expect(page.matchedTotal).toBe(1)
+    expect(page.total).toBe(5)
+    expect(page.publishedTotal).toBe(1)
+  })
+
+  it('offset 越界回空页但统计照给，前端据此判 hasMore=false', async () => {
+    const page = await queryProjectIndex(dataDir, s, { limit: 3, offset: 99 })
+    expect(page.projects).toEqual([])
+    expect(page.matchedTotal).toBe(5)
   })
 })

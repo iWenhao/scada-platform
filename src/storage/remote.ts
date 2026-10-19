@@ -1,4 +1,4 @@
-import type { StorageAdapter, ProjectSummary } from './index'
+import type { StorageAdapter, ProjectQuery, ProjectIndexPage } from './index'
 import { StorageConflictError } from './errors'
 import { authHeaders } from '@/auth/session'
 
@@ -21,14 +21,24 @@ export class RemoteStorageAdapter implements StorageAdapter {
   }
 
   /**
-   * 工程列表摘要：一次 GET 拿全，替代首页「每个工程 3 次 get 整份 JSON」。
-   * 失败时抛错，由上层 projectStorage.getProjectSummaries 决定是否回落逐条读。
+   * 工程列表分页摘要：一次 GET 拿一页 + 全量统计，替代首页「每个工程 3 次 get 整份 JSON」。
+   * 失败时抛错，由上层 projectStorage.getProjectPage 决定是否回落逐条读。
    */
-  async projectIndex(): Promise<ProjectSummary[]> {
-    const res = await fetch(this.base + '/projects', { headers: this.headers })
+  async projectIndex(query: ProjectQuery = {}): Promise<ProjectIndexPage> {
+    const params = new URLSearchParams()
+    if (query.keyword) params.set('keyword', query.keyword)
+    if (query.limit != null) params.set('limit', String(query.limit))
+    if (query.offset) params.set('offset', String(query.offset))
+    const qs = params.toString()
+    const res = await fetch(this.base + '/projects' + (qs ? `?${qs}` : ''), { headers: this.headers })
     if (!res.ok) throw new Error(`projects failed: HTTP ${res.status}`)
     const body = await res.json()
-    return body.projects ?? []
+    return {
+      projects: body.projects ?? [],
+      total: Number(body.total) || 0,
+      publishedTotal: Number(body.publishedTotal) || 0,
+      matchedTotal: Number(body.matchedTotal) || 0,
+    }
   }
 
   async get(key: string): Promise<string | null> {

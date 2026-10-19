@@ -386,6 +386,16 @@ html[data-theme='light'] .sys-chip {
   font-size: 13px;
 }
 
+// 分页触底续拉的可视提示：靠下居中的一行次要文字，加载完自动消失（hasMore 为假时不渲染）
+.load-hint {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 10px 20px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 .section-sub {
   font-size: 12px;
   color: var(--text-muted);

@@ -11,7 +11,7 @@ import {
   isProjectTaken,
   renameProjectKeys,
   listSavedProjects,
-  getProjectSummaries,
+  getProjectPage,
   deleteProjectKeys,
 } from './projectStorage'
 import { createProjectPersistence } from './projectPersistence'
@@ -227,7 +227,7 @@ export const useProjectStore = defineStore('project', () => {
 
   // 工程列表与删除：纯键级操作，直接复用 projectStorage 的实现（对外名保持不变）
   const getSavedProjects = listSavedProjects
-  const getProjectList = getProjectSummaries
+  const getProjectList = getProjectPage
   const deleteProject = deleteProjectKeys
 
   /**

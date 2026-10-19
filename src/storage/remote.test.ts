@@ -75,20 +75,44 @@ describe('RemoteStorageAdapter.projectIndex', () => {
     )
   }
 
-  it('GET 到 /storage/projects 并回传 projects 数组', async () => {
-    const projects = [{ name: 'A', timestamp: 1, pageCount: 2, publishedAt: null, hasThumbnail: true }]
-    stubFetchJson(200, { projects })
+  it('无查询参数时 GET 到裸 /storage/projects，返回归一化信封', async () => {
+    stubFetchJson(200, { projects: [{ name: 'A' }], total: 40, publishedTotal: 5, matchedTotal: 40 })
     const storage = new RemoteStorageAdapter('/api/storage')
 
-    expect(await storage.projectIndex()).toEqual(projects)
+    expect(await storage.projectIndex()).toEqual({
+      projects: [{ name: 'A' }],
+      total: 40,
+      publishedTotal: 5,
+      matchedTotal: 40,
+    })
     expect(captured[0].url).toBe('/api/storage/projects')
     expect(captured[0].init.method ?? undefined).toBeUndefined()
   })
 
-  it('响应缺 projects 字段时回落空数组，而不是 undefined', async () => {
+  it('keyword/limit/offset 拼进 query，缺省项不拼', async () => {
+    stubFetchJson(200, { projects: [] })
+    const storage = new RemoteStorageAdapter('/api/storage')
+
+    await storage.projectIndex({ keyword: '泵', limit: 12, offset: 24 })
+    const url = captured[0].url
+    expect(url).toContain('keyword=' + encodeURIComponent('泵'))
+    expect(url).toContain('limit=12')
+    expect(url).toContain('offset=24')
+
+    // offset=0 / 无 keyword 不应出现对应参数
+    await storage.projectIndex({ limit: 12, offset: 0 })
+    expect(captured[1].url).toBe('/api/storage/projects?limit=12')
+  })
+
+  it('响应缺字段时回落成空数组与 0，而不是 undefined', async () => {
     stubFetchJson(200, {})
     const storage = new RemoteStorageAdapter('/api/storage')
-    expect(await storage.projectIndex()).toEqual([])
+    expect(await storage.projectIndex()).toEqual({
+      projects: [],
+      total: 0,
+      publishedTotal: 0,
+      matchedTotal: 0,
+    })
   })
 
   it('非 2xx 抛错，交由上层回落到逐条读', async () => {

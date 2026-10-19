@@ -4,13 +4,20 @@ import {
   isProjectTaken,
   renameProjectKeys,
   listSavedProjects,
-  getProjectSummaries,
+  getProjectPage,
   deleteProjectKeys,
   projectKey,
   draftKey,
   publishedKey,
 } from './projectStorage'
-import { MemoryStorageAdapter, getStorage, setStorage } from '@/storage'
+import {
+  MemoryStorageAdapter,
+  getStorage,
+  setStorage,
+  type StorageAdapter,
+  type ProjectQuery,
+  type ProjectIndexPage,
+} from '@/storage'
 import { thumbKey } from '@/core/canvas/thumbnail'
 
 describe('projectStorage', () => {
@@ -66,63 +73,99 @@ describe('projectStorage', () => {
     expect(await storage.get(draftKey('A'))).toBeNull()
   })
 
-  describe('getProjectSummaries 本地/内存回落（无 projectIndex 能力）', () => {
-    it('逐条读工作副本，抽 timestamp/pageCount/publishedAt/hasThumbnail 并按时间倒序', async () => {
+  describe('getProjectPage 本地/内存回落（无 projectIndex 能力）', () => {
+    it('逐条读工作副本，抽字段并按时间倒序，同时给出全量统计', async () => {
       const storage = getStorage()
       await storage.set(projectKey('旧'), JSON.stringify({ timestamp: 100, pages: [1, 2] }))
       await storage.set(projectKey('新'), JSON.stringify({ timestamp: 900, pages: [1] }))
       await storage.set(publishedKey('新'), JSON.stringify({ publishedAt: 950 }))
       await storage.set(thumbKey('旧'), 'data:image/jpeg;base64,x')
-      // 草稿/孤立缩略图不应混进摘要
-      await storage.set(draftKey('新'), '{}')
+      await storage.set(draftKey('新'), '{}') // 草稿不混进摘要
 
-      const rows = await getProjectSummaries()
-      expect(rows.map(r => r.name)).toEqual(['新', '旧'])
-      expect(rows[0]).toEqual({
+      const page = await getProjectPage()
+      expect(page.total).toBe(2)
+      expect(page.publishedTotal).toBe(1)
+      expect(page.matchedTotal).toBe(2)
+      expect(page.projects.map(r => r.name)).toEqual(['新', '旧'])
+      expect(page.projects[0]).toEqual({
         name: '新',
         timestamp: 900,
         pageCount: 1,
         publishedAt: 950,
         hasThumbnail: false,
       })
-      expect(rows[1]).toMatchObject({ pageCount: 2, publishedAt: null, hasThumbnail: true })
+      expect(page.projects[1]).toMatchObject({ pageCount: 2, publishedAt: null, hasThumbnail: true })
+    })
+
+    it('keyword 走服务端同口径的名称子串匹配：命中数与统计随之变，total 不变', async () => {
+      const storage = getStorage()
+      await storage.set(projectKey('水泵A'), JSON.stringify({ timestamp: 3, pages: [1] }))
+      await storage.set(projectKey('风机B'), JSON.stringify({ timestamp: 2, pages: [1] }))
+      await storage.set(publishedKey('风机B'), JSON.stringify({ publishedAt: 9 }))
+
+      const page = await getProjectPage({ keyword: '泵' })
+      expect(page.projects.map(r => r.name)).toEqual(['水泵A'])
+      expect(page.matchedTotal).toBe(1)
+      // total/publishedTotal 是全量口径，不随关键词缩
+      expect(page.total).toBe(2)
+      expect(page.publishedTotal).toBe(1)
+    })
+
+    it('limit/offset 切片：matchedTotal 仍是全命中数，供前端判断是否还有下一页', async () => {
+      const storage = getStorage()
+      for (let i = 1; i <= 5; i++) {
+        await storage.set(projectKey(`p${i}`), JSON.stringify({ timestamp: i * 10, pages: [1] }))
+      }
+      const second = await getProjectPage({ limit: 2, offset: 2 })
+      expect(second.projects.map(r => r.name)).toEqual(['p3', 'p2']) // 倒序 5,4,3,2,1 → 第 3、4 个
+      expect(second.matchedTotal).toBe(5)
+      expect(second.total).toBe(5)
     })
 
     it('工作副本是坏 JSON 时按未知处理，不影响其余工程', async () => {
       const storage = getStorage()
       await storage.set(projectKey('坏'), '{ not json')
       await storage.set(projectKey('好'), JSON.stringify({ timestamp: 5, pages: [1] }))
-      const map = Object.fromEntries((await getProjectSummaries()).map(r => [r.name, r]))
-      expect(map['坏']).toMatchObject({ timestamp: 0, pageCount: 1 })
-      expect(map['好'].timestamp).toBe(5)
+      const byName = Object.fromEntries(
+        (await getProjectPage()).projects.map(r => [r.name, r]),
+      )
+      expect(byName['坏']).toMatchObject({ timestamp: 0, pageCount: 1 })
+      expect(byName['好'].timestamp).toBe(5)
     })
   })
 
-  describe('getProjectSummaries 远程索引优先', () => {
+  describe('getProjectPage 远程索引优先', () => {
     /**
-     * 带 projectIndex 能力的假适配器：委托一个内存实例做 get/set/keys
-     * （不能对类实例用扩展运算符——方法在原型上，展开会丢方法）。
+     * 带 projectIndex 能力的假适配器：委托内存实例做 get/set/keys，
+     * projectIndex 直接回传一页信封并记录收到的查询参数（用于断言透传）。
+     * 不能对类实例用扩展运算符——方法在原型上，展开会丢方法。
      */
-    function indexAdapter(result: unknown[], throwOnIndex = false) {
+    function indexAdapter(page: ProjectIndexPage, throwOnIndex = false) {
       const mem = new MemoryStorageAdapter()
-      return {
+      const adapter: StorageAdapter & { projectIndex: (q?: ProjectQuery) => Promise<ProjectIndexPage>; lastQuery?: ProjectQuery } = {
         get: (k: string) => mem.get(k),
         set: (k: string, v: string, o?: { ifAbsent?: boolean }) => mem.set(k, v, o),
         remove: (k: string) => mem.remove(k),
         keys: () => mem.keys(),
-        projectIndex: async () => {
+        projectIndex: async (q?: ProjectQuery) => {
           if (throwOnIndex) throw new Error('boom')
-          return result as never
+          adapter.lastQuery = q
+          return page
         },
       }
+      return adapter
     }
 
-    it('适配器提供 projectIndex 时一次拿全，不逐条 get', async () => {
-      const summaries = [
-        { name: 'A', timestamp: 1, pageCount: 3, publishedAt: null, hasThumbnail: false },
-      ]
+    const okPage: ProjectIndexPage = {
+      projects: [{ name: 'A', timestamp: 1, pageCount: 3, publishedAt: null, hasThumbnail: false }],
+      total: 40,
+      publishedTotal: 5,
+      matchedTotal: 40,
+    }
+
+    it('适配器提供 projectIndex 时透传查询并原样返回信封，不逐条 get', async () => {
       let getCalled = 0
-      const adapter = indexAdapter(summaries)
+      const adapter = indexAdapter(okPage)
       const realGet = adapter.get
       adapter.get = async (k: string) => {
         getCalled += 1
@@ -130,19 +173,22 @@ describe('projectStorage', () => {
       }
       setStorage(adapter)
 
-      expect(await getProjectSummaries()).toEqual(summaries)
+      const page = await getProjectPage({ keyword: '泵', limit: 12, offset: 24 })
+      expect(page).toEqual(okPage)
+      expect(adapter.lastQuery).toEqual({ keyword: '泵', limit: 12, offset: 24 })
       expect(getCalled).toBe(0)
     })
 
-    it('索引接口抛错时回落到逐条读，仍能出列表', async () => {
-      const adapter = indexAdapter([], true)
+    it('索引接口抛错时回落到本地全量拼装 + 切片，仍能出列表', async () => {
+      const adapter = indexAdapter({ projects: [], total: 0, publishedTotal: 0, matchedTotal: 0 }, true)
       setStorage(adapter)
       await adapter.set(projectKey('A'), JSON.stringify({ timestamp: 42, pages: [1, 2, 3] }))
 
-      const rows = await getProjectSummaries()
-      expect(rows).toEqual([
+      const page = await getProjectPage({ limit: 1, offset: 0 })
+      expect(page.projects).toEqual([
         { name: 'A', timestamp: 42, pageCount: 3, publishedAt: null, hasThumbnail: false },
       ])
+      expect(page.total).toBe(1)
     })
   })
 })
