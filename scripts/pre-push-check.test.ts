@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { runGate } from './pre-push-check.mjs'
+import { mapTestFiles, runGate } from './pre-push-check.mjs'
 import type { PrePushStep, StepResult } from './pre-push-check.mjs'
 
 function step(name: string): PrePushStep {
@@ -55,5 +55,37 @@ describe('runGate', () => {
     expect(gate.ok).toBe(false)
     expect(gate.failures.map((failure) => failure.step.name)).toEqual(['b'])
     expect(gate.failures[0].output).toBe('boom')
+  })
+})
+
+describe('mapTestFiles', () => {
+  it('源文件映射同目录同名测试', () => {
+    expect(mapTestFiles(['src/core/canvas/alignment.ts'])).toEqual([
+      'src/core/canvas/alignment.test.ts',
+    ])
+  })
+
+  it('测试文件自身直接纳入', () => {
+    expect(mapTestFiles(['server/lib/singleInstanceLock.test.ts'])).toEqual([
+      'server/lib/singleInstanceLock.test.ts',
+    ])
+  })
+
+  it('源码目录之外的路径与无对应测试的源文件都被过滤', () => {
+    expect(mapTestFiles(['package.json', 'AGENTS.md', 'src/no-such-file.ts'])).toEqual([])
+  })
+
+  it('scripts/ 下的工具脚本也映射（曾漏掉：vitest include 覆盖 scripts/）', () => {
+    expect(mapTestFiles(['scripts/pre-push-check.mjs'])).toEqual(['scripts/pre-push-check.test.ts'])
+  })
+
+  it('去重且排序稳定', () => {
+    expect(
+      mapTestFiles([
+        'src/core/canvas/faceLighting.ts',
+        'src/core/canvas/alignment.ts',
+        'src/core/canvas/alignment.ts',
+      ]),
+    ).toEqual(['src/core/canvas/alignment.test.ts', 'src/core/canvas/faceLighting.test.ts'])
   })
 })

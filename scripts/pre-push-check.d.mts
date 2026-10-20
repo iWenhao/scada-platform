@@ -35,6 +35,13 @@ export interface GateResult {
   failures: StepResult[]
 }
 
+/**
+ * 把本次推送涉及的文件映射为同目录同名 .test.ts（仓库约定：单测与被测
+ * 源码同目录同名）。只认 src/ server/ shared/ 下的路径；测试文件自身直接
+ * 纳入。返回去重排序后的列表，可能为空（调用方据此跳过测试步骤）。
+ */
+export function mapTestFiles(changedFiles: string[]): string[]
+
 export function runGate(
   steps: PrePushStep[],
   options?: {

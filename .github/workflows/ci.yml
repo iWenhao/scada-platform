@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+    branches: [dev, master]
+
+# 连续 push 时取消同一 ref 上仍在跑的旧 run：高频小提交推送场景下省分钟数，
+# 也避免旧 run 的失败通知刷屏——只有最新一次 run 有发言权。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # 以下五项与 scripts/pre-push-check.mjs --full 同款。本机沙箱 EPERM
+      # 会静默少跑 vitest 文件（汇总行带 Errors 才是唯一判据），CI 的干净
+      # Linux 没有这个问题——全量结果的权威时机在这里，不在本地 pre-push。
+      - name: 全量测试
+        run: npx vitest run
+
+      - name: 前端类型检查
+        run: npx vue-tsc --noEmit
+
+      - name: 服务端类型检查
+        run: npx tsc -p tsconfig.server.json
+
+      - name: 生产构建
+        run: npx vite build
+
+      - name: 行数检查
+        run: node scripts/check-long-files.mjs

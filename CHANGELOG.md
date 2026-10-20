@@ -49,6 +49,16 @@
   - 动了：`src/components/layout/toolbar/useUserMenu.ts`（新）、`src/components/layout/toolbar/useUserMenu.test.ts`（新）、`src/components/layout/Toolbar.vue`、`src/views/dashboard/index.vue`
   - 实测：单测 4 例（`users` 只开对话框不碰会话 / 取消后不调 `logout` 也不跳转 / 确认后登出并跳 `/login` / 脏状态文案含「未保存的更改」）。浏览器两个入口都点过：编辑器侧（复用他正在跑的 5173，只点「取消」）下拉→退出登录→弹框标题「退出登录」、正文「退出登录？」、按钮「取消 / 退出」，点取消后仍停在 `/editor`、会话未失效；首页侧由本人在浏览器手动确认同样弹框且不点退出即不掉登录。「未保存改动」那条分支只在单测里覆盖——真去编辑器触发它要写脏标记与自动草稿，会动到他 5174 的数据目录
 
+- 验证门槛改为「本地轻量 + CI 全量」两级：pre-push 钩子只跑轻量集，全量五项移交 GitHub Actions
+  - 背景：高频小提交 + 每提交一推的习惯下，本地全量五项（约 4-6 分钟）成为推送瓶颈；且 AGENTS.md 原约定「攒到功能边界再推」与并行会话下尽快推送减冲突的实际需求冲突——文档与工作流漂移，本次一并纠正
+  - 轻量集（`scripts/pre-push-check.mjs --light`，pre-push 默认调用）：相关测试 + `vue-tsc` + `check-long-files` 三项并发跑，未过项整轮重试一次的既有逻辑复用；相关测试 = `git diff --name-only @{u}...HEAD` 涉及文件映射同目录同名 `.test.ts`（src/ server/ shared/ scripts/，无则跳过该步）；`--full` 保留全量路径供手动跑
+  - 不用 `vitest related` 的原因：它要 vite 转换整个模块图，实测在本机被沙箱 SIGTERM（`TMPDIR` 绕行仍复现），且慢；同目录同名是仓库既定约定，纯 git + 路径映射即可，漏掉的跨目录覆盖由 CI 全量兜底
+  - CI（`.github/workflows/ci.yml`，push 到 dev/master 与 PR 触发）：五项与 `--full` 同款，分步跑便于定位；`concurrency.cancel-in-progress` 防连续 push 时旧 run 占分钟数；CI 的干净 Linux 无本机沙箱 EPERM 少跑文件问题，全量结果比本地可信
+  - 底线变化如实记录：坏提交从「不出机器」变为「不出远端」——CI 红时邮件即时通知，fixup/revert 跟上；本地钩子绕得过（删钩子 / `core.hooksPath` 失效 / `--no-verify`），CI 绕不过
+  - 实测发现的真 bug：轻量映射首版漏了 `scripts/`（该目录的测试同样在 vitest include 内），改 `scripts/pre-push-check.mjs` 自己的测试不会被触发——`SOURCE_DIRS` 已补，并加回归用例（8 例全过）
+  - 实测：`node scripts/pre-push-check.mjs --light` 一次通过（相关测试 1 个文件 19 例 9.5s + 类型检查 15.0s + 行数检查 0.8s，并发墙钟约 15s；本机沙箱 EPERM 本次未触发）；AGENTS.md 改写后 30140 字节（上限 32768）
+  - 动了：`scripts/pre-push-check.mjs`（两级模式 + 映射函数，导出 `mapTestFiles`）、`scripts/pre-push-check.d.mts`、`scripts/pre-push-check.test.ts`、`scripts/hooks/pre-push`（改调 `--light`）、`.github/workflows/ci.yml`（新）、`AGENTS.md`（验证节奏三级化 + 推送节奏改写）、`CHANGELOG.md`
+
 ### 修复
 
 - 报警通知弹窗「测试」不再静默保存全量配置，新增取消不再残留空通道

@@ -35,7 +35,7 @@ SCADA Platform：基于 **Vue 3 + TypeScript + Konva.js (vue-konva) + Pinia + El
 pnpm install            # 安装依赖（白名单见 pnpm-workspace.yaml）
 pnpm dev                # 开发服务器，http://localhost:5173
 pnpm server             # 存储后端(http://localhost:5174)，数据存 server/data/*.json
-pnpm build              # 生产构建 = vue-tsc --noEmit + vite build，属推送门槛（见「验证节奏」）
+pnpm build              # 生产构建 = vue-tsc --noEmit + vite build，由推送后的 CI 跑（见「验证节奏」）
 npx vitest run          # 测试单次运行（pnpm test 是 watch 模式，会挂住终端）
 pnpm lint               # ESLint
 ```
@@ -79,7 +79,7 @@ pnpm lint               # ESLint
 | 一批改动（未提交的也算） | `npx vitest run --changed`（只跑受 git 改动影响的文件） |
 | 几条特定用例 | `npx vitest run -t "关键词"` |
 
-门槛分两级：**每次提交跑轻量集，每次推送由 `scripts/hooks/pre-push` 强制跑全量集**。全量的权威时机在推送而不在提交——没有 CI 的仓库，「每次提交跑全量」等于把集成检查提前到每一小步改动，逻辑单元越小越浪费；提交之间的 HEAD 允许个别坏提交，但不出机器。过程中的检查按改动范围挑着跑——各检查的实际价值并不均等，全跑一遍往往既慢又稀释信号：
+门槛分三级：提交时跑轻量集；推送时 `pre-push` 钩子强制轻量集（相关测试 + `vue-tsc` + 行数检查，分钟级）；推送后由 CI（`.github/workflows/ci.yml`）跑全量兜底。全量的权威时机在 CI 而不在本地——高频小提交场景下每次推送等全量不现实，本地负责快速失败、CI 负责最终裁决；提交之间的 HEAD 允许个别坏提交，远端允许短暂红（CI 失败邮件即时到，fixup 或 revert 跟上）。过程中的检查按改动范围挑着跑——各检查的实际价值并不均等，全跑一遍往往既慢又稀释信号：
 
 | 改动情形 | 该跑什么 | 为什么 |
 | --- | --- | --- |
@@ -87,11 +87,12 @@ pnpm lint               # ESLint
 | 改了 `server/**` 或 `shared/**` | 加跑 `pnpm typecheck:server`（`tsc -p tsconfig.server.json`） | 前端那套 `vue-tsc` 的 include 只覆盖 `src/`，服务端 `.mjs` 不在其中；这条是服务端唯一的类型检查入口，不跑等于服务端改动零类型把关 |
 | 跨模块重构 / 改了类型签名与导出 | 加跑 `vue-tsc --noEmit` | 跨文件重构的错误类型检查最灵（`Record` 缺键、接口字段漏传这类单测看不出来） |
 | 每次提交（轻量集，分钟级以内） | 改动路径相关的测试 + `vue-tsc --noEmit` + `node scripts/check-long-files.mjs` | 小改动最易踩的是跨文件类型错，`vue-tsc` 最灵且便宜；全量与 build 留到推送 |
-| 每次推送（`pre-push` 强制，全量的唯一权威时机） | 全量 `vitest run` + `vue-tsc --noEmit` + `tsc -p tsconfig.server.json` + `vite build --emptyOutDir=false` + `node scripts/check-long-files.mjs`，五项由 `scripts/pre-push-check.mjs` 并发跑，未过项整轮重试一次（应对沙箱 EPERM 抖动）；两个 tsc 均走增量缓存（`node_modules/.cache/`） | 项目底线。本仓库没有 CI，这就是唯一的 CI；全量结果按上一节的判据算数 |
+| 每次推送（`pre-push` 强制，`--light`） | 相关测试（`git diff @{u}...HEAD` 涉及文件 → 同目录同名 `.test.ts`）+ `vue-tsc --noEmit` + `node scripts/check-long-files.mjs`，三项由 `scripts/pre-push-check.mjs` 并发跑，未过项整轮重试一次；`vue-tsc` 走增量缓存 | 高频小提交下等全量不现实；本地只拦明显错误，省 CI 分钟数 |
+| 每次推送后（CI 强制，全量的唯一权威时机） | 全量 `vitest run` + `vue-tsc --noEmit` + `tsc -p tsconfig.server.json` + `vite build` + `node scripts/check-long-files.mjs`（`.github/workflows/ci.yml`，与 `pre-push-check.mjs --full` 同款五项） | 项目底线。CI 跑在干净 Linux，无沙箱 EPERM 少跑文件问题，比本地全量可信；全量结果按上一节的判据算数 |
 | 引入新文件或改动文件较多 | 加跑**改动文件**的 `eslint` | 全量 eslint 会被仓库既有 `.vue` 报警（`vue/html-indent`、`no-mutating-props` 等）淹没，信号被稀释 |
 | 影响用户可见的输出（UI / 控制台 / 日志格式） | **必须真跑一次并看结果**，优先级排在上面全部静态检查之前 | 见「测试」一节 |
 
-**本仓库没有 CI**（`.github/` 不存在）。全量门槛由 `scripts/hooks/pre-push` 机器强制（标题格式仍由 `commit-msg` 管）——该钩子被删、或 `core.hooksPath` 失效，全量门槛就只剩这段正文约束，它被截断或删薄即等于取消。
+**CI 是最终裁决**（`.github/workflows/ci.yml`，push 到 dev/master 与 PR 触发）：本地钩子只拦轻量，绕得过（删钩子、`core.hooksPath` 失效、`--no-verify`），CI 绕不过。建议在仓库 Settings 里开分支保护（CI 绿才能合 master）；CI 红时收到邮件立即 fixup/revert，不要攒。提交标题格式仍由 `commit-msg` 管。
 
 ## 测试
 
@@ -211,7 +212,7 @@ pnpm lint               # ESLint
 - **分支**：日常开发提交到 `dev` 分支并推送 `origin dev`；master 用于发布合并。
 - **并行改动（多个会话 / Agent 同时动本仓库）**：三层判据（原生 worktree → 手工 `git worktree add` → 同树按模块切分 + 只 add 自己文件）与 git 之外三处共享状态（`server/data/`、端口、登录会话）的错开方式详见 [docs/PARALLEL_WORK.md](docs/PARALLEL_WORK.md)；单人开发不读。
 - **提交粒度**：一个功能/修复一个提交。
-- **推送节奏**：提交可以频繁，push 攒到功能或会话边界一次推；pre-push 按一次 push 触发，多个提交合并推送只跑一次全量。不要每提交一次 push，那等于把推送门槛降成提交门槛。
+- **推送节奏**：每提交一次 push 是允许的——并行会话下尽快推送可减少冲突，且 pre-push 只跑轻量集（约 1-2 分钟），全量由推送后的 CI 兜底，不再有「把推送门槛降成提交门槛」的问题。想更快也可以攒到功能或会话边界再推：轻量按一次 push 触发，多个提交合并推送只跑一次。
 - **提交信息**：中文；首行标题 **≤ 30 字符**（含前缀），细节一律写进 `CHANGELOG.md`，提交本身不带长正文。
   - 前缀白名单：`功能:` `修复:` `优化:` `重构:` `清理:` `文档:` `测试:` `构建:` `发版:`；Git 自动生成的 `Merge` / `Revert` / `fixup!` / `squash!` 不受限。
   - 标题只回答「改了什么」——读者是 `git log --oneline` 而不是代码评审，理由、文件清单、实测数据、边界情况全部写进 CHANGELOG。长度按**字符**计（一个汉字算 1，不是显示列也不是字节）：`修复: 亮色主题下画布背景仍是黑色` = 17 字符（UTF-8 字节数是 47），合规。
