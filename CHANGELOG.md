@@ -398,6 +398,16 @@
   - 复查（旧正文 223 行逐行比对 + 全库关键词检索）：120 行一字未变、11 行原样进 ENV_NOTES，其余为改写或并句。查出压缩时连带丢了两个例证并已补回——`depthLayers.ts` 已删除的原因句（正文只说「不要在元素背后铺背景色块」而不说理由，下一个人容易把它当遗漏加回来）与提交标题的字符算例（钩子按**字符**判长，「汉字算 1 不是 3」唯一算死它的就是这句）。同时确认「图元分两档 / 插画级成本与设备数是乘法 / `viewMode` 由编辑器工具栏切换且运行端只读跟随」不是丢失，`docs/2.5D_ILLUSTRATION_GUIDE.md` 原本就写着。判定为被更强的同句覆盖、不补的两处：worktree「这条拒得对……」的理由从句、「别每改一行就起一遍」（已由「只在最后一轮做一次」覆盖）。
   - 实测：AGENTS.md 34,645 → 28,906 字节（距 32,768 硬线余 3,862，全量存活无截断），`docs/ENV_NOTES.md` 7,112 字节；两文件均无 U+FFFD、AGENTS.md 内 6 条文档链接全部命中磁盘文件；45 个关键术语比对，正文缺失的 9 项全部落在 ENV_NOTES 内（`127.0.0.1` / `936` / `OutputEncoding` / `7897` / `helper-selector` / `GetFileAttributes` / `ERROR_ACCESS` / `NtCreateFile` / `CredentialHelper`），补回后按 60 项复查，正文唯一不含的是 `mihomo`（引擎名，属 ENV_NOTES）——即通用规则零丢失、只有本机值被外移。本次只动文档，未跑单测与构建（`src/**`、`server/**` 零改动）。
 
+### 构建
+
+- 推送门槛四项改为并发执行，`vue-tsc` 启用增量缓存
+  - 背景：pre-push 的全量四件套（vitest / vue-tsc / vite build / 行数检查）原为串行，本机实测约 89 秒；类型检查、构建、行数检查互不依赖，串行等待没有收益。且 `vue-tsc` 每次都从零构建整棵类型图，它是提交级轻量门槛里最贵的一项
+  - 改法：`scripts/pre-push-check.mjs` 改为 `Promise.all` 同时启动四项；重试语义保持「未过项整轮重试一次」但只重跑失败项，已通过的项不再跑。全量测试保持直通输出（失败时能直接看到用例名），其余三项缓冲输出、失败时统一回显。子进程用单条命令串 + `shell: true`（Windows 下 `npx` 只有 `.cmd`，传参数数组会触发 Node DEP0190 警告）
+  - `tsconfig.json` 增 `incremental: true` 与 `tsBuildInfoFile: node_modules/.cache/vue-tsc/tsconfig.tsbuildinfo`：缓存落在 node_modules 内，天然不被提交，删 node_modules 即重置。**缓存不影响错误检出**：临时写入 `src/__tsc_probe__.ts`（字符串赋给 number）验证，增量模式下仍报 TS2322、退出码 2，探针已删
+  - 新增 `scripts/pre-push-check.test.ts`（3 例，`@vitest-environment node`）锁住编排逻辑：四项同时启动且各跑一次；首轮只有失败项进入第二轮（计数 a=1、b=2、c=1）；两轮都失败时返回失败项与缓冲输出。`scripts/pre-push-check.d.mts` 供测试取类型（与 `commit-msg-check.d.mts` 同一做法，scripts/ 不在 vue-tsc 的 include 内）
+  - 动了：`scripts/pre-push-check.mjs`、`scripts/pre-push-check.d.mts`（新）、`scripts/pre-push-check.test.ts`（新）、`tsconfig.json`、`AGENTS.md`（验证节奏表）
+  - 实测：`node scripts/pre-push-check.mjs` 端到端 47s 通过（串行基线约 89s）；其中全量测试 33.1s（74 文件 / 740 用例，汇总行无 `Errors`）、类型检查 17.1s（并发争用下）、生产构建 46.9s、行数检查 0.4s。增量收益 A/B 交替：增量 9s / 7s，非增量 13s / 11s；冷启动受系统负载影响大（观察到 12~27s），不承诺固定值
+
 ## [0.0.6-261018] - 261018
 
 ### 功能
