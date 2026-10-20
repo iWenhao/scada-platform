@@ -61,6 +61,12 @@
 
 ### 修复
 
+- CSV 导出测试改为时区无关断言，CI（UTC）不再误报
+  - 背景：`csv.test.ts` 把期望时间硬编码成 `2026-09-30 10:20:30.400`，而 `formatTime` 按**本地时区**字段格式化——本机 UTC+8 通过，GitHub Actions 的 UTC 环境实际输出 `02:20:30.400`，首轮 CI 两处断言红。这是测试的可移植性缺陷，不是导出逻辑错误：CSV 给业务人员看，本地时间正是想要的
+  - 改法：不再比对完整字符串，改为断言 `YYYY-MM-DD HH:mm:ss.SSS` 形状，再把无时区后缀的时间串解析回 epoch 与固定时间戳相等；两种时区下同一份断言成立，且仍锁住毫秒精度。不在 CI 里设 `TZ=Asia/Shanghai`——那只是把同样的隐式依赖搬进流水线
+  - 动了：`src/export/csv.test.ts`
+  - 实测：`TZ=UTC` 与 `TZ=Asia/Shanghai` 下各 6 例全过；`TZ=UTC npx vitest run` 全量 74 文件 / 746 用例通过、汇总行无 `Errors`
+
 - 报警通知弹窗「测试」不再静默保存全量配置，新增取消不再残留空通道
   - 背景：旧 `handleTest` 先 `saveNotifyConfig` 落盘全部内存改动、再按服务端返回的通道找 id 发测试——点一下「测试」等于替用户按了一次保存，未保存的开关/删除/节流全部被静默持久化；另外「添加通道」是先 `push` 进列表再开编辑框，取消编辑后列表残留一条空通道
   - 服务端 `/api/notify/test` 本就支持内联通道对象（`routes/notify.mjs` 按 `payload.id ? 查已存 : payload.channel` 分支），客户端把 `testNotifyChannel(id)` 改为 `testNotifyChannel(channel)` 直传草稿即可，不需要先保存

@@ -2,8 +2,14 @@ import { describe, it, expect, vi } from 'vitest'
 import { historyToCsv, alarmsToCsv, downloadCsv } from './csv'
 import type { AlarmRecord } from '@/stores/alarmStore'
 
-// 固定时间戳，避免时区影响断言
+// 导出按本地时区格式化，硬编码字符串只能在 UTC+8 成立（CI 是 UTC）。
+// 断言改为「形状 + 回读时间戳」：无时区后缀的本地时间串解析回同一 epoch。
 const T = new Date('2026-09-30T10:20:30.400+08:00').getTime()
+const STAMP = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$/
+
+function stampToEpoch(stamp: string): number {
+  return new Date(stamp.replace(' ', 'T')).getTime()
+}
 
 describe('historyToCsv', () => {
   it('输出 BOM + 表头 + 时间值两列', () => {
@@ -11,7 +17,10 @@ describe('historyToCsv', () => {
     expect(csv.charCodeAt(0)).toBe(0xfeff)
     const lines = csv.slice(1).split('\r\n')
     expect(lines[0]).toBe('time,value')
-    expect(lines[1]).toBe('2026-09-30 10:20:30.400,12.5')
+    const [stamp, value] = lines[1].split(',')
+    expect(stamp).toMatch(STAMP)
+    expect(stampToEpoch(stamp)).toBe(T)
+    expect(value).toBe('12.5')
   })
 
   it('空数据只有表头', () => {
@@ -44,9 +53,10 @@ describe('alarmsToCsv', () => {
 
   it('未恢复的报警恢复时间为空', () => {
     const csv = alarmsToCsv([{ ...base, clearedAt: undefined }])
-    const line = csv.slice(1).split('\r\n')[1]
-    expect(line.startsWith(`2026-09-30 10:20:30.400,`)).toBe(true)
-    expect(line.split(',')[1]).toBe('')
+    const [trigger, cleared] = csv.slice(1).split('\r\n')[1].split(',')
+    expect(trigger).toMatch(STAMP)
+    expect(stampToEpoch(trigger)).toBe(T)
+    expect(cleared).toBe('')
   })
 
   it('含逗号的字段被引号包裹并转义', () => {
