@@ -35,7 +35,7 @@ SCADA Platform：基于 **Vue 3 + TypeScript + Konva.js (vue-konva) + Pinia + El
 pnpm install            # 安装依赖（白名单见 pnpm-workspace.yaml）
 pnpm dev                # 开发服务器，http://localhost:5173
 pnpm server             # 存储后端(http://localhost:5174)，数据存 server/data/*.json
-pnpm build              # 生产构建 = vue-tsc --noEmit + vite build，提交前必跑
+pnpm build              # 生产构建 = vue-tsc --noEmit + vite build，属推送门槛（见「验证节奏」）
 npx vitest run          # 测试单次运行（pnpm test 是 watch 模式，会挂住终端）
 pnpm lint               # ESLint
 ```
