@@ -79,6 +79,10 @@ describe('mapTestFiles', () => {
     expect(mapTestFiles(['scripts/pre-push-check.mjs'])).toEqual(['scripts/pre-push-check.test.ts'])
   })
 
+  it('无扩展名文件不映射自身（曾把 scripts/hooks/pre-push 当测试传给 vitest）', () => {
+    expect(mapTestFiles(['scripts/hooks/pre-push'])).toEqual([])
+  })
+
   it('去重且排序稳定', () => {
     expect(
       mapTestFiles([

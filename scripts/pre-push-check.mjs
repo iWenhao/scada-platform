@@ -72,7 +72,9 @@ export function mapTestFiles(changedFiles) {
       continue
     }
     const candidate = file.replace(/\.[^.]+$/, '.test.ts')
-    if (fs.existsSync(path.join(repoRoot, candidate))) tests.add(candidate)
+    // candidate === file 说明原文件没有扩展名（如 scripts/hooks/pre-push），
+    // 正则替换不生效；这种文件没有「同名测试」可映射，不能把自身当测试传出去。
+    if (candidate !== file && fs.existsSync(path.join(repoRoot, candidate))) tests.add(candidate)
   }
   return [...tests].sort()
 }

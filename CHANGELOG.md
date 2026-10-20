@@ -55,7 +55,7 @@
   - 不用 `vitest related` 的原因：它要 vite 转换整个模块图，实测在本机被沙箱 SIGTERM（`TMPDIR` 绕行仍复现），且慢；同目录同名是仓库既定约定，纯 git + 路径映射即可，漏掉的跨目录覆盖由 CI 全量兜底
   - CI（`.github/workflows/ci.yml`，push 到 dev/master 与 PR 触发）：五项与 `--full` 同款，分步跑便于定位；`concurrency.cancel-in-progress` 防连续 push 时旧 run 占分钟数；CI 的干净 Linux 无本机沙箱 EPERM 少跑文件问题，全量结果比本地可信
   - 底线变化如实记录：坏提交从「不出机器」变为「不出远端」——CI 红时邮件即时通知，fixup/revert 跟上；本地钩子绕得过（删钩子 / `core.hooksPath` 失效 / `--no-verify`），CI 绕不过
-  - 实测发现的真 bug：轻量映射首版漏了 `scripts/`（该目录的测试同样在 vitest include 内），改 `scripts/pre-push-check.mjs` 自己的测试不会被触发——`SOURCE_DIRS` 已补，并加回归用例（8 例全过）
+  - 实测发现的真 bug：轻量映射首版漏了 `scripts/`（该目录的测试同样在 vitest include 内），改 `scripts/pre-push-check.mjs` 自己的测试不会被触发——`SOURCE_DIRS` 已补，并加回归用例（9 例全过）；推送后的端到端跑又暴露第二处：无扩展名文件（`scripts/hooks/pre-push`）被正则原样传成「测试文件」传给 vitest（vitest 按 include 过滤所以没炸，纯属侥幸），已加 `candidate !== file` 守卫
   - 实测：`node scripts/pre-push-check.mjs --light` 一次通过（相关测试 1 个文件 19 例 9.5s + 类型检查 15.0s + 行数检查 0.8s，并发墙钟约 15s；本机沙箱 EPERM 本次未触发）；AGENTS.md 改写后 30140 字节（上限 32768）
   - 动了：`scripts/pre-push-check.mjs`（两级模式 + 映射函数，导出 `mapTestFiles`）、`scripts/pre-push-check.d.mts`、`scripts/pre-push-check.test.ts`、`scripts/hooks/pre-push`（改调 `--light`）、`.github/workflows/ci.yml`（新）、`AGENTS.md`（验证节奏三级化 + 推送节奏改写）、`CHANGELOG.md`
 
