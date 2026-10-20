@@ -87,7 +87,7 @@ pnpm lint               # ESLint
 | 改了 `server/**` 或 `shared/**` | 加跑 `pnpm typecheck:server`（`tsc -p tsconfig.server.json`） | 前端那套 `vue-tsc` 的 include 只覆盖 `src/`，服务端 `.mjs` 不在其中；这条是服务端唯一的类型检查入口，不跑等于服务端改动零类型把关 |
 | 跨模块重构 / 改了类型签名与导出 | 加跑 `vue-tsc --noEmit` | 跨文件重构的错误类型检查最灵（`Record` 缺键、接口字段漏传这类单测看不出来） |
 | 每次提交（轻量集，分钟级以内） | 改动路径相关的测试 + `vue-tsc --noEmit` + `node scripts/check-long-files.mjs` | 小改动最易踩的是跨文件类型错，`vue-tsc` 最灵且便宜；全量与 build 留到推送 |
-| 每次推送（`pre-push` 强制，全量的唯一权威时机） | 全量 `vitest run` + `vue-tsc --noEmit` + `vite build --emptyOutDir=false` + `node scripts/check-long-files.mjs`，四项由 `scripts/pre-push-check.mjs` 并发跑，未过项整轮重试一次（应对沙箱 EPERM 抖动）；`vue-tsc` 走增量缓存（`node_modules/.cache/vue-tsc/`），热跑 7~9s | 项目底线。本仓库没有 CI，这就是唯一的 CI；全量结果按上一节的判据算数 |
+| 每次推送（`pre-push` 强制，全量的唯一权威时机） | 全量 `vitest run` + `vue-tsc --noEmit` + `tsc -p tsconfig.server.json` + `vite build --emptyOutDir=false` + `node scripts/check-long-files.mjs`，五项由 `scripts/pre-push-check.mjs` 并发跑，未过项整轮重试一次（应对沙箱 EPERM 抖动）；两个 tsc 均走增量缓存（`node_modules/.cache/`） | 项目底线。本仓库没有 CI，这就是唯一的 CI；全量结果按上一节的判据算数 |
 | 引入新文件或改动文件较多 | 加跑**改动文件**的 `eslint` | 全量 eslint 会被仓库既有 `.vue` 报警（`vue/html-indent`、`no-mutating-props` 等）淹没，信号被稀释 |
 | 影响用户可见的输出（UI / 控制台 / 日志格式） | **必须真跑一次并看结果**，优先级排在上面全部静态检查之前 | 见「测试」一节 |
 

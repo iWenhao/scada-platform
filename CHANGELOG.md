@@ -408,6 +408,13 @@
   - 动了：`scripts/pre-push-check.mjs`、`scripts/pre-push-check.d.mts`（新）、`scripts/pre-push-check.test.ts`（新）、`tsconfig.json`、`AGENTS.md`（验证节奏表）
   - 实测：`node scripts/pre-push-check.mjs` 端到端 47s 通过（串行基线约 89s）；其中全量测试 33.1s（74 文件 / 740 用例，汇总行无 `Errors`）、类型检查 17.1s（并发争用下）、生产构建 46.9s、行数检查 0.4s。增量收益 A/B 交替：增量 9s / 7s，非增量 13s / 11s；冷启动受系统负载影响大（观察到 12~27s），不承诺固定值
 
+- 推送门槛补上服务端类型检查，并修复一处被并发放大的心跳测试抖动
+  - 背景：`vue-tsc` 的 include 只覆盖 `src/`，`server/**` 与 `shared/**` 的 `.mjs` 不在其中；此前只有「改了 server 就加跑 `pnpm typecheck:server`」的手工约定，漏一步就能让服务端类型错误推到远端。pre-push 是本仓库唯一的 CI，不应留这项盲区
+  - 改法：`scripts/pre-push-check.mjs` 增加第五项 `npx tsc -p tsconfig.server.json`，与其余四项并发；`tsconfig.server.json` 开 `incremental`，缓存落 `node_modules/.cache/tsc-server/`。服务端 tsc 独立跑 3s、增量热跑 2s，藏在构建的长板下，不增加墙钟
+  - 顺带修复：首轮实跑时 `singleInstanceLock` 的心跳用例在五路并发下失败（固定等 150ms，worker 的定时器回调被推迟到窗口之外，`updatedAt` 未变；重试才过）。改为轮询到心跳落盘、2s 上限兜底，保留「真实实例定时器」的验证方式，不再依赖机器负载
+  - 动了：`scripts/pre-push-check.mjs`、`tsconfig.server.json`、`server/lib/singleInstanceLock.test.ts`、`AGENTS.md`、`CHANGELOG.md`
+  - 实测：`node scripts/pre-push-check.mjs` 五项端到端 47s 通过（与加项前持平）；全量测试 74 文件 / 740 用例、类型检查 19.9s、服务端类型检查 3.6s（并发下）、生产构建 46.9s、行数检查 0.3s，汇总行无 `Errors`
+
 ## [0.0.6-261018] - 261018
 
 ### 功能

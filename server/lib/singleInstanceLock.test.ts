@@ -151,8 +151,14 @@ describe('acquireInstanceLock', () => {
     let tick = 1_000
     const lock = await acquireInstanceLock(at, { now: () => ++tick, intervalMs: 20 })
     const first = JSON.parse(await readFile(lockFilePath(at), 'utf8'))
-    await new Promise((r) => setTimeout(r, 150))
-    const after = JSON.parse(await readFile(lockFilePath(at), 'utf8'))
+    // 固定等 150ms 在五路并发的验证门槛下会把 worker 的定时器饿过 20ms 周期，
+    // 轮询到心跳真正落盘为止；真出 bug 时由 2s 上限兜底失败
+    const deadline = Date.now() + 2_000
+    let after = first
+    while (after.updatedAt === first.updatedAt && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 10))
+      after = JSON.parse(await readFile(lockFilePath(at), 'utf8'))
+    }
     expect(after.createdAt).toBe(first.createdAt)
     expect(after.updatedAt).toBeGreaterThan(first.updatedAt)
     await lock.release()

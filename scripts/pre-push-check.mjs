@@ -9,15 +9,15 @@
  * 「验证节奏」表第一级），推送前由本脚本强制跑全量：提交之间允许个别坏
  * 提交，但不出机器；远端永远是全量验证过的状态。
  *
- * 四件套各自的价值（为什么一个都不能省）：
+ * 五项各自的价值（为什么一个都不能省）：
  *   1. vitest run      行为回归；汇总行出现 Errors 视为本次不可信（沙箱 EPERM 会静默少跑文件）
- *   2. vue-tsc         跨文件类型错误（Record 缺键、接口字段漏传这类单测看不出来）
- *   3. vite build      类型检查看不见的静态资源与分包问题；--emptyOutDir=false 绕开沙箱对 dist 清空的拦截
- *   4. check-long-files 400 行门槛，单测与类型检查都抓不到
+ *   2. vue-tsc         前端跨文件类型错误（Record 缺键、接口字段漏传这类单测看不出来）
+ *   3. tsc -p tsconfig.server.json  服务端与 shared 的 .mjs 类型检查，vue-tsc 的 include 覆盖不到
+ *   4. vite build      类型检查看不见的静态资源与分包问题；--emptyOutDir=false 绕开沙箱对 dist 清空的拦截
+ *   5. check-long-files 400 行门槛，单测与类型检查都抓不到
  *
- * 为什么四步并行：四项互不依赖，串行时墙钟等于四项之和（实测约 89s），
- * 并行后由最慢一项决定（8 核实测约 44s）。测试保留实时输出便于看进度；
- * 类型检查/构建/行数的输出先缓冲，失败时才打印，避免多进程输出交错。
+ * 为什么五步并行：五项互不依赖，串行时墙钟等于五项之和，并行后由最慢一项决定。
+ * 测试保留实时输出便于看进度；其余四步的输出先缓冲，失败时才打印，避免多进程输出交错。
  *
  * 为什么按轮重试而不是各步自行重试：第一轮全部跑完后再重试失败项，避免
  * 重试进程与仍在运行的步骤争 CPU；已经通过的步骤不重跑。每步最多两次。
@@ -37,6 +37,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const steps = [
   { name: '全量测试', cmd: 'npx', args: ['vitest', 'run'], live: true },
   { name: '类型检查', cmd: 'npx', args: ['vue-tsc', '--noEmit'] },
+  // 服务端 .mjs 不在 vue-tsc 的 include 内，缺了这条推进去的类型错误只能靠人工发现
+  { name: '服务端类型检查', cmd: 'npx', args: ['tsc', '-p', 'tsconfig.server.json'] },
   // dist 清空会被沙箱拦（与 pnpm build 同款问题），绕开见上注
   { name: '生产构建', cmd: 'npx', args: ['vite', 'build', '--emptyOutDir=false'] },
   // 行数检查走 Node 脚本：原 .ps1 只在装了 PowerShell 的 Windows 上能跑，
@@ -122,7 +124,7 @@ export async function runGate(
 async function main() {
   const { ok, failures } = await runGate(steps)
   if (ok) {
-    console.log('\n[pre-push] 全量验证四项全部通过，允许推送')
+    console.log('\n[pre-push] 全量验证五项全部通过，允许推送')
     return
   }
 
