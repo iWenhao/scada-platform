@@ -61,6 +61,20 @@
 
 ### 修复
 
+- 自定义组件 SVG 校验补上真解析、外链扫描与有状态缺色阻断
+  - 背景：`normalizeCustomIconSvg` 此前只搜 `<svg` 子串，畸形 XML 能过校验；画布用 data URI 解码时 `Image.onerror` 静默失败，表现为空白图标且没有任何提示。`<image href="https://…">` 等外链在 data URI 里不会被加载；有状态组件缺 `currentColor` 只告警，创建出来永远不变色
+  - 改法：`CustomIconResult` 新增 `errors`（阻断保存）与原有 `warnings`（提示）两档。保存前用 `DOMParser` 按 `image/svg+xml` 真解析（片段套临时 svg 壳），`parsererror` 或根元素非 `<svg>` 判不可用；遍历元素拦下非 `#id`、非 `data:` 的 `href/src` 外链；新增 `requireCurrentColor` 选项，有状态组件缺色时升级为错误
+  - `xlink:href` 的收敛提前到 sanitize：XML 解析器对未声明的 `xlink:` 前缀直接报 fatal error，先改写成 `href` 才不会误拦设计工具导出件
+  - 对话框：`CustomIconFields` 新增 `errors` prop，错误列表用红色展示；保存与旋转部件都按 `errors` 拦截
+  - 动了：`src/industrial/customComponent.ts`、`src/industrial/customComponent.test.ts`（环境改 jsdom，DOM 解析器在 Node 下不存在）、`CustomComponentDialog.vue`、`CustomIconFields.vue`、`custom-component.scss`
+  - 实测：`npx vitest run src/industrial/customComponent.test.ts` 32 例全过；`vue-tsc --noEmit`、`check-long-files` 干净。浏览器（独立 5173/5174 + 临时数据目录）实测：畸形 XML、有状态缺 `currentColor`、外链三种情况均显示红色错误且点「创建」不关闭对话框；合法有状态 SVG 可创建，存储里的 icon 与状态表正常。上传入口的原生 file input 被组件隐藏、自动化工具无法点击，其内容校验与粘贴共用同一条归一化管线，已由单测覆盖
+
+- 自定义组件对话框重开时表单残留上次的值
+  - 背景：对话框常驻挂载，表单值只在组件挂载时初始化一次，`watch(() => props.modelValue)` 的创建分支只复位了部分字段——选过「有状态」、改过尺寸/锁比例/动效参数后取消，再开新对话框仍沿用上次；编辑模式打开无动效的组件时，动效字段也会残留上一个组件的值
+  - 改法：创建分支显式复位宽高（80×80）、锁比例、`stateful` 与全部动效字段；编辑分支的动效字段改为按 `editing.motion` 填充，没有旋转部件时回到默认值。尺寸自动带出的 watcher 改为 `flush: 'sync'`，保证「先重置 SVG、再重置宽高」的赋值顺序不会被异步 watcher 覆盖（同时编辑模式保留组件已存的宽高，不再被图标 viewBox 覆盖）
+  - 动了：`src/components/dialogs/CustomComponentDialog.vue`
+  - 实测：浏览器里改尺寸为 120×60、取消锁比例、选有状态、开启动效并填 30/40/逆时针/90/speed 与片段后取消重开，全部回到 80×80、锁定、无状态、动效关闭；再开启动效为 50/50/顺时针/120/空。创建 120×60 的组件后重新编辑，宽高仍为 120×60；`vue-tsc --noEmit`、`check-long-files` 干净
+
 - CSV 导出测试改为时区无关断言，CI（UTC）不再误报
   - 背景：`csv.test.ts` 把期望时间硬编码成 `2026-09-30 10:20:30.400`，而 `formatTime` 按**本地时区**字段格式化——本机 UTC+8 通过，GitHub Actions 的 UTC 环境实际输出 `02:20:30.400`，首轮 CI 两处断言红。这是测试的可移植性缺陷，不是导出逻辑错误：CSV 给业务人员看，本地时间正是想要的
   - 改法：不再比对完整字符串，改为断言 `YYYY-MM-DD HH:mm:ss.SSS` 形状，再把无时区后缀的时间串解析回 epoch 与固定时间戳相等；两种时区下同一份断言成立，且仍锁住毫秒精度。不在 CI 里设 `TZ=Asia/Shanghai`——那只是把同样的隐式依赖搬进流水线

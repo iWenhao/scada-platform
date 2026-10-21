@@ -73,13 +73,55 @@ function clampSize(n: number): number {
  * 用户 SVG 会被存进共享存储、也可能被别人打开，属于不可信输入。位图渲染路径
  * （`Image` 加载 data: URI）不执行脚本，但**组件库面板是 v-html 直接插进文档的**——
  * innerHTML 不执行 `<script>`，却照常挂上 `onload` 这类事件属性。只堵位图那一条不够。
+ *
+ * `xlink:href` 在这里就收敛成 `href`（而不是等引用改写那一步）：XML 解析器遇到
+ * 未声明的 `xlink:` 前缀会直接报 fatal error，而设计工具导出的文件里漏声明
+ * `xmlns:xlink` 并不少见——先改写才能让「解析」这一关和真实渲染口径一致。
  */
 function sanitize(svg: string): string {
   return svg
     .replace(/<\s*script\b[\s\S]*?<\s*\/\s*script\s*>/gi, '')
     .replace(/<\s*foreignObject\b[\s\S]*?<\s*\/\s*foreignObject\s*>/gi, '')
     .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*')/gi, '')
+    .replace(/\sxlink:href\s*=/gi, ' href=')
     .replace(/(href\s*=\s*)(?:"javascript:[^"]*"|'javascript:[^']*')/gi, '$1"#"')
+}
+
+/**
+ * 按 XML 真解析一遍。这里查的不是「像不像 SVG」，而是「浏览器能不能渲染」：
+ * 画布走 `data:image/svg+xml` + `Image` 解码，XML 不合法时 onerror 静默失败、图标空白，
+ * 只搜 `<svg` 子串拦不住。片段没有根元素，套一层临时 svg 壳再解析
+ * （消费侧 `wrapFragment` 也会包壳）。
+ */
+function parseSvgDocument(source: string, fragment: boolean): Document | null {
+  const xml = fragment
+    ? `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">${source}</svg>`
+    : source
+  try {
+    const doc = new DOMParser().parseFromString(xml, 'image/svg+xml')
+    return doc.getElementsByTagName('parsererror').length > 0 ? null : doc
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 找出第一个外链引用。内部 `#id` 与自包含的 `data:` URI 不算。
+ *
+ * 画布用 data URI 渲染 SVG，浏览器不会为它加载外部资源（图片、字体、外部 use），
+ * 表现为图标缺块或整张空白且不报错——所以在保存前拦掉，而不是等用户发现画面不对。
+ */
+function findExternalRef(doc: Document): string | null {
+  for (const el of Array.from(doc.getElementsByTagName('*'))) {
+    for (const attr of Array.from(el.attributes)) {
+      if (attr.localName !== 'href' && attr.localName !== 'src') continue
+      const value = attr.value.trim()
+      if (!value || value.startsWith('#') || /^data:/i.test(value)) continue
+      const shown = value.length > 48 ? `${value.slice(0, 48)}…` : value
+      return `<${el.localName} ${attr.localName}="${shown}">`
+    }
+  }
+  return null
 }
 
 /**
@@ -107,13 +149,22 @@ export interface CustomIconResult {
   svg: string
   /** 给用户看的问题清单（不阻断保存，但要在面板上说清楚） */
   warnings: string[]
+  /** 阻断保存的问题：结构不可渲染或引用外部资源，存下来也不会正常显示 */
+  errors: string[]
+}
+
+export interface NormalizeCustomIconOptions {
+  /** 旋转部件：贴的是片段，解析前套一层 svg 壳 */
+  fragment?: boolean
+  /** 有状态组件：缺 currentColor 由告警升级为阻断（否则状态色永远不生效） */
+  requireCurrentColor?: boolean
 }
 
 /**
  * 归一化用户贴进来的 SVG：
  *
  * 1. 去脚本与事件属性；
- * 2. `xlink:href` 转成 `href`；
+ * 2. 真解析一次 XML，拦下浏览器渲染不了的源码与外部引用；
  * 3. **给所有 id 加唯一前缀**并同步改掉引用（`url(#x)` / `href="#x"`）。
  *
  * 第 3 条是硬约束：多张图标被 v-html 进同一个文档时，同名 id 只有第一个生效，
@@ -122,26 +173,60 @@ export interface CustomIconResult {
  * `defined` 集合改引用，绝不删 id。
  *
  * `fragment: true` 跳过 `<svg>` 外壳校验——旋转部件是片段（一个 circle/path），
- * 由渲染侧 `wrapFragment` 包壳。⚠️ 调用方必须检查返回的 `svg` 是否为空：片段
- * 过不了其他校验时也要给用户反馈，不能静默丢弃（动效件曾被这样静默丢掉过）。
+ * 由渲染侧 `wrapFragment` 包壳。⚠️ 调用方必须检查返回的 `errors` 与 `svg` 是否为空：
+ * 片段过不了校验时也要给用户反馈，不能静默丢弃（动效件曾被这样静默丢掉过）。
  */
 export function normalizeCustomIconSvg(
   svg: string,
   idPrefix: string,
-  opts: { fragment?: boolean } = {},
+  opts: NormalizeCustomIconOptions = {},
 ): CustomIconResult {
   const warnings: string[] = []
   const source = (svg || '').trim()
-  if (!source) return { svg: '', warnings: ['SVG 内容为空'] }
+  if (!source) return { svg: '', warnings, errors: ['SVG 内容为空'] }
   if (opts.fragment) {
     if (/<svg[\s>]/i.test(source)) {
-      return { svg: '', warnings: ['旋转部件请贴片段（一个 circle/path），不要带 <svg> 外壳'] }
+      return {
+        svg: '',
+        warnings,
+        errors: ['旋转部件请贴片段（一个 circle/path），不要带 <svg> 外壳'],
+      }
     }
   } else if (!/<svg[\s>]/i.test(source)) {
-    return { svg: '', warnings: ['内容里没有 <svg> 标签，请粘贴完整的 SVG 源码'] }
+    return {
+      svg: '',
+      warnings,
+      errors: ['内容里没有 <svg> 标签，请粘贴完整的 SVG 源码'],
+    }
   }
 
   let out = sanitize(source)
+  const errors: string[] = []
+
+  const doc = parseSvgDocument(out, !!opts.fragment)
+  if (!doc) {
+    return {
+      svg: '',
+      warnings,
+      errors: ['SVG 不是合法的 XML，浏览器无法渲染：请检查标签是否闭合、属性值是否带引号'],
+    }
+  }
+  if (!opts.fragment && doc.documentElement?.localName !== 'svg') {
+    const root = doc.documentElement?.localName
+    return {
+      svg: '',
+      warnings,
+      errors: [`SVG 的根元素必须是 <svg>（当前是 <${root || '空'}>）`],
+    }
+  }
+  const external = findExternalRef(doc)
+  if (external) {
+    errors.push(
+      `SVG 引用了外部资源（${external}）：画布用 data URI 渲染，外链不会被加载，` +
+        '图标会缺块或空白。请把图片内嵌为 data URI 或删除外链',
+    )
+  }
+
   const prefix = safeKey(idPrefix)
 
   const defined = new Set(collectIds(out))
@@ -172,12 +257,18 @@ export function normalizeCustomIconSvg(
   )
 
   if (!/currentColor/i.test(out)) {
-    warnings.push(
-      '图标里没有 currentColor：状态变色不会生效。请把描边/填充色改成 currentColor（多色填充稿无法变色）',
-    )
+    if (opts.requireCurrentColor) {
+      errors.push(
+        '有状态组件的图标必须使用 currentColor，否则状态变色不会生效：请把描边/填充色改成 currentColor',
+      )
+    } else {
+      warnings.push(
+        '图标里没有 currentColor：状态变色不会生效。请把描边/填充色改成 currentColor（多色填充稿无法变色）',
+      )
+    }
   }
 
-  return { svg: out, warnings }
+  return { svg: out, warnings, errors }
 }
 
 /** 状态表的一行（对话框里的编辑形态） */

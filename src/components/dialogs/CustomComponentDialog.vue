@@ -10,7 +10,7 @@
         <el-input v-model="form.name" placeholder="例如：高位水箱" maxlength="12" style="width: 200px" />
       </el-form-item>
 
-      <CustomIconFields v-model="form.svg" :warnings="warnings" />
+      <CustomIconFields v-model="form.svg" :warnings="warnings" :errors="errors" />
 
       <el-form-item label="尺寸">
         <el-input-number v-model="form.width" :min="20" :max="400" :step="10" />
@@ -126,20 +126,25 @@ const motion = reactive({
 const newType = ref(`custom_${Date.now()}`)
 const typeKey = computed(() => props.editing?.type || newType.value)
 
-const normalized = computed(() => normalizeCustomIconSvg(form.svg, typeKey.value))
+const normalized = computed(() =>
+  normalizeCustomIconSvg(form.svg, typeKey.value, { requireCurrentColor: form.stateful }),
+)
 const warnings = computed(() => normalized.value.warnings)
+const errors = computed(() => normalized.value.errors)
 const aspectRatio = computed(() => {
   const size = parseSvgSize(form.svg)
   return size && size.height > 0 ? size.width / size.height : 0
 })
 
-// 贴进新 SVG 时自动带出尺寸（用户仍可改）
+// 贴进新 SVG 时自动带出尺寸（用户仍可改）。
+// flush: 'sync' 让下面的创建分支能「先重置 SVG、再重置宽高」：默认异步 watcher 会排到
+// 同一次刷新末尾，把刚复位的宽高又改回 viewBox 尺寸。
 watch(() => form.svg, (svg) => {
   const size = parseSvgSize(svg)
   if (!size) return
   form.width = size.width
   form.height = size.height
-})
+}, { flush: 'sync' })
 
 // 锁比例时改宽联动高
 watch(() => form.width, (w) => {
@@ -181,21 +186,29 @@ watch(() => props.modelValue, (val) => {
     states.value = parseCustomStates(editing.statusRules ?? [])
     const rotor = editing.motion?.rotors?.[0]
     motion.enabled = !!rotor
-    if (rotor) {
-      motion.svg = rotor.svg
-      motion.cx = rotor.cx
-      motion.cy = rotor.cy
-      motion.direction = rotor.direction ?? 1
-      motion.degPerUnit = editing.motion?.degPerUnit ?? 120
-      motion.driveVariable = editing.motion?.driveVariable ?? ''
-    }
+    motion.svg = rotor?.svg ?? ''
+    motion.cx = rotor?.cx ?? 50
+    motion.cy = rotor?.cy ?? 50
+    motion.direction = rotor?.direction ?? 1
+    motion.degPerUnit = editing.motion?.degPerUnit ?? 120
+    motion.driveVariable = editing.motion?.driveVariable ?? ''
   } else {
+    // 创建模式回到挂载时的默认档：对话框常驻挂载，这些表单值不会随关闭销毁
     form.name = ''
     form.svg = STARTER_SVG
+    form.width = 80
+    form.height = 80
+    form.lockRatio = true
+    form.stateful = false
     newType.value = `custom_${Date.now()}`
     states.value = defaultCustomStates()
     motion.enabled = false
     motion.svg = ''
+    motion.cx = 50
+    motion.cy = 50
+    motion.direction = 1
+    motion.degPerUnit = 120
+    motion.driveVariable = ''
   }
   previewKey.value = form.stateful ? 'unbound' : 'default'
 })
@@ -207,8 +220,8 @@ function handleConfirm() {
     return
   }
   const icon = normalized.value.svg
-  if (!icon) {
-    ElMessage.warning(warnings.value[0] || '请粘贴有效的 SVG 源码')
+  if (!icon || errors.value.length) {
+    ElMessage.warning(errors.value[0] || '请粘贴有效的 SVG 源码')
     return
   }
 
@@ -226,8 +239,8 @@ function handleConfirm() {
   const rotor = rotorRaw
     ? normalizeCustomIconSvg(rotorRaw, `${typeKey.value}-rotor`, { fragment: true })
     : null
-  if (rotorRaw && !rotor?.svg) {
-    ElMessage.error(`旋转部件无效：${rotor?.warnings[0] || '无法解析该片段'}`)
+  if (rotorRaw && (!rotor?.svg || rotor.errors.length)) {
+    ElMessage.error(`旋转部件无效：${rotor?.errors[0] || rotor?.warnings[0] || '无法解析该片段'}`)
     return
   }
   const motionDef =

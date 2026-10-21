@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import {
   buildCustomStatusRules,
@@ -49,9 +48,9 @@ describe('validateSvgUpload', () => {
   it('改扩展名的位图能过类型关，但由内容闸门拦住（两段式）', () => {
     // 扩展名说 svg、MIME 说 png：按扩展名放行，交给 normalizeCustomIconSvg 的内容校验
     expect(validateSvgUpload({ name: 'fake.svg', type: 'image/png', size: 2048 })).toBeNull()
-    const { svg, warnings } = normalizeCustomIconSvg('\x89PNG\x00\x1af\x98binary garbage', 'p')
+    const { svg, errors } = normalizeCustomIconSvg('\x89PNG\x00\x1af\x98binary garbage', 'p')
     expect(svg).toBe('')
-    expect(warnings[0]).toContain('<svg>')
+    expect(errors[0]).toContain('<svg>')
   })
 
   it('空文件与超体积被拒', () => {
@@ -105,9 +104,74 @@ describe('normalizeCustomIconSvg', () => {
   })
 
   it('没有 svg 标签时判为不可用', () => {
-    const { svg, warnings } = normalizeCustomIconSvg('<div>hello</div>', 'p')
+    const { svg, errors } = normalizeCustomIconSvg('<div>hello</div>', 'p')
     expect(svg).toBe('')
-    expect(warnings.join()).toContain('<svg>')
+    expect(errors[0]).toContain('<svg>')
+  })
+
+  it('畸形 XML 被阻断（浏览器渲染不了）', () => {
+    const { svg, errors } = normalizeCustomIconSvg('<svg viewBox="0 0 10 10"><rect></svg>', 'p')
+    expect(svg).toBe('')
+    expect(errors[0]).toContain('XML')
+  })
+
+  it('根元素不是 <svg> 被阻断', () => {
+    const { svg, errors } = normalizeCustomIconSvg('<div><svg viewBox="0 0 1 1"></svg></div>', 'p')
+    expect(svg).toBe('')
+    expect(errors[0]).toContain('根元素')
+  })
+
+  it('http(s) 与协议相对外链被阻断，源码保留给预览', () => {
+    const http = normalizeCustomIconSvg(
+      '<svg viewBox="0 0 1 1"><image href="https://x.test/a.png"/></svg>',
+      'p',
+    )
+    expect(http.errors[0]).toContain('外部资源')
+    expect(http.svg).toContain('<image')
+    const relative = normalizeCustomIconSvg(
+      '<svg viewBox="0 0 1 1"><image href="//cdn.test/a.png"/></svg>',
+      'p',
+    )
+    expect(relative.errors[0]).toContain('外部资源')
+  })
+
+  it('xlink:href 外链同样被阻断', () => {
+    const { errors } = normalizeCustomIconSvg(
+      '<svg xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1 1"><image xlink:href="a.png"/></svg>',
+      'p',
+    )
+    expect(errors[0]).toContain('外部资源')
+  })
+
+  it('内部引用与 data URI 放行', () => {
+    const internal = normalizeCustomIconSvg(
+      '<svg viewBox="0 0 1 1"><defs><g id="a"/></defs><use href="#a" fill="currentColor"/></svg>',
+      'p',
+    )
+    expect(internal.errors).toEqual([])
+    const embedded = normalizeCustomIconSvg(
+      '<svg viewBox="0 0 1 1"><image href="data:image/png;base64,AAAA"/></svg>',
+      'p',
+    )
+    expect(embedded.errors).toEqual([])
+  })
+
+  it('有状态组件缺 currentColor 阻断；无状态只告警', () => {
+    const src = '<svg viewBox="0 0 1 1"><rect fill="#fff"/></svg>'
+    const stateful = normalizeCustomIconSvg(src, 'p', { requireCurrentColor: true })
+    expect(stateful.errors[0]).toContain('currentColor')
+    const plain = normalizeCustomIconSvg(src, 'p')
+    expect(plain.errors).toEqual([])
+    expect(plain.warnings[0]).toContain('currentColor')
+  })
+
+  it('有状态组件带 currentColor 通过', () => {
+    const { errors } = normalizeCustomIconSvg(
+      '<svg viewBox="0 0 1 1"><rect stroke="currentColor"/></svg>',
+      'p',
+      { requireCurrentColor: true },
+    )
+    expect(errors).toEqual([])
   })
 })
 
@@ -133,18 +197,27 @@ describe('normalizeCustomIconSvg 片段模式（旋转部件）', () => {
   })
 
   it('带了 <svg> 外壳反而被拒（消费侧 wrapFragment 会包壳，不需要外层）', () => {
-    const { svg, warnings } = normalizeCustomIconSvg(
+    const { svg, errors } = normalizeCustomIconSvg(
       '<svg viewBox="0 0 10 10"><circle r="4"/></svg>',
       'p',
       { fragment: true },
     )
     expect(svg).toBe('')
-    expect(warnings[0]).toContain('不要带')
+    expect(errors[0]).toContain('不要带')
   })
 
   it('空片段返回空并给出原因（调用方必须拦，不能静默丢弃）', () => {
     expect(normalizeCustomIconSvg('   ', 'p', { fragment: true }).svg).toBe('')
-    expect(normalizeCustomIconSvg('', 'p', { fragment: true }).warnings[0]).toContain('为空')
+    expect(normalizeCustomIconSvg('', 'p', { fragment: true }).errors[0]).toContain('为空')
+  })
+
+  it('片段里的外链同样阻断', () => {
+    const { errors } = normalizeCustomIconSvg(
+      '<image href="https://x.test/a.png"/>',
+      'p-rotor',
+      { fragment: true },
+    )
+    expect(errors[0]).toContain('外部资源')
   })
 })
 

@@ -20,8 +20,11 @@
     </div>
     <p class="tip">
       粘贴完整 SVG 源码，或上传 .svg 文件。要能随状态变色，描边/填充必须写成
-      <code>currentColor</code>；多色填充稿不会变色。
+      <code>currentColor</code>；画布以 data URI 渲染图标，不能引用外部资源（图片请内嵌为 data URI）。
     </p>
+    <ul v-if="errors.length" class="error-list">
+      <li v-for="(e, i) in errors" :key="i">{{ e }}</li>
+    </ul>
     <ul v-if="warnings.length" class="warn-list">
       <li v-for="(w, i) in warnings" :key="i">{{ w }}</li>
     </ul>
@@ -39,6 +42,8 @@ const props = defineProps<{
   modelValue: string
   /** 归一化产出的告警（如缺 currentColor），由父组件计算后传进来展示 */
   warnings: string[]
+  /** 阻断保存的问题（结构不可渲染 / 外链），由父组件计算 */
+  errors: string[]
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [svg: string] }>()
