@@ -10,6 +10,19 @@
 
 ### 功能
 
+- 自定义组件支持用现场设备照片生成图标：「原图内嵌」与「矢量描摹」双方案预览后二选一
+  - 背景：图标只能手贴 SVG 或上传设计工具导出的 `.svg`，现场最常拿到的是手机拍的照片与网图；此前位图会被明确拒绝（位图里没有 `currentColor`，永远不随状态变色）
+  - 输入三路：拖入/点击选择本地 PNG/JPG/WebP（≤10MB）、`Ctrl+V` 粘贴剪贴板图片、粘贴图片 URL。URL 只放行 http(s) 与 `data:image/`，相对路径 / `javascript:` / `file:` 直接拒绝；fetch 15 秒超时，CORS 失败给可操作提示；服务端未发 `Content-Type` 时下载回来的 blob 没有 MIME，只卡体积、真实格式交给解码（否则会误报「只支持 PNG / JPG / WebP」）
+  - 预处理（`preprocess.ts`，纯函数、node 可测）：透明图按 alpha 裁边；四边颜色一致时从**四边连通**泛洪去纯色背景（不跨设备轮廓，设备内部的白色保留）；分析用 ≤1024、输出缩到 ≤512，再做灰度化 + 4%~96% 百分位对比度拉伸——现场照片常是一只深色泵压在深色厂房里，不拉伸描出来只剩一团
+  - 两条本地策略共用预处理，各自压到 ≤100KB（`CUSTOM_SVG_MAX_BYTES`）：
+    - 原图内嵌：512→384→256 逐级降质编 WebP，输出 `<image href="data:image/webp;base64,…">`
+    - 矢量描摹：`imagetracerjs`（Unlicense，47KB，动态 `import()` 懒加载、不进首包）量化调色板后把每层映射成 `currentColor + fill-opacity`，三次逐级粗化仍超限则报错
+  - 双方案并列的**真正理由是状态变色**：有状态组件的颜色来自 `currentColor` 替换，内嵌原图永远不变色。因此勾选「有状态」时内嵌卡片禁用并自动切到描摹；切回无状态不抢回用户的选择（暗色画布下描摹稿的 opacity 下限从 0.14 提到 0.32、白色内容层 0.45，否则细节糊成一片）
+  - 预留 AI / 云端矢量化接入：`registerImageVectorizeStrategy()`（`strategies.ts`）注册表，本地两条只是默认实现；新增服务端能力时注册一条即进入同一套预览选择 UI。`convertImageToSvg` 按注册顺序执行，单策略失败不影响其它（原因汇总到 `failures`）
+  - 生成结果仍走既有 `normalizeCustomIconSvg`（`<svg>` 外壳、去脚本与 `on*`、id 前缀化、禁外链），不绕过任何一道
+  - 动了：`src/industrial/imageVectorize/`（新：`preprocess.ts`、`svgOutput.ts`、`strategies.ts`、`index.ts`、`imagetracerjs.d.ts`、`imageVectorize.test.ts`）、`src/components/dialogs/CustomImageSource.vue`（新）、`CustomIconFields.vue`（加「图标来源」页签）、`CustomComponentDialog.vue`（表单级 `paste` 拦截）、`src/main.ts`（图标白名单 `Check/Loading/UploadFilled`）、`package.json`（`imagetracerjs@1.2.6`）
+  - 实测：单测 23 例（上传校验、alpha 裁边、白底泛洪不掏空设备内部、非统一背景不去底、灰度拉伸、内嵌/描摹输出、URL 校验、无 MIME 的下载体积关），`customComponent.test.ts` 32 例回归全过，`vue-tsc --noEmit` 干净。浏览器（独立 5191 + 临时后端 5186 与临时数据目录，跑完已清理）：URL 导入 40KB/30KB 并自动带出 100×85、剪贴板粘贴与本地上传同样出图、切「有状态」后内嵌卡片禁用并自动切描摹、创建后拖入画布成功；原图内嵌单独复核：图标为 `image/webp`、四角 alpha=0（无黑底方块）、Konva `Image` 解码 512×436 正常出图。控制台干净（编辑中途的热更新告警在整页刷新后不再复现，属 HMR 残留）
+
 - 存储后端启动时抢单实例锁，同一 `DATA_DIR` 双开直接拒绝启动
   - 背景：服务的写入串行化是**进程内**的（`atomicWrite` 的同路径队列是一张 `Map`），账号表与会话表在 `auth.init()` 读进内存、之后整份回写。两个实例共用一个数据目录时不会报错，只会 A 的会话 B 不认、两份内存账号表互相覆盖 `_users.json`、`access`+`rename` 之间出现注释里承认过的竞态窗口——症状是"偶尔丢一次保存"，最难查的那种
   - 拦在启动而不是拦在写入：换端口绕不开（两实例可各绑一个端口指向同一目录），所以按数据目录抢锁

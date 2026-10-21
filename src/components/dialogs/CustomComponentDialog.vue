@@ -5,12 +5,19 @@
     width="720px"
     :close-on-click-modal="false"
   >
-    <el-form :model="form" label-width="88px">
+    <el-form :model="form" label-width="88px" @paste="handlePaste">
       <el-form-item label="名称">
         <el-input v-model="form.name" placeholder="例如：高位水箱" maxlength="12" style="width: 200px" />
       </el-form-item>
 
-      <CustomIconFields v-model="form.svg" :warnings="warnings" :errors="errors" />
+      <CustomIconFields
+        ref="iconFieldsRef"
+        v-model="form.svg"
+        :warnings="warnings"
+        :errors="errors"
+        :active="props.modelValue"
+        :require-recolor="form.stateful"
+      />
 
       <el-form-item label="尺寸">
         <el-input-number v-model="form.width" :min="20" :max="400" :step="10" />
@@ -125,6 +132,25 @@ const motion = reactive({
 /** 新组件的 type：打开对话框时定一次，编辑模式沿用原 type（同 type 覆盖） */
 const newType = ref(`custom_${Date.now()}`)
 const typeKey = computed(() => props.editing?.type || newType.value)
+
+const iconFieldsRef = ref<InstanceType<typeof CustomIconFields> | null>(null)
+
+/**
+ * 剪贴板里的位图直接进「图片转换」页签；文本粘贴不拦截，照常进输入框。
+ * 只认 PNG/JPG/WebP：SVG 走源码页签（剪贴板里的 SVG 文本也能直接粘）。
+ */
+function handlePaste(event: ClipboardEvent): void {
+  const items = event.clipboardData?.items
+  if (!items) return
+  for (const item of items) {
+    if (item.kind !== 'file') continue
+    const file = item.getAsFile()
+    if (!file || !/^image\/(png|jpeg|webp)$/i.test(file.type)) continue
+    event.preventDefault()
+    void iconFieldsRef.value?.acceptImageFile(file)
+    return
+  }
+}
 
 const normalized = computed(() =>
   normalizeCustomIconSvg(form.svg, typeKey.value, { requireCurrentColor: form.stateful }),

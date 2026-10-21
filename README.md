@@ -89,6 +89,7 @@
 
 ### 自定义组件与设备模板
 - 把画布上的组合存为自定义组件或设备模板，跨工程复用（不设常驻 Tab，经搜索触达）
+- 图标可用现场设备照片生成：本地图片 / 剪贴板粘贴 / 图片 URL 三路输入，自动去纯色背景、裁边、增强对比度，输出「原图内嵌」与「矢量描摹」两种方案预览后二选一（有状态组件只能用可随状态变色的描摹方案）
 
 ---
 
@@ -433,6 +434,8 @@ import { registerComponent, unregisterComponent } from '@/industrial/registry'
 ### 自定义组件与设备模板（不写代码的那条路）
 
 在编辑器里把画布上的组合存成**自定义组件**或**设备模板**：前者由 `src/industrial/customLibrary.ts` 落存储（键 `scada_custom_components`），后者由 `templateLibrary.ts` 落库（键 `scada_device_templates`），启动时再注册回注册表。两者都与工程数据解耦——属"组件库"，刷新后仍可用；隔离按账号命名空间（远程模式由后端 `u/<userId>/` 完成，本地回落 localStorage 时沿用同一前缀语义）。组件库面板不设常驻 Tab，经搜索触达。
+
+不在代码里画图标也行：创建对话框的「图片转换」页签把设备照片转成 SVG 图标，转换管线在 `src/industrial/imageVectorize/`（预处理 `preprocess.ts` / 输出 `svgOutput.ts` / 策略注册 `strategies.ts` / 编排 `index.ts`）。两条本地策略——原图内嵌（WebP data URI，最像实物但不变色）与矢量描摹（`imagetracerjs` 懒加载，输出 `currentColor` 可随状态变色）——只是默认实现：要接 AI 抠图或云端矢量化服务，实现 `ImageVectorizeStrategy`（`id / label / hint / recolorable / run(ctx)`）后用 `registerImageVectorizeStrategy()` 注册，即可出现在同一套预览选择 UI 里；`convertImageToSvg()` 按注册顺序执行，单策略失败不影响其它。生成结果仍要走 `normalizeCustomIconSvg` 的校验，不能绕过 id 前缀化与外链拦截。
 
 ### 最小定义示例
 

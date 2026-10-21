@@ -23,6 +23,7 @@
     "@vueuse/core": "^10.0.0",
     "echarts": "^6.1.0",
     "element-plus": "^2.7.0",
+    "imagetracerjs": "1.2.6",
     "konva": "^9.0.0",
     "mqtt": "^5.16.0",
     "pinia": "^2.1.0",

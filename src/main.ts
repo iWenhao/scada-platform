@@ -1,9 +1,9 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import {
-  ArrowDown, Bottom, Box, Close, Collection, Connection, CopyDocument, Delete, Download,
-  Edit, FolderOpened, Hide, Lock, MoreFilled, Plus, Refresh, Search, Select, Setting,
-  Top, TrendCharts, Unlock, Upload, View,
+  ArrowDown, Bottom, Box, Check, Close, Collection, Connection, CopyDocument, Delete, Download,
+  Edit, FolderOpened, Hide, Loading, Lock, MoreFilled, Plus, Refresh, Search, Select, Setting,
+  Top, TrendCharts, Unlock, Upload, UploadFilled, View,
 } from '@element-plus/icons-vue'
 import VueKonva from 'vue-konva'
 // Element Plus 组件本体与样式由 unplugin-vue-components/auto-import 的
@@ -37,9 +37,9 @@ const app = createApp(App)
 // 只注册模板与右键菜单(:is 字符串)中实际用到的图标——
 // 全量注册会把 294 个图标全部打进 bundle；新增图标时在此补充
 const usedIcons = {
-  ArrowDown, Bottom, Box, Close, Collection, Connection, CopyDocument, Delete, Download,
-  Edit, FolderOpened, Hide, Lock, MoreFilled, Plus, Refresh, Search, Select, Setting,
-  Top, TrendCharts, Unlock, Upload, View,
+  ArrowDown, Bottom, Box, Check, Close, Collection, Connection, CopyDocument, Delete, Download,
+  Edit, FolderOpened, Hide, Loading, Lock, MoreFilled, Plus, Refresh, Search, Select, Setting,
+  Top, TrendCharts, Unlock, Upload, UploadFilled, View,
 }
 for (const [key, component] of Object.entries(usedIcons)) {
   app.component(key, component)
