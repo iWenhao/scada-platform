@@ -172,12 +172,15 @@ export const TransformerDefinition: ComponentDefinition = {
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="88" rx="26" ry="4.5" data-shadow="1"/>
       <path d="M35 32 V12"/>
       <path d="M65 32 V12"/>
       <path d="M35 68 V88"/>
       <path d="M65 68 V88"/>
       <circle cx="35" cy="50" r="18" data-face="cap"/>
+      <circle cx="35" cy="50" r="18" data-edge="hi"/>
       <circle cx="65" cy="50" r="18" data-face="side"/>
+      <circle cx="65" cy="50" r="18" data-edge="hi"/>
     </g>
   </svg>`,
   defaultWidth: 60,

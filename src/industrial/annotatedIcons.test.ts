@@ -44,6 +44,9 @@ const annotated = getAllComponents().filter((def) =>
   /data-(?:face|edge|shadow|pipe)="/.test(def.icon ?? ''),
 )
 
+/** 面基图元（至少有一个 data-face）；完整性只针对它们，纯 data-pipe 的图元不在其列 */
+const faceBased = getAllComponents().filter((def) => /data-face="/.test(def.icon ?? ''))
+
 describe('面基图元的产出必须是合法 XML', () => {
   it('注册表里确实有已迁移的面基图元（否则本文件检查形同空跑）', () => {
     expect(annotated.length).toBeGreaterThan(0)
@@ -87,5 +90,21 @@ describe('面基图元的产出必须是合法 XML', () => {
         expect(styleIcon(def.icon, mode), `${def.type}/${mode}`).not.toContain('data-')
       }
     }
+  })
+})
+
+describe('面基图元的绘制完整性（缺阴影或棱线＝即使光照正确也明显偏平）', () => {
+  it('每个面基图元都有接触阴影', () => {
+    const offenders = faceBased
+      .filter((def) => !/data-shadow="/.test(def.icon ?? ''))
+      .map((def) => def.type)
+    expect(offenders).toEqual([])
+  })
+
+  it('每个面基图元都有棱线（2.5D 下面不描边，轮廓全靠 data-edge）', () => {
+    const offenders = faceBased
+      .filter((def) => !/data-edge="/.test(def.icon ?? ''))
+      .map((def) => def.type)
+    expect(offenders).toEqual([])
   })
 })
