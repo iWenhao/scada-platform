@@ -20,7 +20,7 @@
   - 新增控制柜（`cabinet`）而不是改造某个素材件：电气组缺一个能挂「柜内高温」规则的柜体；同时补 `cabinet_1` 模拟设备（temp / current）与 `listDevices()`
   - 组件总数 177 → 178，电气组 24 → 25，水处理「泵」显示名改为「离心泵」
   - **恢复 `data-shadow`**：接触阴影曾是 2026-10-13 按用户要求移除的（画布上不铺落地阴影）。这次是对 6 台立体图元恢复——没有阴影椭圆的立体件会「浮」在网格上，是插画级四根支柱里最容易漏的一条；其余图元仍无阴影
-  - 规范同步：`docs/2.5D_ILLUSTRATION_GUIDE.md` §3.1 改写迁移现状与样板名单（8 台面基）、§4.1 补 `data-edge` 与 `body/hole/deck` 及「面与棱线是两条标签」、§4.2/§4.3 换成真实 token 表与按标签展开的实现、§4.4 两档风格对照、§5.1 说明 `#000000` 只用于阴影与接缝、新增 §5.8「产出必须是合法 XML」、§6 验收清单与 §8 错误对照各补若干条；`README.md` 与 `docs/USER_GUIDE.md` 的组件数、电气组条目、水处理泵名同步
+  - 规范同步：`docs/2.5D_ILLUSTRATION_GUIDE.md` §3.1 改写迁移现状与样板名单（8 台面基）、§4.1 补 `data-edge` 与 `body/hole/deck` 及「面与棱线是两条标签」、§4.2/§4.3 换成真实 token 表与按标签展开的实现、§4.4 两档风格对照、§5.1 说明 `#000000` 只用于阴影与接缝、新增 §5.8「产出必须是合法 XML」、§6 验收清单与 §8 错误对照各补若干条；`AGENTS.md` 的 2.5D 三条摘要同步换成新标注集（此前只列 `top|front|side|cap`，缺 `data-edge` 与 `body/hole/deck`——只读入口摘要就动手会重演「2.5D 还是线框」那版）；`README.md` 与 `docs/USER_GUIDE.md` 的组件数、电气组条目、水处理泵名同步
   - 动了：`src/core/canvas/faceLighting.ts`、`faceLighting.test.ts`、`src/industrial/annotatedIcons.test.ts`（新）、`src/industrial/basic/index.ts`、`electrical/index.ts`、`coal/index.ts`、`water/index.ts`、`src/datasource/adapters/MockDataAdapter.ts`、上述文档
   - 实测：`faceLighting` 13 例 + `annotatedIcons` 5 例全过——后者把**全部注册组件**的图标在 2D/2.5D 两档各展开一次，用真 `DOMParser` 判 XML 合法性，并查重复属性与悬空的 `url(#lt-*)` 引用（`annotated.length` = 8 台面基图元）；受影响范围 `npx vitest run core/canvas industrial` = 23 文件 / 267 例全过，`vue-tsc --noEmit` 干净，`check-long-files` OK，改动三文件 eslint 干净。浏览器实测（5173 编辑器，工具栏切 2.5D 后合成 `drop` 拖入 6 台）：储罐呈实体圆柱带亮带与环缝、电机带风扇罩、控制柜带门缝、离心泵带泵壳与底座、阀门带手轮、通风机带进风口暗孔，**全部无面描边、均有软投影**，与 2D 线稿观感完全不同；改前那版 6 台里 5 台在画布上是空白，正是被这条实测抓出来的
 

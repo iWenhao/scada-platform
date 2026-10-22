@@ -180,7 +180,7 @@ pnpm lint               # ESLint
 
 - **先判档，别先选技术**：投影 / 遮挡 / 剖切不在运行时变化 → 走 2D/2.5D，**不要引入 Three.js**；要转视角、真实遮挡、任意剖切、漫游巡检才上 3D（要等轴测观感用 `OrthographicCamera`）。
 - **新写设备图元一律按插画级（面基）写**，不新写线条稿；存量分批迁移，`styleIcon()` 对不含 `data-*` 的线条稿原样返回，两档可共存。实现落在 `src/core/canvas/faceLighting.ts`，风格由工程级 `viewMode` 决定（`25d` 展开渐变 / `2d` 平涂），**不要在元素背后铺背景色块**——旧的 `depthLayers.ts` 已删除，那是与「纯图形」方向冲突的做法，别加回来。
-- **不手调明暗、颜色只有一条通道**：作者只标面朝向（`data-face="top|front|side|cap"`、`data-shadow`、`data-pipe`；画布图元**不要用** `data-ground`），**不写** `fill` / `fill-opacity` / 渐变，光照由 `FACE_STYLE` token + `bakeLighting()` 统一展开；渐变必须 `stop-color="currentColor"` + `stop-opacity`，`<defs>` 写在片段内部，可动件从主图标挖掉另立片段（两处同步）。不做透视（SVG `transform` 只有 2D 仿射），2.5D 场景显式按 `depth = gridX + gridY` 升序。
+- **不手调明暗、颜色只有一条通道**：作者只标角色——面朝向 `data-face="top|front|side|cap|body|hole|deck"`、棱线 `data-edge="hi|lo"`、`data-shadow`、`data-pipe`（画布图元**不要用** `data-ground`），**一条标签只标一种角色**：2.5D 下面展开成渐变且**不描边**，轮廓全靠 `data-edge`，漏标即退回线框。**不写** `fill` / `fill-opacity` / 渐变，光照由 `FACE_STYLE` 统一展开；渐变 `stop-color="currentColor"` + `stop-opacity`，`<defs>` 写在片段内部，可动件挖掉另立片段（两处同步）。不做透视，2.5D 场景按 `depth = gridX + gridY` 升序。改 `faceLighting.ts` 或新写面基图标后跑 `npx vitest run annotatedIcons`：重复属性、或属性插到 `/>` 之后都是非法 XML，**设备画成空白而类型检查全绿**。
 
 ### 数据源适配器
 
