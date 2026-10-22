@@ -4,7 +4,7 @@
  * 约定见 AGENTS.md「工作流约定 · 提交信息」：
  *   - 标题（首行）≤ MAX_SUBJECT_LENGTH 字符（含「功能:」类前缀），超出即拒绝提交；
  *   - 标题必须以 PREFIXES 白名单里的前缀开头；
- *   - 细节一律写进 CHANGELOG.md，提交不留长正文（正文非空只提示、不阻断）。
+ *   - 细节写进提交正文，CHANGELOG 只留影响条目（标题 ≤ 30 字符，正文不限）。
  *
  * 为什么校验逻辑在 Node 而不是直接写在钩子脚本里：长度按「字符」计（一个汉字算 1），
  * 而 shell 的 ${#var} 与 wc -c 在 UTF-8 下按字节算，中文标题会被算成 3 倍而全部误判。
@@ -46,7 +46,7 @@ export function checkCommitMessage(raw) {
   } else if (length > MAX_SUBJECT_LENGTH) {
     // 超长是最主要的失守形态，单独报字数，方便直接照着删
     errors.push(
-      `标题 ${length} 字符，超出上限 ${MAX_SUBJECT_LENGTH} 字符——细节请写入 CHANGELOG.md，标题只留「改了什么」`,
+      `标题 ${length} 字符，超出上限 ${MAX_SUBJECT_LENGTH} 字符——细节请写入提交正文，标题只留「改了什么」`,
     )
   } else {
     const matched = subject.match(/^([^:：]+)[:：]\s*(\S.*)$/)
@@ -55,11 +55,6 @@ export function checkCommitMessage(raw) {
     } else if (!PREFIXES.includes(matched[1])) {
       errors.push(`未知前缀「${matched[1]}」，可用前缀：${PREFIXES.join(' / ')}`)
     }
-  }
-
-  const body = lines.slice(subjectAt + 1).filter((line) => line.trim() !== '')
-  if (body.length > 0) {
-    warnings.push(`检测到 ${body.length} 行正文：细节统一写进 CHANGELOG.md，提交建议只留标题`)
   }
 
   return { ok: errors.length === 0, exempt: false, subject, length, errors, warnings }

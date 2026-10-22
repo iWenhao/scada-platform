@@ -90,11 +90,11 @@ describe('checkCommitMessage', () => {
     }
   })
 
-  it('正文非空只提示、不阻断提交', () => {
-    const raw = '功能: 画布元素改为纯图形\n\n详细理由与实测数据应写进 CHANGELOG。\n'
+  it('正文不再提示：细节写进提交正文是新约定', () => {
+    const raw = '功能: 画布元素改为纯图形\n\n详细理由与实测数据写进提交正文。\n'
     const result = checkCommitMessage(raw)
     expect(result.ok).toBe(true)
-    expect(result.warnings[0]).toContain('细节统一写进 CHANGELOG.md')
+    expect(result.warnings).toEqual([])
   })
 
   it('数字、英文与标点各占 1 字符', () => {
