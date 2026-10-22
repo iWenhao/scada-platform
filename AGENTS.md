@@ -92,7 +92,7 @@ pnpm lint               # ESLint
 | 引入新文件或改动文件较多 | 加跑**改动文件**的 `eslint` | 全量 eslint 会被仓库既有 `.vue` 报警（`vue/html-indent`、`no-mutating-props` 等）淹没，信号被稀释 |
 | 影响用户可见的输出（UI / 控制台 / 日志格式） | **必须真跑一次并看结果**，优先级排在上面全部静态检查之前 | 见「测试」一节 |
 
-**CI 是最终裁决**（`.github/workflows/ci.yml`，push 到 dev/master 与 PR 触发）：本地钩子只拦轻量，绕得过（删钩子、`core.hooksPath` 失效、`--no-verify`），CI 绕不过。建议在仓库 Settings 里开分支保护（CI 绿才能合 master）；CI 红时收到邮件立即 fixup/revert，不要攒。提交标题格式仍由 `commit-msg` 管。
+**CI 是最终裁决**（`.github/workflows/ci.yml`，push 到 dev/master 与 PR 触发）：本地钩子只拦轻量，绕得过（删钩子、`core.hooksPath` 失效、`--no-verify`），CI 绕不过。建议在仓库 Settings 里开分支保护（CI 绿才能合 master）；CI 红时收到邮件立即 fixup/revert，不要攒。提交标题格式仍由 `commit-msg` 管。**汇报 CI 结果前必须实际查过**：无 `gh`/token 时打开 Actions 的 run 页读状态（REST API 会限流）；pre-push 提示里的「CI 兜底」只是流程描述，不能当成运行结果。
 
 ## 测试
 
