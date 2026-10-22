@@ -1,9 +1,32 @@
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useProjectStore } from '@/stores/projectStore'
+import type { SaveResult } from '@/stores/projectPersistence'
 import { useHistory } from '@/core/canvas/useHistory'
 import { captureCanvasThumbnail, thumbKey } from '@/core/canvas/thumbnail'
 import { getStorage } from '@/storage'
+import { ApiRequestError } from '@/api/client'
+
+/**
+ * 存储异常翻成一句人话。
+ * ApiRequestError 的 message 是服务端给的中文说明（500/401/413…），可直接展示；
+ * 网络层失败（后端没起、断网）抛的是 TypeError("Failed to fetch")，对用户没有信息量，
+ * 换成能指导下一步的说法。
+ */
+function storageErrorText(e: unknown): string {
+  if (e instanceof ApiRequestError) return e.message
+  if (e instanceof TypeError) return '无法连接存储服务，请检查后端是否运行'
+  return e instanceof Error && e.message ? e.message : '未知错误'
+}
+
+/**
+ * 统一的存储故障提示。会话失效（401 unauthorized）跳过：全局 401 处理已经
+ * 提示并跳登录页，这里再补一条「保存失败：请先登录」只是噪声。
+ */
+function reportStorageError(action: string, e: unknown): void {
+  if (ApiRequestError.is(e, 'unauthorized')) return
+  ElMessage.error(`${action}失败：${storageErrorText(e)}`)
+}
 
 /** 工程级操作：保存/导入导出/预览/重命名/返回主页 */
 export function useProjectActions() {
@@ -38,11 +61,8 @@ export function useProjectActions() {
         distinguishCancelAndClose: true,
       })
         .then(async () => {
-          // 撞名时走改名重试；用户放弃改名则不返回，留在编辑器避免丢改动
-          if (!(await saveWithNameGuard())) {
-            ElMessage.error('保存未完成：项目名与已有项目冲突，请改名后重试')
-            return
-          }
+          // 撞名时走改名重试；用户放弃改名或保存故障则不返回，留在编辑器避免丢改动
+          if (!(await saveWithNameGuard())) return
           router.push('/')
         })
         .catch((action) => {
@@ -57,11 +77,23 @@ export function useProjectActions() {
 
   async function handleSave() {
     saveState()
-    if (!(await saveWithNameGuard())) {
-      ElMessage.error('保存未完成：项目名与已有项目冲突，请改名后重试')
-      return
-    }
+    if (!(await saveWithNameGuard())) return
     await saveThumbnail()
+  }
+
+  /**
+   * 落一次盘，把存储故障变成提示而不是异常。
+   * 改造前这里直接 await saveProject：后端 500、断网、会话过期时异常会作为未处理的
+   * Promise 拒绝冒到控制台，界面上点「保存」毫无反应（只有顶栏的未保存标记还在）。
+   * 保存 / 保存并返回 / 预览前自动保存 / 发布前保存四个入口都经过这里，提示只发一次。
+   */
+  async function saveProjectOnce(name?: string): Promise<SaveResult | 'error'> {
+    try {
+      return name ? await projectStore.saveProject(name) : await projectStore.saveProject()
+    } catch (e) {
+      reportStorageError('保存', e)
+      return 'error'
+    }
   }
 
   /**
@@ -71,9 +103,14 @@ export function useProjectActions() {
    *
    * 'stale'（乐观并发失败）表示这份工程在别处被改过：不弹改名框，直接提示刷新后再继续，
    * 避免用户改了半天的内容被后写覆盖提醒后还被迫选新名字。
+   *
+   * 返回 false 表示没写成，原因都已当场提示过（版本过期弹窗、存储故障 toast）或是用户
+   * 主动取消改名；调用方直接中止即可，不要再补一条统一的错误文案——改造前四个入口补的是
+   * 「项目名冲突」，在 stale 与存储故障场景下会盖住刚弹出的正确提示。
    */
   async function saveWithNameGuard(): Promise<boolean> {
-    const result = await projectStore.saveProject()
+    const result = await saveProjectOnce()
+    if (result === 'error') return false
     if (result === true) return true
 
     if (result === 'stale') {
@@ -109,7 +146,8 @@ export function useProjectActions() {
       }
       // saveProject 内部会再查重：新名字仍然撞名则带着它循环再问；
       // 若新名字仍 stale（极端情况：改名过程中别处又写了原工程），按 stale 处理
-      const r = newName ? await projectStore.saveProject(newName) : 'exists'
+      const r = newName ? await saveProjectOnce(newName) : 'exists'
+      if (r === 'error') return false
       if (r === true) return true
       if (r === 'stale') {
         ElMessage.warning('工程版本已过期，请刷新页面后再继续')
@@ -180,10 +218,7 @@ export function useProjectActions() {
    * 运行端入口（首页卡片预览）仍默认读发布版。
    */
   async function handlePreview() {
-    if (!(await saveWithNameGuard())) {
-      ElMessage.error('保存未完成：项目名与已有项目冲突，请改名后重试')
-      return
-    }
+    if (!(await saveWithNameGuard())) return
     router.push({ path: '/preview', query: { project: projectStore.projectName, source: 'draft' } })
   }
 
@@ -211,10 +246,7 @@ export function useProjectActions() {
       return
     }
     // 发布前先落盘工作副本：撞名时同样走改名重试，通过后才生成发布快照
-    if (!(await saveWithNameGuard())) {
-      ElMessage.error('发布未完成：项目名与已有项目冲突，请改名后重试')
-      return
-    }
+    if (!(await saveWithNameGuard())) return
     await projectStore.publishProject()
     await saveThumbnail()
     ElMessage.success('已发布，预览将显示该版本')

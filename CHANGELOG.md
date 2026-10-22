@@ -74,6 +74,13 @@
 
 ### 修复
 
+- 保存失败不再静默：后端故障时点「保存」给出可见提示
+  - 背景：`projectStore.saveProject` 抛出的异常（后端 500、断网、会话过期）在四个入口都没有 catch。`handleSave` 是按钮回调、应用也没有全局 `errorHandler`，异常变成未处理的 Promise 拒绝只进控制台——界面上点「保存」毫无反应，只有顶栏的未保存标记还在
+  - 改法：`useProjectActions` 新增 `saveProjectOnce`，把「落一次盘」的调用包住，异常统一转成 `ElMessage.error('保存失败：…')`。`ApiRequestError` 直接用它带的中文 message（500/401/413…）；fetch 网络层失败抛的 `TypeError("Failed to fetch")` 对用户没有信息量，换成「无法连接存储服务，请检查后端是否运行」
+  - 顺带修掉一处旧提示错误：四个入口在 `saveWithNameGuard` 返回 false 时统一补一句「项目名与已有项目冲突」，但 false 也可能是版本过期（stale，弹窗已经给过正确提示）或用户主动取消改名，于是 stale 场景会先弹「工程版本已过期」、再盖一条错误的撞名提示。现在 false 的约定改为「原因已当场提示过或用户主动取消」，调用方直接中止，不再统一补文案
+  - 动了：`src/components/layout/toolbar/useProjectActions.ts`、`src/components/layout/toolbar/useProjectActions.test.ts`（新）
+  - 实测：单测 6 例（500 展示服务端说明、断网给可操作提示、stale 只保留版本弹窗、改名重试再落盘失败只提示一次、保存成功不弹错误、401 不叠提示）全过；`vue-tsc --noEmit`、`check-long-files`、改动文件 eslint 干净。浏览器（独立 5190 + 临时后端 5186 + 临时数据目录，跑完已清理）：正常保存后工程/报警/缩略图三个键均落盘；停掉后端再点「保存」，页面出现「保存失败：无法连接存储服务，请检查后端是否运行」，控制台只有预期的 `ERR_CONNECTION_REFUSED`，没有未处理的 Promise 拒绝
+
 - 会话失效与请求超时不再静默：HTTP 层补上两条统一约定
   - 背景：token 12 小时过期（`server/auth.mjs` 的 `SESSION_TTL_MS`）后，编辑中途的写请求只弹「请先登录」，顶栏仍显示已登录，唯一恢复方式是刷新；更隐蔽的是存储读失败被吞成「无数据」，表现为工程列表变空。另一头，除 `/auth/me`、`/branding` 外所有请求都没有超时，后端进程在但不回包（TCP 半开）时首页/编辑器会永远停在加载态
   - 改法：`apiFetch` 默认带 `AbortSignal.timeout(15s)`（调用方自带 signal 时不覆盖），超时转成 `ApiRequestError(0, 'timeout', '请求超时，请检查网络或服务端状态')`，不再把 DOMException 的英文说明甩给用户。401 侧新增 `setUnauthorizedHandler`，只认 `code=unauthorized`（登录失败是 `login_failed`，不触发）；注册点在 `main.ts`：清 token/缓存/命名空间 → 提示「登录已过期，请重新登录」→ 带 `redirect` 回登录页。回调放在 throw 之前触发，存储读取吞异常也照样生效
