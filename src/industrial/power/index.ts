@@ -6,18 +6,47 @@ export const TurbineDefinition: ComponentDefinition = {
   name: '汽轮机',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="20,35 80,35 70,65 30,65" />
-      <line x1="30" y1="35" x2="30" y2="65" />
-      <line x1="40" y1="35" x2="40" y2="65" />
-      <line x1="50" y1="35" x2="50" y2="65" />
-      <line x1="60" y1="35" x2="60" y2="65" />
-      <line x1="8" y1="50" x2="20" y2="50" />
-      <line x1="80" y1="50" x2="92" y2="50" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="52" cy="93" rx="30" ry="5" data-shadow="1"/>
+      <polygon points="50,64 76,77 50,90 24,77" data-face="deck"/>
+      <polygon points="24,77 50,90 50,93 24,80" data-face="front"/>
+      <polygon points="50,90 76,77 76,80 50,93" data-face="side"/>
+      <path d="M24 77 L50 64 L76 77" data-edge="hi"/>
+      <path d="M24 80 L50 93 L76 80" data-edge="lo"/>
+      <polygon points="50,32 74,44 50,56 26,44" data-face="top"/>
+      <polygon points="26,44 50,56 50,80 26,68" data-face="front"/>
+      <polygon points="50,56 74,44 74,68 50,80" data-face="side"/>
+      <path d="M26 44 L50 32 L74 44" data-edge="hi"/>
+      <path d="M26 44 L26 68" data-edge="hi"/>
+      <path d="M26 68 L50 80 L74 68" data-edge="lo"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="32" y1="47" x2="32" y2="71"/>
+        <line x1="38" y1="50" x2="38" y2="74"/>
+        <line x1="44" y1="53" x2="44" y2="77"/>
+      </g>
+      <ellipse cx="68" cy="59" rx="5.5" ry="8" data-face="cap"/>
+      <ellipse cx="68" cy="59" rx="5.5" ry="8" data-edge="hi" stroke-width="1.3"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="68" y1="53" x2="68" y2="65"/>
+        <line x1="64.5" y1="56" x2="71.5" y2="62"/>
+        <line x1="71.5" y1="56" x2="64.5" y2="62"/>
+      </g>
+      <path d="M74 59 L88 52" data-pipe="base"/>
+      <path d="M74 57.4 L88 50.4" data-pipe="hi"/>
+      <ellipse cx="88" cy="52" rx="2" ry="4" data-face="cap"/>
+      <path d="M38 44 L38 26" data-pipe="base"/>
+      <path d="M36.4 44 L36.4 26" data-pipe="hi"/>
+      <ellipse cx="38" cy="44" rx="4" ry="2" data-face="cap"/>
+      <ellipse cx="38" cy="26" rx="5" ry="2.5" data-face="cap"/>
+      <ellipse cx="38" cy="26" rx="5" ry="2.5" data-edge="hi" stroke-width="1.1"/>
+      <path d="M60 42 L60 31" data-pipe="base"/>
+      <path d="M58.4 42 L58.4 31" data-pipe="hi"/>
+      <ellipse cx="60" cy="42" rx="3" ry="1.5" data-face="cap"/>
+      <ellipse cx="60" cy="31" rx="3" ry="1.5" data-face="cap"/>
     </g>
   </svg>`,
-  defaultWidth: 110,
-  defaultHeight: 55,
+  defaultWidth: 90,
+  defaultHeight: 95,
   defaultConfig: {
     speed: 0,
     inletTemp: 25,
@@ -62,16 +91,42 @@ export const GeneratorDefinition: ComponentDefinition = {
   name: '发电机',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="30" />
-      <text x="50" y="59" text-anchor="middle" font-size="26" font-weight="bold" fill="currentColor" stroke="none">G</text>
-      <line x1="20" y1="80" x2="80" y2="80" />
-      <line x1="30" y1="80" x2="30" y2="88" />
-      <line x1="70" y1="80" x2="70" y2="88" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="52" cy="87" rx="27" ry="5" data-shadow="1"/>
+      <polygon points="50,66 74,78 50,90 26,78" data-face="deck"/>
+      <polygon points="26,78 50,90 50,93 26,81" data-face="front"/>
+      <polygon points="50,90 74,78 74,81 50,93" data-face="side"/>
+      <path d="M26 78 L50 66 L74 78" data-edge="hi"/>
+      <path d="M26 81 L50 93 L74 81" data-edge="lo"/>
+      <polygon points="50,26 72,37 50,48 28,37" data-face="top"/>
+      <polygon points="28,37 50,48 50,76 28,65" data-face="front"/>
+      <polygon points="50,48 72,37 72,65 50,76" data-face="side"/>
+      <path d="M28 37 L50 26 L72 37" data-edge="hi"/>
+      <path d="M28 37 L28 65" data-edge="hi"/>
+      <path d="M28 65 L50 76 L72 65" data-edge="lo"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="33" y1="39.5" x2="33" y2="67.5"/>
+        <line x1="39" y1="42.5" x2="39" y2="70.5"/>
+        <line x1="45" y1="45.5" x2="45" y2="73.5"/>
+        <line x1="55" y1="45.5" x2="55" y2="73.5"/>
+        <line x1="59" y1="43.5" x2="59" y2="71.5"/>
+      </g>
+      <ellipse cx="66" cy="54" rx="5" ry="8" data-face="cap"/>
+      <ellipse cx="66" cy="54" rx="5" ry="8" data-edge="hi" stroke-width="1.3"/>
+      <ellipse cx="66" cy="54" rx="1.8" ry="3.2" data-face="hole"/>
+      <polygon points="50,16 60,21 50,26 40,21" data-face="top"/>
+      <polygon points="40,21 50,26 50,32 40,27" data-face="front"/>
+      <polygon points="50,26 60,21 60,27 50,32" data-face="side"/>
+      <path d="M40 21 L50 16 L60 21" data-edge="hi"/>
+      <path d="M40 27 L50 32" data-edge="lo"/>
+      <path d="M50 18 L50 8" data-pipe="base"/>
+      <path d="M48.4 18 L48.4 8" data-pipe="hi"/>
+      <ellipse cx="50" cy="18" rx="2.5" ry="1.2" data-face="cap"/>
+      <ellipse cx="50" cy="8" rx="3" ry="1.5" data-face="cap"/>
     </g>
   </svg>`,
-  defaultWidth: 80,
-  defaultHeight: 80,
+  defaultWidth: 64,
+  defaultHeight: 95,
   defaultConfig: {
     power: 0,
     voltage: 10.5,
@@ -116,13 +171,26 @@ export const BoilerDefinition: ComponentDefinition = {
   name: '锅炉',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M30,25 Q30,14 41,14 L59,14 Q70,14 70,25 L70,74 L30,74 Z" />
-      <line x1="30" y1="56" x2="70" y2="56" stroke-dasharray="5,3" opacity="0.6" />
-      <line x1="36" y1="14" x2="36" y2="5" />
-      <line x1="50" y1="14" x2="50" y2="5" />
-      <path d="M40,92 Q50,76 60,92" />
-      <path d="M45,92 Q50,84 55,92" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="52" cy="90" rx="26" ry="5" data-shadow="1"/>
+      <path d="M26 24 A24 12 0 0 1 74 24 L74 78 A24 12 0 0 1 26 78 Z" data-face="body"/>
+      <path d="M26 52 A24 12 0 0 0 74 52" data-edge="lo"/>
+      <ellipse cx="50" cy="24" rx="24" ry="12" data-face="cap"/>
+      <ellipse cx="50" cy="24" rx="24" ry="12" data-edge="hi"/>
+      <path d="M26 78 A24 12 0 0 0 74 78" data-edge="lo"/>
+      <path d="M30 46 A21 10.5 0 0 0 70 46" stroke-dasharray="5 3" stroke-opacity="0.7"/>
+      <path d="M62 18 L62 6" data-pipe="base"/>
+      <path d="M60.4 18 L60.4 6" data-pipe="hi"/>
+      <ellipse cx="62" cy="18" rx="3.5" ry="1.8" data-face="cap"/>
+      <ellipse cx="62" cy="6" rx="4" ry="2" data-face="cap"/>
+      <ellipse cx="62" cy="6" rx="4" ry="2" data-edge="hi" stroke-width="1.1"/>
+      <path d="M40 20 L40 11" data-pipe="base"/>
+      <path d="M38.4 20 L38.4 11" data-pipe="hi"/>
+      <ellipse cx="40" cy="20" rx="3" ry="1.5" data-face="cap"/>
+      <ellipse cx="40" cy="11" rx="3" ry="1.5" data-face="cap"/>
+      <path d="M74 70 L88 77" data-pipe="base"/>
+      <path d="M74 68.4 L88 75.4" data-pipe="hi"/>
+      <ellipse cx="88" cy="77" rx="2" ry="4" data-face="cap"/>
     </g>
   </svg>`,
   defaultWidth: 70,
@@ -171,16 +239,32 @@ export const TransformerDefinition: ComponentDefinition = {
   name: '变压器',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="50" cy="88" rx="26" ry="4.5" data-shadow="1"/>
-      <path d="M35 32 V12"/>
-      <path d="M65 32 V12"/>
-      <path d="M35 68 V88"/>
-      <path d="M65 68 V88"/>
-      <circle cx="35" cy="50" r="18" data-face="cap"/>
-      <circle cx="35" cy="50" r="18" data-edge="hi"/>
-      <circle cx="65" cy="50" r="18" data-face="side"/>
-      <circle cx="65" cy="50" r="18" data-edge="hi"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="52" cy="88" rx="26" ry="5" data-shadow="1"/>
+      <polygon points="50,28 73,39.5 50,51 27,39.5" data-face="top"/>
+      <polygon points="27,39.5 50,51 50,87 27,75.5" data-face="front"/>
+      <polygon points="50,51 73,39.5 73,75.5 50,87" data-face="side"/>
+      <path d="M27 39.5 L50 28 L73 39.5" data-edge="hi"/>
+      <path d="M27 39.5 L27 75.5" data-edge="hi"/>
+      <path d="M27 75.5 L50 87 L73 75.5" data-edge="lo"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="32" y1="42" x2="32" y2="78"/>
+        <line x1="37" y1="44.5" x2="37" y2="80.5"/>
+        <line x1="42" y1="47" x2="42" y2="83"/>
+        <line x1="55" y1="48.5" x2="55" y2="84.5"/>
+        <line x1="60" y1="46" x2="60" y2="82"/>
+        <line x1="65" y1="43.5" x2="65" y2="79.5"/>
+      </g>
+      <path d="M31 61 L42 66.5 L42 71 L31 65.5 Z" data-edge="lo"/>
+      <rect x="34.6" y="24" width="2.8" height="17" data-face="body"/>
+      <ellipse cx="36" cy="41" rx="3.2" ry="1.6" data-face="cap"/>
+      <ellipse cx="36" cy="24" rx="2.6" ry="1.3" data-face="cap"/>
+      <rect x="48.6" y="24" width="2.8" height="17" data-face="body"/>
+      <ellipse cx="50" cy="41" rx="3.2" ry="1.6" data-face="cap"/>
+      <ellipse cx="50" cy="24" rx="2.6" ry="1.3" data-face="cap"/>
+      <rect x="62.6" y="24" width="2.8" height="17" data-face="body"/>
+      <ellipse cx="64" cy="41" rx="3.2" ry="1.6" data-face="cap"/>
+      <ellipse cx="64" cy="24" rx="2.6" ry="1.3" data-face="cap"/>
     </g>
   </svg>`,
   defaultWidth: 60,
@@ -229,17 +313,32 @@ export const BreakerDefinition: ComponentDefinition = {
   name: '断路器',
   group: 'power',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="55" x2="40" y2="55" />
-      <circle cx="44" cy="55" r="3" />
-      <line x1="48" y1="55" x2="70" y2="34" />
-      <rect x="65" y="26" width="9" height="9" />
-      <circle cx="74" cy="55" r="3" />
-      <line x1="78" y1="55" x2="92" y2="55" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="51" cy="84" rx="22" ry="4.5" data-shadow="1"/>
+      <polygon points="50,32 68,41 50,50 32,41" data-face="top"/>
+      <polygon points="32,41 50,50 50,82 32,71" data-face="front"/>
+      <polygon points="50,50 68,41 68,71 50,82" data-face="side"/>
+      <path d="M32 41 L50 32 L68 41" data-edge="hi"/>
+      <path d="M32 41 L32 71" data-edge="hi"/>
+      <path d="M32 71 L50 82 L68 71" data-edge="lo"/>
+      <path d="M36 46 L46 51 L46 73 L36 68 Z" data-edge="lo"/>
+      <path d="M38 68 L38 57" data-pipe="base"/>
+      <path d="M36.4 68 L36.4 57" data-pipe="hi"/>
+      <ellipse cx="38" cy="57" rx="3.2" ry="3.2" data-face="cap"/>
+      <ellipse cx="38" cy="57" rx="3.2" ry="3.2" data-edge="hi" stroke-width="1.2"/>
+      <ellipse cx="40" cy="41" rx="3.5" ry="1.75" data-face="cap"/>
+      <rect x="38.6" y="26" width="2.8" height="15" data-face="body"/>
+      <ellipse cx="40" cy="26" rx="2.6" ry="1.3" data-face="cap"/>
+      <ellipse cx="50" cy="41" rx="3.5" ry="1.75" data-face="cap"/>
+      <rect x="48.6" y="26" width="2.8" height="15" data-face="body"/>
+      <ellipse cx="50" cy="26" rx="2.6" ry="1.3" data-face="cap"/>
+      <ellipse cx="60" cy="41" rx="3.5" ry="1.75" data-face="cap"/>
+      <rect x="58.6" y="26" width="2.8" height="15" data-face="body"/>
+      <ellipse cx="60" cy="26" rx="2.6" ry="1.3" data-face="cap"/>
     </g>
   </svg>`,
-  defaultWidth: 80,
-  defaultHeight: 45,
+  defaultWidth: 60,
+  defaultHeight: 84,
   defaultConfig: {
     closed: 1,
     ratedCurrent: 630,
