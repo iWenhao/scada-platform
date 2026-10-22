@@ -25,10 +25,23 @@ export default defineConfig({
       include: ['src/**/*.{ts,vue}'],
       exclude: ['src/**/*.d.ts', 'src/**/*.test.ts', 'src/**/*.spec.ts'],
     },
+    // vue-konva / konva 必须内联给 vite 处理：外部化时是 Node 自己 require，
+    // 既不看下面的 konva 别名、也不认 jsdom，会去取 lib/index-node.js 然后要 `canvas` 原生包。
+    server: {
+      deps: {
+        inline: ['konva', 'vue-konva'],
+      },
+    },
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      // konva 的 package.json 里 main 指向 lib/index-node.js，那份 headless 依赖原生包 `canvas`
+      // （仓库没装），jsdom 下一 import 就 MODULE_NOT_FOUND；browser 字段那份才是浏览器构建。
+      // 内联让别名生效，二者缺一不可（只加 inline 不加别名实测仍报同一个错）。
+      // 目前只有 src/router/lazyKonvaRegistration.test.ts 真需要载入 vue-konva 本体——
+      // 它只验「全局组件注册到了 app 上」，不建 Stage，所以不需要 canvas。
+      konva: resolve(__dirname, 'node_modules/konva/lib/index.js'),
     },
   },
 })

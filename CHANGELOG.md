@@ -186,6 +186,19 @@
 
 ### 优化
 
+- vendor 分包重做：首屏从 1429 kB 降到 274 kB（gzip 430 → 88 kB）
+  - 背景：用户贴出构建告警「Some chunks are larger than 500 kB」。先按数据定位、不猜——用 sourcemap 的 `mappings` 逐段归因主块，再算「首屏真正要下载的字节」= `index.html` 引用 + 其**静态** import 闭包
+  - 归因结果和原先的猜测有两处相反：① 750 kB 那个主块是**动态**块（组件图标，`src/industrial/**/icons.generated.ts` 合计 543 kB raw / 218 kB gzip，只 `deco_nav` 的内嵌 PNG 就占 116 kB），首屏根本不付；② 首屏的大头是 eager 的 `vendor-element` 909 kB + `vendor-konva` 188 kB，两条都是 manualChunks 自己造出来的
+  - `vendor-element` 为什么反而更贵：Element Plus 由 `ElementPlusResolver` 按需注入，本来能按路由自然切开；一旦 `manualChunks` 把它钉成单块，这块就成了**入口的静态依赖**，登录页与项目管理页要为「只有编辑器用到的 EP 组件」一起预加载。去掉这条规则后 EP 自动散成多块（CSS 26 个），首屏 JS 只剩 vue 与入口
+  - konva 的牵连不止 `app.use(VueKonva)` 一处（那确实是静态依赖，已改掉）：**rollup 把 CJS/UMD 互操作 helper（`globalThis` 兜底与 `getDefaultExportFromCjs`）放在第一个含 CJS 模块的块顶部**，而 EP 依赖的 dayjs 也是 UMD → 入口变成 `import { c, g } from './vendor-konva'`，188 kB 又回到 `index.html` 的 modulepreload。所以 konva 也不能钉，`node_modules/konva` 交给 rollup 自己切出 `vue-konva` 动态块
+  - 另一条坑：`id.includes('node_modules/vue')` 同时命中 `vue-konva` / `vue-router`，把它们和 vue 钉进同一个 eager 块，等于把动态 import 边界抹平（动态块被并进静态块）。改成目录级正则 `node_modules[\\/](vue|@vue|vue-router|pinia)[\\/]/`
+  - 实现：`vite.config.ts` 的 manualChunks 只保留「钉 vue 全家」这一条（保留是为了框架层产物哈希稳定，改业务代码不至于让用户把框架层重下一遍）；`app.use(VueKonva)` 从 `src/main.ts` 抽成新文件 `src/router/lazyKonva.ts` 的 `installLazyKonva(app, router)`，用 `router.beforeResolve` 在导航 resolve **之前** await 动态 import 完成注册——全局组件在 render 时才解析，所以 `<v-stage>` 照常命中。选 `beforeResolve` 而非 `beforeEach`：后者会把无编辑权限的用户改派到 `/preview`，重定向后的目标同样需要 konva
+  - 实测：首屏（`index.html` 引用 + **静态** import 闭包，含 gzip）1429 kB / 430 kB → 只去掉 EP 规则 466 kB → 再摘掉 konva 的静态依赖与 manualChunks 后 **274 kB / 88 kB**；入口的静态依赖只剩 `vendor-vue`，`vue-konva` 那块 198 kB 落到动态列表里。整包 3318 → 2858 kB raw（1089 → 960 kB gzip）、文件数 37 → 56，说明收益不是靠重复打包换来的。取法：临时脚本读 `dist/index.html` 引用再做静态闭包 + `gzipSync`（脚本随 dist 一起回收，未入库）
+  - 新增两份测试钉住懒装载：`src/router/lazyKonva.test.ts` 4 例（node 环境、给 vue-konva 的 `install` 打桩，管「何时装载 / 只装一次 / 装到当前 app 实例」）；`src/router/lazyKonvaRegistration.test.ts` 2 例（**真实** vue-konva，管「装载后 `VStage`/`VLayer`/… 解析得到」——画布空白是静态检查全绿也拦不住的那类错）。后者要额外在 `vitest.config.ts` 里给 konva 指 browser 构建并 `server.deps.inline`：konva 的 `main` 指向 `lib/index-node.js`，那份 headless 依赖没装的 `canvas` 原生包，只加别名不加 inline 仍报同一个 `MODULE_NOT_FOUND`（两条都写了原因注释）
+  - 全量回归：`npx vitest run --reporter=verbose` = 80 文件 / 804 例通过（磁盘 `*.test.ts` 78 + 本次新增 2）；`vue-tsc --noEmit`、6 个改动/新增文件的 eslint、`check-long-files` 均干净。其中 `scripts/pre-push-check.test.ts` 收集阶段报 `SyntaxError: Invalid or unexpected token`——**与本次改动无关**，把 `vitest.config.ts` 的改动 stash 掉单跑同一文件仍复现，属本机既有红灯（AGENTS.md「汇总出现 Errors 即不可信」那类，需 CI 侧复核）
+  - 未验证的口子（如实报）：auto 模式不允许在受管浏览器里开新标签页，而用户自己的 5173 编辑器标签有未保存改动（`beforeunload` 实测拦下了跳转），所以**没有**在浏览器里跑过「进入编辑器 → 画布出图」。构建产物的模块图是静态核对过的（入口只静态依赖 vendor-vue），运行时注册行为靠上面 2 例真实 vue-konva 断言；请在本机开新标签页访问 `http://localhost:5173/editor` 确认画布照常出图（改了 vite.config 会让 dev server 重启，现有标签页本来就要刷新一次）
+  - 剩下的 500 kB 告警是组件图标本身（`CommandButtonNode` 块 591 kB、编辑器主块 752 kB，均为动态块），与 vendor 无关；真要降它得动素材（把 `deco_nav` 这类内嵌 PNG 外置成静态资源），属另一个决定，本次未动
+
 - 储罐从「基础组件」挪进「通用设备」，并给两组写下归属判据
   - 背景：用户质疑「储罐为什么是基础组件」。核对后确认它自初始提交（`eafe8b66`，2026-05-31）就在 `basic` 组，本次 2.5D 只换过它的图标几何、没动分组。但这一条确实站不住：基础组件 18 项里 14 项是图形与信息件、3 项是交互件，储罐是**唯一的工艺设备**；而 `general`（通用设备）本来就有 泵1/泵2/油泵/电磁阀/风机 这些同类「物」
   - 先普查再下结论：按显示名归主题统计，泵 9 份（水处理 7 + 通用设备 1 + 主运输 1，且两处「油泵」重名）、罐/箱/池/塔/仓 14 份（水处理沉淀池 ×2 重名、热力 4、洗选 4、综采/水处理 原煤仓跨组重名）、风机 5 份、电机 4 份、阀门 6 份、变压器 3 份、传感器 4 份。结论是**行业组才是脏的那侧**——它的真实成因是「按素材包导入」，不是「按行业适用性设计」。因此不建议把储罐塞进某个行业组（化工组只有 2 项，且水处理/热力/化工都要用同类罐体，归一个行业等于其余行业在面板里翻不到）

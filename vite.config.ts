@@ -74,9 +74,17 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes('node_modules/element-plus')) return 'vendor-element'
-          if (id.includes('node_modules/konva')) return 'vendor-konva'
-          if (id.includes('node_modules/vue')) return 'vendor-vue'
+          // 只钉 vue 全家（ESM），其余交给 rollup 按路由动态切。三条都是实测出来的：
+          // 1) 不要钉 element-plus：`vendor-element` 是入口的**静态**依赖，整库 909 kB 会被
+          //    登录页/首页一起预加载，其中大半只有编辑器用得到。只去掉这一条，首屏 1429 → 466 kB raw。
+          // 2) 不要钉 konva：rollup 会把 CJS/UMD 互操作 helper（globalThis 兜底、
+          //    getDefaultExportFromCjs）放在「第一个含 CJS 模块的块」顶部，而 element-plus 依赖的
+          //    dayjs 也是 UMD——入口于是静态 import 了 vendor-konva 里那两个 helper，
+          //    188 kB 的 konva 又被拖回首屏（modulepreload 里看得到）。连同 main.ts 的静态
+          //    app.use(VueKonva) 一起摘掉后，首屏 466 → 274 kB raw。
+          // 3) 匹配 vue 时要用 `node_modules/vue/` 这种「目录级」形式：`includes('node_modules/vue')`
+          //    会连带命中 vue-konva、vue-router，等价于把画布依赖钉进 eager 块。
+          if (/node_modules[\\/](vue|@vue|vue-router|pinia)[\\/]/.test(id)) return 'vendor-vue'
           return undefined
         },
       },

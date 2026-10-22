@@ -5,7 +5,6 @@ import {
   Edit, FolderOpened, Hide, Loading, Lock, MoreFilled, Plus, Refresh, Search, Select, Setting,
   Top, TrendCharts, Unlock, Upload, UploadFilled, View,
 } from '@element-plus/icons-vue'
-import VueKonva from 'vue-konva'
 // Element Plus 组件本体与样式由 unplugin-vue-components/auto-import 的
 // ElementPlusResolver 按需注入，不再全量 app.use + 全量 CSS（两份并存时按需配置失效）。
 // 官方暗色变量仍须保留: html.dark 时所有组件(含 teleport 弹层/表格行)整体转暗
@@ -18,6 +17,7 @@ import 'element-plus/es/components/message-box/style/css'
 import './styles/index.scss'
 import App from './App.vue'
 import router from './router'
+import { installLazyKonva } from './router/lazyKonva'
 import { getStorage, initStorage, resolveLocalNamespace } from '@/storage'
 import { useBrandingStore } from '@/stores/brandingStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -50,7 +50,8 @@ for (const [key, component] of Object.entries(usedIcons)) {
 
 app.use(createPinia())
 app.use(router)
-app.use(VueKonva)
+// vue-konva 改成进入画布路由时按需装载，判据与时机契约见 lazyKonva.ts（配测试）
+installLazyKonva(app, router)
 
 // 使用中会话失效（token 12 小时过期、账号被管理员删除）统一退回登录页。
 // 放在组合根而不是 api/client：client 反向 import authStore 会形成循环依赖。
