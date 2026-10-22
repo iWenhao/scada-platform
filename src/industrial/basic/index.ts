@@ -1,77 +1,6 @@
 import type { ComponentDefinition } from '@/types/scada'
 import { ImageDefinition } from './image'
 
-export const TankDefinition: ComponentDefinition = {
-  type: 'tank',
-  name: '储罐',
-  group: 'basic',
-  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="52" cy="84" rx="27" ry="6" data-shadow="1"/>
-      <path d="M24 24 A26 12 0 0 1 76 24 L76 72 A26 12 0 0 1 24 72 Z" data-face="body"/>
-      <path d="M24 52 A26 12 0 0 0 76 52" data-edge="lo"/>
-      <path d="M24 72 A26 12 0 0 0 76 72" data-edge="lo"/>
-      <ellipse cx="50" cy="24" rx="26" ry="12" data-face="cap"/>
-      <ellipse cx="50" cy="24" rx="26" ry="12" data-edge="hi"/>
-      <path d="M47 13 L47 10 A3 1.5 0 0 1 53 10 L53 13 Z" data-face="front"/>
-      <ellipse cx="50" cy="10" rx="3" ry="1.5" data-face="cap"/>
-    </g>
-  </svg>`,
-  defaultWidth: 80,
-  defaultHeight: 100,
-  defaultConfig: {
-    level: 0,
-    temp: 25,
-  },
-  statusRules: [
-    {
-      id: 'high',
-      name: '高液位',
-      color: '#ffa502',
-      severity: 'warning',
-      condition: { type: 'compare', variable: 'level', operator: '>', value: 80 },
-      priority: 1,
-    },
-    {
-      id: 'normal',
-      name: '正常',
-      color: '#00d4aa',
-      condition: { type: 'range', variable: 'level', min: 20, max: 80 },
-      priority: 2,
-    },
-    {
-      id: 'low',
-      name: '低液位',
-      color: '#ff4757',
-      severity: 'critical',
-      condition: { type: 'compare', variable: 'level', operator: '<', value: 20 },
-      priority: 3,
-    },
-  ],
-  dataBindings: [
-    { property: 'level', variable: 'level' },
-  ],
-  properties: [
-    {
-      key: 'name',
-      label: '名称',
-      type: 'string',
-      default: '储罐',
-      group: '基本',
-    },
-    {
-      key: 'level',
-      label: '液位',
-      type: 'range',
-      default: 0,
-      min: 0,
-      max: 100,
-      step: 1,
-      group: '运行参数',
-    },
-  ],
-}
-
 export const SetpointDefinition: ComponentDefinition = {
   type: 'setpoint',
   name: '设定值',
@@ -260,12 +189,14 @@ export const DisplayDefinition: ComponentDefinition = {
 }
 
 /**
- * 基础设备类组件。面板展示顺序由 ComponentPanel.vue 统一编排
- * （基础图形与常用挂件排在本列表之前），此处只列设备类。
- * 阀门/泵已删除：泵阀类图元改由各行业分组提供（如水处理的 water_pump / water_valve）。
+ * 基础组件里的设备类条目。面板展示顺序由 ComponentPanel.vue 统一编排
+ * （基础图形与常用挂件排在本列表之前），此处只列需要属性面板的那几个。
+ *
+ * 本组只放图形与信息/交互件（形状、日期时间、视频网页、设定值、操作按钮、数值显示、图片），
+ * **不放工艺设备**：阀门/泵早已删除、改由各行业分组提供（如水处理的 water_pump / water_valve），
+ * 储罐也于 2026-10-22 挪进通用设备（它是跨行业的「物」，与 泵1/电磁阀/风机 同类）。
  */
 export const basicComponents: ComponentDefinition[] = [
-  TankDefinition,
   SetpointDefinition,
   CommandButtonDefinition,
   DisplayDefinition,
