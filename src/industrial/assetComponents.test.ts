@@ -2,6 +2,9 @@
 import { describe, it, expect } from 'vitest'
 import { buildAssetComponents, type AssetMotionSpec } from './assetComponents'
 import { coalComponents } from './coal'
+import { decoComponents, pipeFittingComponents, PIPE_FITTING_TYPES } from './deco'
+import { decoMeta } from './deco/icons.generated'
+import { pipelineComponents } from './pipeline'
 import type { ComponentDefinition, MotionRotor } from '@/types/scada'
 
 // —— 结构自检 ——
@@ -158,5 +161,48 @@ describe('采煤机的两只滚筒', () => {
     for (const def of coalComponents.filter(d => !d.motion)) {
       expect(def.properties.some(p => p.key === 'animate')).toBe(false)
     }
+  })
+})
+
+// —— 分组归属自检 ——
+// 管件图标物理上在装饰的生成文件里，归属靠代码层切分。素材重新生成后一旦改名，
+// 过滤会静默漏掉那一项（不报错、面板上直接少个件），所以用「两份相加等于 decoMeta
+// 全量」这条断言把漏项变成红测试。
+describe('装饰与管件的分组切分', () => {
+  it('四项管件注册在管道组件，且确实汇进了 pipelineComponents', () => {
+    expect(pipeFittingComponents.map((d) => d.group).sort()).toEqual(['pipeline', 'pipeline', 'pipeline', 'pipeline'])
+    expect(pipeFittingComponents.map((d) => d.type).sort()).toEqual([...PIPE_FITTING_TYPES].sort())
+    const types = pipelineComponents.map((d) => d.type)
+    for (const type of PIPE_FITTING_TYPES) expect(types).toContain(type)
+  })
+
+  it('装饰组只剩贴图件，不含管件', () => {
+    expect(decoComponents.every((d) => d.group === 'deco')).toBe(true)
+    expect(decoComponents.map((d) => d.type).sort()).toEqual([
+      'deco_arrow',
+      'deco_bg_1',
+      'deco_bg_2',
+      'deco_button',
+      'deco_nav',
+      'deco_title_1',
+      'deco_title_2',
+    ])
+  })
+
+  it('切分没有丢件：两份之和等于 decoMeta 全量', () => {
+    expect(decoComponents.length + pipeFittingComponents.length).toBe(Object.keys(decoMeta).length)
+  })
+
+  // 画布上色靠把图标里的 currentColor 整串换成规则色（core/canvas/iconImage.ts），
+  // 写死的色值不在那条通道上——管件曾因此接了报警也不变色。贴图件保留写死色是有意的。
+  it('管件图标走 currentColor，贴图件保留素材写死色', () => {
+    for (const def of pipeFittingComponents) {
+      expect(def.icon).toContain('fill="currentColor"')
+      expect(def.icon.toUpperCase()).not.toContain('#407DB9')
+    }
+    // 贴图件里只有箭头接了状态色通道，其余（背景/标题/按钮/导航）保留原色
+    expect(decoComponents.filter((d) => d.icon.includes('currentColor')).map((d) => d.type)).toEqual([
+      'deco_arrow',
+    ])
   })
 })

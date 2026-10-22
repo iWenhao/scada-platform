@@ -1,3 +1,6 @@
+// 管件（直通/弯通/三通/四通）的图标在素材包里跟装饰同目录，定义仍由 deco 组构造，
+// 这里只负责把归属接上——见 src/industrial/deco/index.ts 的头注释
+import { pipeFittingComponents } from '../deco'
 import type { ComponentDefinition } from '@/types/scada'
 
 export const PipeDefinition: ComponentDefinition = {
@@ -93,4 +96,5 @@ export const PipeDefinition: ComponentDefinition = {
 
 export const pipelineComponents: ComponentDefinition[] = [
   PipeDefinition,
+  ...pipeFittingComponents,
 ]

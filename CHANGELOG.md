@@ -194,6 +194,16 @@
   - 同步：`README.md` 基础组件（18 → 17）、通用设备（14 → 15）与判据一句；`docs/USER_GUIDE.md` 只写总数（14 分组 / 178 种）与成员清单无关，未改；2.5D 条目的「储罐（基础）」改为「储罐（通用设备，当时还在基础组）」以免与历史冲突
   - 实测：`npx vitest run src/industrial src/core/canvas` 与 `vue-tsc --noEmit`、`check-long-files` 结果见本次回归；`getAllComponents()` 仍 178，按组相加核对 basic 17 / general 15
 
+- 直通 / 弯通 / 三通 / 四通从「装饰组件」挪进「管道组件」
+  - 背景：用户接着储罐那件事问「这四个放在装饰里是不是也不合适」。核对 `scripts/subunit-manifest.json`：它们的 `src` 是 `desc/real/_desc06~09.svg`，落进 deco 纯粹因为素材包把它们和贴图放同一个 `desc/` 目录——与行业组同一个失效模式（按导入出处归类，不按语义）
+  - 组内本来就自相矛盾：同一份 `_note` 写着横管/竖管「未纳入——本项目已有原生『管道』组件」，即「管件归管道」这条规则在导入时用过一次，唯独漏了同系列的这四项
+  - 顺带修掉一处静默失效：四项图标是硬编码 `fill="#407DB9"`，而状态色是靠 `iconImage.ts` 把图标里的 `currentColor` 整串换成规则色实现的，写死的色不在这条通道上——接了 `state = 2`（报警）也照样是素材蓝。deco 组 11 个图标有 10 个如此，对背景/标题/导航是正确行为（贴图不该跟状态变色），对管件是缺陷。修法是在 `deco/index.ts` 用 `toStatusColor()` 把这四项的图标喂给 `buildAssetComponents` 前做一次替换，**不动 `icons.generated.ts`**（生成文件重新导出素材会冲掉手工编辑）；贴图件保持原样，测试里钉住「deco 里只有箭头接了状态色通道」
+  - 判据同储罐：按「是什么」归类。`group` 只被面板分组/搜索/隐藏库/自定义件四处消费，画布实例只存 `type`，搬迁零风险；普查 `pages[*]` 后 12 个已存元素里这四项与 `pipe` 均 0 次（语料太小，只能证明「挪不坏东西」，不能证明没人用）
+  - 实现方式：图标数据不能手工编辑（`icons.generated.ts` 由导入脚本生成），所以在 `deco/index.ts` 按 `PIPE_FITTING_TYPES` 名单切分 meta，用 `buildAssetComponents('pipeline', …)` 产出 `pipeFittingComponents`，由 `pipeline/index.ts` 汇入 `pipelineComponents`；素材重新生成后若改名，过滤会静默丢件，故加断言「两份之和 = `decoMeta` 全量」把它变成红测试
+  - Tab 归属：`pipeline` 保持在行业 Tab（2026-10-18 随电气一起移入，属行业现场设备），所以这四项随分组一起从基础 Tab 换到行业 Tab 出现——用户确认「就放行业组件里」，`BASIC_GROUPS` / `INDUSTRY_GROUPS` 不动
+  - 同步：`README.md` 管道组件（1 → 5）、装饰组件（11 → 7）；`docs/USER_GUIDE.md` 只写总数与分组清单未列这四项，未改；总数仍 14 分组 / 178 种
+  - 实测：`npx vitest run src/industrial src/core/canvas` = 23 文件 / 271 例全过（本条目新增 4 例：分组切分 3 例 + 管件走 `currentColor` 1 例）；`vue-tsc --noEmit` 0 错、`check-long-files` OK、改动文件 eslint 0 告警；面板实测行业 Tab「管道组件」= 管道/直通/弯通/三通/四通 五项、通用 Tab「装饰组件」= 7 项，两组相加 47 + 131 = 178 未变，四项卡片 SVG 已带 `fill="currentColor"` 且有绘制尺寸（非空白），色随主题文字色 `rgb(224,224,224)`。画布上按 `state` 变色的那一步只做了单测与 DOM 级验证——像素级要在他的活动草稿里拖一个件再撤，未做
+
 - 用户管理 / 报警通知弹窗交互与视觉精修（先出对比 mockup 选定「方案 A：不动表格结构，只补层次」）
   - 未保存改动可见化：两个弹窗都按「上次加载/保存后的快照」比对出 `dirty`——报警通知 footer 左侧挂「● 有未保存改动」胶囊，保存按钮无改动时禁用，脏时关闭（×/遮罩/ESC/关闭按钮都走 `before-close`/`requestClose` 同一判据）询问「关闭将丢弃这些改动」；此前拨个开关不点保存就关窗是静默丢失的
   - 报警通知列表补「触发时机」列（notifyOn 原先只在编辑框里可见，同级别不同时的两个通道无法一眼区分）；类型前加色点（Webhook 青 / 企微钉钉蓝 / 邮件琥珀 / 短信红，全取主题语义色变量）；级别改为报警红、预警琥珀的圆角胶囊；未启用整行压暗 45%；节流数字框收进「触发节流 N 秒 · 同通道去重」胶囊（`:controls=false`）
