@@ -43,10 +43,15 @@ export function useProjectActions() {
       cancelButtonText: '取消',
     })
       .then(async ({ value }) => {
-        if (await projectStore.renameProject(value)) {
-          ElMessage.success('已重命名')
-        } else {
-          ElMessage.error('重命名失败：名称为空或与已有项目重名')
+        try {
+          if (await projectStore.renameProject(value)) {
+            ElMessage.success('已重命名')
+          } else {
+            ElMessage.error('重命名失败：名称为空或与已有项目重名')
+          }
+        } catch (e) {
+          // 迁移存储键失败（写/删出错）此前被末尾的 .catch 一起吞掉，用户看不到任何反馈
+          reportStorageError('重命名', e)
         }
       })
       .catch(() => {})
@@ -247,9 +252,18 @@ export function useProjectActions() {
     }
     // 发布前先落盘工作副本：撞名时同样走改名重试，通过后才生成发布快照
     if (!(await saveWithNameGuard())) return
-    await projectStore.publishProject()
-    await saveThumbnail()
-    ElMessage.success('已发布，预览将显示该版本')
+    try {
+      // publishProject 返回 false 表示工程名在此期间被别人占用；此前忽略返回值，
+      // 会一边提示「已发布」一边什么都没写
+      if (!(await projectStore.publishProject())) {
+        ElMessage.error('发布失败：项目名已被占用，请改名后重试')
+        return
+      }
+      await saveThumbnail()
+      ElMessage.success('已发布，预览将显示该版本')
+    } catch (e) {
+      reportStorageError('发布', e)
+    }
   }
 
   return {

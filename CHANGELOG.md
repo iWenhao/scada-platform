@@ -89,6 +89,12 @@
   - 动了：`src/api/client.ts`、`src/api/client.test.ts`（新）、`src/stores/authStore.ts`、`src/stores/authStore.test.ts`、`src/main.ts`
   - 实测：`client.test.ts` 5 例（拆信封、unauthorized 触发回调、login_failed 不触发、默认超时且不覆盖调用方 signal、超时转中文异常）；authStore 新增 3 例（过期清理、未登录不处理、并发只处理一次）与 1 例超时不清缓存，原 10 例回归全过；`vue-tsc`、`check-long-files`、改动文件 eslint 干净。浏览器（独立 5190 + 临时后端/临时目录，跑完已清理）：正常保存落盘；用「只接受连接不回复」的 TCP 服务替换后端，点保存约 15 秒后出现「保存失败：请求超时，请检查网络或服务端状态」且仍停在 `/editor`；换一个无会话的干净后端再点保存，只出现一条「登录已过期，请重新登录」并跳到 `/login?redirect=/editor`，重新登录可回到编辑器；控制台只有预期的 401/连接拒绝，没有未处理的 Promise 拒绝
 
+- 发布与重命名失败不再静默
+  - 背景：`handlePublish` 忽略 `publishProject()` 的返回值与异常——工程名被占用时返回 false 也会提示「已发布」，快照写入抛错则整条 Promise 拒绝没人接；`handleRename` 的 `renameProject` 抛错被链尾的 `.catch(() => {})`（原本只用来吞 prompt 取消）一起吞掉
+  - 改法：发布包 try/catch，`false` 与异常各自给提示；重命名把业务逻辑包 try/catch，链尾 catch 只负责 prompt 取消。三处（保存/发布/重命名）共用 `reportStorageError`，会话失效（401 unauthorized）跳过——全局 401 已经提示并跳登录页，不再叠一条「xx 失败：请先登录」
+  - 动了：`src/components/layout/toolbar/useProjectActions.ts`、`useProjectActions.test.ts`
+  - 实测：新增 3 例（发布快照失败、发布返回 false、重命名迁移失败），与既有 6 例共 9 例全过；浏览器 401 复验只出现一条全局提示
+
 - 自定义组件 SVG 校验补上真解析、外链扫描与有状态缺色阻断
   - 背景：`normalizeCustomIconSvg` 此前只搜 `<svg` 子串，畸形 XML 能过校验；画布用 data URI 解码时 `Image.onerror` 静默失败，表现为空白图标且没有任何提示。`<image href="https://…">` 等外链在 data URI 里不会被加载；有状态组件缺 `currentColor` 只告警，创建出来永远不变色
   - 改法：`CustomIconResult` 新增 `errors`（阻断保存）与原有 `warnings`（提示）两档。保存前用 `DOMParser` 按 `image/svg+xml` 真解析（片段套临时 svg 壳），`parsererror` 或根元素非 `<svg>` 判不可用；遍历元素拦下非 `#id`、非 `data:` 的 `href/src` 外链；新增 `requireCurrentColor` 选项，有状态组件缺色时升级为错误

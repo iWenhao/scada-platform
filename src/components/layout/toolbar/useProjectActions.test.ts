@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   box: { confirm: vi.fn(), alert: vi.fn(), prompt: vi.fn() },
   saveProject: vi.fn(),
   publishProject: vi.fn(),
+  renameProject: vi.fn(),
   routerPush: vi.fn(),
 }))
 
@@ -16,9 +17,14 @@ vi.mock('@/stores/projectStore', () => ({
   useProjectStore: () => ({
     projectName: '工程A',
     hasUnsavedChanges: false,
+    tagTable: [],
     saveProject: mocks.saveProject,
     publishProject: mocks.publishProject,
+    renameProject: mocks.renameProject,
   }),
+}))
+vi.mock('@/stores/pageStore', () => ({
+  usePageStore: () => ({ captureActivePage: vi.fn(), pages: [] }),
 }))
 vi.mock('@/core/canvas/useHistory', () => ({
   useHistory: () => ({ saveState: vi.fn(), clearHistory: vi.fn() }),
@@ -93,5 +99,47 @@ describe('useProjectActions 保存失败提示', () => {
     await useProjectActions().handleSave()
 
     expect(mocks.toast.error).not.toHaveBeenCalled()
+  })
+})
+
+describe('useProjectActions 发布与重命名失败提示', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  async function publishWith(project: () => Promise<unknown>): Promise<void> {
+    mocks.saveProject.mockResolvedValueOnce(true)
+    mocks.box.confirm.mockResolvedValueOnce(undefined)
+    mocks.publishProject.mockImplementationOnce(project)
+    await useProjectActions().handlePublish()
+  }
+
+  it('发布快照写入失败时提示，且不宣布成功', async () => {
+    await publishWith(async () => {
+      throw new ApiRequestError(500, 'internal_error', '服务内部错误')
+    })
+
+    expect(mocks.toast.error).toHaveBeenCalledWith('发布失败：服务内部错误')
+    expect(mocks.toast.success).not.toHaveBeenCalled()
+  })
+
+  it('发布时工程名被占用（返回 false）不再误报已发布', async () => {
+    await publishWith(async () => false)
+
+    expect(mocks.toast.error).toHaveBeenCalledWith('发布失败：项目名已被占用，请改名后重试')
+    expect(mocks.toast.success).not.toHaveBeenCalled()
+  })
+
+  it('重命名迁移存储键失败时提示，而不是被末尾的 catch 吞掉', async () => {
+    mocks.box.prompt.mockResolvedValueOnce({ value: '新名字' })
+    mocks.renameProject.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    useProjectActions().handleRename()
+
+    await vi.waitFor(() =>
+      expect(mocks.toast.error).toHaveBeenCalledWith(
+        '重命名失败：无法连接存储服务，请检查后端是否运行',
+      ),
+    )
   })
 })
