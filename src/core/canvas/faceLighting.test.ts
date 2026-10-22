@@ -75,6 +75,12 @@ describe('bakeLighting（立体风格）', () => {
     expect([...hexes]).toEqual(['#000000'])
   })
 
+  it('barrel 沿竖直方向取光——卧式壳体的亮带在天顶，套 body 会变成沿长度明暗', () => {
+    // defs 里所有角色都会产出渐变，与片段实际用到哪些面无关
+    const barrel = bakeLighting(FACE_SVG).match(/<linearGradient id="lt-barrel"[^>]*>/)?.[0] ?? ''
+    expect(barrel).toContain('x1="0" y1="0" x2="0" y2="1"')
+  })
+
   it('资源标注注入：接触阴影走软渐变 / 管身 / 管高光', () => {
     const out = bakeLighting(FACE_SVG)
     expect(out).toContain('fill="url(#lt-shadow)"')
