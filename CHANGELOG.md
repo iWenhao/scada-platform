@@ -186,6 +186,13 @@
 
 ### 优化
 
+- echarts 独立分包：画布共享块（CommandButtonNode）从 591 kB 降到 52 kB
+  - 背景：上一轮 vendor 分包（见下一条）把首屏降到 274 kB 后，剩下的 500 kB 告警里 `CommandButtonNode` 块 591 kB（gzip 205）**不是纯组件图标**——里面并着整套 echarts（图表图元 `ChartElement.vue` 按需引入的 `echarts/core` + `echarts/charts` + `echarts/components` + `echarts/renderers` 及渲染内核 zrender，约 538 kB raw / 185 kB gzip）。它是编辑器与预览两个懒加载路由的共享依赖，rollup 默认把这类共享依赖并进画布共享块，命名恰好落到 `CommandButtonNode`
+  - 改法：`vite.config.ts` manualChunks 新增一条 `node_modules[\\/](echarts|zrender)[\\/]` → `vendor-echarts`。zrender 必须同块：它是 echarts 的渲染内核，不钉会被 rollup 切开或并进别块，echarts 就白拆了
+  - 实测：`CommandButtonNode` 590.77 → 52.18 kB（gzip 205.10 → 20.12）；新增 `vendor-echarts` 538.30 kB（gzip 184.62）。**首屏不变**：`dist/index.html` 的 modulepreload 仍只有 `vendor-vue`，入口 `index-*.js` 里的 `vendor-echarts` 字样是 Vite 动态 import 的文件清单，非静态依赖——echarts 只在进入编辑器/预览页时下载。整包总量基本持平（拆包的意义是让 echarts 独立缓存、画布业务代码更新时不用重下 538 kB 的 echarts，不是省体积）
+  - 剩余 500 kB 告警：编辑器主块 `index-*.js` 752 kB（组件图标，`src/industrial/**/icons.generated.ts` 动态块）与 `vendor-echarts` 538 kB（懒加载），均不进首屏
+  - 验证：`pnpm build`（= `vue-tsc --noEmit` + `vite build`）干净通过，产物 chunk 表与上述数字逐一核对
+
 - vendor 分包重做：首屏从 1429 kB 降到 274 kB（gzip 430 → 88 kB）
   - 背景：用户贴出构建告警「Some chunks are larger than 500 kB」。先按数据定位、不猜——用 sourcemap 的 `mappings` 逐段归因主块，再算「首屏真正要下载的字节」= `index.html` 引用 + 其**静态** import 闭包
   - 归因结果和原先的猜测有两处相反：① 750 kB 那个主块是**动态**块（组件图标，`src/industrial/**/icons.generated.ts` 合计 543 kB raw / 218 kB gzip，只 `deco_nav` 的内嵌 PNG 就占 116 kB），首屏根本不付；② 首屏的大头是 eager 的 `vendor-element` 909 kB + `vendor-konva` 188 kB，两条都是 manualChunks 自己造出来的

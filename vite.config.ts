@@ -74,7 +74,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // 只钉 vue 全家（ESM），其余交给 rollup 按路由动态切。三条都是实测出来的：
+          // 只钉 vue 全家与 echarts 全家，其余交给 rollup 按路由动态切。四条都是实测出来的：
           // 1) 不要钉 element-plus：`vendor-element` 是入口的**静态**依赖，整库 909 kB 会被
           //    登录页/首页一起预加载，其中大半只有编辑器用得到。只去掉这一条，首屏 1429 → 466 kB raw。
           // 2) 不要钉 konva：rollup 会把 CJS/UMD 互操作 helper（globalThis 兜底、
@@ -84,7 +84,11 @@ export default defineConfig({
           //    app.use(VueKonva) 一起摘掉后，首屏 466 → 274 kB raw。
           // 3) 匹配 vue 时要用 `node_modules/vue/` 这种「目录级」形式：`includes('node_modules/vue')`
           //    会连带命中 vue-konva、vue-router，等价于把画布依赖钉进 eager 块。
+          // 4) echarts 是编辑器/预览两个懒加载路由的共享依赖：不钉时 rollup 会把整套 echarts
+          //    并进画布共享块（CommandButtonNode 一度 590 kB）。单独钉出 vendor-echarts 后
+          //    画布共享块回落到 52 kB；echarts 不在首屏链路，拆分不影响首屏体积。
           if (/node_modules[\\/](vue|@vue|vue-router|pinia)[\\/]/.test(id)) return 'vendor-vue'
+          if (/node_modules[\\/](echarts|zrender)[\\/]/.test(id)) return 'vendor-echarts'
           return undefined
         },
       },
