@@ -56,7 +56,7 @@ pnpm lint               # ESLint
 
 - 形状只有两种：成功 `2xx` = `{data, meta?}`（etag/分页统计进 `meta`，空 `meta` 整个键省略），失败 = `{error:{code,message}}`。成败唯一判据是 HTTP 状态码，响应体里没有 `ok`
 - 服务端出口唯一：`server/lib/http.mjs` 的 `sendData/sendFail`；失败只抛 `lib/apiError.mjs` 的 `ApiError(status, code, message, meta)`，由 `index.mjs` 顶层 catch 翻译，路由不再各自判返回值里有没有 error
-- 前端入口唯一：`src/api/client.ts` 的 `apiFetch/apiData`（拼 base、带 Bearer、拆信封、非 2xx 抛 `ApiRequestError`）。两个例外：`storage/index.ts` 的 health 探测只看状态码、`HttpPollingAdapter` 连的是第三方数据源
+- 前端入口唯一：`src/api/client.ts` 的 `apiFetch/apiData`（拼 base、带 Bearer、拆信封、非 2xx 抛 `ApiRequestError`；默认 15s 超时，`code=unauthorized` 触发 main.ts 注册的会话失效回调）。两个例外：`storage/index.ts` 的 health 探测只看状态码、`HttpPollingAdapter` 连的是第三方数据源
 - **只比 `code`，永不比 `message`**：改一句中文提示不该动到冲突/并发语义（旧代码判 `body.error === 'stale'` 就是反例）。码表与逐端点归属见 `docs/DEPLOY.md` §5.3
 
 ## 验证节奏（按改动范围分级，不必每次全跑）

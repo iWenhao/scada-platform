@@ -74,6 +74,14 @@
 
 ### 修复
 
+- 会话失效与请求超时不再静默：HTTP 层补上两条统一约定
+  - 背景：token 12 小时过期（`server/auth.mjs` 的 `SESSION_TTL_MS`）后，编辑中途的写请求只弹「请先登录」，顶栏仍显示已登录，唯一恢复方式是刷新；更隐蔽的是存储读失败被吞成「无数据」，表现为工程列表变空。另一头，除 `/auth/me`、`/branding` 外所有请求都没有超时，后端进程在但不回包（TCP 半开）时首页/编辑器会永远停在加载态
+  - 改法：`apiFetch` 默认带 `AbortSignal.timeout(15s)`（调用方自带 signal 时不覆盖），超时转成 `ApiRequestError(0, 'timeout', '请求超时，请检查网络或服务端状态')`，不再把 DOMException 的英文说明甩给用户。401 侧新增 `setUnauthorizedHandler`，只认 `code=unauthorized`（登录失败是 `login_failed`，不触发）；注册点在 `main.ts`：清 token/缓存/命名空间 → 提示「登录已过期，请重新登录」→ 带 `redirect` 回登录页。回调放在 throw 之前触发，存储读取吞异常也照样生效
+  - 为什么用回调而不是在 client 里直接 import authStore：`authStore → api/client` 已有依赖，反向会成环；`main.ts` 是组合根，注册职责放这里
+  - 顺带两处语义修正：`restoreSession` 此前对任何 `ApiRequestError` 都清缓存，超时被包成 ApiRequestError 后会误把离线演示用户踢下线，现在只认 `unauthorized`；主动登出中的 401 不再触发「过期」提示（`loggingOut` 标记），登出请求本身就可能因 token 已失效而 401
+  - 动了：`src/api/client.ts`、`src/api/client.test.ts`（新）、`src/stores/authStore.ts`、`src/stores/authStore.test.ts`、`src/main.ts`
+  - 实测：`client.test.ts` 5 例（拆信封、unauthorized 触发回调、login_failed 不触发、默认超时且不覆盖调用方 signal、超时转中文异常）；authStore 新增 3 例（过期清理、未登录不处理、并发只处理一次）与 1 例超时不清缓存，原 10 例回归全过；`vue-tsc`、`check-long-files`、改动文件 eslint 干净。浏览器（独立 5190 + 临时后端/临时目录，跑完已清理）：正常保存落盘；用「只接受连接不回复」的 TCP 服务替换后端，点保存约 15 秒后出现「保存失败：请求超时，请检查网络或服务端状态」且仍停在 `/editor`；换一个无会话的干净后端再点保存，只出现一条「登录已过期，请重新登录」并跳到 `/login?redirect=/editor`，重新登录可回到编辑器；控制台只有预期的 401/连接拒绝，没有未处理的 Promise 拒绝
+
 - 自定义组件 SVG 校验补上真解析、外链扫描与有状态缺色阻断
   - 背景：`normalizeCustomIconSvg` 此前只搜 `<svg` 子串，畸形 XML 能过校验；画布用 data URI 解码时 `Image.onerror` 静默失败，表现为空白图标且没有任何提示。`<image href="https://…">` 等外链在 data URI 里不会被加载；有状态组件缺 `currentColor` 只告警，创建出来永远不变色
   - 改法：`CustomIconResult` 新增 `errors`（阻断保存）与原有 `warnings`（提示）两档。保存前用 `DOMParser` 按 `image/svg+xml` 真解析（片段套临时 svg 壳），`parsererror` 或根元素非 `<svg>` 判不可用；遍历元素拦下非 `#id`、非 `data:` 的 `href/src` 外链；新增 `requireCurrentColor` 选项，有状态组件缺色时升级为错误

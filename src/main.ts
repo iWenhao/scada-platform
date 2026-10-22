@@ -20,7 +20,10 @@ import App from './App.vue'
 import router from './router'
 import { getStorage, initStorage, resolveLocalNamespace } from '@/storage'
 import { useBrandingStore } from '@/stores/brandingStore'
+import { useAuthStore } from '@/stores/authStore'
+import { setUnauthorizedHandler } from '@/api/client'
 import { printConsoleBanner } from '@/utils/consoleBanner'
+import { ElMessage } from 'element-plus'
 
 // 启动时在浏览器控制台打印终端风横幅（LOGO 像素画 + 系统名称 + 项目信息），便于确认当前加载的前端构建
 printConsoleBanner()
@@ -48,6 +51,17 @@ for (const [key, component] of Object.entries(usedIcons)) {
 app.use(createPinia())
 app.use(router)
 app.use(VueKonva)
+
+// 使用中会话失效（token 12 小时过期、账号被管理员删除）统一退回登录页。
+// 放在组合根而不是 api/client：client 反向 import authStore 会形成循环依赖。
+// 登录失败同样是 401，但 code 为 login_failed，不会走到这里。
+setUnauthorizedHandler(() => {
+  const auth = useAuthStore()
+  if (!auth.handleSessionExpired()) return
+  ElMessage.warning('登录已过期，请重新登录')
+  // 带上当前地址，重新登录后能回到原来的页面（编辑器里的工程仍在 Pinia 内存中）
+  void router.replace({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
+})
 
 // 本地回落模式按用户命名空间隔离（远程模式由服务端 scope 决定）
 initStorage(undefined, resolveLocalNamespace())

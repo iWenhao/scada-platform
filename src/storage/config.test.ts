@@ -45,9 +45,11 @@ describe('RemoteStorageAdapter', () => {
     const adapter = new RemoteStorageAdapter('https://api.example.com/api/storage')
     await adapter.keys()
 
-    expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/api/storage/keys', {
-      headers: { authorization: 'Bearer tok-1' },
-    })
+    // apiFetch 现在总会带默认超时 signal，这里只关心地址与鉴权头
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.com/api/storage/keys',
+      expect.objectContaining({ headers: { authorization: 'Bearer tok-1' } }),
+    )
   })
 
   it('无 Token 时不带 Authorization 头', async () => {
@@ -62,6 +64,9 @@ describe('RemoteStorageAdapter', () => {
     const adapter = new RemoteStorageAdapter('/api/storage')
     await adapter.get('k')
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/storage/get?key=k', { headers: {} })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/storage/get?key=k',
+      expect.objectContaining({ headers: {} }),
+    )
   })
 })

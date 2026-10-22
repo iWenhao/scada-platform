@@ -130,6 +130,24 @@ describe('authStore.restoreSession', () => {
     expect(activePrefix()).toBe('u/u1/')
   })
 
+  it('请求超时被包成 ApiRequestError(timeout) 时仍按离线还原，不清缓存', async () => {
+    await enterLocalMode()
+    seedSession(alice)
+    // 真实浏览器里 AbortSignal.timeout 抛的是 DOMException，client 会包成 ApiRequestError
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new DOMException('The operation was aborted due to timeout', 'TimeoutError')
+      }),
+    )
+
+    const store = useAuthStore()
+    await store.restoreSession()
+
+    expect(store.user).toEqual(alice)
+    expect(readSessionCache()).not.toBeNull()
+  })
+
   it('无会话缓存时不应发请求', async () => {
     await enterLocalMode()
     const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: alice }) }))
@@ -153,5 +171,45 @@ describe('authStore.restoreSession', () => {
 
     expect(fetchMock).not.toHaveBeenCalled()
     expect(store.isLoggedIn).toBe(false)
+  })
+})
+
+describe('authStore.handleSessionExpired', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    vi.unstubAllGlobals()
+  })
+
+  it('已登录时清空 token、缓存与命名空间，并返回 true', async () => {
+    await enterLocalMode()
+    seedSession(alice)
+    const store = useAuthStore()
+    await store.restoreSession()
+    expect(store.isLoggedIn).toBe(true)
+
+    expect(store.handleSessionExpired()).toBe(true)
+
+    expect(store.user).toBeNull()
+    expect(readSessionCache()).toBeNull()
+    expect(authHeaders().authorization).toBeUndefined()
+    expect(activePrefix()).toBe('u/anonymous/')
+  })
+
+  it('未登录（启动恢复期、登录失败）时返回 false，不重复处理', () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const store = useAuthStore()
+
+    expect(store.handleSessionExpired()).toBe(false)
+  })
+
+  it('只处理一次：并发 401 的后续调用返回 false', async () => {
+    await enterLocalMode()
+    seedSession(alice)
+    const store = useAuthStore()
+    await store.restoreSession()
+
+    expect(store.handleSessionExpired()).toBe(true)
+    expect(store.handleSessionExpired()).toBe(false)
   })
 })

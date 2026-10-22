@@ -37,6 +37,30 @@ export const useAuthStore = defineStore('auth', () => {
   const canWrite = computed(() => can('operator'))
   const canManageUsers = computed(() => can('admin'))
 
+  // 主动登出进行中：登出请求本身也可能收到 401（token 早已失效），
+  // 那不是「会话在使用中过期」，不能再弹一次过期提示
+  let loggingOut = false
+
+  /** 清本地登录态（token、缓存、用户命名空间），不碰服务端会话 */
+  function clearLocalSession(): void {
+    setSessionToken(null)
+    user.value = null
+    clearSessionCache()
+    resetCustomComponentsCache()
+    syncLocalNamespace(null)
+  }
+
+  /**
+   * 全局会话失效入口，由 main.ts 注册到 api/client 的 unauthorized 回调。
+   * 返回 false 表示不该当成「使用中过期」处理：尚未登录（启动恢复期、登录失败）
+   * 或正在主动登出。调用方据此决定是否提示与跳转登录页。
+   */
+  function handleSessionExpired(): boolean {
+    if (loggingOut || !user.value) return false
+    clearLocalSession()
+    return true
+  }
+
   async function restoreSession(): Promise<void> {
     // saved 提升到 try 外：catch 分支（后端不可达）也要靠它还原登录态。
     // JSON.parse 仍留在 try 内——缓存损坏时抛错被这里接住，saved 保持 null。
@@ -53,12 +77,10 @@ export const useAuthStore = defineStore('auth', () => {
       resetCustomComponentsCache()
       syncLocalNamespace(user.value?.id)
     } catch (e) {
-      // 服务端明确拒绝（会话过期、账号被删）：本地登录态已无效，清掉回登录页
-      if (e instanceof ApiRequestError) {
-        setSessionToken(null)
-        clearSessionCache()
-        resetCustomComponentsCache()
-        syncLocalNamespace(null)
+      // 只有「会话明确失效」才清缓存：超时（code=timeout）与 5xx 都可能只是后端临时
+      // 不可用，此时要保住登录态走下面的离线还原，否则内网演示会被一次抖动踢回登录页
+      if (e instanceof ApiRequestError && e.code === 'unauthorized') {
+        clearLocalSession()
         return
       }
       // 后端不可用时保留本地用户缓存，便于内网离线演示（写接口会 401）。
@@ -100,16 +122,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout(): Promise<void> {
+    loggingOut = true
     try {
       await apiFetch('/auth/logout', { method: 'POST' })
     } catch {
       // ignore：登出失败也要把本地登录态清掉
+    } finally {
+      loggingOut = false
     }
-    setSessionToken(null)
-    user.value = null
-    clearSessionCache()
-    resetCustomComponentsCache()
-    syncLocalNamespace(null)
+    clearLocalSession()
   }
 
   function operatorName(): string {
@@ -130,6 +151,7 @@ export const useAuthStore = defineStore('auth', () => {
     restoreSession,
     login,
     logout,
+    handleSessionExpired,
     operatorName,
   }
 })
