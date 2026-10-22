@@ -198,7 +198,7 @@ pnpm lint               # ESLint
 - `useElementSelection` 框选，`useConnectionDraw` 连线，`useElementDrag` 拖拽/吸附/变换
 - 可纯函数化的算法放独立文件并配测试（参考 `alignment.ts` + `alignment.test.ts`）
 
-预览页 `src/views/preview/index.vue` 与编辑器的元素渲染逻辑保持一致（着色/数值/图层可见性），改编辑器渲染时同步检查预览页。
+预览页 `src/views/preview/index.vue` 与编辑器的元素渲染逻辑保持一致（着色/数值），改编辑器渲染时同步检查预览页。
 
 ### 状态与持久化
 

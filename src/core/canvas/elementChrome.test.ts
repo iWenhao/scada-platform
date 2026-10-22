@@ -14,7 +14,6 @@ function makeElement(extra: Partial<ComponentInstance> = {}): ComponentInstance 
     height: 70,
     rotation: 0,
     name: '电机',
-    layerId: 'device',
     properties: {},
     statusRules: [],
     dataBindings: [],

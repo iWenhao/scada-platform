@@ -15,7 +15,6 @@ function makeElement(id: string): ComponentInstance {
     height: 70,
     rotation: 0,
     name: id,
-    layerId: 'device',
     properties: { speed: 0 },
     statusRules: [],
     dataBindings: [{ property: 'speed', variable: 'speed' }],

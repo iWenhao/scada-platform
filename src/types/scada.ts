@@ -147,7 +147,6 @@ export interface ComponentInstance {
   height: number
   rotation: number
   name: string
-  layerId: string
   /** 元素级锁定：锁定后不可拖动/缩放/旋转 */
   locked?: boolean
   /**

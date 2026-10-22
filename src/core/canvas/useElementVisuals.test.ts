@@ -41,10 +41,6 @@ const deviceStore = {
   isDataUsable: () => false,
 } as any
 
-const layerStore = {
-  getLayer: () => undefined,
-} as any
-
 function makeElement(overrides: Partial<ComponentInstance> = {}): ComponentInstance {
   return {
     id: 'el_test',
@@ -55,7 +51,6 @@ function makeElement(overrides: Partial<ComponentInstance> = {}): ComponentInsta
     height: 80,
     rotation: 0,
     name: '泵1',
-    layerId: 'layer_default',
     showName: false,
     showValue: false,
     properties: {},
@@ -90,7 +85,6 @@ function makeVisuals(opts: { usable?: boolean; data?: Record<string, any> } = {}
       getDeviceData: () => opts.data ?? {},
       isDataUsable: () => opts.usable ?? false,
     } as any,
-    layerStore,
   })
 }
 
@@ -122,7 +116,7 @@ describe('useElementVisuals · 图标异步加载的重绘链路', () => {
   })
 
   it('getIconImageConfig 订阅 iconVersion：解码完成后会重跑', () => {
-    const { getIconImageConfig, iconVersion } = useElementVisuals({ deviceStore, layerStore })
+    const { getIconImageConfig, iconVersion } = useElementVisuals({ deviceStore })
     const tracked = trackReads(() => getIconImageConfig(makeElement()))
 
     expect(tracked.runs).toBe(1)
@@ -134,7 +128,7 @@ describe('useElementVisuals · 图标异步加载的重绘链路', () => {
   })
 
   it('位图就绪后 getIconImageConfig 返回可绘配置，而不是 null', async () => {
-    const { getIconImageConfig } = useElementVisuals({ deviceStore, layerStore })
+    const { getIconImageConfig } = useElementVisuals({ deviceStore })
     const element = makeElement({ id: 'el_loaded', type: 'gen_pump2' })
 
     // 首次：图还在解码，拿不到 image，只能返回 null（节点尚未创建）
@@ -151,7 +145,7 @@ describe('useElementVisuals · 图标异步加载的重绘链路', () => {
   })
 
   it('getUserImageConfig 同样订阅 iconVersion', () => {
-    const { getUserImageConfig, iconVersion } = useElementVisuals({ deviceStore, layerStore })
+    const { getUserImageConfig, iconVersion } = useElementVisuals({ deviceStore })
     const tracked = trackReads(() =>
       getUserImageConfig(
         makeElement({

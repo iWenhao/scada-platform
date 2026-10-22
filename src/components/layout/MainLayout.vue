@@ -24,11 +24,6 @@
         <PropertyPanel />
       </div>
     </div>
-    
-    <!-- 底部图层面板 -->
-    <div v-if="uiStore.bottomPanelOpen" class="bottom-panel">
-      <LayerPanel />
-    </div>
   </div>
 </template>
 
@@ -37,7 +32,6 @@ import { useUiStore } from '@/stores/uiStore'
 import Toolbar from './Toolbar.vue'
 import ComponentPanel from './ComponentPanel.vue'
 import PropertyPanel from './PropertyPanel.vue'
-import LayerPanel from './LayerPanel.vue'
 import PageTabs from './PageTabs.vue'
 
 const uiStore = useUiStore()
@@ -96,13 +90,6 @@ const uiStore = useUiStore()
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-secondary);
-}
-
-.bottom-panel {
-  height: 180px;
-  flex-shrink: 0;
-  border-top: 1px solid var(--border-primary);
   background: var(--bg-secondary);
 }
 </style>

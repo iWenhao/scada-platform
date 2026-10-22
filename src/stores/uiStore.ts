@@ -35,9 +35,6 @@ export const useUiStore = defineStore('ui', () => {
   // 右侧面板是否展开
   const rightPanelOpen = ref<boolean>(true)
   
-  // 底部面板是否展开
-  const bottomPanelOpen = ref<boolean>(true)
-  
   // 当前激活的对话框
   const activeDialog = ref<string | null>(null)
   
@@ -97,13 +94,6 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   /**
-   * 切换底部面板
-   */
-  function toggleBottomPanel() {
-    bottomPanelOpen.value = !bottomPanelOpen.value
-  }
-
-  /**
    * 打开对话框
    */
   function openDialog(name: string) {
@@ -156,7 +146,6 @@ export const useUiStore = defineStore('ui', () => {
     theme,
     leftPanelOpen,
     rightPanelOpen,
-    bottomPanelOpen,
     activeDialog,
     activeTool,
     showGrid,
@@ -170,7 +159,6 @@ export const useUiStore = defineStore('ui', () => {
     toggleWriteLock,
     toggleLeftPanel,
     toggleRightPanel,
-    toggleBottomPanel,
     openDialog,
     closeDialog,
     setActiveTool,

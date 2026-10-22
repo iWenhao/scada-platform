@@ -174,7 +174,6 @@ import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useConnectionStore } from '@/stores/connectionStore'
-import { useLayerStore } from '@/stores/layerStore'
 import { useUiStore } from '@/stores/uiStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import { useCanvasViewport } from '@/core/canvas/useCanvasViewport'
@@ -197,7 +196,6 @@ const canvasStore = useCanvasStore()
 const deviceStore = useDeviceStore()
 const projectStore = useProjectStore()
 const connectionStore = useConnectionStore()
-const layerStore = useLayerStore()
 const uiStore = useUiStore()
 const { saveState } = useHistory()
 
@@ -210,7 +208,6 @@ const viewport = useCanvasViewport({ stageContainerRef, canvasStore })
 const grid = useGridLines(canvasStore)
 const visuals = useElementVisuals({
   deviceStore,
-  layerStore,
   // 渲染风格是工程级设置：图标据此在「面基 + 光照 / 面基平涂」之间切换
   viewMode: () => projectStore.viewMode,
 })

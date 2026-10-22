@@ -16,7 +16,6 @@ function makeElement(id: string, name: string): ComponentInstance {
     width: 80,
     height: 60,
     rotation: 0,
-    layerId: 'device',
     properties: {},
     statusRules: [],
     dataBindings: [],

@@ -13,7 +13,6 @@ function makeElement(properties: Record<string, any> = {}): ComponentInstance {
     height: 70,
     rotation: 0,
     name: '时间',
-    layerId: 'layer_default',
     properties,
     statusRules: [],
     dataBindings: [],

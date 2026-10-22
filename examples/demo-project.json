@@ -32,7 +32,6 @@
           "height": 120,
           "rotation": 0,
           "name": "原水箱",
-          "layerId": "device",
           "locked": false,
           "properties": { "name": "原水箱", "level": 60, "temp": 25 },
           "statusRules": [
@@ -72,7 +71,6 @@
           "height": 90,
           "rotation": 0,
           "name": "1号水泵",
-          "layerId": "device",
           "locked": false,
           "properties": { "name": "1号水泵", "speed": 0 },
           "statusRules": [
@@ -104,7 +102,6 @@
           "height": 100,
           "rotation": 0,
           "name": "出水阀",
-          "layerId": "device",
           "locked": false,
           "properties": { "name": "出水阀", "valveType": "gate", "openDegree": 0 },
           "statusRules": [
@@ -136,7 +133,6 @@
           "height": 70,
           "rotation": 0,
           "name": "液位实时值",
-          "layerId": "annotation",
           "locked": false,
           "properties": { "name": "液位实时值", "unit": "%", "decimals": 1, "factor": 1, "offset": 0 },
           "statusRules": [],
@@ -152,7 +148,6 @@
           "height": 60,
           "rotation": 0,
           "name": "阀门开度设定",
-          "layerId": "annotation",
           "locked": false,
           "properties": { "name": "阀门开度设定", "unit": "%" },
           "statusRules": [],
@@ -168,7 +163,6 @@
           "height": 60,
           "rotation": 0,
           "name": "→ 趋势监控页",
-          "layerId": "annotation",
           "locked": false,
           "navigateTo": "page_demo_trend",
           "properties": {
@@ -217,12 +211,6 @@
           },
           "label": "出水"
         }
-      ],
-      "layers": [
-        { "id": "background", "name": "背景层", "type": "background", "visible": true, "locked": true, "order": 0 },
-        { "id": "pipeline", "name": "管道层", "type": "pipeline", "visible": true, "locked": false, "order": 1 },
-        { "id": "device", "name": "设备层", "type": "device", "visible": true, "locked": false, "order": 2 },
-        { "id": "annotation", "name": "标注层", "type": "annotation", "visible": true, "locked": false, "order": 3 }
       ]
     },
     {
@@ -252,7 +240,6 @@
           "height": 300,
           "rotation": 0,
           "name": "液位趋势",
-          "layerId": "device",
           "locked": false,
           "properties": { "name": "液位趋势", "historyPoints": 120 },
           "statusRules": [],
@@ -271,7 +258,6 @@
           "height": 300,
           "rotation": 0,
           "name": "水泵运行参数",
-          "layerId": "device",
           "locked": false,
           "properties": { "name": "水泵运行参数" },
           "statusRules": [],
@@ -291,7 +277,6 @@
           "height": 240,
           "rotation": 0,
           "name": "温度占比",
-          "layerId": "device",
           "locked": false,
           "properties": { "name": "温度占比" },
           "statusRules": [],
@@ -307,7 +292,6 @@
           "height": 60,
           "rotation": 0,
           "name": "← 返回工艺流程",
-          "layerId": "annotation",
           "locked": false,
           "navigateTo": "page_demo_main",
           "properties": {
@@ -321,18 +305,11 @@
           "dataBindings": [{ "property": "level", "variable": "level" }]
         }
       ],
-      "connections": [],
-      "layers": [
-        { "id": "background", "name": "背景层", "type": "background", "visible": true, "locked": true, "order": 0 },
-        { "id": "pipeline", "name": "管道层", "type": "pipeline", "visible": true, "locked": false, "order": 1 },
-        { "id": "device", "name": "设备层", "type": "device", "visible": true, "locked": false, "order": 2 },
-        { "id": "annotation", "name": "标注层", "type": "annotation", "visible": true, "locked": false, "order": 3 }
-      ]
+      "connections": []
     }
   ],
   "canvas": null,
   "connections": null,
-  "layers": null,
   "dataSource": {
     "type": "mock",
     "name": "模拟数据",

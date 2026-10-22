@@ -40,8 +40,6 @@ function makeVisuals() {
       getElementValueText: count('valueText', '12.5'),
       isPipeFlowing: count('flowing', false),
       getElementPorts: count('ports', []),
-      isLayerVisible: count('visible', true),
-      isLayerLocked: count('locked', false),
     },
   }
 }
@@ -56,7 +54,6 @@ function makeElement(id: string, type: string): ComponentInstance {
     height: 80,
     rotation: 0,
     name: id,
-    layerId: 'background',
     properties: {},
     statusRules: [],
     dataBindings: [],

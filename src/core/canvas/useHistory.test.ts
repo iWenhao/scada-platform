@@ -17,7 +17,6 @@ function makeElement(id: string, x = 0): ComponentInstance {
     height: 90,
     rotation: 0,
     name: id,
-    layerId: 'background',
     properties: {},
     statusRules: [],
     dataBindings: [],

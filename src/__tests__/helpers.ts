@@ -13,7 +13,6 @@ export function createMockComponent(overrides?: Partial<ComponentInstance>): Com
     height: 80,
     rotation: 0,
     name: '测试电机',
-    layerId: 'device',
     properties: {
       speed: 0,
       temp: 25,

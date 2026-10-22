@@ -12,8 +12,6 @@ export const createElementId = (): string => createId('el')
 
 export const createConnectionId = (): string => createId('conn')
 
-export const createLayerId = (): string => createId('layer')
-
 export const createPageId = (): string => createId('page')
 
 export const createTagId = (): string => createId('tag')

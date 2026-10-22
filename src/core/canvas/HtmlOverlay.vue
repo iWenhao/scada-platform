@@ -31,9 +31,6 @@ import { computed } from 'vue'
 import ChartElement from '@/industrial/chart/ChartElement.vue'
 import WidgetElement from '@/industrial/widget/WidgetElement.vue'
 import { useCanvasStore } from '@/stores/canvasStore'
-import { useDeviceStore } from '@/stores/deviceStore'
-import { useLayerStore } from '@/stores/layerStore'
-import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 // overlay 类型清单的唯一来源：Konva 侧的 useElementVisuals 也用它判断是否画图标，
 // 两边必须同一份，否则新增 DOM 组件时会出现「图标重影」或「元素不显示」
 import { CHART_TYPES, WIDGET_TYPES } from '@/core/canvas/overlayTypes'
@@ -45,10 +42,6 @@ defineProps<{
 }>()
 
 const canvasStore = useCanvasStore()
-const deviceStore = useDeviceStore()
-const layerStore = useLayerStore()
-
-const { isLayerVisible } = useElementVisuals({ deviceStore, layerStore })
 
 const chartElements = computed(() =>
   canvasStore.elements.filter(el => CHART_TYPES.includes(el.type)),
@@ -65,7 +58,6 @@ function slotStyle(element: ComponentInstance) {
     top: `${element.y * zoom + offset.y}px`,
     width: `${element.width * zoom}px`,
     height: `${element.height * zoom}px`,
-    visibility: isLayerVisible(element.layerId) ? ('visible' as const) : ('hidden' as const),
   }
 }
 </script>

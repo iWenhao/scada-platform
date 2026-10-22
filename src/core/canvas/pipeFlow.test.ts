@@ -18,7 +18,6 @@ function makePipe(extra: Partial<ComponentInstance> = {}): ComponentInstance {
     height: 80,
     rotation: 0,
     name: '管道',
-    layerId: 'pipe',
     properties: { diameter: 50, showFlow: true, flowDirection: 'forward', flowSpeed: 1 },
     statusRules: [],
     dataBindings: [],

@@ -151,7 +151,6 @@ describe('非浏览器环境的降级', () => {
       height: 96,
       rotation: 0,
       name: type,
-      layerId: 'layer',
       properties: {},
       statusRules: [],
       dataBindings: [],

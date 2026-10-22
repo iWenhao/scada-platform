@@ -18,7 +18,6 @@
               width: element.width,
               height: element.height,
               rotation: element.rotation,
-              visible: isLayerVisible(element.layerId),
               onClick: () => emit('element-click', element),
             }"
           >
@@ -98,7 +97,6 @@ import { computed } from 'vue'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useDeviceStore } from '@/stores/deviceStore'
-import { useLayerStore } from '@/stores/layerStore'
 import { useElementVisuals } from '@/core/canvas/useElementVisuals'
 import { pipeBodyConfigs } from '@/core/canvas/pipeFlow'
 import PipeFlowLine from '@/core/canvas/PipeFlowLine.vue'
@@ -123,7 +121,6 @@ const canvasStore = useCanvasStore()
 const projectStore = useProjectStore()
 const connectionStore = useConnectionStore()
 const deviceStore = useDeviceStore()
-const layerStore = useLayerStore()
 
 /** 画布配置 → CSS 网格变量（与编辑器共用） */
 const canvasGridStyle = computed(() => {
@@ -147,10 +144,8 @@ const {
   getUserImageConfig,
   getElementMotion,
   isPipeFlowing,
-  isLayerVisible,
 } = useElementVisuals({
   deviceStore,
-  layerStore,
   // 渲染风格由编辑器确定的工程级设置驱动（只读跟随），运行端不提供切换入口
   viewMode: () => projectStore.viewMode,
 })

@@ -1,6 +1,5 @@
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useDeviceStore } from '@/stores/deviceStore'
-import { useLayerStore } from '@/stores/layerStore'
 import { useHistory } from '@/core/canvas/useHistory'
 import { createElementId } from '@/utils/id'
 import { recordComponentUsage } from '@/industrial/usageLibrary'
@@ -22,7 +21,6 @@ function fitDropSize(w: number, h: number) {
 export function useCanvasDrop(stageRef: StageRef) {
   const canvasStore = useCanvasStore()
   const deviceStore = useDeviceStore()
-  const layerStore = useLayerStore()
   const { saveState } = useHistory()
 
   function onDrop(e: DragEvent) {
@@ -55,7 +53,6 @@ export function useCanvasDrop(stageRef: StageRef) {
         height: size.height,
         rotation: 0,
         name: tpl.name,
-        layerId: layerStore.activeLayerId,
         // 新组件默认只显示图形主体，名称/实时数值由属性面板按需打开
         showName: false,
         showValue: false,
@@ -82,7 +79,6 @@ export function useCanvasDrop(stageRef: StageRef) {
       height: size.height,
       rotation: 0,
       name: data.name,
-      layerId: layerStore.activeLayerId,
       // 新组件默认只显示图形主体，名称/实时数值由属性面板按需打开
       showName: false,
       showValue: false,

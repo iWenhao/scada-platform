@@ -68,7 +68,7 @@ export const useProjectStore = defineStore('project', () => {
 
   /**
    * 组装完整的工程数据（保存 / 导出共用，避免两处结构漂移）
-   * 多画面：pages[] 每项一张画面；同时写出顶层 canvas/connections/layers
+   * 多画面：pages[] 每项一张画面；同时写出顶层 canvas/connections
    * 作为「当前页」兼容快照，旧版本工具链仍可读取。
    */
   function buildProjectData() {
@@ -90,7 +90,6 @@ export const useProjectStore = defineStore('project', () => {
         elements: active.elements,
       }) : null,
       connections: active ? JSON.stringify(active.connections) : null,
-      layers: active ? JSON.stringify({ layers: active.layers }) : null,
       dataSource: dataSourceConfig.value,
       alarmDefs: alarmDefs.value,
       tagTable: tagTable.value,

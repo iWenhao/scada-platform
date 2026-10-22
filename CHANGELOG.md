@@ -183,6 +183,16 @@
 
 ### 清理
 
+- 删除图层管理功能（底部面板、`layerStore`、`layers`/`layerId` 数据字段）
+  - 背景：图层只被读取 6 处——可见性 3 个调用点（编辑器画布、预览、HTML overlay）、锁定 1 个（画布元素是否可拖）、`activeLayerId` 写入 2 处（拖入组件时归属当前层）；`layers[].order/name/type` 没有任何逻辑读取者，排序靠元素数组顺序、锁定靠元素自身的 `locked`。实际工程里也几乎不产生图层差异——示例工程「背景层」「管道层」各有 0 个元素，全部元素都在首个默认层。保留它等于让每个新组件、每个渲染端都背一条永远只取默认值的约束
+  - 改法：删 `LayerPanel.vue`、`stores/layerStore.ts`、`types/layer.ts`；`ScadaPage` 去掉 `layers`，`ComponentInstance` 去掉 `layerId`，工程序列化不再写 `layers`；`useElementVisuals` 去掉 `isLayerVisible/isLayerLocked` 及 `layerStore` 依赖，编辑画布的 `draggable`、预览的 `v-group.visible`、HTML overlay 的 `visibility` 相应简化；`useCanvasDrop` 不再写入 `layerId`
+  - 兼容：旧工程里的 `layers` / `layerId` 只是多出来的 JSON 键，加载时被忽略，不需要迁移；测试里保留带 `layers` 的旧工程样例，正是为了守住这条兼容路径
+  - 不受影响：元素级锁定（右键 → 锁定/解锁）与前后遮挡（右键 → 上移/下移一层）本来就独立于图层，保留原样
+  - 动了：`src/components/layout/LayerPanel.vue`（删）、`src/stores/layerStore.ts`（删）、`src/types/layer.ts`（删）、`MainLayout.vue`、`uiStore.ts`、`utils/id.ts`、`types/{page,scada}.ts`、`stores/{pageStore,projectStore,projectLoad}.ts`、`core/canvas/{CanvasElements.vue,HtmlOverlay.vue,ScadaCanvas.vue,useCanvasDrop.ts,useElementVisuals.ts}`、`views/preview/PreviewStage.vue`、`examples/demo-project.json`
+  - 文档：`README.md`（功能列表、架构图底部面板、目录树）、`docs/USER_GUIDE.md`（编辑器区域表、§5.4 改为「元素前后遮挡」并补充元素锁定、§5.5 画面归属表述）、`AGENTS.md`（预览渲染一致性一句）
+  - 实测：`npx vitest run src/stores src/core/canvas` = 22 文件 / 225 用例全过（汇总无 `Errors`）；`vue-tsc --noEmit` 干净；`node scripts/check-long-files.mjs` OK；改动文件 eslint 0 error（`ScadaCanvas.vue` 的既有缩进 warning 未新增）。浏览器实测（临时后端 5174 + 临时数据目录 + dev 5173，跑完已停进程并删除目录）：编辑器底部不再有面板且全文无「图层」字样；从编辑器进入预览，水箱/泵/阀图标、名称、实时值、管道流动均正常；右键锁定后 Konva 节点 `draggable` 变 false，解锁后可拖拽（120,140 → 160,185，网格吸附生效）。控制台无报错
+  - 顺带发现（与本改动无关，未修）：直接以 URL 打开 `/preview` 时图标不显示——组件注册表只在 `ComponentPanel.vue` 里以副作用 import 初始化，预览页单独进入时注册表为空；从编辑器工具栏进预览则正常
+
 - `components.d.ts` / `auto-imports.d.ts` 不再跟踪，根治每次 dev 后反复漂移
   - 背景：这两个文件是 unplugin-vue-components / unplugin-auto-import 在 dev server 启动时扫描 .vue 模板自动生成的全局组件/API 类型声明。扫描基于 Vite 模块图，每次冷启动模块图重建，结果不稳定——历史上出现过两次漂移：漏扫实际在用的 ElCheckbox/ElRadio/ElTabs/ElUpload，或残留已删除的 ElButtonGroup/ElColorPicker/ElSlider。之前每次都是手动 `git checkout --` 还原
   - 改法：加入 `.gitignore`，`git rm --cached` 停止跟踪。dev/build 启动时 unplugin 自动重新生成，vue-tsc 在 dev/build 之后跑、d.ts 已存在；全新 clone 后 `pnpm install && pnpm dev` 第一步即生成，不影响开发。AGENTS.md 里"跟随相关改动一起提交"那条规则同步改为"已加入 gitignore，dev/build 自动重生"

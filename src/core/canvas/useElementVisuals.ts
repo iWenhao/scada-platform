@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import type { useDeviceStore } from '@/stores/deviceStore'
-import type { useLayerStore } from '@/stores/layerStore'
 import { getIconImage } from './iconImage'
 import { evaluateElementState, type ElementStateResult } from './elementStatus'
 import { loadUserImage, fitRect } from './userImage'
@@ -13,21 +12,19 @@ import type { ComponentInstance, ViewMode } from '@/types/scada'
 import type { PortPosition } from '@/types/connection'
 
 type DeviceStore = ReturnType<typeof useDeviceStore>
-type LayerStore = ReturnType<typeof useLayerStore>
 
 /**
- * 元素视觉呈现：状态着色、实时数值、图标、端口与图层可见性/锁定。
+ * 元素视觉呈现：状态着色、实时数值、图标与端口。
  */
 export function useElementVisuals(options: {
   deviceStore: DeviceStore
-  layerStore: LayerStore
   /**
    * 渲染风格读取器（工程级设置，编辑器切换、运行端只读跟随）。
    * 只有消费图标的调用方需要传；不传按平面处理，未迁移的线条稿图标不受影响。
    */
   viewMode?: () => ViewMode
 }) {
-  const { deviceStore, layerStore } = options
+  const { deviceStore } = options
   const readViewMode = options.viewMode ?? (() => '2d' as ViewMode)
 
   /**
@@ -321,18 +318,6 @@ export function useElementVisuals(options: {
     }
   }
 
-  // 检查图层是否锁定
-  function isLayerLocked(layerId: string): boolean {
-    const layer = layerStore.getLayer(layerId)
-    return layer?.locked ?? false
-  }
-
-  // 检查图层是否可见
-  function isLayerVisible(layerId: string): boolean {
-    const layer = layerStore.getLayer(layerId)
-    return layer?.visible ?? true
-  }
-
   // 获取元素端口
   function getElementPorts(element: ComponentInstance) {
     return [
@@ -357,8 +342,6 @@ export function useElementVisuals(options: {
     getIconImageConfig,
     getUserImageConfig,
     isOverlayElement,
-    isLayerLocked,
-    isLayerVisible,
     getElementPorts,
     // 导出以便调用方（画布 / 预览）显式依赖它；组件内部已自行订阅
     iconVersion,

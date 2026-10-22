@@ -310,7 +310,7 @@ describe('projectStore.resetProject', () => {
     const connectionStore = useConnectionStore()
     canvasStore.addElement({
       id: 'e1', type: 'tank', name: '罐', x: 0, y: 0, width: 60, height: 60,
-      rotation: 0, layerId: 'device',
+      rotation: 0,
       properties: {}, statusRules: [], dataBindings: [],
     })
     connectionStore.connections = [{ id: 'c1' } as never]
@@ -336,7 +336,7 @@ describe('projectStore 编辑会话现场', () => {
   function addTank(canvasStore: ReturnType<typeof useCanvasStore>, name: string) {
     canvasStore.addElement({
       id: `e_${name}`, type: 'tank', name, x: 0, y: 0, width: 60, height: 60,
-      rotation: 0, layerId: 'device',
+      rotation: 0,
       properties: {}, statusRules: [], dataBindings: [],
     })
   }

@@ -8,7 +8,6 @@ import type { ViewMode } from '@/types/scada'
 import { createTagId, createPageId } from '@/utils/id'
 import { useCanvasStore } from '@/stores/canvasStore'
 import { useConnectionStore } from '@/stores/connectionStore'
-import { useLayerStore } from '@/stores/layerStore'
 import { usePageStore } from '@/stores/pageStore'
 
 /**
@@ -20,11 +19,9 @@ import { usePageStore } from '@/stores/pageStore'
 export function migrateLegacyToPages(projectData: Record<string, any>): ScadaPage[] {
   const canvasStore = useCanvasStore()
   const connectionStore = useConnectionStore()
-  const layerStore = useLayerStore()
 
   if (projectData.canvas) canvasStore.loadFromJSON(projectData.canvas)
   if (projectData.connections) connectionStore.loadFromJSON(projectData.connections)
-  if (projectData.layers) layerStore.loadFromJSON(projectData.layers)
 
   const pageStore = usePageStore()
   return [{

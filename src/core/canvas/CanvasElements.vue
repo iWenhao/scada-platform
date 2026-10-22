@@ -131,8 +131,6 @@ type Visuals = {
   getElementValueText: (e: ComponentInstance) => string
   isPipeFlowing: (e: ComponentInstance) => boolean
   getElementPorts: (e: ComponentInstance) => Array<{ id: string; x: number; y: number; position: string }>
-  isLayerVisible: (id: string) => boolean
-  isLayerLocked: (id: string) => boolean
 }
 
 const props = defineProps<{
@@ -170,8 +168,6 @@ const {
   getElementValueText,
   isPipeFlowing,
   getElementPorts,
-  isLayerVisible,
-  isLayerLocked,
 } = props.visuals
 
 /** 纯文本图元的显示内容：属性面板可改，缺省给个占位避免拖进来是空白 */
@@ -198,9 +194,7 @@ function groupConfig(element: ComponentInstance) {
     width: element.width,
     height: element.height,
     rotation: element.rotation,
-    visible: isLayerVisible(element.layerId),
-    draggable:
-      !isLayerLocked(element.layerId) && !element.locked && props.activeTool !== 'connect',
+    draggable: !element.locked && props.activeTool !== 'connect',
     dragBoundFunc: props.snapToGrid ? props.gridSnapFunc : undefined,
     onClick: (e: any) => emit('element-click', element, e),
     onContextmenu: (e: any) => emit('element-contextmenu', element, e),

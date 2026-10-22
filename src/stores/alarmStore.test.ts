@@ -18,7 +18,6 @@ function makeElement(overrides: Partial<ComponentInstance> = {}): ComponentInsta
     height: 100,
     rotation: 0,
     name: '储罐1',
-    layerId: 'device',
     properties: {},
     statusRules: [],
     dataBindings: [],

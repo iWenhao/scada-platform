@@ -1,12 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { defaultCanvasConfig, normalizeCanvasConfig } from '@/types/canvas'
-import { defaultLayers } from '@/types/layer'
 import { type ScadaPage, type ScadaPageContent } from '@/types/page'
 import { createElementId, createConnectionId, createPageId } from '@/utils/id'
 import { useCanvasStore } from './canvasStore'
 import { useConnectionStore } from './connectionStore'
-import { useLayerStore } from './layerStore'
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -17,13 +15,12 @@ export function createEmptyPageContent(): ScadaPageContent {
     canvasConfig: { ...defaultCanvasConfig },
     elements: [],
     connections: [],
-    layers: clone(defaultLayers),
   }
 }
 
 /**
  * 多画面管理：pages 是工程内的画面列表，编辑器工作区始终对应 activePageId 那一张。
- * 切换画面时把 canvas/connection/layer 三个 store 的内容快照回当前页，再装入目标页。
+ * 切换画面时把 canvas/connection 两个 store 的内容快照回当前页，再装入目标页。
  * 共享层（数据源、报警定义）不随画面切换。
  */
 export const usePageStore = defineStore('page', () => {
@@ -37,12 +34,10 @@ export const usePageStore = defineStore('page', () => {
   function captureWorkingSet(): ScadaPageContent {
     const canvasStore = useCanvasStore()
     const connectionStore = useConnectionStore()
-    const layerStore = useLayerStore()
     return {
       canvasConfig: clone(canvasStore.canvasConfig),
       elements: clone(canvasStore.elements),
       connections: clone(connectionStore.connections),
-      layers: clone(layerStore.layers),
     }
   }
 
@@ -50,7 +45,6 @@ export const usePageStore = defineStore('page', () => {
   function applyToWorkingSet(content: ScadaPageContent) {
     const canvasStore = useCanvasStore()
     const connectionStore = useConnectionStore()
-    const layerStore = useLayerStore()
 
     // 归一化含旧工程默认底色/网格色的主题迁移（切换画面也走这里，幂等）
     canvasStore.canvasConfig = normalizeCanvasConfig(content.canvasConfig)
@@ -59,7 +53,6 @@ export const usePageStore = defineStore('page', () => {
     connectionStore.connections = clone(content.connections || [])
     connectionStore.selectedConnectionId = null
     connectionStore.drawingConnection = null
-    layerStore.layers = clone(content.layers?.length ? content.layers : defaultLayers)
   }
 
   /** 把当前工作区写回 activePage（保存/导出/切换前调用） */
@@ -70,7 +63,6 @@ export const usePageStore = defineStore('page', () => {
     page.canvasConfig = content.canvasConfig
     page.elements = content.elements
     page.connections = content.connections
-    page.layers = content.layers
   }
 
   /**
@@ -131,7 +123,6 @@ export const usePageStore = defineStore('page', () => {
     // 元素/连线 ID 需要重新生成，避免同工程内冲突
     const content = createEmptyPageContent()
     content.canvasConfig = clone(source.canvasConfig)
-    content.layers = clone(source.layers)
     const idMap = new Map<string, string>()
     content.elements = clone(source.elements).map(el => {
       const newId = createElementId()
