@@ -87,6 +87,10 @@ export class MockDataAdapter implements DataSourceAdapter {
           level: this.walk('tank_1', 'level', 0, 100, 0.07),
           temp: this.walk('tank_1', 'temp', 20, 50, 0.04),
         },
+        cabinet_1: {
+          temp: this.walk('cabinet_1', 'temp', 20, 55, 0.03),
+          current: this.walk('cabinet_1', 'current', 0, 60, 0.07),
+        },
         pipe_1: {
           // 停流时输出 0，恢复后继续游走而不是换一个全新量级
           flowRate: this.gateOpen('pipe_1', 0.04)
@@ -169,7 +173,7 @@ export class MockDataAdapter implements DataSourceAdapter {
   /** 可绑定的模拟设备清单 */
   listDevices(): string[] {
     return [
-      'motor_1', 'pump_1', 'valve_1', 'tank_1', 'pipe_1', 'sensor_1',
+      'motor_1', 'pump_1', 'valve_1', 'tank_1', 'pipe_1', 'sensor_1', 'cabinet_1',
       'conveyor_1', 'fan_1', 'gas_sensor_1', 'hoist_1',
       'shearer_1', 'roadheader_1', 'coal_bunker_1',
       'turbine_1', 'generator_1', 'boiler_1', 'transformer_1', 'breaker_1',

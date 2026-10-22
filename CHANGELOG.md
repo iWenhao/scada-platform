@@ -10,6 +10,20 @@
 
 ### 功能
 
+- 2.5D 有了真正的伪 3D 观感：光照模型重写 + 6 台设备按面基（插画级）重绘为等轴测图元
+  - 背景：用户反馈「2.5D 和 2D 渲染下来没区别」。两层原因：① 覆盖面——178 个图元里原先只有 4 个带 `data-face`，且是**正面立面**几何，`bakeLighting()` 只能给同一块平面换个深浅；② 渲染风格——展开后的每个面都还留着 `stroke-opacity="0.45"` 的描边、填充又是半透明，于是「立体图」看上去仍是同一套 2D 线框。用户明确说「2.5D 不必和 2D 长得一样」，所以这次改的是**全局光感本身**，不是逐台调参
+  - 光照重写（`faceLighting.ts`）：**面一律 `stroke="none"`**，轮廓与接缝改由新标注 `data-edge="hi|lo"` 单独绘制（hi=状态色亮棱，lo=半透明黑接缝）；渐变从两端升到 2~4 段，`cap` 改偏心径向渐变（高光左上）；接触阴影由硬边黑块改为 `lt-shadow` 软渐变。新增三个面 token：`body`（圆柱侧面亮带，储罐/泵壳/风机外壳的体积感主要靠它）、`hole`（进风口/管口的暗孔，用 `front` 会画成中灰圆斑）、`deck`（底座台面，用 `top` 会让底座比机器还抢眼）
+  - 展开器改为**按标签**处理（原来按属性逐个 `replace`）：一条标签可能同时带 `data-face` 与 `data-edge`，逐个替换会产出重复属性；且属性必须插在 `/>` 之前。这两点各踩过一次——重复属性与 `<ellipse ... / fill="...">` 都是非法 XML，图标走 `data:` URI 给 `<img>` 时整份文档解析失败，**表现为设备直接画成一片空白**（6 台样板里 5 台曾因此不显示，只有储罐能画出来）。现在作者显式写过的属性一律保留、token 只补没写的
+  - 样板批次 6 台：储罐（基础）、电机（电气）、控制柜（电气，新增）、离心泵（水处理）、阀门（水处理）、通风机（综采）。统一 2:1 等轴测：顶/前面/侧面实体面 + `body`/`cap` 曲面端面 + `hi/lo` 棱线 + 接触阴影，光源左上
+  - 三台原地升级图元（`tank` / `motor` / 通风机 `fan`）保持 type 与默认尺寸语义不变，已有工程打开即可看到新观感，不需要重新拖入
+  - 水处理两台走**覆盖映射**而不是改图标源：`waterAssetIcons` 在 `*.generated.ts` 里，手改会在下次生成时被冲掉。`src/industrial/water/index.ts` 用 `illustratedAssets` 对 `buildAssetComponents()` 的产物做一次映射（图标/尺寸/显示名），并把 `properties` 里 `name` 的默认值一起改掉——否则属性面板里仍显示素材原名「泵」
+  - 新增控制柜（`cabinet`）而不是改造某个素材件：电气组缺一个能挂「柜内高温」规则的柜体；同时补 `cabinet_1` 模拟设备（temp / current）与 `listDevices()`
+  - 组件总数 177 → 178，电气组 24 → 25，水处理「泵」显示名改为「离心泵」
+  - **恢复 `data-shadow`**：接触阴影曾是 2026-10-13 按用户要求移除的（画布上不铺落地阴影）。这次是对 6 台立体图元恢复——没有阴影椭圆的立体件会「浮」在网格上，是插画级四根支柱里最容易漏的一条；其余图元仍无阴影
+  - 规范同步：`docs/2.5D_ILLUSTRATION_GUIDE.md` §3.1 改写迁移现状与样板名单（8 台面基）、§4.1 补 `data-edge` 与 `body/hole/deck` 及「面与棱线是两条标签」、§4.2/§4.3 换成真实 token 表与按标签展开的实现、§4.4 两档风格对照、§5.1 说明 `#000000` 只用于阴影与接缝、新增 §5.8「产出必须是合法 XML」、§6 验收清单与 §8 错误对照各补若干条；`README.md` 与 `docs/USER_GUIDE.md` 的组件数、电气组条目、水处理泵名同步
+  - 动了：`src/core/canvas/faceLighting.ts`、`faceLighting.test.ts`、`src/industrial/annotatedIcons.test.ts`（新）、`src/industrial/basic/index.ts`、`electrical/index.ts`、`coal/index.ts`、`water/index.ts`、`src/datasource/adapters/MockDataAdapter.ts`、上述文档
+  - 实测：`faceLighting` 13 例 + `annotatedIcons` 5 例全过——后者把**全部注册组件**的图标在 2D/2.5D 两档各展开一次，用真 `DOMParser` 判 XML 合法性，并查重复属性与悬空的 `url(#lt-*)` 引用（`annotated.length` = 8 台面基图元）；受影响范围 `npx vitest run core/canvas industrial` = 23 文件 / 267 例全过，`vue-tsc --noEmit` 干净，`check-long-files` OK，改动三文件 eslint 干净。浏览器实测（5173 编辑器，工具栏切 2.5D 后合成 `drop` 拖入 6 台）：储罐呈实体圆柱带亮带与环缝、电机带风扇罩、控制柜带门缝、离心泵带泵壳与底座、阀门带手轮、通风机带进风口暗孔，**全部无面描边、均有软投影**，与 2D 线稿观感完全不同；改前那版 6 台里 5 台在画布上是空白，正是被这条实测抓出来的
+
 - 自定义组件支持用现场设备照片生成图标：「原图内嵌」与「矢量描摹」双方案预览后二选一
   - 背景：图标只能手贴 SVG 或上传设计工具导出的 `.svg`，现场最常拿到的是手机拍的照片与网图；此前位图会被明确拒绝（位图里没有 `currentColor`，永远不随状态变色）
   - 输入三路：拖入/点击选择本地 PNG/JPG/WebP（≤10MB）、`Ctrl+V` 粘贴剪贴板图片、粘贴图片 URL。URL 只放行 http(s) 与 `data:image/`，相对路径 / `javascript:` / `file:` 直接拒绝；fetch 15 秒超时，CORS 失败给可操作提示；服务端未发 `Content-Type` 时下载回来的 blob 没有 MIME，只卡体积、真实格式交给解码（否则会误报「只支持 PNG / JPG / WebP」）

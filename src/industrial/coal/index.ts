@@ -252,13 +252,25 @@ export const FanDefinition: ComponentDefinition = {
   name: '通风机',
   group: 'coal',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="22" y="22" width="56" height="56" rx="4" />
-      <circle cx="50" cy="50" r="6" />
-      <line x1="50" y1="50" x2="30" y2="30" />
-      <line x1="50" y1="50" x2="70" y2="30" />
-      <line x1="50" y1="50" x2="30" y2="70" />
-      <line x1="50" y1="50" x2="70" y2="70" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="55" cy="92" rx="24" ry="5" data-shadow="1"/>
+      <polygon points="50,74 66,82 50,90 34,82" data-face="deck"/>
+      <polygon points="34,82 50,90 50,94 34,86" data-face="front"/>
+      <polygon points="50,90 66,82 66,86 50,94" data-face="side"/>
+      <polygon points="50,22 70,32 50,42 30,32" data-face="top"/>
+      <polygon points="30,32 50,42 50,78 30,68" data-face="front"/>
+      <polygon points="50,42 70,32 70,68 50,78" data-face="side"/>
+      <path d="M30 32 L50 42 L70 32" data-edge="hi"/>
+      <path d="M30 32 L30 68" data-edge="hi"/>
+      <path d="M30 68 L50 78 L70 68" data-edge="lo"/>
+      <ellipse cx="60" cy="55" rx="6.5" ry="16" data-face="hole"/>
+      <ellipse cx="60" cy="55" rx="6.5" ry="16" data-edge="hi" stroke-width="1.6"/>
+      <g data-edge="hi" stroke-width="1.3">
+        <line x1="60" y1="40" x2="60" y2="70"/>
+        <line x1="54" y1="48" x2="66" y2="62"/>
+        <line x1="66" y1="48" x2="54" y2="62"/>
+      </g>
+      <ellipse cx="60" cy="55" rx="2.2" ry="5" data-face="cap"/>
     </g>
   </svg>`,
   defaultWidth: 70,

@@ -6,12 +6,15 @@ export const TankDefinition: ComponentDefinition = {
   name: '储罐',
   group: 'basic',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M22 24 A28 9 0 0 0 78 24 L78 72 A28 9 0 0 1 22 72 Z" data-face="front"/>
-      <ellipse cx="50" cy="24" rx="28" ry="9" data-face="cap"/>
-      <path d="M24 58 H76" stroke-dasharray="4 3" stroke-opacity="0.5"/>
-      <path d="M50 81 V90"/>
-      <rect x="44" y="90" width="12" height="6" rx="1.5" data-face="cap"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="52" cy="84" rx="27" ry="6" data-shadow="1"/>
+      <path d="M24 24 A26 12 0 0 1 76 24 L76 72 A26 12 0 0 1 24 72 Z" data-face="body"/>
+      <path d="M24 52 A26 12 0 0 0 76 52" data-edge="lo"/>
+      <path d="M24 72 A26 12 0 0 0 76 72" data-edge="lo"/>
+      <ellipse cx="50" cy="24" rx="26" ry="12" data-face="cap"/>
+      <ellipse cx="50" cy="24" rx="26" ry="12" data-edge="hi"/>
+      <path d="M47 13 L47 10 A3 1.5 0 0 1 53 10 L53 13 Z" data-face="front"/>
+      <ellipse cx="50" cy="10" rx="3" ry="1.5" data-face="cap"/>
     </g>
   </svg>`,
   defaultWidth: 80,

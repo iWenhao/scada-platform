@@ -10,15 +10,31 @@ export const MotorDefinition: ComponentDefinition = {
   name: '电机',
   group: 'electrical',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="25" y="30" width="50" height="40" rx="4" data-face="front"/>
-      <rect x="35" y="19" width="20" height="11" rx="2" data-face="top"/>
-      <path d="M75 50 H85"/>
-      <circle cx="90" cy="50" r="5" data-face="cap"/>
-      <path d="M40 19 V13"/>
-      <path d="M45 19 V13"/>
-      <path d="M50 19 V13"/>
-      <text x="50" y="55" text-anchor="middle" font-size="14" font-weight="bold" fill="currentColor">M</text>
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="52" cy="84" rx="28" ry="6" data-shadow="1"/>
+      <polygon points="50,22 74,34 50,46 26,34" data-face="top"/>
+      <polygon points="26,34 50,46 50,82 26,70" data-face="front"/>
+      <polygon points="50,46 74,34 74,70 50,82" data-face="side"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="32" y1="37" x2="32" y2="73"/>
+        <line x1="38" y1="40" x2="38" y2="76"/>
+        <line x1="44" y1="43" x2="44" y2="79"/>
+      </g>
+      <path d="M26 34 L50 46 L74 34" data-edge="hi"/>
+      <path d="M26 34 L26 70" data-edge="hi"/>
+      <path d="M26 70 L50 82 L74 70" data-edge="lo"/>
+      <polygon points="46,14 56,19 46,24 36,19" data-face="top"/>
+      <polygon points="36,19 46,24 46,31 36,26" data-face="front"/>
+      <polygon points="46,24 56,19 56,26 46,31" data-face="side"/>
+      <path d="M36 19 L46 14 L56 19" data-edge="hi"/>
+      <path d="M36 26 L46 31" data-edge="lo"/>
+      <ellipse cx="67" cy="52" rx="5.5" ry="10" data-face="cap"/>
+      <ellipse cx="67" cy="52" rx="5.5" ry="10" data-edge="hi"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="67" y1="44" x2="67" y2="60"/>
+        <line x1="63" y1="48" x2="71" y2="56"/>
+        <line x1="71" y1="48" x2="63" y2="56"/>
+      </g>
     </g>
   </svg>`,
   defaultWidth: 80,
@@ -173,9 +189,91 @@ export const SensorDefinition: ComponentDefinition = {
   ],
 }
 
+/** 控制柜：2.5D 样板批新增，图元按面基等轴测绘制（见 docs/2.5D_ILLUSTRATION_GUIDE.md §4） */
+export const CabinetDefinition: ComponentDefinition = {
+  type: 'cabinet',
+  name: '控制柜',
+  group: 'electrical',
+  icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="54" cy="86" rx="19" ry="5" data-shadow="1"/>
+      <polygon points="32,68 50,77 50,81 32,72" data-face="front"/>
+      <polygon points="50,77 68,68 68,72 50,81" data-face="side"/>
+      <polygon points="50,10 69,19.5 50,29 31,19.5" data-face="top"/>
+      <polygon points="31,19.5 50,29 50,76 31,66.5" data-face="front"/>
+      <polygon points="50,29 69,19.5 69,66.5 50,76" data-face="side"/>
+      <path d="M31 19.5 L50 29 L69 19.5" data-edge="hi"/>
+      <path d="M50 29 L50 76" data-edge="lo"/>
+      <path d="M31 66.5 L50 76" data-edge="lo"/>
+      <path d="M35 25 L47 31 L47 71 L35 65 Z" data-edge="lo" stroke-width="1.2"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="36.5" y1="55" x2="44" y2="58.8"/>
+        <line x1="36.5" y1="58.5" x2="44" y2="62.3"/>
+        <line x1="36.5" y1="62" x2="44" y2="65.8"/>
+      </g>
+      <polygon points="54,45 60,42 60,50 54,53" data-face="cap"/>
+    </g>
+  </svg>`,
+  defaultWidth: 60,
+  defaultHeight: 85,
+  defaultConfig: {
+    temp: 25,
+    current: 0,
+  },
+  statusRules: [
+    {
+      id: 'overheat',
+      name: '柜内高温',
+      color: '#ff4757',
+      severity: 'critical',
+      condition: { type: 'compare', variable: 'temp', operator: '>', value: 60 },
+      priority: 1,
+    },
+    {
+      id: 'normal',
+      name: '正常',
+      color: '#00d4aa',
+      condition: { type: 'range', variable: 'temp', min: 0, max: 60 },
+      priority: 2,
+    },
+  ],
+  dataBindings: [
+    { property: 'temp', variable: 'temp' },
+    { property: 'current', variable: 'current' },
+  ],
+  properties: [
+    {
+      key: 'name',
+      label: '名称',
+      type: 'string',
+      default: '控制柜',
+      group: '基本',
+    },
+    {
+      key: 'temp',
+      label: '柜内温度(℃)',
+      type: 'number',
+      default: 25,
+      min: -20,
+      max: 120,
+      group: '运行参数',
+    },
+    {
+      key: 'current',
+      label: '电流(A)',
+      type: 'number',
+      default: 0,
+      min: 0,
+      max: 630,
+      group: '运行参数',
+    },
+  ],
+}
+
 export const electricalComponents: ComponentDefinition[] = [
   MotorDefinition,
   SensorDefinition,
+  CabinetDefinition,
   // 电力系统（外部素材导入，22 台）：变电/变压器/互感器/断路器/开关等。
   // 图元为单色线条稿，状态走统一 state 契约；溯源见 scripts/subunit-manifest.json
   ...buildAssetComponents('electrical', electricalAssetIcons, electricalAssetMeta),
