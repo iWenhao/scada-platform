@@ -108,23 +108,46 @@ export const MotorDefinition: ComponentDefinition = {
   ],
 }
 
+/**
+ * 杆式传感器：底座、立柱、探头全按 2:1 箱体画，探头镜面用 `hole` 表达暗孔，
+ * 天线与信号弧线保持普通线条（弧线是装饰，不能标 `data-edge` 抢轮廓）。
+ */
 export const SensorDefinition: ComponentDefinition = {
   type: 'sensor',
   name: '传感器',
   group: 'electrical',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="40" r="15" />
-      <line x1="50" y1="55" x2="50" y2="85" />
-      <rect x="45" y="80" width="10" height="10" />
-      <line x1="50" y1="25" x2="50" y2="15" />
-      <line x1="45" y1="15" x2="55" y2="15" />
-      <circle cx="50" cy="40" r="5" fill="currentColor" />
-      <line x1="50" y1="35" x2="50" y2="25" stroke-width="4" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="89" rx="18" ry="3.5" data-shadow="1"/>
+      <polygon points="38,79 50,85 62,79 50,73" data-face="deck"/>
+      <polygon points="38,79 50,85 50,89 38,83" data-face="front"/>
+      <polygon points="50,85 62,79 62,83 50,89" data-face="side"/>
+      <path d="M38 79 L50 73 L62 79" data-edge="hi"/>
+      <path d="M38 83 L50 89 L62 83" data-edge="lo"/>
+      <polygon points="46,54 50,56 54,54 50,52" data-face="deck"/>
+      <polygon points="46,54 50,56 50,78 46,76" data-face="front"/>
+      <polygon points="50,56 54,54 54,76 50,78" data-face="side"/>
+      <path d="M46 54 L50 52 L54 54" data-edge="hi"/>
+      <path d="M46 54 L46 76" data-edge="hi"/>
+      <path d="M46 76 L50 78 L54 76" data-edge="lo"/>
+      <polygon points="34,30 50,38 66,30 50,22" data-face="top"/>
+      <polygon points="34,30 50,38 50,52 34,44" data-face="front"/>
+      <polygon points="50,38 66,30 66,44 50,52" data-face="side"/>
+      <path d="M34 30 L50 22 L66 30" data-edge="hi"/>
+      <path d="M34 30 L34 44" data-edge="hi"/>
+      <path d="M34 44 L50 52 L66 44" data-edge="lo"/>
+      <ellipse cx="42" cy="42" rx="3" ry="5" data-face="hole"/>
+      <ellipse cx="42" cy="42" rx="3" ry="5" data-edge="hi" stroke-width="1"/>
+      <path d="M58 30 L58 12" data-pipe="base"/>
+      <path d="M56.4 30 L56.4 12" data-pipe="hi"/>
+      <path d="M53 12 L63 12" data-pipe="base"/>
+      <path d="M53 10.4 L63 10.4" data-pipe="hi"/>
+      <path d="M68 26 Q74 34 68 42" stroke-opacity="0.5"/>
+      <path d="M73 22 Q81 34 73 46" stroke-opacity="0.5"/>
     </g>
   </svg>`,
-  defaultWidth: 50,
-  defaultHeight: 80,
+  defaultWidth: 52,
+  defaultHeight: 88,
   defaultConfig: {
     sensorType: 'temperature',
     value: 0,

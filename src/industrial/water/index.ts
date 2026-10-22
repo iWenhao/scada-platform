@@ -62,23 +62,40 @@ export const SedimentTankDefinition: ComponentDefinition = {
   ],
 }
 
-/** 潜污泵 */
+/**
+ * 潜污泵：泵体与电机是同轴竖圆柱（`body` + `cap`），底座按箱体画，进出水口走
+ * `data-pipe` + 竖侧圆端口；水面上方的波纹是装饰，保留普通 path。
+ */
 export const SubPumpDefinition: ComponentDefinition = {
   type: 'sub_pump',
   name: '潜污泵',
   group: 'water',
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="52" cy="55" r="18" />
-      <polygon points="34,55 18,46 18,64" />
-      <path d="M20,24 Q30,14 40,24 T60,24 T80,24" />
-      <path d="M25,37 Q35,27 45,37 T65,37" opacity="0.6" />
-      <line x1="52" y1="73" x2="52" y2="86" />
-      <line x1="36" y1="86" x2="68" y2="86" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="52" cy="86" rx="22" ry="4.5" data-shadow="1"/>
+      <path d="M14 18 Q20 13 26 18 T38 18 T50 18" stroke-opacity="0.5"/>
+      <path d="M16 28 Q22 23 28 28 T40 28" stroke-opacity="0.5"/>
+      <path d="M35 42 A17 8.5 0 0 1 69 42 L69 74 A17 8.5 0 0 1 35 74 Z" data-face="body"/>
+      <path d="M35 74 A17 8.5 0 0 0 69 74" data-edge="lo"/>
+      <path d="M35 58 A17 8.5 0 0 0 69 58" data-edge="lo"/>
+      <ellipse cx="52" cy="42" rx="17" ry="8.5" data-face="cap"/>
+      <ellipse cx="52" cy="42" rx="17" ry="8.5" data-edge="hi"/>
+      <path d="M42 28 A10 5 0 0 1 62 28 L62 42 A10 5 0 0 1 42 42 Z" data-face="body"/>
+      <path d="M42 42 A10 5 0 0 0 62 42" data-edge="lo"/>
+      <ellipse cx="52" cy="28" rx="10" ry="5" data-face="cap"/>
+      <ellipse cx="52" cy="28" rx="10" ry="5" data-edge="hi"/>
+      <path d="M64 48 L64 26" data-pipe="base"/>
+      <path d="M62.4 48 L62.4 26" data-pipe="hi"/>
+      <ellipse cx="64" cy="26" rx="4.5" ry="2.2" data-face="cap"/>
+      <ellipse cx="64" cy="26" rx="4.5" ry="2.2" data-edge="hi" stroke-width="1.1"/>
+      <path d="M35 62 L21 55" data-pipe="base"/>
+      <path d="M35 60.4 L21 53.4" data-pipe="hi"/>
+      <ellipse cx="21" cy="55" rx="3" ry="5.5" data-face="hole"/>
+      <ellipse cx="21" cy="55" rx="3" ry="5.5" data-edge="hi" stroke-width="1"/>
     </g>
   </svg>`,
-  defaultWidth: 70,
-  defaultHeight: 70,
+  defaultWidth: 60,
+  defaultHeight: 88,
   defaultConfig: {
     running: 0,
     flow: 0,
