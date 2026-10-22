@@ -284,18 +284,43 @@ describe('内置组件的动效定义', () => {
     }
   })
 
-  it('带面标记的高度与位置和图标里的上下带边一致', () => {
-    // 滚动标记必须落在真正画出来的两条带边之间；带边在图标里挪了却忘了改配置，
+  it('带面标记落在图标里的带面中线上（斜置带面两端高度都要对）', () => {
+    // 滚动标记必须落在真正画出来的带面上；带面在图标里挪了却忘了改配置，
     // 标记就会糊到带面之外——这里把它固化成用例。
     const belt = ConveyorDefinition.motion!.belts![0]
-    const edges = [
-      ...ConveyorDefinition.icon.matchAll(/<line x1="18" y1="(\d+)" x2="82" y2="(\d+)"/g),
-    ].map(m => parseFloat(m[1]))
-    expect(edges).toHaveLength(2)
-    const top = Math.min(...edges)
-    const bottom = Math.max(...edges)
-    expect(belt.y).toBeCloseTo((top + bottom) / 2, 5)
-    expect(belt.bandHeight).toBeCloseTo(bottom - top, 5)
+    const top = ConveyorDefinition.icon.match(/<polygon points="([^"]+)" data-face="top"\/>/)
+    expect(top).toBeTruthy()
+    const pts: number[][] = [...top![1].matchAll(/([\d.]+),([\d.]+)/g)].map(m => [
+      parseFloat(m[1]),
+      parseFloat(m[2]),
+    ])
+    expect(pts).toHaveLength(4)
+    // 带面是平行四边形：两条短边是端头，中线两端＝端头中点
+    const ends = pts
+      .map((p, i) => {
+        const q = pts[(i + 1) % 4]
+        return {
+          len: Math.hypot(q[0] - p[0], q[1] - p[1]),
+          mid: [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2],
+        }
+      })
+      .sort((a, b) => a.len - b.len)
+      .slice(0, 2)
+      .map(e => e.mid)
+    const actual = [
+      [belt.x1, belt.y],
+      [belt.x2, belt.y2 ?? NaN],
+    ]
+    for (const [x, y] of actual) {
+      const hit = ends.some(([ex, ey]) => Math.abs(ex - x) < 1e-6 && Math.abs(ey - y) < 1e-6)
+      expect(hit, `标记端点 (${x},${y}) 不在带面端头的中线上`).toBe(true)
+    }
+    // 标记高度不能比带面还宽，否则滚动时会糊出带面
+    const [a, b, c] = [pts[0], pts[1], pts[2]]
+    const stripWidth =
+      Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) /
+      Math.hypot(b[0] - a[0], b[1] - a[1])
+    expect(belt.bandHeight).toBeLessThanOrEqual(stripWidth + 1e-6)
   })
 
   it('动效作为组件属性暴露，用户可逐元素关闭', () => {

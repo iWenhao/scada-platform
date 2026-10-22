@@ -31,78 +31,78 @@ export const RoadheaderDefinition: ComponentDefinition = {
   type: 'roadheader',
   name: '掘进机',
   group: 'coal',
-  // 截割头的截齿要随截割头转动，已移入 motion.rotors（悬臂与机身保持静止）
-  // 画法对齐综采采煤机素材：单色描边、内部留空、立体感靠线条密度而不是填充，
-  // 因此这里不写 data-face（styleIcon 会原样透传，2D/2.5D 观感一致）
+  /**
+   * 截割头的截齿要随截割头转动，已移入 motion.rotors（悬臂与机身保持静止）。
+   *
+   * 机身按 §3.3 的箱体面切法画：履带（deck + front）、车架、司机室、控制箱、截割臂
+   * 一律是 2:1 箱体，截割头按「正对观察者的圆盘」写成 `cap` + `hi` 轮廓。长轴沿
+   * 右下 1:2 的等轴测方向——运行时旋转会把光源一起转走（§9.4），横躺设备只能把几何
+   * 画成斜的，不能旋转图元。
+   */
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <!-- 后支撑：尾板 + 斜撑，整体退到驱动轮之后，不与轮注重叠 -->
-      <path d="M88,94 L88,88 L98,88 L98,94 Z" />
-      <path d="M90,88 L86,74" />
-      <!-- 履带装置：外廓只画底线与两端圆弧——顶边与车架下沿是同一条线，重描一遍就是「双线」；
-           两端圆弧的 sweep 必须同为 0（同向绕行才都朝外鼓），右端写成 1 会翻到履带内部去 -->
-      <path d="M38,74 A10,10 0 0 0 38,94 L74,94 A10,10 0 0 0 74,74" />
-      <circle cx="74" cy="84" r="6.2" />
-      <circle cx="74" cy="84" r="2.1" />
-      <circle cx="38" cy="84" r="5.2" />
-      <circle cx="38" cy="84" r="1.7" />
-      <circle cx="48" cy="88" r="2.8" />
-      <circle cx="56" cy="88" r="2.8" />
-      <circle cx="64" cy="88" r="2.8" />
-      <path d="M42,94 L42,96.5 M47,94 L47,96.5 M52,94 L52,96.5 M57,94 L57,96.5 M62,94 L62,96.5 M67,94 L67,96.5 M72,94 L72,96.5" stroke-width="1.1" />
-      <!-- 主车架：整台机器唯一的顶线与底线，deck 上的箱体都挂它、共边不重描；
-           内部分舱线对齐上方各箱体的接缝——不留线的车架是一块大空白板，反而成了全图最抢眼的东西 -->
-      <path d="M32,58 L94,58 L94,74 L32,74 Z" />
-      <path d="M32,66 L94,66" stroke-width="1" stroke-opacity="0.5" />
-      <path d="M56,58 L56,74 M72,58 L72,74 M84,58 L84,74" stroke-width="1" stroke-opacity="0.55" />
-      <!-- 司机护棚：两根立柱正好落在箱体之间的空档上，不穿过任何轮廓 -->
-      <path d="M34,26 L56,26 L56,30 L34,30 Z" />
-      <path d="M36,30 L36,58" />
-      <path d="M54,30 L54,58" />
-      <!-- 操作台与操作杆（台体开口朝下，底边即车架顶线） -->
-      <path d="M38,58 L38,48 L52,48 L52,58" />
-      <path d="M42,48 L40,41 M48,48 L50,41" stroke-width="1.2" />
-      <circle cx="40" cy="40.5" r="1.2" />
-      <circle cx="50" cy="40.5" r="1.2" />
-      <!-- 电气控制箱：门缝一条，指示灯与急停在门缝下方排开 -->
-      <path d="M56,58 L56,38 L70,38 L70,58" />
-      <path d="M56,45 L70,45" stroke-width="1" stroke-opacity="0.5" />
-      <circle cx="60" cy="51" r="1.4" />
-      <circle cx="64" cy="51" r="1.4" />
-      <circle cx="68" cy="51" r="1.8" stroke-width="1.1" />
-      <!-- 液压油箱：加油口切在顶线上，散热筋与液位计分踞左右、互不交叉 -->
-      <path d="M72,58 L72,44 L82,44 L82,58" />
-      <circle cx="77" cy="42" r="2" />
-      <path d="M74,47 L74,55 M76.5,47 L76.5,55" stroke-width="1" stroke-opacity="0.55" />
-      <path d="M79,47 L80.5,47 L80.5,55 L79,55" stroke-width="1.1" />
-      <!-- 电机：散热筋两条 -->
-      <path d="M84,58 L84,48 L94,48 L94,58" />
-      <path d="M87.5,50 L87.5,56 M91,50 L91,56" stroke-width="1" stroke-opacity="0.55" />
-      <!-- 回转台：支座收在截割臂根部之内当铰接凸台，不再骑在车架前沿上 -->
-      <circle cx="28.5" cy="60" r="4" />
-      <circle cx="28.5" cy="60" r="1.4" />
-      <!-- 截割臂：后缘开口、用车架前沿收边；臂内不再画滑轨——齿圈扫过来必然打架 -->
-      <path d="M32,56 L19,51 L19,61 L32,70" />
-      <!-- 升降油缸：从车架前下角伸到截割臂下沿，走回转台下方，不与圆相交 -->
-      <path d="M34,74 L29,69.5" stroke-width="3.2" stroke-opacity="0.8" />
-      <path d="M29,69.5 L25.5,65.5" stroke-width="1.3" />
-      <circle cx="34" cy="74" r="1.5" stroke-width="1.1" />
-      <circle cx="25.5" cy="65.5" r="1.4" stroke-width="1.1" />
-      <!-- 截割头滚筒：外圈 + 叶片环 + 轮毂三重同心，齿圈见 motion.rotors -->
-      <circle cx="13" cy="56" r="8.5" />
-      <circle cx="13" cy="56" r="5.5" stroke-width="1" stroke-opacity="0.6" />
-      <circle cx="13" cy="56" r="2.6" />
-      <!-- 前铲板：整体退到张紧轮之前，拱筋与台口线各守自己的框；
-           底部连接梁走 y=94 这条共线把铲板接到履带前端——斜穿过去必然刮上张紧轮罩的圆弧 -->
-      <path d="M6,94 L8,85 L24,85 L24,94 Z" />
-      <path d="M9,89 L24,89" stroke-width="1" stroke-opacity="0.55" />
-      <path d="M10,85 A7,7 0 0 1 22,85" stroke-width="1.2" />
-      <path d="M24,94 L38,94" stroke-width="1.2" stroke-opacity="0.8" />
+      <ellipse cx="54" cy="93" rx="34" ry="5.5" data-shadow="1"/>
+      <!-- 履带：车架以下唯一的体块。顶面用 deck（机器底座），支重轮是正面上的暗缝 -->
+      <polygon points="34,62 80,85 86,82 40,59" data-face="deck"/>
+      <polygon points="34,62 80,85 80,93 34,70" data-face="front"/>
+      <polygon points="80,85 86,82 86,90 80,93" data-face="side"/>
+      <path d="M34 62 L40 59 L86 82" data-edge="hi"/>
+      <path d="M34 62 L34 70" data-edge="hi"/>
+      <path d="M34 70 L80 93 L86 90" data-edge="lo"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <ellipse cx="42" cy="70" rx="3.6" ry="3.2" transform="rotate(26.57 42 70)"/>
+        <ellipse cx="52" cy="75" rx="3.6" ry="3.2" transform="rotate(26.57 52 75)"/>
+        <ellipse cx="62" cy="80" rx="3.6" ry="3.2" transform="rotate(26.57 62 80)"/>
+        <ellipse cx="72" cy="85" rx="3.6" ry="3.2" transform="rotate(26.57 72 85)"/>
+      </g>
+      <!-- 车架：履带 deck 上的主机体，面数下限靠它满足 -->
+      <polygon points="38,46 72,63 78,60 44,43" data-face="top"/>
+      <polygon points="38,46 72,63 72,80 38,63" data-face="front"/>
+      <polygon points="72,63 78,60 78,77 72,80" data-face="side"/>
+      <path d="M38 46 L44 43 L78 60" data-edge="hi"/>
+      <path d="M38 46 L38 63" data-edge="hi"/>
+      <path d="M38 63 L72 80 L78 77" data-edge="lo"/>
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="48" y1="51" x2="48" y2="68"/>
+        <line x1="60" y1="57" x2="60" y2="74"/>
+      </g>
+      <!-- 司机室：正面挖一块暗玻璃当窗，轮廓另描一条 hi 当窗框 -->
+      <polygon points="44,37 58,44 62,42 48,35" data-face="top"/>
+      <polygon points="44,37 58,44 58,56 44,49" data-face="front"/>
+      <polygon points="58,44 62,42 62,54 58,56" data-face="side"/>
+      <path d="M44 37 L48 35 L62 42" data-edge="hi"/>
+      <path d="M44 37 L44 49" data-edge="hi"/>
+      <path d="M44 49 L58 56 L62 54" data-edge="lo"/>
+      <polygon points="47,54 55,58 55,65 47,61" data-face="hole"/>
+      <path d="M47 54 L55 58 L55 65 L47 61 Z" data-edge="hi" stroke-width="1"/>
+      <!-- 电气控制箱：门缝一条 -->
+      <polygon points="60,49 68,53 71,51.5 63,47.5" data-face="top"/>
+      <polygon points="60,49 68,53 68,61 60,57" data-face="front"/>
+      <polygon points="68,53 71,51.5 71,59.5 68,61" data-face="side"/>
+      <path d="M60 49 L63 47.5 L71 51.5" data-edge="hi"/>
+      <path d="M60 49 L60 57" data-edge="hi"/>
+      <path d="M60 57 L68 61 L71 59.5" data-edge="lo"/>
+      <path d="M60 53 L68 57" data-edge="lo" stroke-width="1.1"/>
+      <!-- 截割臂：与机身同一套 2:1 箱体，根部压进车架正面 -->
+      <polygon points="44,53 18,40 21,38.5 47,51.5" data-face="top"/>
+      <polygon points="44,53 18,40 18,46 44,59" data-face="front"/>
+      <path d="M44 53 L18 40" data-edge="hi"/>
+      <path d="M47 51.5 L21 38.5" data-edge="hi"/>
+      <path d="M44 59 L18 46" data-edge="lo"/>
+      <!-- 升降油缸：走截割臂下沿与车架之间（圆管用 pipe，不参与面光照） -->
+      <path d="M45 64 L31 53" data-pipe="base"/>
+      <path d="M45 62.4 L31 51.4" data-pipe="hi"/>
+      <!-- 截割头滚筒：外圈 + 叶片环 + 轮毂三重同心，齿圈见 motion.rotors；
+           正对观察者的圆盘，只铺 cap 不描轮廓会像一块平色圆斑 -->
+      <circle cx="14" cy="45" r="9" data-face="cap"/>
+      <circle cx="14" cy="45" r="9" data-edge="hi" stroke-width="1.2"/>
+      <circle cx="14" cy="45" r="5.6" data-edge="lo" stroke-width="1.1"/>
+      <circle cx="14" cy="45" r="2.6" data-face="cap"/>
+      <circle cx="14" cy="45" r="2.6" data-edge="hi" stroke-width="1"/>
     </g>
   </svg>`,
-  // 默认尺寸按「图形区 + 名称/数值两行」反推：图标内容包围盒 97.7×74.7（aspect 1.308，
-  // 含 stroke-width 3.2 油缸带来的 2.1 描边余量），170×120 时两行文字都在，图形仍能以 94×72
-  // 画出来；再小就被文字区挤成糊块（120×90 只剩 63×48）
+  // 默认尺寸包住「图形区 + 名称/数值两行」：内容包围盒约 85×67（aspect 1.27），
+  // 170×120 时图形仍能以 88×69 画出来，再小就被文字区挤成糊块
   defaultWidth: 170,
   defaultHeight: 120,
   defaultConfig: {
@@ -110,32 +110,32 @@ export const RoadheaderDefinition: ComponentDefinition = {
     load: 0,
     animate: true,
   },
-  // 截齿绕截割头圆心（13,56）转动；16 支齿按采煤机滚筒的密度排布，
-  // 齿根半径 8.8 略大于滚筒外圈 8.5，转动时齿才不会压在线上
+  // 截齿绕截割头圆心（14,45）转动；16 支齿按采煤机滚筒的密度排布，
+  // 齿根半径 9.8 略大于滚筒外圈 9，转动时齿才不会压在轮廓线上
   motion: {
     driveVariable: 'cutting',
     degPerUnit: 120,
     rotors: [
       {
-        cx: 13,
-        cy: 56,
+        cx: 14,
+        cy: 45,
         svg: `<g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <line x1="13" y1="47.2" x2="13" y2="44.2" />
-          <line x1="16.4" y1="47.9" x2="17.5" y2="45.1" />
-          <line x1="19.2" y1="49.8" x2="21.3" y2="47.7" />
-          <line x1="21.1" y1="52.6" x2="23.9" y2="51.5" />
-          <line x1="21.8" y1="56" x2="24.8" y2="56" />
-          <line x1="21.1" y1="59.4" x2="23.9" y2="60.5" />
-          <line x1="19.2" y1="62.2" x2="21.3" y2="64.3" />
-          <line x1="16.4" y1="64.1" x2="17.5" y2="66.9" />
-          <line x1="13" y1="64.8" x2="13" y2="67.8" />
-          <line x1="9.6" y1="64.1" x2="8.5" y2="66.9" />
-          <line x1="6.8" y1="62.2" x2="4.7" y2="64.3" />
-          <line x1="4.9" y1="59.4" x2="2.1" y2="60.5" />
-          <line x1="4.2" y1="56" x2="1.2" y2="56" />
-          <line x1="4.9" y1="52.6" x2="2.1" y2="51.5" />
-          <line x1="6.8" y1="49.8" x2="4.7" y2="47.7" />
-          <line x1="9.6" y1="47.9" x2="8.5" y2="45.1" />
+          <line x1="23.8" y1="45.0" x2="26.8" y2="45.0" />
+          <line x1="23.1" y1="48.8" x2="25.8" y2="49.9" />
+          <line x1="20.9" y1="51.9" x2="23.1" y2="54.1" />
+          <line x1="17.8" y1="54.1" x2="18.9" y2="56.8" />
+          <line x1="14.0" y1="54.8" x2="14.0" y2="57.8" />
+          <line x1="10.2" y1="54.1" x2="9.1" y2="56.8" />
+          <line x1="7.1" y1="51.9" x2="4.9" y2="54.1" />
+          <line x1="4.9" y1="48.8" x2="2.2" y2="49.9" />
+          <line x1="4.2" y1="45.0" x2="1.2" y2="45.0" />
+          <line x1="4.9" y1="41.2" x2="2.2" y2="40.1" />
+          <line x1="7.1" y1="38.1" x2="4.9" y2="35.9" />
+          <line x1="10.2" y1="35.9" x2="9.1" y2="33.2" />
+          <line x1="14.0" y1="35.2" x2="14.0" y2="32.2" />
+          <line x1="17.8" y1="35.9" x2="18.9" y2="33.2" />
+          <line x1="20.9" y1="38.1" x2="23.1" y2="35.9" />
+          <line x1="23.1" y1="41.2" x2="25.8" y2="40.1" />
         </g>`,
       },
     ],
@@ -186,30 +186,49 @@ export const ConveyorDefinition: ComponentDefinition = {
   type: 'conveyor',
   name: '皮带输送机',
   group: 'coal',
+  /**
+   * 纵长设备按 §9.4 的写法把几何画成斜的（右下 1:2），不旋转图元。
+   * 带面是 `top` 面：滚动标记沿带面中线推进，因此 motion.belts 必须同时给两端高度，
+   * 否则虚线会横穿倾斜的带面（见 MotionBelt.y2）。
+   */
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="18" cy="62" r="9" />
-      <circle cx="82" cy="62" r="9" />
-      <line x1="18" y1="53" x2="82" y2="53" />
-      <line x1="18" y1="71" x2="82" y2="71" />
-      <line x1="30" y1="71" x2="30" y2="90" />
-      <line x1="70" y1="71" x2="70" y2="90" />
-      <polygon points="38,53 62,53 55,38 45,38" />
-      <line x1="26" y1="46" x2="34" y2="46" />
-      <line x1="66" y1="46" x2="74" y2="46" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="48" cy="82" rx="30" ry="6" data-shadow="1"/>
+      <!-- 支腿：先画（画家算法），上半截由机架自然裁掉 -->
+      <polygon points="29,57 34,59.5 34,76 29,73.5" data-face="front"/>
+      <polygon points="34,59.5 37,58 37,74.5 34,76" data-face="side"/>
+      <path d="M29 73.5 L34 76 L37 74.5" data-edge="lo"/>
+      <polygon points="53,69 58,71.5 58,88 53,85.5" data-face="front"/>
+      <polygon points="58,71.5 61,70 61,86.5 58,88" data-face="side"/>
+      <path d="M53 85.5 L58 88 L61 86.5" data-edge="lo"/>
+      <!-- 机架：带面（top）+ 侧板（front）+ 尾端（side） -->
+      <polygon points="20,40 72,66 79,62.5 27,36.5" data-face="top"/>
+      <polygon points="20,40 72,66 72,76 20,50" data-face="front"/>
+      <polygon points="72,66 79,62.5 79,72.5 72,76" data-face="side"/>
+      <path d="M20 40 L27 36.5 L79 62.5" data-edge="hi"/>
+      <path d="M20 40 L20 50" data-edge="hi"/>
+      <path d="M20 50 L72 76 L79 72.5" data-edge="lo"/>
+      <!-- 头尾滚筒：正对观察者的立圆盘，轮廓另描 (只铺 cap 会像圆斑) -->
+      <ellipse cx="26" cy="48" rx="2.4" ry="4.5" data-face="cap"/>
+      <ellipse cx="26" cy="48" rx="2.4" ry="4.5" data-edge="hi" stroke-width="1.1"/>
+      <ellipse cx="66" cy="68.5" rx="2.4" ry="4.5" data-face="cap"/>
+      <ellipse cx="66" cy="68.5" rx="2.4" ry="4.5" data-edge="hi" stroke-width="1.1"/>
     </g>
   </svg>`,
+  // 内容包围盒 59×51.5（aspect 1.15）：斜着画的输送机纵向占位比横放的线条稿大，
+  // 尺寸按新画幅给，照抄 110×50 会把图形压成 19px 的小块
   defaultWidth: 110,
-  defaultHeight: 50,
+  defaultHeight: 84,
   defaultConfig: {
     beltSpeed: 0,
     length: 100,
     animate: true,
   },
-  // 带面滚动：在上下带边（y=53..71，厚 18）之间推进竖线标记，表达输送方向与带速
+  // 带面滚动：在带面中线（top 面的两条端边中点）之间推进竖线标记；
+  // y2 必须给——带面是斜的，只给一端高度会让标记横穿带面
   motion: {
     driveVariable: 'speed',
-    belts: [{ x1: 20, x2: 80, y: 62, bandHeight: 18, direction: 1 }],
+    belts: [{ x1: 23.5, x2: 75.5, y: 38.25, y2: 64.25, bandHeight: 6, direction: 1 }],
   },
   statusRules: [
     {
@@ -325,18 +344,32 @@ export const GasSensorDefinition: ComponentDefinition = {
   type: 'gas_sensor',
   name: '瓦斯传感器',
   group: 'coal',
+  /**
+   * 挂墙式检测仪：显示箱是 2:1 箱体，屏幕挖成 `hole` 暗面、CH4 直接写在屏幕上。
+   * 文字保留普通 `<text>`（不参与面光照），换状态色时随 `fill="currentColor"` 一起变。
+   */
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="30" y="48" width="40" height="34" rx="3" />
-      <text x="50" y="70" text-anchor="middle" font-size="13" font-weight="bold" fill="currentColor" stroke="none">CH4</text>
-      <line x1="50" y1="48" x2="50" y2="34" />
-      <circle cx="50" cy="30" r="4" />
-      <path d="M60,22 Q66,30 60,38" />
-      <path d="M67,16 Q76,30 67,44" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="92" rx="15" ry="3.5" data-shadow="1"/>
+      <polygon points="28,42 50,31 72,42 50,53" data-face="top"/>
+      <polygon points="28,42 50,53 50,83 28,72" data-face="front"/>
+      <polygon points="50,53 72,42 72,72 50,83" data-face="side"/>
+      <path d="M28 42 L50 31 L72 42" data-edge="hi"/>
+      <path d="M28 42 L28 72" data-edge="hi"/>
+      <path d="M28 72 L50 83 L72 72" data-edge="lo"/>
+      <polygon points="32,47 48,55 48,73 32,65" data-face="hole"/>
+      <path d="M32 47 L48 55 L48 73 L32 65 Z" data-edge="hi" stroke-width="1"/>
+      <text x="40" y="67" text-anchor="middle" font-size="8" font-weight="bold" fill="currentColor" stroke="none">CH4</text>
+      <path d="M50 31 L50 24" data-pipe="base"/>
+      <path d="M48.4 31 L48.4 24" data-pipe="hi"/>
+      <circle cx="50" cy="20" r="4.5" data-face="cap"/>
+      <circle cx="50" cy="20" r="4.5" data-edge="hi" stroke-width="1.1"/>
+      <path d="M57 15 Q62 20 57 25" stroke-opacity="0.55"/>
+      <path d="M62 11 Q69 20 62 29" stroke-opacity="0.55"/>
     </g>
   </svg>`,
-  defaultWidth: 55,
-  defaultHeight: 80,
+  defaultWidth: 60,
+  defaultHeight: 88,
   defaultConfig: {
     density: 0,
     alarmThreshold: 1.0,
@@ -380,17 +413,59 @@ export const HoistDefinition: ComponentDefinition = {
   type: 'hoist',
   name: '提升机',
   group: 'coal',
+  /**
+   * 井架 + 天轮 + 罐笼：平台是 2:1 箱体，两根前立柱与一根后立柱围出开口，
+   * 天轮按「正对观察者的圆盘」写（`cap` + `hi` 轮廓），罐笼是悬在开口里的箱体。
+   * 缆绳与桁架斜撑是装饰线（普通 path + stroke-opacity），不标 `data-edge`。
+   */
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="28,90 50,28 72,90" />
-      <circle cx="50" cy="22" r="8" />
-      <line x1="50" y1="30" x2="50" y2="58" />
-      <rect x="40" y="58" width="20" height="18" />
-      <line x1="15" y1="90" x2="85" y2="90" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="93" rx="28" ry="4.5" data-shadow="1"/>
+      <!-- 平台：井架落脚处 -->
+      <polygon points="26,80 50,68 74,80 50,92" data-face="deck"/>
+      <polygon points="26,80 50,92 50,95 26,83" data-face="front"/>
+      <polygon points="50,92 74,80 74,83 50,95" data-face="side"/>
+      <path d="M26 80 L50 68 L74 80" data-edge="hi"/>
+      <path d="M26 83 L50 95 L74 83" data-edge="lo"/>
+      <!-- 后立柱先画，上半截由天轮压住 -->
+      <polygon points="55,76 57.5,76 57.5,31 55,31" data-face="side"/>
+      <!-- 两根前立柱：上端收拢到天轮下方 -->
+      <polygon points="30,79 33.5,80.75 47,32 43.5,30.25" data-face="front"/>
+      <polygon points="55.5,30.25 59,32 66.5,80.75 63,79" data-face="front"/>
+      <path d="M30 79 L43.5 30.25" data-edge="hi"/>
+      <path d="M30 79 L33.5 80.75" data-edge="lo"/>
+      <path d="M55.5 30.25 L63 79" data-edge="hi"/>
+      <path d="M63 79 L66.5 80.75" data-edge="lo"/>
+      <!-- 横撑与斜撑：开口内的桁架，只做结构细节 -->
+      <g data-edge="lo" stroke-width="1.1">
+        <line x1="43.1" y1="46" x2="57.9" y2="46"/>
+        <line x1="41.5" y1="52" x2="58.8" y2="52"/>
+        <line x1="43.1" y1="46" x2="58.8" y2="52"/>
+      </g>
+      <!-- 天轮：圆盘 + 轮缘环 + 轮毂 + 辐条 -->
+      <circle cx="50" cy="24" r="9.5" data-face="cap"/>
+      <circle cx="50" cy="24" r="9.5" data-edge="hi" stroke-width="1.2"/>
+      <circle cx="50" cy="24" r="6.5" data-edge="lo" stroke-width="1.1"/>
+      <circle cx="50" cy="24" r="2.2" data-face="cap"/>
+      <circle cx="50" cy="24" r="2.2" data-edge="hi" stroke-width="1"/>
+      <g data-edge="lo" stroke-width="1">
+        <line x1="50" y1="18" x2="50" y2="30"/>
+        <line x1="44.9" y1="21" x2="55.1" y2="27"/>
+        <line x1="44.9" y1="27" x2="55.1" y2="21"/>
+      </g>
+      <!-- 缆绳与罐笼（罐笼压住缆绳下端） -->
+      <path d="M56 31 L53 55" stroke-width="1.1" stroke-opacity="0.75"/>
+      <polygon points="44,57 50,53.5 56,57 50,60.5" data-face="top"/>
+      <polygon points="44,57 50,60.5 50,70 44,66.5" data-face="front"/>
+      <polygon points="50,60.5 56,57 56,66.5 50,70" data-face="side"/>
+      <path d="M44 57 L50 53.5 L56 57" data-edge="hi"/>
+      <path d="M44 57 L44 66.5" data-edge="hi"/>
+      <path d="M44 66.5 L50 70 L56 66.5" data-edge="lo"/>
+      <path d="M44 62 L50 65.5" data-edge="lo" stroke-width="1.1"/>
     </g>
   </svg>`,
-  defaultWidth: 70,
-  defaultHeight: 90,
+  defaultWidth: 68,
+  defaultHeight: 96,
   defaultConfig: {
     speed: 0,
     load: 0,
@@ -434,14 +509,39 @@ export const CoalBunkerDefinition: ComponentDefinition = {
   type: 'coal_bunker',
   name: '原煤仓',
   group: 'coal',
+  /**
+   * 方仓 + 锥斗：仓体是标准 2:1 箱体，锥斗按箱体底面菱形收敛到卸料口，
+   * 只画朝观察者的两面（front / side），接缝与卸料口用 lo 压暗。
+   * 料位虚线保留普通 path（装饰，不标 data-edge，否则会变成抢轮廓的亮线）。
+   */
   icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M30,14 L70,14 L70,50 L58,76 L42,76 L30,50 Z" />
-      <line x1="30" y1="28" x2="70" y2="28" stroke-dasharray="5,3" opacity="0.6" />
-      <rect x="44" y="76" width="12" height="8" />
-      <line x1="38" y1="76" x2="34" y2="92" />
-      <line x1="62" y1="76" x2="66" y2="92" />
-      <line x1="28" y1="92" x2="72" y2="92" />
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="92" rx="30" ry="5" data-shadow="1"/>
+      <!-- 支腿先画，上半截由仓体裁掉 -->
+      <polygon points="24,52 29,54.5 29,92 24,89.5" data-face="front"/>
+      <polygon points="29,54.5 31,53.5 31,91 29,92" data-face="side"/>
+      <path d="M24 89.5 L29 92 L31 91" data-edge="lo"/>
+      <polygon points="69,50 74,52.5 74,90 69,87.5" data-face="front"/>
+      <polygon points="74,52.5 76,51.5 76,89 74,90" data-face="side"/>
+      <path d="M69 87.5 L74 90 L76 89" data-edge="lo"/>
+      <!-- 仓体 -->
+      <polygon points="26,16 50,5 74,16 50,27" data-face="top"/>
+      <polygon points="26,16 50,27 50,61 26,50" data-face="front"/>
+      <polygon points="50,27 74,16 74,50 50,61" data-face="side"/>
+      <path d="M26 16 L50 5 L74 16" data-edge="hi"/>
+      <path d="M26 16 L26 50" data-edge="hi"/>
+      <path d="M26 50 L50 61 L74 50" data-edge="lo"/>
+      <path d="M26 40 L50 51 L74 40" stroke-dasharray="5 3" stroke-opacity="0.55"/>
+      <!-- 锥斗：箱体底面菱形收敛到卸料口 -->
+      <polygon points="26,50 50,61 50,83 44,80" data-face="front"/>
+      <polygon points="50,61 74,50 56,80 50,83" data-face="side"/>
+      <path d="M26 50 L44 80" data-edge="hi"/>
+      <!-- 卸料口 -->
+      <polygon points="44,80 50,83 50,88 44,85" data-face="front"/>
+      <polygon points="50,83 56,80 56,85 50,88" data-face="side"/>
+      <path d="M44 80 L50 83 L56 80" data-edge="lo"/>
+      <path d="M44 85 L50 88 L56 85" data-edge="lo"/>
+      <path d="M44 80 L44 85" data-edge="hi"/>
     </g>
   </svg>`,
   defaultWidth: 70,

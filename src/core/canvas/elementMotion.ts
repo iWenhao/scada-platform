@@ -156,10 +156,12 @@ export function buildBeltConfig(
   const direction = belt.direction === -1 ? -1 : 1
   const x1 = frame.mapX(Math.min(belt.x1, belt.x2))
   const x2 = frame.mapX(Math.max(belt.x1, belt.x2))
-  const y = frame.mapY(belt.y)
+  // 斜置带面：两端高度都换算，标记才沿带面中线走；水平带面 y2 缺省等于 y
+  const y1 = frame.mapY(belt.y)
+  const y2 = frame.mapY(belt.y2 ?? belt.y)
   const band = Math.max(belt.bandHeight, 1) * frame.scale
   return {
-    points: [x1, y, x2, y],
+    points: [x1, y1, x2, y2],
     stroke: color,
     strokeWidth: clamp(band * BELT_MARK_HEIGHT_RATIO, 3, 40),
     dash: [
