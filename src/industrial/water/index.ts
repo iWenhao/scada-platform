@@ -127,10 +127,9 @@ export const SubPumpDefinition: ComponentDefinition = {
 }
 
 /**
- * 2.5D 样板批：素材图元是线条稿，泵与阀门这两台按面基等轴测重绘
- * （见 docs/2.5D_ILLUSTRATION_GUIDE.md §4）。覆盖发生在组装之后，生成文件保持原样，
- * 重新导出素材不会把这层改动冲掉。几何换了，默认尺寸一并对齐新画幅；
- * 名称属性同步改，否则属性面板里的默认名仍是素材原名。
+ * 2.5D 迁移：素材图元是线条稿，这里按面基等轴测重绘（见 docs/2.5D_ILLUSTRATION_GUIDE.md §4.5）。
+ * 覆盖发生在组装之后，生成文件保持原样，重新导出素材不会把这层改动冲掉。
+ * 几何换了，默认尺寸一并对齐新画幅；名称属性同步改，否则属性面板里的默认名仍是素材原名。
  */
 const illustratedAssets: Record<
   string,
@@ -201,6 +200,130 @@ const illustratedAssets: Record<
       <line x1="38" y1="30" x2="62" y2="30" data-edge="hi" stroke-width="1.1"/>
       <line x1="50" y1="24.5" x2="50" y2="35.5" data-edge="hi" stroke-width="1.1"/>
       <ellipse cx="50" cy="30" rx="2.2" ry="1.1" data-face="cap"/>
+    </g>
+  </svg>`,
+  },
+  water_tank: {
+    width: 46,
+    height: 76,
+    icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="90" rx="24" ry="4.5" data-shadow="1"/>
+      <path d="M30 26 A20 10 0 0 1 70 26 L70 82 A20 10 0 0 1 30 82 Z" data-face="body"/>
+      <path d="M30 82 A20 10 0 0 0 70 82" data-edge="lo"/>
+      <ellipse cx="50" cy="26" rx="20" ry="10" data-face="cap"/>
+      <ellipse cx="50" cy="26" rx="20" ry="10" data-edge="hi"/>
+      <ellipse cx="50" cy="26" rx="7" ry="3.5" data-edge="lo" stroke-width="1.2"/>
+      <ellipse cx="50" cy="26" rx="4.5" ry="2.2" data-face="cap"/>
+      <path d="M30 58 A20 10 0 0 0 70 58" stroke-dasharray="4 3" stroke-opacity="0.45"/>
+    </g>
+  </svg>`,
+  },
+  water_dosing_tank: {
+    width: 44,
+    height: 80,
+    icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="90" rx="24" ry="4.5" data-shadow="1"/>
+      <path d="M28 34 A22 11 0 0 1 72 34 L72 82 A22 11 0 0 1 28 82 Z" data-face="body"/>
+      <path d="M28 82 A22 11 0 0 0 72 82" data-edge="lo"/>
+      <ellipse cx="50" cy="34" rx="22" ry="11" data-face="cap"/>
+      <ellipse cx="50" cy="34" rx="22" ry="11" data-edge="hi"/>
+      <path d="M43 18 A7 3.5 0 0 1 57 18 L57 32 A7 3.5 0 0 1 43 32 Z" data-face="body"/>
+      <path d="M43 32 A7 3.5 0 0 0 57 32" data-edge="lo"/>
+      <ellipse cx="50" cy="18" rx="7" ry="3.5" data-face="cap"/>
+      <ellipse cx="50" cy="18" rx="7" ry="3.5" data-edge="hi"/>
+      <path d="M29 58 A22 11 0 0 0 71 58" stroke-dasharray="4 3" stroke-opacity="0.45"/>
+    </g>
+  </svg>`,
+  },
+  water_exhaust_tank: {
+    width: 46,
+    height: 88,
+    icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="90" rx="24" ry="4.5" data-shadow="1"/>
+      <path d="M28 28 L72 28 L72 82 A22 11 0 0 1 28 82 Z" data-face="body"/>
+      <path d="M28 82 A22 11 0 0 0 72 82" data-edge="lo"/>
+      <path d="M28 28 A22 13 0 0 1 72 28 Z" data-face="cap"/>
+      <path d="M28 28 A22 13 0 0 1 72 28" data-edge="hi"/>
+      <path d="M46 16 L46 6" data-pipe="base"/>
+      <path d="M44.4 16 L44.4 6" data-pipe="hi"/>
+      <ellipse cx="46" cy="6" rx="4.5" ry="2.2" data-face="cap"/>
+      <ellipse cx="46" cy="6" rx="4.5" ry="2.2" data-edge="hi" stroke-width="1.1"/>
+      <path d="M28 48 A22 11 0 0 0 72 48" data-edge="lo" stroke-width="1.1"/>
+      <path d="M28 64 A22 11 0 0 0 72 64" data-edge="lo" stroke-width="1.1"/>
+    </g>
+  </svg>`,
+  },
+  water_pool: {
+    width: 108,
+    height: 88,
+    icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="86" rx="44" ry="5" data-shadow="1"/>
+      <polygon points="5,40 50,62.5 50,75 5,52.5" data-face="front"/>
+      <polygon points="50,62.5 95,40 95,52.5 50,75" data-face="side"/>
+      <path d="M5 40 L50 17.5 L95 40" data-edge="hi"/>
+      <path d="M5 40 L5 52.5" data-edge="hi"/>
+      <path d="M5 52.5 L50 75 L95 52.5" data-edge="lo"/>
+      <path d="M5 40 L50 17.5 L95 40 L50 62.5 Z M13 40 L50 21.5 L87 40 L50 58.5 Z" fill-rule="evenodd" data-face="top"/>
+      <polygon points="13,40 50,21.5 87,40 50,58.5" data-face="deck"/>
+      <path d="M13 40 L50 21.5 L87 40" data-edge="lo" stroke-width="1.1"/>
+    </g>
+  </svg>`,
+  },
+  water_sedimentation_tank: {
+    width: 108,
+    height: 88,
+    icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="86" rx="44" ry="5" data-shadow="1"/>
+      <polygon points="6,44 50,66 50,79 6,57" data-face="front"/>
+      <polygon points="50,66 94,44 94,57 50,79" data-face="side"/>
+      <path d="M6 44 L50 22 L94 44" data-edge="hi"/>
+      <path d="M6 44 L6 57" data-edge="hi"/>
+      <path d="M6 57 L50 79 L94 57" data-edge="lo"/>
+      <path d="M6 44 L50 22 L94 44 L50 66 Z M14 44 L50 26 L86 44 L50 62 Z" fill-rule="evenodd" data-face="top"/>
+      <polygon points="14,44 50,26 86,44 50,62" data-face="deck"/>
+      <path d="M14 44 L50 26 L86 44" data-edge="lo" stroke-width="1.1"/>
+      <path d="M26 34 L70 56 L75 53.5 L31 31.5 Z" data-face="top"/>
+      <polygon points="26,34 70,56 70,60 26,38" data-face="front"/>
+      <path d="M26 34 L31 31.5 L75 53.5" data-edge="hi"/>
+      <path d="M26 38 L70 60" data-edge="lo"/>
+      <path d="M40 33 A6 3 0 0 1 52 33 L52 40 A6 3 0 0 1 40 40 Z" data-face="body"/>
+      <ellipse cx="46" cy="33" rx="6" ry="3" data-face="cap"/>
+      <ellipse cx="46" cy="33" rx="6" ry="3" data-edge="hi"/>
+      <path d="M40 40 A6 3 0 0 0 52 40" data-edge="lo"/>
+      <path d="M14 44 L4 39" data-pipe="base"/>
+      <path d="M14 42.4 L4 37.4" data-pipe="hi"/>
+      <ellipse cx="4" cy="39" rx="2.5" ry="5.5" transform="rotate(26.57 4 39)" data-face="cap"/>
+    </g>
+  </svg>`,
+  },
+  water_purifier: {
+    width: 58,
+    height: 88,
+    icon: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="88" rx="28" ry="4.5" data-shadow="1"/>
+      <polygon points="36,70 42,73 42,82 36,79" data-face="front"/>
+      <polygon points="42,73 45,71.5 45,80.5 42,82" data-face="side"/>
+      <path d="M36 79 L42 82 L45 80.5" data-edge="lo"/>
+      <polygon points="56,70 62,73 62,82 56,79" data-face="front"/>
+      <polygon points="62,73 65,71.5 65,80.5 62,82" data-face="side"/>
+      <path d="M56 79 L62 82 L65 80.5" data-edge="lo"/>
+      <circle cx="50" cy="46" r="28" data-face="cap"/>
+      <circle cx="50" cy="46" r="28" data-edge="hi"/>
+      <circle cx="50" cy="46" r="21" data-face="front"/>
+      <circle cx="50" cy="46" r="21" data-edge="lo"/>
+      <circle cx="50" cy="46" r="8" data-face="cap"/>
+      <circle cx="50" cy="46" r="8" data-edge="hi"/>
+      <circle cx="50" cy="46" r="3.2" data-edge="lo" stroke-width="2"/>
+      <path d="M50 18 L50 8" data-pipe="base"/>
+      <path d="M48.4 18 L48.4 8" data-pipe="hi"/>
+      <ellipse cx="50" cy="8" rx="5" ry="2.5" data-face="cap"/>
+      <ellipse cx="50" cy="8" rx="5" ry="2.5" data-edge="hi" stroke-width="1.1"/>
     </g>
   </svg>`,
   },
