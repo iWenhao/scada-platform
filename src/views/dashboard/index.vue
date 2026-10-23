@@ -300,8 +300,9 @@ async function unpublishProject(name: string) {
   await reloadWindow()
 }
 
-function goToEditor() {
-  projectStore.resetProject()
+async function goToEditor() {
+  // 清掉默认名残留草稿，否则进编辑器会被问「是否恢复」一个本该空白的新工程
+  await projectStore.startNewProject()
   router.push('/editor')
 }
 

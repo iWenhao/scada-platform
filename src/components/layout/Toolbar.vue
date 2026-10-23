@@ -290,7 +290,7 @@ const uiStore = useUiStore()
 const authStore = useAuthStore()
 const branding = useBrandingStore()
 
-const { canUndo, canRedo, undo, redo, saveState } = useHistory()
+const { canUndo, canRedo, undo, redo, startSession } = useHistory()
 
 const showCanvasConfig = ref(false)
 
@@ -371,7 +371,8 @@ function handleZoomFit() {
 }
 
 onMounted(() => {
-  saveState() // 保存初始状态
+  // 按本次进入编辑器的内容重建基线：上一会话的撤销栈不能带进来
+  startSession()
 })
 </script>
 

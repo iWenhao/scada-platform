@@ -141,6 +141,18 @@ export function useHistory() {
     baselineEstablished = false
   }
 
+  /**
+   * 编辑会话入口：丢弃上一个会话的撤销栈后，用当前内容重新建立基线。
+   *
+   * 不能只 saveState()：baselineEstablished 是模块级的，跨路由不会复位。
+   * 新建工程时栈顶还是上一个工程的内容，内容比对不同会直接 markDirty，
+   * 表现为「刚点新建项目就显示未保存」；撤销还会把上一个工程的元素倒回新工程。
+   */
+  function startSession() {
+    clearHistory()
+    saveState()
+  }
+
   return {
     canUndo,
     canRedo,
@@ -148,5 +160,6 @@ export function useHistory() {
     undo,
     redo,
     clearHistory,
+    startSession,
   }
 }

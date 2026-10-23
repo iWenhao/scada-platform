@@ -309,6 +309,23 @@ export const useProjectStore = defineStore('project', () => {
     pageStore.reset()
   }
 
+  /**
+   * 新建项目：重置工程并清掉默认名下的残留草稿。
+   *
+   * 「未命名项目」是所有新工程的共享默认名：上一次未保存的新工程草稿留在这里时，
+   * 下一次新建进入编辑器会被当成「可恢复草稿」弹窗询问，恢复后旧内容会装进
+   * 本该空白的新工程。用户已经明确点了新建，草稿按放弃处理。
+   */
+  async function startNewProject() {
+    resetProject()
+    try {
+      await clearDraft()
+    } catch (e) {
+      // 草稿删不掉不该挡住新建入口（远程删除可能偶发失败）
+      console.warn('草稿清理失败（新建项目）:', e)
+    }
+  }
+
   return {
     projectName,
     projectDescription,
@@ -346,5 +363,6 @@ export const useProjectStore = defineStore('project', () => {
     clearDraft,
     markDirty,
     resetProject,
+    startNewProject,
   }
 })

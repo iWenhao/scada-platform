@@ -155,6 +155,30 @@ describe('useHistory', () => {
     expect(projectStore.hasUnsavedChanges).toBe(false)
   })
 
+  it('新编辑会话应丢弃上一工程的快照，空工程不会被误标未保存', () => {
+    const projectStore = useProjectStore()
+
+    // 上一个工程：建立基线并留下内容与快照
+    history.saveState()
+    canvasStore.addElement(makeElement('el_old'))
+    history.saveState()
+
+    // 回首页点「新建项目」：store 已重置，但历史栈与基线是模块级的，此前仍在
+    projectStore.resetProject()
+    expect(canvasStore.elements).toHaveLength(0)
+
+    // 进入编辑器：按当前空画布重建本次会话的基线
+    history.startSession()
+    expect(projectStore.hasUnsavedChanges).toBe(false)
+    // 撤销不能跨会话倒回上一个工程
+    expect(history.canUndo.value).toBe(false)
+
+    // 之后的真实编辑仍要正常标记未保存
+    canvasStore.addElement(makeElement('el_new'))
+    history.saveState()
+    expect(projectStore.hasUnsavedChanges).toBe(true)
+  })
+
   it('撤销与重做都应让工程回到未保存状态', () => {
     const projectStore = useProjectStore()
 

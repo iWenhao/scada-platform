@@ -92,11 +92,13 @@ export function createProjectPersistence(ctx: {
       throw e
     }
 
-    // 已正式落盘，自动草稿不再需要。但清理失败不能算保存失败：项目数据已经写好了，
-    // 这里抛出去会让「保存」报未处理异常、「预览」直接不跳转，用户以为没存上。
-    // 草稿残留的代价只是下次进来多问一次恢复。
+    // 已正式落盘，自动草稿不再需要。草稿键用的是写草稿那一刻的工程名，
+    // 保存时若刚改过名（撞名后改名保存 / 工具栏重命名），只清新名字会漏掉旧键，
+    // 下次同名「新建项目」就会被提示恢复这份已经保存过的内容。两个名字都清。
+    // 清理失败不能算保存失败：项目数据已经写好了，这里抛出去会让「保存」报
+    // 未处理异常、「预览」直接不跳转，用户以为没存上。
     try {
-      await clearDraft()
+      await Promise.all([...new Set([prevName, target])].map(clearDraftFor))
     } catch (e) {
       console.warn('草稿清理失败（项目已保存）:', e)
     }
@@ -245,10 +247,18 @@ export function createProjectPersistence(ctx: {
   }
 
   /**
-   * 丢弃草稿
+   * 删除指定工程名下的草稿。
+   * 单独收口是因为保存时需要同时清理「写草稿时的旧名」与「保存用的新名」。
+   */
+  async function clearDraftFor(name: string) {
+    await getStorage().remove(draftKey(name))
+  }
+
+  /**
+   * 丢弃当前工程的草稿
    */
   async function clearDraft() {
-    await getStorage().remove(draftKey(state.projectName.value))
+    await clearDraftFor(state.projectName.value)
   }
 
   return {
