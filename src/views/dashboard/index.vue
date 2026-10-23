@@ -64,6 +64,17 @@
 
         <template v-else-if="recentProjects.length">
           <div class="project-grid">
+            <!-- 新建入口排在首位：项目多时不必滑到列表底部；它不参与过滤，是动作而不是搜索结果 -->
+            <div class="project-card ghost" @click="goToEditor">
+              <div class="ghost-center">
+                <div class="ghost-plus">＋</div>
+                <div class="ghost-title">新建项目</div>
+                <div class="ghost-sub">从空白开始组态</div>
+                <el-button size="small" type="primary" plain class="demo-btn" @click.stop="importDemo">
+                  导入示例 Demo
+                </el-button>
+              </div>
+            </div>
             <ProjectCard
               v-for="row in recentProjects"
               :key="row.name"
@@ -81,17 +92,6 @@
               @confirm-rename="confirmRename(row.name)"
               @cancel-rename="cancelRename"
             />
-            <!-- 新建入口不参与过滤：它是动作而不是搜索结果 -->
-            <div class="project-card ghost" @click="goToEditor">
-              <div class="ghost-center">
-                <div class="ghost-plus">＋</div>
-                <div class="ghost-title">新建项目</div>
-                <div class="ghost-sub">从空白开始组态</div>
-                <el-button size="small" type="primary" plain class="demo-btn" @click.stop="importDemo">
-                  导入示例 Demo
-                </el-button>
-              </div>
-            </div>
           </div>
 
           <!-- 触底自动续拉的可视反馈；剩余数用服务端 matchedTotal 精确计 -->
