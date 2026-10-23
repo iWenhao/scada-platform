@@ -149,7 +149,7 @@ const illustratedAssets: Record<
         <line x1="32" y1="73" x2="46" y2="80"/>
       </g>
       <path d="M42 42 A8 4 0 0 1 58 42 L58 51 A8 4 0 0 1 42 51 Z" data-face="body"/>
-      <path d="M42 51 A8 4 0 0 1 58 51" data-edge="lo"/>
+      <path d="M42 51 A8 4 0 0 0 58 51" data-edge="lo"/>
       <ellipse cx="50" cy="42" rx="8" ry="4" data-face="cap"/>
       <ellipse cx="50" cy="42" rx="8" ry="4" data-edge="hi"/>
       <circle cx="50" cy="46" r="1.8" data-edge="lo" stroke-width="1.6"/>
