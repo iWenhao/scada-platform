@@ -1,8 +1,10 @@
 <template>
-  <div class="login-page">
+  <div class="login-page" @pointermove="onPointerMove">
     <!-- 背景：等轴测工厂插画（左侧场景）+ 主题蒙版，替代原网格/光晕/扫描线 -->
     <div class="bg-art" />
     <div class="bg-veil" />
+    <!-- 鼠标跟随光斑：换背景时保留，压在插画之上、登录卡之下 -->
+    <div class="cursor-glow" :style="glowStyle" />
 
     <!-- 主题切换：登录页是进入系统的第一屏，未登录也要能改外观 -->
     <ThemeToggle v-slot="{ tip, icon, toggle }">
@@ -107,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import { useBrandingStore } from '@/stores/brandingStore'
@@ -124,6 +126,20 @@ const branding = useBrandingStore()
 const username = ref('admin')
 const password = ref('')
 const showPwd = ref(false)
+// 初始放在视口外，首次移动前不显示光斑
+const glowX = ref(-999)
+const glowY = ref(-999)
+
+const glowStyle = computed(() => ({
+  transform: `translate3d(${glowX.value - 180}px, ${glowY.value - 180}px, 0)`,
+}))
+
+function onPointerMove(e: PointerEvent) {
+  const el = e.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  glowX.value = e.clientX - rect.left
+  glowY.value = e.clientY - rect.top
+}
 
 const seeds = SEED_USERS
 

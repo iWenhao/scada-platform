@@ -93,6 +93,12 @@
     rgba(6, 10, 20, 0.26) 46%,
     rgba(6, 10, 20, 0.6) 100%
   );
+  // 鼠标光斑：暗底上纯青色就够亮
+  --login-cursor-glow: radial-gradient(
+    circle,
+    rgba(0, 212, 170, 0.26) 0%,
+    transparent 70%
+  );
   --login-glow-color: rgba(0, 212, 170, 0.22);
 }
 
@@ -207,6 +213,13 @@ html[data-theme='light'] {
     rgba(248, 251, 255, 0.04) 0%,
     rgba(248, 251, 255, 0.45) 46%,
     rgba(255, 255, 255, 0.92) 100%
+  );
+  // 白天插画本身接近白色，纯青色叠上去只是一层绿雾；改成白芯提亮、外圈带青，才像一束光
+  --login-cursor-glow: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(0, 205, 180, 0.3) 42%,
+    transparent 70%
   );
   --login-glow-color: rgba(0, 180, 140, 0.12);
 }
