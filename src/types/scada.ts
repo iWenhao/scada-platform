@@ -128,6 +128,13 @@ export interface ComponentDefinition {
   description?: string
   group: ComponentGroup
   icon: string
+  /**
+   * 2.5D 专用图标（可选）。
+   *
+   * 素材导入件用它保留「2D 下必须是素材原稿」的约束：`icon` 继续放原稿供 2D 与组件面板，
+   * 立体模式改用这里的面基稿。缺省时两种模式共用 `icon`（手绘图元的常规写法）。
+   */
+  icon25d?: string
   defaultWidth: number
   defaultHeight: number
   defaultConfig: Record<string, any>

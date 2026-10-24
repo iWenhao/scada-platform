@@ -40,12 +40,25 @@ function danglingRefs(svg: string): string[] {
     .filter((id) => !defined.has(id))
 }
 
-const annotated = getAllComponents().filter((def) =>
-  /data-(?:face|edge|shadow|pipe)="/.test(def.icon ?? ''),
+interface IconSource {
+  type: string
+  svg: string
+}
+
+/**
+ * 注册表里所有需要过光照管线的图标来源。
+ * 手绘图元只有 `icon`；素材导入件的 2D 原稿在 `icon`、面基稿在 `icon25d`，两条都要查。
+ */
+const sources: IconSource[] = getAllComponents().flatMap((def) =>
+  [def.icon, def.icon25d]
+    .filter((svg): svg is string => !!svg)
+    .map((svg) => ({ type: def.type, svg })),
 )
 
+const annotated = sources.filter((src) => /data-(?:face|edge|shadow|pipe)="/.test(src.svg))
+
 /** 面基图元（至少有一个 data-face）；完整性只针对它们，纯 data-pipe 的图元不在其列 */
-const faceBased = getAllComponents().filter((def) => /data-face="/.test(def.icon ?? ''))
+const faceBased = sources.filter((src) => /data-face="/.test(src.svg))
 
 describe('面基图元的产出必须是合法 XML', () => {
   it('注册表里确实有已迁移的面基图元（否则本文件检查形同空跑）', () => {
@@ -56,7 +69,7 @@ describe('面基图元的产出必须是合法 XML', () => {
     const offenders: string[] = []
     for (const def of annotated) {
       for (const mode of ['25d', '2d'] as const) {
-        const err = parseError(styleIcon(def.icon, mode))
+        const err = parseError(styleIcon(def.svg, mode))
         if (err) offenders.push(`${def.type}/${mode}: ${err}`)
       }
     }
@@ -67,7 +80,7 @@ describe('面基图元的产出必须是合法 XML', () => {
     const offenders: string[] = []
     for (const def of annotated) {
       for (const mode of ['25d', '2d'] as const) {
-        const dup = duplicatedAttrs(styleIcon(def.icon, mode))
+        const dup = duplicatedAttrs(styleIcon(def.svg, mode))
         if (dup.length) offenders.push(`${def.type}/${mode}: ${dup.join(' | ')}`)
       }
     }
@@ -77,7 +90,7 @@ describe('面基图元的产出必须是合法 XML', () => {
   it('立体风格引用的渐变都在片段内部定义（独立光栅化时取不到外部 defs）', () => {
     const offenders: string[] = []
     for (const def of annotated) {
-      const out = styleIcon(def.icon, '25d')
+      const out = styleIcon(def.svg, '25d')
       const dangling = danglingRefs(out)
       if (dangling.length) offenders.push(`${def.type}: ${dangling.join(',')}`)
     }
@@ -87,7 +100,7 @@ describe('面基图元的产出必须是合法 XML', () => {
   it('展开后不留任何 data-* 痕迹（画布上的 SVG 不该带着作者的标注）', () => {
     for (const def of annotated) {
       for (const mode of ['25d', '2d'] as const) {
-        expect(styleIcon(def.icon, mode), `${def.type}/${mode}`).not.toContain('data-')
+        expect(styleIcon(def.svg, mode), `${def.type}/${mode}`).not.toContain('data-')
       }
     }
   })
@@ -96,14 +109,43 @@ describe('面基图元的产出必须是合法 XML', () => {
 describe('面基图元的绘制完整性（缺阴影或棱线＝即使光照正确也明显偏平）', () => {
   it('每个面基图元都有接触阴影', () => {
     const offenders = faceBased
-      .filter((def) => !/data-shadow="/.test(def.icon ?? ''))
+      .filter((def) => !/data-shadow="/.test(def.svg))
       .map((def) => def.type)
     expect(offenders).toEqual([])
   })
 
   it('每个面基图元都有棱线（2.5D 下面不描边，轮廓全靠 data-edge）', () => {
     const offenders = faceBased
-      .filter((def) => !/data-edge="/.test(def.icon ?? ''))
+      .filter((def) => !/data-edge="/.test(def.svg))
+      .map((def) => def.type)
+    expect(offenders).toEqual([])
+  })
+})
+
+describe('双源图标（icon + icon25d）的约定', () => {
+  it('有 icon25d 的组件，其 2D 源必须是素材原稿：不含任何面基标注', () => {
+    const offenders = getAllComponents()
+      .filter((def) => def.icon25d && /data-/.test(def.icon))
+      .map((def) => def.type)
+    expect(offenders).toEqual([])
+  })
+
+  it('有 icon25d 的组件，其 2D 源过 styleIcon 后原样返回（与导入时逐字节一致）', () => {
+    const offenders = getAllComponents()
+      .filter((def) => def.icon25d && styleIcon(def.icon, '2d') !== def.icon)
+      .map((def) => def.type)
+    expect(offenders).toEqual([])
+  })
+
+  // 同姿态重绘口径（docs/2.5D_ILLUSTRATION_GUIDE.md §4.5）：面基稿不换视角、不放大画幅，
+  // viewBox 必须逐字沿用素材原稿。改了它，画板上已摆好的元素会跟着位移/变形。
+  it('有 icon25d 的组件，面基稿与原稿同 viewBox', () => {
+    const offenders = getAllComponents()
+      .filter((def) => {
+        if (!def.icon25d) return false
+        const vb = (svg: string) => svg.match(/viewBox="([^"]+)"/)?.[1]
+        return vb(def.icon) !== vb(def.icon25d)
+      })
       .map((def) => def.type)
     expect(offenders).toEqual([])
   })

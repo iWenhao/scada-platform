@@ -217,12 +217,16 @@ export function useElementVisuals(options: {
     const def = getComponentDefinition(element.type)
     if (!def?.icon) return null
 
+    const mode = readViewMode()
+    // 素材导入件的 2D 必须与素材原稿一致：icon 放原稿，面基稿只走 2.5D。
+    // 手绘图元没有 icon25d，两种模式共用 icon。
+    const icon = mode === '25d' && def.icon25d ? def.icon25d : def.icon
     const strokeColor = getIconStrokeColor(element)
     const img = getIconImage(
       element.type,
-      tightenIconSvg(def.icon),
+      tightenIconSvg(icon),
       strokeColor,
-      readViewMode(),
+      mode,
       () => {
         iconVersion.value++
       },
@@ -230,7 +234,7 @@ export function useElementVisuals(options: {
     if (!img) return null
 
     const layout = getElementLayout(element)
-    const aspect = getIconAspect(def.icon)
+    const aspect = getIconAspect(icon)
 
     // contain 适配到图形区：矩形由 elementLayout.fitIconRect 统一给出，
     // 运转动效的可动件按同一矩形换算坐标，两边不会漂移
