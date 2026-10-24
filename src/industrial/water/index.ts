@@ -433,78 +433,98 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   },
   water_dosing_pump: {
     icon25d: `<svg viewBox="0 0 65 88" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="30" cy="84.8" rx="26" ry="1.6" data-shadow="1"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="25.5" cy="87.6" rx="25" ry="1" data-shadow="1"/>
 
-      <rect x="6.1" y="2" width="35.8" height="39.4" data-face="body"/>
-      <ellipse cx="24" cy="2" rx="17.9" ry="2.6" data-face="cap"/>
-      <ellipse cx="24" cy="2" rx="17.9" ry="2.6" data-edge="hi"/>
-      <path d="M6.1 2 L6.1 41.4" data-edge="hi"/>
-      <path d="M41.9 2 L41.9 41.4" data-edge="lo"/>
-      <path d="M6.1 9.7 L41.9 9.7" data-edge="lo" stroke-width="1.1"/>
-      <path d="M10 10.2 L10 41.4" data-edge="lo" stroke-width="1.1"/>
-      <path d="M14 10.2 L14 41.4" data-edge="lo" stroke-width="1.1"/>
-      <path d="M18 10.2 L18 41.4" data-edge="lo" stroke-width="1.1"/>
-      <path d="M22 10.2 L22 41.4" data-edge="lo" stroke-width="1.1"/>
-      <path d="M26 10.2 L26 41.4" data-edge="lo" stroke-width="1.1"/>
-      <path d="M30 10.2 L30 41.4" data-edge="lo" stroke-width="1.1"/>
-      <path d="M34 10.2 L34 41.4" data-edge="lo" stroke-width="1.1"/>
-      <path d="M38 10.2 L38 41.4" data-edge="lo" stroke-width="1.1"/>
+      <!-- 左侧控制箱：原稿的圆角左边、竖向中线与指示灯 -->
+      <path d="M6.2,12.1 L1,12.1 C0.45,12.1 0,12.55 0,13.1 L0,39 C0,39.55 0.45,40 1,40 L6.2,40 Z" data-face="front"/>
+      <path d="M0,13.1 L0,39" data-edge="hi"/>
+      <path d="M3,17 L3,37" data-edge="lo" stroke-width="1.1"/>
+      <rect x="2.5" y="15" width="1" height="1" data-face="cap"/>
 
-      <rect x="0" y="12.1" width="6.2" height="27.9" data-face="front"/>
-      <path d="M0 12.1 L0 40" data-edge="hi"/>
-      <path d="M6.2 12.1 L6.2 40" data-edge="lo"/>
+      <!-- 罐体：圆肩是顶盖，下半是罐身，原稿的竖向筋保留成分缝 -->
+      <path d="M6.1,10.2 L6.1,10 C6.1,7.4 7.15,5.05 8.85,3.35 C10.55,1.65 12.9,0.6 15.5,0.6 L32.5,0.6 C35.1,0.6 37.44,1.65 39.15,3.35 C40.85,5.05 41.9,7.4 41.9,10 L41.9,10.2 Z" data-face="top"/>
+      <path d="M6.1,10.2 L41.9,10.2 L41.9,41.4 L6.1,41.4 Z" data-face="body"/>
+      <!-- 原稿肩部那道实心横条是凸起的箍环，用受光面交代，不画成暗缝 -->
+      <rect x="6.5" y="9.7" width="35" height="1" data-face="top"/>
+      <path d="M6.5,9.7 L41.5,9.7" data-edge="hi" stroke-width="1.1"/>
+      <path d="M6.5,10.7 L41.5,10.7" data-edge="lo" stroke-width="1.2"/>
+      <path d="M10,10.7 L10,41.4" data-edge="lo" stroke-width="1.1"/>
+      <path d="M14,10.7 L14,41.4" data-edge="lo" stroke-width="1.1"/>
+      <path d="M18,10.7 L18,41.4" data-edge="lo" stroke-width="1.1"/>
+      <path d="M22,10.7 L22,41.4" data-edge="lo" stroke-width="1.1"/>
+      <path d="M26,10.7 L26,41.4" data-edge="lo" stroke-width="1.1"/>
+      <path d="M30,10.7 L30,41.4" data-edge="lo" stroke-width="1.1"/>
+      <path d="M34,10.7 L34,41.4" data-edge="lo" stroke-width="1.1"/>
+      <path d="M38,10.7 L38,41.4" data-edge="lo" stroke-width="1.1"/>
+      <path d="M6.1,41.4 L41.9,41.4" data-edge="lo"/>
 
-      <polygon points="5.5,41.4 41.1,41.4 42.7,39.8 7.1,39.8" data-face="top"/>
-      <rect x="5.5" y="41.4" width="35.6" height="2.8" data-face="front"/>
-      <path d="M5.5 41.4 L41.1 41.4" data-edge="hi"/>
-      <path d="M5.5 44.2 L41.1 44.2" data-edge="lo"/>
-      <path d="M9.5 41.4 L9.5 44.2" data-edge="lo" stroke-width="1.1"/>
-      <path d="M38.5 41.4 L38.5 44.2" data-edge="lo" stroke-width="1.1"/>
+      <!-- 颈部、法兰与两根斜撑：原稿的短竖线与斜线在这里成了实体连接 -->
+      <rect x="9.5" y="41.4" width="29" height="4.2" data-face="front"/>
+      <path d="M9.5,41.4 L9.5,45.6" data-edge="hi"/>
+      <rect x="6.1" y="45.6" width="35.8" height="0.7" data-face="top"/>
+      <rect x="6.1" y="46.3" width="35.8" height="2.1" data-face="front"/>
+      <path d="M6.1,45.6 L41.9,45.6" data-edge="hi"/>
+      <path d="M6.1,48.4 L41.9,48.4" data-edge="lo"/>
+      <polygon points="13.6,48.4 14.6,48.4 16.6,51.6 15.6,51.6" data-face="front"/>
+      <polygon points="37.6,48.4 38.6,48.4 40.6,51.6 39.6,51.6" data-face="front"/>
+      <path d="M13.6,48.4 L15.6,51.6" data-edge="hi"/>
+      <path d="M37.6,48.4 L39.6,51.6" data-edge="hi"/>
 
-      <polygon points="9.1,54.3 11.8,51.6 43.3,51.6 45.9,54.3 45.9,77.8 43.3,80.4 11.8,80.4 9.1,77.8" data-face="front"/>
-      <polygon points="11.8,51.6 43.3,51.6 45.9,49.6 14.5,49.6" data-face="top"/>
-      <polygon points="45.9,54.3 47.4,52.8 47.4,76.3 45.9,77.8" data-face="side"/>
-      <path d="M11.8 51.6 L43.3 51.6 L45.9 54.3" data-edge="hi"/>
-      <path d="M9.1 54.3 L9.1 77.8" data-edge="hi"/>
-      <path d="M45.9 54.3 L45.9 77.8" data-edge="lo"/>
-      <path d="M9.1 77.8 L11.8 80.4 L43.3 80.4 L45.9 77.8" data-edge="lo"/>
-      <rect x="13.4" y="55.6" width="28.2" height="20.8" data-face="hole"/>
-      <path d="M13.4 55.6 L41.6 55.6 L41.6 76.4 L13.4 76.4 Z" data-edge="lo" stroke-width="1.1"/>
+      <!-- 下机壳：八边形箱体，顶面给斜撑落脚，右侧一条厚度带 -->
+      <polygon points="11.78,51.6 43.3,51.6 45.9,54.24 45.9,77.77 43.31,80.4 11.77,80.4 9.1,77.83 9.1,54.27" data-face="front"/>
+      <path d="M9.1,54.27 L11.78,51.6 L43.3,51.6 L45.9,54.24" data-edge="hi"/>
+      <!-- 顶面与右侧厚度带都收在原稿八边形轮廓内，不外扩 -->
+      <polygon points="11.78,51.6 43.3,51.6 44.4,52.9 10.8,52.9" data-face="top"/>
+      <polygon points="44.5,55.1 45.9,54.24 45.9,77.77 44.5,76.9" data-face="side"/>
+      <path d="M9.1,77.83 L11.77,80.4 L43.31,80.4 L45.9,77.77" data-edge="lo"/>
 
-      <path d="M45.9 61 L53.1 61" data-pipe="base"/>
-      <path d="M45.9 60.4 L53.1 60.4" data-pipe="hi"/>
-      <path d="M45.9 72 L53.1 72" data-pipe="base"/>
-      <path d="M45.9 71.4 L53.1 71.4" data-pipe="hi"/>
-
-      <rect x="53.1" y="58.6" width="9.8" height="14.6" data-face="body"/>
-      <ellipse cx="58" cy="58.6" rx="4.9" ry="1.3" data-face="cap"/>
-      <ellipse cx="58" cy="58.6" rx="4.9" ry="1.3" data-edge="hi"/>
-      <path d="M53.1 58.6 L53.1 73.2" data-edge="hi"/>
-      <path d="M62.9 58.6 L62.9 73.2" data-edge="lo"/>
-      <rect x="55.5" y="60" width="5" height="12" data-face="hole"/>
-
-      <rect x="56.5" y="49.5" width="3" height="9" data-face="body"/>
-      <ellipse cx="58" cy="49.5" rx="4.5" ry="1.4" data-face="cap"/>
-      <ellipse cx="58" cy="49.5" rx="4.5" ry="1.4" data-edge="hi"/>
-      <path d="M56.5 49.5 L56.5 58.5" data-edge="hi"/>
-      <path d="M59.5 49.5 L59.5 58.5" data-edge="lo"/>
-
-      <rect x="56.5" y="74.5" width="3" height="8.5" data-face="body"/>
-      <ellipse cx="58" cy="83" rx="4.5" ry="1.4" data-face="cap"/>
-      <ellipse cx="58" cy="83" rx="4.5" ry="1.4" data-edge="lo"/>
-      <path d="M56.5 74.5 L56.5 83" data-edge="hi"/>
-      <path d="M59.5 74.5 L59.5 83" data-edge="lo"/>
-
+      <!-- 检修面板：凹面只留上下内缘，不给一圈边框 -->
+      <path d="M15.41,55.6 L39.65,55.6 L41.57,57.45 L41.57,74.56 L39.65,76.4 L15.41,76.4 L13.43,74.6 L13.43,57.47 Z" data-face="hole"/>
+      <path d="M15.41,55.6 L39.65,55.6" data-edge="lo" stroke-width="1.1"/>
+      <path d="M15.41,76.4 L39.65,76.4" data-edge="hi" stroke-width="1.1"/>
       <circle cx="27.5" cy="66" r="4.4" data-face="cap"/>
-      <circle cx="27.5" cy="66" r="4.4" data-edge="hi"/>
-      <circle cx="27.5" cy="66" r="2.2" data-edge="lo" stroke-width="1.1"/>
+      <path d="M23.1,66 A4.4,4.4 0 0 1 31.9,66" data-edge="hi"/>
+      <path d="M31.9,66 A4.4,4.4 0 0 1 27.5,70.4" data-edge="lo"/>
 
-      <polygon points="4.5,80.4 45.3,80.4 46.8,78.9 6,78.9" data-face="top"/>
-      <rect x="4.5" y="80.4" width="40.8" height="3.7" data-face="front"/>
-      <polygon points="45.3,80.4 46.8,78.9 46.8,82.6 45.3,84.1" data-face="side"/>
-      <path d="M4.5 80.4 L45.3 80.4" data-edge="hi"/>
-      <path d="M4.5 84.1 L45.3 84.1 L46.8 82.6" data-edge="lo"/>
+      <!-- 机壳左侧的小端头（原稿为实心圆角块） -->
+      <path d="M9.1,54.5 L4.5,54.5 C3.67,54.5 3,55.17 3,56 C3,56.83 3.67,57.5 4.5,57.5 L9.1,57.5 Z" data-face="barrel"/>
+      <path d="M4.5,54.5 L9.1,54.5" data-edge="hi"/>
+
+      <path d="M45.8,61 L53.1,61" data-pipe="base"/>
+      <path d="M45.8,59.4 L53.1,59.4" data-pipe="hi"/>
+      <path d="M45.8,72 L53.1,72" data-pipe="base"/>
+      <path d="M45.8,70.4 L53.1,70.4" data-pipe="hi"/>
+
+      <!-- 计量头：上下两组 T 形压板按原稿轮廓（横梁 + 窄颈 + 立柄）画 -->
+      <path d="M61.5,49 L61.5,52 L58.5,52 L58.5,54 L59.5,54 L59.5,57 L56.5,57 L56.5,54 L57.5,54 L57.5,52 L54.5,52 L54.5,49 Z" data-face="front"/>
+      <rect x="54.5" y="49" width="7" height="0.7" data-face="top"/>
+      <path d="M54.5,49 L61.5,49" data-edge="hi"/>
+      <path d="M56.5,54 L56.5,57" data-edge="hi"/>
+
+      <path d="M59.5,75 L59.5,78 L58.5,78 L58.5,80 L61.5,80 L61.5,83 L54.5,83 L54.5,80 L57.5,80 L57.5,78 L56.5,78 L56.5,75 Z" data-face="front"/>
+      <rect x="54.5" y="80" width="7" height="0.6" data-face="top"/>
+      <path d="M54.5,80 L61.5,80" data-edge="hi"/>
+      <path d="M54.5,83 L61.5,83" data-edge="lo"/>
+      <path d="M56.5,75 L56.5,78" data-edge="hi"/>
+
+      <rect x="53.1" y="57.6" width="9.8" height="16.8" rx="1" data-face="body"/>
+      <path d="M53.1,57.6 L62.9,57.6" data-edge="hi"/>
+      <path d="M53.1,74.4 L62.9,74.4" data-edge="lo"/>
+      <!-- 头体正面凸台：原稿是实心亮条，不是凹孔 -->
+      <rect x="55.5" y="60" width="5" height="12" data-face="top"/>
+      <path d="M55.5,60 L55.5,72" data-edge="hi"/>
+      <path d="M55.5,72 L60.5,72" data-edge="lo"/>
+
+      <!-- 底座与两条支腿：腿按原稿分别落在 15.4 / 40.4 处向内收，底板后画压住腿脚 -->
+      <polygon points="14.82,80.3 16.02,80.3 14.52,83.8 13.32,83.8" data-face="front"/>
+      <polygon points="39.82,80.3 41.02,80.3 39.52,83.8 38.32,83.8" data-face="front"/>
+      <path d="M14.82,80.3 L13.32,83.8" data-edge="hi"/>
+      <path d="M39.82,80.3 L38.32,83.8" data-edge="hi"/>
+      <rect x="5.8" y="83.6" width="39.4" height="0.8" data-face="top"/>
+      <rect x="5.1" y="84.4" width="40.8" height="3" data-face="front"/>
+      <path d="M5.8,83.6 L45.2,83.6" data-edge="hi"/>
+      <path d="M5.1,87.4 L45.9,87.4" data-edge="lo"/>
     </g>
   </svg>`,
   },
@@ -572,65 +592,55 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   },
   water_backup_pump: {
     icon25d: `<svg viewBox="0 0 46 99" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="23" cy="96" rx="20" ry="1.5" data-shadow="1"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="23" cy="97.4" rx="20" ry="1.2" data-shadow="1"/>
 
-      <rect x="14" y="0.5" width="16" height="6.5" data-face="front"/>
-      <ellipse cx="22" cy="0.5" rx="8" ry="1.6" data-face="cap"/>
-      <ellipse cx="22" cy="0.5" rx="8" ry="1.6" data-edge="hi"/>
-      <path d="M14 0.5 L14 7" data-edge="hi"/>
-      <path d="M30 0.5 L30 7" data-edge="lo"/>
+      <!-- 自下而上叠放：每层的顶面都收在自身轮廓内（原稿的法兰带圆角，不能外扩一圈） -->
+      <path d="M2,93.8 L42,93.8 L42,96 C42,96.55 41.55,97 41,97 L3,97 C2.45,97 2,96.55 2,96 Z" data-face="front"/>
+      <rect x="3.2" y="93" width="37.6" height="0.8" data-face="top"/>
+      <path d="M3.2,93 L40.8,93" data-edge="hi"/>
+      <path d="M3,97 L41,97" data-edge="lo"/>
 
-      <polygon points="6,7 38,7 40,5.2 8,5.2" data-face="top"/>
-      <rect x="6" y="7" width="32" height="10" data-face="front"/>
-      <polygon points="38,7 40,5.2 40,15.2 38,17" data-face="side"/>
-      <path d="M6 7 L6 17" data-edge="hi"/>
-      <path d="M38 7 L38 17" data-edge="lo"/>
-      <path d="M6 17 L38 17" data-edge="lo"/>
-      <path d="M12 7 L12 17" data-edge="lo" stroke-width="1.1"/>
-      <path d="M32 7 L32 17" data-edge="lo" stroke-width="1.1"/>
-      <path d="M18 7 L18 17" data-edge="lo" stroke-width="1.1"/>
-      <path d="M26 7 L26 17" data-edge="lo" stroke-width="1.1"/>
+      <rect x="7" y="78.8" width="30" height="14.2" data-face="body"/>
+      <rect x="7.4" y="78" width="29.2" height="0.8" data-face="top"/>
+      <path d="M7.4,78 L36.6,78" data-edge="hi"/>
+      <path d="M13,78.8 L13,93" data-edge="lo" stroke-width="1.1"/>
+      <path d="M19,78.8 L19,93" data-edge="lo" stroke-width="1.1"/>
+      <path d="M25,78.8 L25,93" data-edge="lo" stroke-width="1.1"/>
+      <path d="M31,78.8 L31,93" data-edge="lo" stroke-width="1.1"/>
 
-      <polygon points="2,17 42,17 44,15 4,15" data-face="top"/>
-      <rect x="2" y="17" width="40" height="5" data-face="front"/>
-      <polygon points="42,17 44,15 44,20 42,22" data-face="side"/>
-      <path d="M2 17 L42 17" data-edge="hi"/>
-      <path d="M2 22 L42 22 L44 20" data-edge="lo"/>
+      <path d="M0,73.8 L44,73.8 L44,77 C44,77.55 43.55,78 43,78 L1,78 C0.45,78 0,77.55 0,77 Z" data-face="front"/>
+      <rect x="1.2" y="73" width="41.6" height="0.8" data-face="top"/>
+      <path d="M1.2,73 L42.8,73" data-edge="hi"/>
+      <path d="M0.6,78 L43.4,78" data-edge="lo"/>
 
-      <rect x="5" y="22" width="34" height="46" data-face="front"/>
-      <polygon points="39,22 41,20 41,66 39,68" data-face="side"/>
-      <path d="M5 22 L5 68" data-edge="hi"/>
-      <path d="M39 22 L39 68" data-edge="lo"/>
-      <path d="M5 68 L39 68" data-edge="lo"/>
-      <path d="M22 22 L22 68" data-edge="lo" stroke-width="1.1"/>
+      <!-- 下颈圈：原稿是上圆下直的过渡件，顶面沿用圆肩曲率 -->
+      <path d="M2,70 L42,70 L42,73 L2,73 Z" data-face="front"/>
+      <path d="M4,68 L40,68 C41.1,68 42,68.9 42,70 L2,70 C2,68.9 2.9,68 4,68 Z" data-face="top"/>
+      <path d="M4,68 L40,68 C41.1,68 42,68.9 42,70" data-edge="hi"/>
 
-      <polygon points="2,68 42,68 44,66 4,66" data-face="top"/>
-      <rect x="2" y="68" width="40" height="5" data-face="front"/>
-      <polygon points="42,68 44,66 44,71 42,73" data-face="side"/>
-      <path d="M2 68 L42 68" data-edge="hi"/>
-      <path d="M2 73 L42 73 L44 71" data-edge="lo"/>
+      <path d="M5,22.8 L39,22.8 L39,68 L5,68 Z" data-face="body"/>
+      <rect x="5.4" y="22" width="33.2" height="0.8" data-face="top"/>
+      <path d="M5.4,22 L38.6,22" data-edge="hi"/>
+      <path d="M22,22.8 L22,68" data-edge="lo" stroke-width="1.1"/>
 
-      <polygon points="0,73 44,73 46,71 2,71" data-face="top"/>
-      <rect x="0" y="73" width="44" height="5" data-face="front"/>
-      <path d="M0 73 L44 73" data-edge="hi"/>
-      <path d="M0 78 L44 78" data-edge="lo"/>
+      <path d="M2,17.8 L42,17.8 L42,21 C42,21.55 41.55,22 41,22 L3,22 C2.45,22 2,21.55 2,21 Z" data-face="front"/>
+      <rect x="3.2" y="17" width="37.6" height="0.8" data-face="top"/>
+      <path d="M3.2,17 L40.8,17" data-edge="hi"/>
+      <path d="M2.6,22 L41.4,22" data-edge="lo"/>
 
-      <rect x="7" y="78" width="30" height="15" data-face="front"/>
-      <polygon points="37,78 39,76 39,91 37,93" data-face="side"/>
-      <path d="M7 78 L7 93" data-edge="hi"/>
-      <path d="M37 78 L37 93" data-edge="lo"/>
-      <path d="M7 93 L37 93" data-edge="lo"/>
-      <path d="M13 78 L13 93" data-edge="lo" stroke-width="1.1"/>
-      <path d="M31 78 L31 93" data-edge="lo" stroke-width="1.1"/>
-      <path d="M19 78 L19 93" data-edge="lo" stroke-width="1.1"/>
-      <path d="M25 78 L25 93" data-edge="lo" stroke-width="1.1"/>
+      <!-- 顶部带筋面板：顶面是原稿的圆肩，四条竖筋从圆肩下沿开始 -->
+      <rect x="6" y="9" width="32" height="8" data-face="front"/>
+      <path d="M8,7 L36,7 C37.1,7 38,7.9 38,9 L6,9 C6,7.9 6.9,7 8,7 Z" data-face="top"/>
+      <path d="M8,7 L36,7 C37.1,7 38,7.9 38,9" data-edge="hi"/>
+      <path d="M6,17 L38,17" data-edge="lo"/>
+      <path d="M12,9 L12,17" data-edge="lo" stroke-width="1.1"/>
+      <path d="M18,9 L18,17" data-edge="lo" stroke-width="1.1"/>
+      <path d="M26,9 L26,17" data-edge="lo" stroke-width="1.1"/>
+      <path d="M32,9 L32,17" data-edge="lo" stroke-width="1.1"/>
 
-      <polygon points="2,93 42,93 44,91 4,91" data-face="top"/>
-      <rect x="2" y="93" width="40" height="4" data-face="front"/>
-      <polygon points="42,93 44,91 44,95 42,97" data-face="side"/>
-      <path d="M2 93 L42 93" data-edge="hi"/>
-      <path d="M2 97 L42 97 L44 95" data-edge="lo"/>
+      <path d="M16,0 L28,0 C29.1,0 30,0.9 30,2 L30,7 L14,7 L14,2 C14,0.9 14.9,0 16,0 Z" data-face="cap"/>
+      <path d="M14,2 C14,0.9 14.9,0 16,0 L28,0 C29.1,0 30,0.9 30,2" data-edge="hi"/>
     </g>
   </svg>`,
   },
@@ -719,125 +729,151 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   },
   water_booster_pump: {
     icon25d: `<svg viewBox="0 0 73 98" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="33" cy="95" rx="20" ry="1.6" data-shadow="1"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="34" cy="96.6" rx="27" ry="1.3" data-shadow="1"/>
 
-      <polygon points="9,0 35,0 36.5,1.5 10.5,1.5" data-face="top"/>
-      <rect x="9" y="1.5" width="26" height="2.5" data-face="front"/>
-      <polygon points="35,1.5 36.5,1.5 36.5,4 35,4" data-face="side"/>
-      <path d="M9 0 L35 0" data-edge="hi"/>
-      <path d="M9 4 L35 4" data-edge="lo"/>
+      <!-- 胶囊机身：两端整圆只用左上的亮弧与右下的暗弧交代体积 -->
+      <rect x="12" y="9" width="21" height="79" rx="10.5" data-face="body"/>
+      <path d="M12,19.5 A10.5,10.5 0 0 1 22.5,9" data-edge="hi"/>
+      <path d="M33,77.5 A10.5,10.5 0 0 1 22.5,88" data-edge="lo"/>
 
-      <path d="M15,4 L29,4 L29,11 C24.7,8.5 19.3,8.5 15,11 Z" data-face="front"/>
-      <path d="M15 4 L15 11" data-edge="hi"/>
-      <path d="M29 4 L29 11" data-edge="lo"/>
+      <!-- 上下卡箍是同轴的短颈，用与罐身一致的柱面；竖边不描线（暗底上会变成一根悬空白条），
+           只保留底缘那条平头暗弧交代颈肩交界 -->
+      <path d="M15,4 L29,4 L29,11 C24.66,8.52 19.34,8.52 15,11 Z" data-face="body"/>
+      <path d="M15,11 C19.34,8.52 24.66,8.52 29,11" data-edge="lo" stroke-linecap="butt"/>
 
-      <rect x="12" y="9" width="21" height="79" data-face="body"/>
-      <ellipse cx="22.5" cy="9" rx="10.5" ry="2.6" data-face="cap"/>
-      <ellipse cx="22.5" cy="9" rx="10.5" ry="2.6" data-edge="hi"/>
-      <path d="M12 9 L12 88" data-edge="hi"/>
-      <path d="M33 9 L33 88" data-edge="lo"/>
+      <!-- 盖板：顶面单独占一条窄面，正面到板底；顶面若只画成嵌在板里的细亮条会读成开槽 -->
+      <rect x="9" y="0" width="26" height="4" rx="2" data-face="front"/>
+      <rect x="9" y="0" width="26" height="1.6" rx="0.8" data-face="top"/>
+      <path d="M11,0 L33,0" data-edge="hi"/>
+      <path d="M11,4 L33,4" data-edge="lo"/>
 
-      <path d="M15,86 L29,86 L29,92 C24.7,89.5 19.3,89.5 15,92 Z" data-face="front"/>
-      <path d="M15 86 L15 92" data-edge="lo"/>
-      <path d="M29 86 L29 92" data-edge="lo"/>
+      <path d="M15,92 L29,92 L29,86 C24.66,88.48 19.34,88.48 15,86 Z" data-face="body"/>
+      <path d="M15,86 C19.34,88.48 24.66,88.48 29,86" data-edge="lo" stroke-linecap="butt"/>
 
-      <polygon points="9,92 35,92 36.5,93.5 10.5,93.5" data-face="top"/>
-      <rect x="9" y="93.5" width="26" height="2.5" data-face="front"/>
-      <path d="M9 96 L35 96" data-edge="lo"/>
+      <rect x="9" y="92" width="26" height="4" rx="2" data-face="front"/>
+      <rect x="9" y="92" width="26" height="1.6" rx="0.8" data-face="top"/>
+      <path d="M11,92 L33,92" data-edge="hi"/>
+      <path d="M11,96 L33,96" data-edge="lo"/>
 
-      <rect x="33" y="22" width="6" height="53" data-face="side"/>
-      <path d="M33 22 L33 75" data-edge="lo"/>
+      <!-- 右侧立管与泵体：原稿的圆角在右端，左缘贴着胶囊。
+           右上圆角落在背光侧，只留右下暗弧；给右上补亮线会变成一条悬空的白钩 -->
+      <path d="M35,22 L33,22 L33,75 L35,75 C37.21,75 39,73.21 39,71 L39,26 C39,23.79 37.21,22 35,22 Z" data-face="body"/>
+      <path d="M39,71 C39,73.21 37.21,75 35,75" data-edge="lo"/>
 
-      <path d="M43,33 L57,33 L57,64 L43,64 C40.8,64 39,62.2 39,60 L39,37 C39,34.8 40.8,33 43,33 Z" data-face="front"/>
-      <polygon points="43,33 57,33 59,31 45,31" data-face="top"/>
-      <polygon points="57,33 59,31 59,62 57,64" data-face="side"/>
-      <path d="M39 37 C39 34.8 40.8 33 43 33" data-edge="hi"/>
-      <path d="M39 60 C39 62.2 40.8 64 43 64 L57 64" data-edge="lo"/>
-      <path d="M57 33 L57 64" data-edge="lo"/>
-      <path d="M39 38 L47 38 L47 59 L39 59" data-edge="lo" stroke-width="1.1"/>
-      <path d="M39 45 L47 45 L47 52 L39 52" data-edge="lo" stroke-width="1.1"/>
+      <path d="M53,33 L39,33 L39,64 L53,64 C55.21,64 57,62.21 57,60 L57,37 C57,34.79 55.21,33 53,33 Z" data-face="barrel"/>
+      <path d="M39,33 L53,33" data-edge="hi"/>
+      <path d="M39,64 L53,64" data-edge="lo"/>
 
-      <rect x="58" y="37" width="3" height="23" data-face="body"/>
-      <path d="M58 37 L58 60" data-edge="hi"/>
-      <path d="M61 37 L61 60" data-edge="lo"/>
-      <rect x="62" y="46" width="9" height="5" data-face="barrel"/>
-      <ellipse cx="62" cy="48.5" rx="1.3" ry="2.5" data-face="hole"/>
-      <path d="M62 46 L71 46" data-edge="hi"/>
-      <path d="M71 46 L71 51" data-edge="lo"/>
+      <!-- 台阶盘：两段盘由后向前逐段提亮（背光面→正面），与高压泵同一配方；
+           右缘那道竖线是原稿区分盘面与泵壳的轮廓，不画就被泵壳吞掉。
+           棱线用平头端点：圆头会各自伸出盘面 0.7，小尺寸下读成一排短棒 -->
+      <rect x="39" y="38" width="8" height="21" data-face="side"/>
+      <path d="M39,38 L47,38" data-edge="hi" stroke-linecap="butt"/>
+      <path d="M39,59 L47,59" data-edge="lo" stroke-linecap="butt"/>
+      <rect x="39" y="45" width="8" height="7" data-face="front"/>
+      <path d="M39,45 L47,45" data-edge="hi" stroke-linecap="butt"/>
+      <path d="M39,52 L47,52" data-edge="lo" stroke-linecap="butt"/>
+      <path d="M47,33 L47,64" data-edge="lo" stroke-width="1.2" stroke-linecap="butt"/>
 
+      <path d="M58,37 L58,60 C59.66,60 61,58.66 61,57 L61,40 C61,38.34 59.66,37 58,37 Z" data-face="body"/>
+      <path d="M61,57 C61,58.66 59.66,60 58,60" data-edge="lo"/>
+
+      <path d="M68.5,46 L62,46 L62,51 L68.5,51 C69.88,51 71,49.88 71,48.5 C71,47.12 69.88,46 68.5,46 Z" data-face="barrel"/>
+      <path d="M62,46 L68.5,46" data-edge="hi"/>
+      <path d="M62,51 L68.5,51" data-edge="lo"/>
+
+      <!-- 左侧接管与连接座 -->
       <rect x="0" y="29" width="6" height="39" rx="3" data-face="body"/>
-      <ellipse cx="3" cy="29" rx="3" ry="1.2" data-face="cap"/>
-      <ellipse cx="3" cy="29" rx="3" ry="1.2" data-edge="hi"/>
-      <path d="M0 29 L0 68" data-edge="hi"/>
-      <path d="M6 29 L6 68" data-edge="lo"/>
+      <path d="M0,32 A3,3 0 0 1 3,29" data-edge="hi"/>
+      <path d="M6,65 A3,3 0 0 1 3,68" data-edge="lo"/>
       <rect x="6" y="38" width="6" height="21" data-face="front"/>
+      <path d="M6,38 L12,38" data-edge="hi"/>
+      <path d="M6,59 L12,59" data-edge="lo"/>
     </g>
   </svg>`,
   },
   water_roots_blower: {
     icon25d: `<svg viewBox="0 0 113 93" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="56" cy="90.5" rx="42" ry="1.8" data-shadow="1"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="56" cy="91.5" rx="48" ry="1.2" data-shadow="1"/>
 
-      <rect x="32" y="15" width="59" height="66" data-face="front"/>
-      <path d="M36,2 L87,2 C89.2,2 91,3.8 91,6 L91,15 L32,15 L32,6 C32,3.8 33.8,2 36,2 Z" data-face="body"/>
-      <polygon points="32,2 91,2 93,0 34,0" data-face="top"/>
-      <polygon points="91,2 93,0 93,13 91,15" data-face="side"/>
-      <path d="M32 2 L32 15" data-edge="hi"/>
-      <path d="M91 2 L91 15" data-edge="lo"/>
-      <path d="M32 15 L32 81" data-edge="hi"/>
-      <path d="M91 15 L91 81" data-edge="lo"/>
-      <path d="M32 81 L91 81" data-edge="lo"/>
-
-      <rect x="47" y="0" width="29" height="15" data-face="front"/>
-      <path d="M47 0 L76 0" data-edge="hi"/>
-      <path d="M47 0 L47 15" data-edge="hi"/>
-      <path d="M76 0 L76 15" data-edge="lo"/>
-
-      <circle cx="61.5" cy="47.5" r="22.5" data-face="cap"/>
-      <circle cx="61.5" cy="47.5" r="22.5" data-edge="hi"/>
-      <circle cx="61.5" cy="47.5" r="11.5" data-face="front"/>
-      <circle cx="61.5" cy="47.5" r="11.5" data-edge="lo"/>
-      <circle cx="61.5" cy="47.5" r="2.5" data-face="hole"/>
-      <circle cx="73.52" cy="35.48" r="2.2" data-face="hole"/>
-      <circle cx="78.5" cy="47.5" r="2.2" data-face="hole"/>
-      <circle cx="73.52" cy="59.52" r="2.2" data-face="hole"/>
-      <circle cx="61.5" cy="64.5" r="2.2" data-face="hole"/>
-      <circle cx="49.48" cy="59.52" r="2.2" data-face="hole"/>
-      <circle cx="44.5" cy="47.5" r="2.2" data-face="hole"/>
-      <circle cx="49.48" cy="35.48" r="2.2" data-face="hole"/>
-
-      <rect x="91" y="3" width="8" height="75" data-face="side"/>
-      <path d="M99,3 L108.8,7.9 C110.1,8.6 111,9.96 111,11.5 L111,69.5 C111,71 110.1,72.4 108.8,73.1 L99,78 Z" data-face="body"/>
-      <rect x="99" y="15" width="12" height="51" data-face="front"/>
-      <rect x="99" y="24" width="12" height="33" data-face="side"/>
-      <rect x="99" y="35" width="12" height="11" data-face="front"/>
-      <path d="M91 3 L91 78" data-edge="hi"/>
-      <path d="M99 3 L99 78" data-edge="lo"/>
-      <path d="M99 15 L111 15" data-edge="hi"/>
-      <path d="M99 66 L111 66" data-edge="lo"/>
-
+      <!-- 左翼：连接板、圆角侧板、台阶盘、外端盖（原稿的四层结构） -->
       <rect x="24" y="3" width="8" height="75" data-face="side"/>
-      <path d="M13,3 L3.2,7.9 C1.9,8.6 1,9.96 1,11.5 L1,69.5 C1,71 1.9,72.4 3.2,73.1 L13,78 Z" data-face="body"/>
-      <rect x="12" y="15" width="12" height="51" data-face="front"/>
-      <rect x="12" y="24" width="12" height="33" data-face="side"/>
-      <rect x="12" y="35" width="12" height="11" data-face="front"/>
-      <path d="M24 3 L24 78" data-edge="lo"/>
-      <path d="M12 15 L24 15" data-edge="hi"/>
-      <path d="M12 66 L24 66" data-edge="lo"/>
+      <path d="M24,3 L14.21,7.89 C12.86,8.57 12,9.96 12,11.47 L12,69.53 C12,71.04 12.86,72.43 14.21,73.11 L24,78 Z" data-face="body"/>
+      <path d="M24,3 L14.21,7.89 C12.86,8.57 12,9.96 12,11.47" data-edge="hi"/>
+      <rect x="12" y="15" width="12" height="51" data-face="side"/>
+      <rect x="12" y="24" width="12" height="33" data-face="front"/>
+      <rect x="12" y="35" width="12" height="11" data-face="top"/>
+      <path d="M12,15 L24,15" data-edge="hi"/>
+      <path d="M12,24 L24,24" data-edge="hi"/>
+      <path d="M12,35 L24,35" data-edge="hi"/>
+      <path d="M12,46 L24,46" data-edge="lo"/>
+      <path d="M12,57 L24,57" data-edge="lo"/>
+      <path d="M12,66 L24,66" data-edge="lo"/>
+      <path d="M4,14 L12,14 L12,67 L4,67 C1.79,67 0,65.21 0,63 L0,18 C0,15.79 1.79,14 4,14 Z" data-face="front"/>
+      <path d="M0,18 C0,15.79 1.79,14 4,14 L12,14" data-edge="hi"/>
+      <path d="M0,63 C0,65.21 1.79,67 4,67 L12,67" data-edge="lo"/>
 
-      <path d="M4,14 L12,14 L12,67 L4,67 C1.8,67 0,65.2 0,63 L0,18 C0,15.8 1.8,14 4,14 Z" data-face="front"/>
-      <path d="M0 18 L0 63" data-edge="hi"/>
+      <!-- 右翼：镜像结构，外缘在右 -->
+      <rect x="91" y="3" width="8" height="75" data-face="side"/>
+      <path d="M99,3 L108.79,7.89 C110.14,8.57 111,9.96 111,11.47 L111,69.53 C111,71.04 110.14,72.43 108.79,73.11 L99,78 Z" data-face="body"/>
+      <path d="M99,3 L108.79,7.89 C110.14,8.57 111,9.96 111,11.47" data-edge="hi"/>
+      <rect x="99" y="15" width="12" height="51" data-face="side"/>
+      <rect x="99" y="24" width="12" height="33" data-face="front"/>
+      <rect x="99" y="35" width="12" height="11" data-face="top"/>
+      <path d="M99,15 L111,15" data-edge="hi"/>
+      <path d="M99,24 L111,24" data-edge="hi"/>
+      <path d="M99,35 L111,35" data-edge="hi"/>
+      <path d="M99,46 L111,46" data-edge="lo"/>
+      <path d="M99,57 L111,57" data-edge="lo"/>
+      <path d="M99,66 L111,66" data-edge="lo"/>
 
-      <polygon points="28,87 56,87 57.5,85.5 29.5,85.5" data-face="top"/>
-      <rect x="28" y="87" width="28" height="4" rx="2" data-face="front"/>
-      <polygon points="67,87 95,87 96.5,85.5 68.5,85.5" data-face="top"/>
-      <rect x="67" y="87" width="28" height="4" rx="2" data-face="front"/>
+      <!-- 底脚：短腿先画、横梁后压住腿脚，顶面收在横梁轮廓内 -->
       <rect x="36" y="81" width="12" height="6" data-face="front"/>
       <rect x="75" y="81" width="12" height="6" data-face="front"/>
-      <path d="M28 91 L56 91" data-edge="lo"/>
-      <path d="M67 91 L95 91" data-edge="lo"/>
+      <rect x="28" y="87" width="28" height="4" rx="2" data-face="front"/>
+      <rect x="30" y="87" width="24" height="0.8" rx="0.4" data-face="top"/>
+      <path d="M30,87 L54,87" data-edge="hi"/>
+      <path d="M28,91 L56,91" data-edge="lo"/>
+      <rect x="67" y="87" width="28" height="4" rx="2" data-face="front"/>
+      <rect x="69" y="87" width="24" height="0.8" rx="0.4" data-face="top"/>
+      <path d="M69,87 L93,87" data-edge="hi"/>
+      <path d="M67,91 L95,91" data-edge="lo"/>
+
+      <!-- 机体：上盖与箱身分开，盖/身接缝只留一条横线；上盖轮廓沿用原稿的 r4 圆角 -->
+      <path d="M36,0 L87,0 C89.21,0 91,1.79 91,4 L91,15 L32,15 L32,4 C32,1.79 33.79,0 36,0 Z" data-face="front"/>
+      <path d="M32,15 L91,15" data-edge="lo"/>
+      <path d="M32,15 L91,15 L91,77 C91,79.21 89.21,81 87,81 L36,81 C33.79,81 32,79.21 32,77 Z" data-face="front"/>
+      <path d="M32,81 L91,81" data-edge="lo"/>
+
+      <!-- 顶盖检修口：与上盖同面，中间保留原稿的实心亮条（凸起的分缝条） -->
+      <rect x="47" y="1.6" width="29" height="13.4" data-face="front"/>
+      <path d="M47,1.6 L47,15" data-edge="lo" stroke-width="1.1"/>
+      <path d="M76,1.6 L76,15" data-edge="lo" stroke-width="1.1"/>
+      <rect x="61" y="1.6" width="2" height="13.4" data-face="top"/>
+      <path d="M61,1.6 L61,15" data-edge="hi" stroke-width="1.1"/>
+      <path d="M63,1.6 L63,15" data-edge="lo"/>
+
+      <!-- 盖顶亮带最后画：外缘贴着原稿顶轮廓，跨过检修口不断开 -->
+      <path d="M36,0 L87,0 C88.4,0 89.5,0.6 90.2,1.6 L33.8,1.6 C34.5,0.6 35.6,0 36,0 Z" data-face="top"/>
+      <path d="M36,0 L87,0" data-edge="hi" stroke-width="1.2"/>
+
+      <!-- 端面圆盖：外盘与箱身同为中等受光，只靠上下弧分界；内盘是凸起的轴毂，最亮 -->
+      <circle cx="61.5" cy="47.5" r="22.5" data-face="front"/>
+      <path d="M39,47.5 A22.5,22.5 0 0 1 61.5,25" data-edge="hi"/>
+      <path d="M61.5,70 A22.5,22.5 0 0 0 84,47.5" data-edge="lo"/>
+      <circle cx="61.5" cy="47.5" r="11.5" data-face="cap"/>
+      <path d="M50,47.5 A11.5,11.5 0 0 1 61.5,36" data-edge="hi"/>
+      <path d="M61.5,59 A11.5,11.5 0 0 0 73,47.5" data-edge="lo"/>
+      <circle cx="61.5" cy="30.5" r="2.5" data-face="cap"/>
+      <circle cx="73.52" cy="35.48" r="2.5" data-face="cap"/>
+      <circle cx="78.5" cy="47.5" r="2.5" data-face="cap"/>
+      <circle cx="73.52" cy="59.52" r="2.5" data-face="cap"/>
+      <circle cx="61.5" cy="64.5" r="2.5" data-face="cap"/>
+      <circle cx="49.48" cy="59.52" r="2.5" data-face="cap"/>
+      <circle cx="44.5" cy="47.5" r="2.5" data-face="cap"/>
+      <circle cx="49.48" cy="35.48" r="2.5" data-face="cap"/>
     </g>
   </svg>`,
   },
