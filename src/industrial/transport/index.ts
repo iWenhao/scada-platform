@@ -18,28 +18,29 @@ import { transportIcons, transportMeta } from './icons.generated'
 const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   trans_belt_pulley: {
     icon25d: `<svg viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="33" cy="64.2" rx="27" ry="1.4" data-shadow="1"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="33" cy="65" rx="20" ry="1.1" data-shadow="1"/>
 
-      <circle cx="33" cy="33" r="32.4" data-face="cap"/>
-      <circle cx="33" cy="33" r="32.4" data-edge="hi"/>
-      <circle cx="33" cy="33" r="26.4" data-face="hole"/>
+      <!-- 滚筒端面；轮缘皮带槽压暗，8 条凸筋落在槽上 -->
+      <circle cx="33" cy="33" r="32.4" data-face="front"/>
+      <path d="M33,0.6 A32.4,32.4 0 1 0 33,65.4 A32.4,32.4 0 1 0 33,0.6 Z M33,6.6 A26.4,26.4 0 1 1 33,59.4 A26.4,26.4 0 1 1 33,6.6 Z" fill-rule="evenodd" data-face="side"/>
+      <path d="M10.1,10.1 A32.4,32.4 0 0 0 0.6,33" data-edge="hi"/>
       <circle cx="33" cy="33" r="26.4" data-edge="lo"/>
 
-      <g data-edge="hi" stroke-width="2.2">
-        <line x1="43.65" y1="33" x2="59.4" y2="33"/>
-        <line x1="40.53" y1="40.53" x2="51.67" y2="51.67"/>
-        <line x1="33" y1="43.65" x2="33" y2="59.4"/>
-        <line x1="25.47" y1="40.53" x2="14.33" y2="51.67"/>
-        <line x1="22.35" y1="33" x2="6.6" y2="33"/>
-        <line x1="25.47" y1="25.47" x2="14.33" y2="14.33"/>
-        <line x1="33" y1="22.35" x2="33" y2="6.6"/>
-        <line x1="40.53" y1="25.47" x2="51.67" y2="14.33"/>
-      </g>
+      <!-- 轮缘上 8 条凸筋（原稿的 8 个短辐条），逐条算坐标，不用 rotate -->
+      <polygon points="59.4,35.1 65.1,35.1 65.1,30.9 59.4,30.9" data-face="top"/>
+      <polygon points="53.15,15.82 57.18,11.79 54.21,8.82 50.18,12.85" data-face="top"/>
+      <polygon points="35.1,6.6 35.1,0.9 30.9,0.9 30.9,6.6" data-face="top"/>
+      <polygon points="15.82,12.85 11.79,8.82 8.82,11.79 12.85,15.82" data-face="top"/>
+      <polygon points="6.6,30.9 0.9,30.9 0.9,35.1 6.6,35.1" data-face="top"/>
+      <polygon points="12.85,50.18 8.82,54.21 11.79,57.18 15.82,53.15" data-face="top"/>
+      <polygon points="30.9,59.4 30.9,65.1 35.1,65.1 35.1,59.4" data-face="top"/>
+      <polygon points="50.18,53.15 54.21,57.18 57.18,54.21 53.15,50.18" data-face="top"/>
 
+      <!-- 轮毂与轴孔 -->
       <circle cx="33" cy="33" r="10.65" data-face="cap"/>
-      <circle cx="33" cy="33" r="10.65" data-edge="hi"/>
-      <circle cx="33" cy="33" r="6" data-face="hole"/>
+      <path d="M24.8,28.6 A10.65,10.65 0 0 1 41.2,28.6" data-edge="hi"/>
+      <circle cx="33" cy="33" r="5.2" data-edge="lo" stroke-width="3.2"/>
     </g>
   </svg>`,
   },
@@ -104,71 +105,97 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   },
   trans_oil_pump: {
     icon25d: `<svg viewBox="0 0 73 55" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="37" cy="52" rx="29" ry="1.6" data-shadow="1"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="35" cy="50.4" rx="30" ry="1.2" data-shadow="1"/>
 
-      <path d="M5.81,4.83 L47.07,4.83 C48.72,4.83 50.05,6.17 50.05,7.82 L50.05,45.96 C50.05,47.61 48.72,48.95 47.07,48.95 L5.81,48.95 Z" data-face="body"/>
-      <polygon points="5.81,4.83 50.05,4.83 51.55,3.33 7.3,3.33" data-face="top"/>
-      <path d="M5.81 4.83 L5.81 48.95" data-edge="hi"/>
-      <path d="M50.05 4.83 L50.05 48.95" data-edge="lo"/>
-      <path d="M5.81 48.95 L50.05 48.95" data-edge="lo"/>
+      <!-- 泵体：原稿右端圆角箱体 -->
+      <path d="M5.8,4.83 L47.05,4.83 C48.7,4.83 50.05,6.18 50.05,7.82 L50.05,45.96 C50.05,47.6 48.7,48.95 47.05,48.95 L5.8,48.95 Z" data-face="front"/>
+      <rect x="5.8" y="4.83" width="41" height="2.5" data-face="top"/>
+      <rect x="47.4" y="8" width="2.65" height="38" data-face="side"/>
+      <path d="M5.8,4.83 L46.4,4.83" data-edge="hi"/>
+      <path d="M5.8,48.95 L46.6,48.95" data-edge="lo"/>
 
-      <path d="M0,10.17 L4.68,13.86 C5.39,14.43 5.81,15.29 5.81,16.21 L5.81,37.57 C5.81,38.48 5.39,39.35 4.68,39.91 L0,43.61 Z" data-face="front"/>
-      <path d="M0 10.17 L0 43.61" data-edge="hi"/>
+      <!-- 左端盖：收口箱，两块方形法兰板按原稿位置铺在盖面上 -->
+      <path d="M0,16.2 L5.8,10.17 L5.8,43.6 L0,37.57 Z" data-face="front"/>
+      <path d="M0,16.2 L5.8,10.17" data-edge="hi"/>
+      <rect x="0" y="20.7" width="5.8" height="5.8" data-face="front"/>
+      <rect x="0" y="26.5" width="5.8" height="5.8" data-face="front"/>
+      <path d="M0,20.7 L5.8,20.7" data-edge="hi"/>
+      <path d="M0,26.5 L5.8,26.5" data-edge="lo"/>
+      <path d="M0,32.3 L5.8,32.3" data-edge="lo"/>
+      <circle cx="2.9" cy="23.6" r="0.5" data-edge="lo"/>
+      <circle cx="2.9" cy="29.4" r="0.5" data-edge="lo"/>
 
-      <rect x="23.7" y="16.05" width="26.35" height="21.67" data-face="front"/>
-      <path d="M23.7 16.05 L23.7 37.72" data-edge="lo" stroke-width="1.1"/>
+      <!-- 右半部凸起的盖板，四角螺栓 -->
+      <rect x="23.7" y="18" width="26.3" height="19.7" data-face="front"/>
+      <rect x="23.7" y="16.05" width="26.3" height="1.95" data-face="top"/>
+      <rect x="47" y="18" width="3" height="19.7" data-face="side"/>
+      <path d="M23.7,16.05 L50,16.05" data-edge="hi"/>
+      <path d="M23.7,16.05 L23.7,37.72" data-edge="lo"/>
+      <path d="M23.7,37.72 L50,37.72" data-edge="lo"/>
+      <circle cx="26.4" cy="19.4" r="0.55" data-edge="lo"/>
+      <circle cx="47.2" cy="19.4" r="0.55" data-edge="lo"/>
+      <circle cx="26.4" cy="34.8" r="0.55" data-edge="lo"/>
+      <circle cx="47.2" cy="34.8" r="0.55" data-edge="lo"/>
+
+      <!-- 轴头：凸起的圆盖 + 内六角 -->
       <circle cx="34.5" cy="26.89" r="4.27" data-face="cap"/>
-      <circle cx="34.5" cy="26.89" r="4.27" data-edge="hi"/>
+      <path d="M31.4,24.4 A4.27,4.27 0 0 1 37.6,24.4" data-edge="hi"/>
+      <circle cx="34.5" cy="26.89" r="1.5" data-edge="lo"/>
 
-      <rect x="0" y="20.7" width="5.81" height="5.81" data-face="side"/>
-      <rect x="0" y="26.52" width="5.81" height="5.81" data-face="side"/>
-      <path d="M0 20.7 L5.81 20.7 L5.81 26.5 L0 26.5 Z" data-edge="lo" stroke-width="1.1"/>
-      <path d="M0 26.52 L5.81 26.52 L5.81 32.33 L0 32.33 Z" data-edge="lo" stroke-width="1.1"/>
-
-      <rect x="50.05" y="24.81" width="19.95" height="4.15" data-face="body"/>
-      <ellipse cx="70" cy="26.89" rx="1.6" ry="2.1" data-face="hole"/>
-      <path d="M50.05 24.81 L70 24.81" data-edge="hi"/>
-      <path d="M50.05 28.96 L70 28.96" data-edge="lo"/>
-
-      <path d="M50.05 1.85 L50.05 51.97" data-edge="hi"/>
+      <!-- 出口：法兰 + 卧式管口 -->
+      <rect x="48.5" y="23.3" width="3.5" height="7.2" data-face="front"/>
+      <rect x="48.5" y="23.3" width="3.5" height="1.4" data-face="top"/>
+      <path d="M48.5,23.3 L52,23.3" data-edge="hi"/>
+      <rect x="49" y="24.81" width="21" height="4.15" data-face="barrel"/>
+      <ellipse cx="69.4" cy="26.89" rx="1.4" ry="2.1" data-face="hole"/>
+      <path d="M49,24.81 L70,24.81" data-edge="hi"/>
+      <path d="M49,28.96 L70,28.96" data-edge="lo"/>
     </g>
   </svg>`,
   },
   trans_smoke_sensor: {
     icon25d: `<svg viewBox="0 0 72 58" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="35" cy="55.2" rx="24" ry="1.4" data-shadow="1"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="35" cy="56.9" rx="17" ry="1" data-shadow="1"/>
 
-      <polygon points="0,0 70,0 71.5,1.5 1.5,1.5" data-face="top"/>
-      <rect x="0" y="1.5" width="70" height="4.2" rx="2" data-face="front"/>
-      <polygon points="70,1.5 71.5,1.5 71.5,5.7 70,5.7" data-face="side"/>
-      <path d="M0 0 L70 0" data-edge="hi"/>
-      <path d="M0 5.7 L70 5.7" data-edge="lo"/>
+      <!-- 顶部安装导轨 -->
+      <rect x="0" y="1.2" width="70" height="4.49" rx="2.2" data-face="front"/>
+      <rect x="0" y="0" width="70" height="1.2" rx="0.6" data-face="top"/>
+      <path d="M0,0 L70,0" data-edge="hi"/>
+      <path d="M0,5.69 L70,5.69" data-edge="lo"/>
+      <circle cx="4.6" cy="3.4" r="0.55" data-edge="lo"/>
+      <circle cx="65.4" cy="3.4" r="0.55" data-edge="lo"/>
 
-      <path d="M29.6,5.7 L40.4,5.7 C52.6,5.7 60.3,13.4 60.3,24.2 C60.3,35 52.6,42.7 40.4,42.7 L29.6,42.7 C17.4,42.7 9.7,35 9.7,24.2 C9.7,13.4 17.4,5.7 29.6,5.7 Z" data-face="body"/>
-      <path d="M29.6 5.7 C17.4 5.7 9.7 13.4 9.7 24.2" data-edge="hi"/>
-      <path d="M40.4 5.7 C52.6 5.7 60.3 13.4 60.3 24.2 C60.3 35 52.6 42.7 40.4 42.7 L29.6 42.7" data-edge="lo"/>
+      <!-- 探测器外壳：原稿的钟形轮廓，肩部留一条受光带 -->
+      <path d="M9.71,5.73 L60.29,5.73 L60.29,22.84 C60.29,33.82 51.39,42.73 40.4,42.73 L29.59,42.73 C18.61,42.73 9.71,33.82 9.71,22.84 Z" data-face="front"/>
+      <rect x="9.71" y="5.73" width="50.58" height="3.2" data-face="top"/>
 
-      <line x1="22.3" y1="23.1" x2="22.3" y2="34.7" data-edge="lo" stroke-width="2.3"/>
-      <line x1="30.8" y1="23.1" x2="30.8" y2="34.7" data-edge="lo" stroke-width="2.3"/>
-      <line x1="39.2" y1="23.1" x2="39.2" y2="34.7" data-edge="lo" stroke-width="2.3"/>
-      <line x1="47.7" y1="23.1" x2="47.7" y2="34.7" data-edge="lo" stroke-width="2.3"/>
+      <!-- 中部四条进烟口：原稿的粗竖线改为暗槽 -->
+      <path d="M22.32,23.08 L22.32,34.65" data-edge="lo" stroke-width="3.2"/>
+      <path d="M30.77,23.08 L30.77,34.65" data-edge="lo" stroke-width="3.2"/>
+      <path d="M39.23,23.08 L39.23,34.65" data-edge="lo" stroke-width="3.2"/>
+      <path d="M47.68,23.08 L47.68,34.65" data-edge="lo" stroke-width="3.2"/>
 
-      <ellipse cx="35" cy="13.8" rx="4.7" ry="4.6" data-face="cap"/>
-      <ellipse cx="35" cy="13.8" rx="4.7" ry="4.6" data-edge="hi"/>
-      <circle cx="35" cy="13.8" r="2" data-edge="lo" stroke-width="1.1"/>
+      <!-- 指示灯：凸起的透镜 -->
+      <ellipse cx="35" cy="13.75" rx="4.72" ry="4.6" data-face="cap"/>
+      <path d="M31.4,11.6 A4.72,4.6 0 0 1 38.6,11.6" data-edge="hi"/>
+      <ellipse cx="35" cy="13.75" rx="2.2" ry="2.1" data-edge="lo"/>
 
-      <line x1="29" y1="43" x2="29" y2="50.4" data-edge="lo" stroke-width="1.1"/>
-      <line x1="33.2" y1="43" x2="33.2" y2="50.4" data-edge="lo" stroke-width="1.1"/>
-      <line x1="37.1" y1="43" x2="37.1" y2="50.4" data-edge="lo" stroke-width="1.1"/>
-      <line x1="41" y1="43" x2="41" y2="50.4" data-edge="lo" stroke-width="1.1"/>
+      <!-- 下部格栅：把外壳与支架接起来，四条细缝按原稿位置 -->
+      <rect x="29" y="42" width="12" height="9" data-face="front"/>
+      <path d="M29,43 L29,50.45" data-edge="lo"/>
+      <path d="M33.23,43 L33.23,50.45" data-edge="lo"/>
+      <path d="M37.12,43 L37.12,50.45" data-edge="lo"/>
+      <path d="M41,43 L41,50.45" data-edge="lo"/>
 
-      <polygon points="24.3,50.8 45.7,50.8 47,52.1 25.6,52.1" data-face="top"/>
-      <rect x="24.3" y="52.1" width="21.4" height="4.4" data-face="front"/>
-      <polygon points="45.7,52.1 47,52.1 47,56.5 45.7,56.5" data-face="side"/>
-      <path d="M24.3 50.8 L45.7 50.8" data-edge="hi"/>
-      <path d="M24.3 56.5 L45.7 56.5 L47 56.3" data-edge="lo"/>
+      <!-- 安装支架 -->
+      <rect x="24.3" y="50.77" width="21.4" height="5.69" data-face="front"/>
+      <rect x="24.3" y="50.77" width="21.4" height="1.2" data-face="top"/>
+      <path d="M24.3,50.77 L45.7,50.77" data-edge="hi"/>
+      <path d="M24.3,56.46 L45.7,56.46" data-edge="lo"/>
+      <circle cx="28.2" cy="54" r="0.55" data-edge="lo"/>
+      <circle cx="41.8" cy="54" r="0.55" data-edge="lo"/>
     </g>
   </svg>`,
   },
