@@ -378,10 +378,10 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
       <path d="M0 166 L154.5 166 M154.5 0 L154.5 166 M0 92 L81.5 92 M81.5 0 L81.5 92" data-edge="lo" stroke-width="1.2"/>
       <!-- 右侧驱动电机：与底部减速器同一套部件旋转 90° 后的绝对坐标，从下到上
            齿轮箱 → 散热槽带 → 圆角端板 → 轴 → 接线盒，缺一节就会悬空 -->
-      <rect x="161" y="82" width="28" height="38" data-face="front"/>
+      <rect x="161" y="82" width="28" height="38" rx="4" data-face="front"/>
       <rect x="185" y="86" width="4" height="30" data-face="side"/>
-      <path d="M161 82 L189 82" data-edge="hi"/>
-      <path d="M161 120 L189 120" data-edge="lo"/>
+      <path d="M165 82 L185 82" data-edge="hi"/>
+      <path d="M165 120 L185 120" data-edge="lo"/>
       <rect x="161" y="102" width="28" height="11" data-edge="lo" stroke-width="1"/>
       <rect x="166" y="102" width="18" height="11" data-edge="lo" stroke-width="1"/>
       <rect x="171" y="102" width="8" height="11" data-edge="lo" stroke-width="1"/>
@@ -390,12 +390,13 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
       <rect x="161" y="52" width="22" height="20" data-face="front"/>
       <path d="M161 52 L183 52" data-edge="hi"/>
       <path d="M161 72 L183 72" data-edge="lo" stroke-width="1.2"/>
-      <!-- 底部减速器：散热槽三层 + 圆角端板 + 实色接线鼻（照素材内框位置） -->
-      <rect x="60" y="172" width="38" height="28" data-face="front"/>
-      <rect x="60" y="172" width="38" height="4" data-face="top"/>
+      <!-- 底部减速器：箱体保留素材圆角（rx4），顶带与棱线内收到平直段避开圆角，
+           散热槽三层 + 圆角端板 + 实色接线鼻（照素材内框位置） -->
+      <rect x="60" y="172" width="38" height="28" rx="4" data-face="front"/>
+      <rect x="62" y="172" width="34" height="4" rx="2" data-face="top"/>
       <rect x="94" y="176" width="4" height="24" data-face="side"/>
-      <path d="M60 172 L98 172" data-edge="hi"/>
-      <path d="M60 200 L98 200" data-edge="lo"/>
+      <path d="M64 172 L94 172" data-edge="hi"/>
+      <path d="M64 200 L94 200" data-edge="lo"/>
       <rect x="67" y="172" width="11" height="28" data-edge="lo" stroke-width="1.2"/>
       <rect x="67" y="177" width="11" height="18" data-edge="lo" stroke-width="1"/>
       <rect x="67" y="182" width="11" height="8" data-edge="lo" stroke-width="1"/>
