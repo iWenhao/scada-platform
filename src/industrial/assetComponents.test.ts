@@ -108,23 +108,26 @@ describe('采煤机的两只滚筒', () => {
     expect(rotors[1].direction).toBe(-1)
   })
 
-  it('旋转片段已换成面基稿，且仍以锚点圆心为几何中心（写错一位就转偏心）', () => {
+  it('2.5D 转子片段（svg25d）以锚点圆心为几何中心，且是自给的面基稿（写错一位就转偏心）', () => {
     for (const rotor of shearer.motion!.rotors!) {
+      const art = rotor.svg25d!
       // 面基片段是手写稿（coal/index.ts 的 illustratedAssets 覆盖），没有素材的
       // transform 链：滚筒几何直接画在锚点不动点上，首个圆（轮缘）的圆心必须是旋转中心
-      const first = rotor.svg.match(/<circle cx="(-?[\d.]+)" cy="(-?[\d.]+)"/)
+      const first = art.match(/<circle cx="(-?[\d.]+)" cy="(-?[\d.]+)"/)
       expect(first).not.toBeNull()
       expect([parseFloat(first![1]), parseFloat(first![2])]).toEqual([rotor.cx, rotor.cy])
-      expect(rotor.svg).toContain('data-face="cap"')
-    }
-  })
-
-  it('面基片段自带头部分组属性，不依赖素材祖先的继承组', () => {
-    for (const rotor of shearer.motion!.rotors!) {
-      const wrapper = rotor.svg.slice(0, rotor.svg.indexOf('>') + 1)
+      expect(art).toContain('data-face="cap"')
+      const wrapper = art.slice(0, art.indexOf('>') + 1)
       // 手写片段不经挖取的继承组包装，fill/stroke 必须自给，否则按 SVG 初值涂黑
       expect(wrapper).toContain('fill="none"')
       expect(wrapper).toContain('stroke="currentColor"')
+      expect(gBalance(art)).toBe(0)
+    }
+  })
+
+  it('2D 转子片段保持素材原稿：不含任何面基标注（与 icon 的 2D 约束同源）', () => {
+    for (const rotor of shearer.motion!.rotors!) {
+      expect(rotor.svg).not.toContain('data-')
       expect(gBalance(rotor.svg)).toBe(0)
     }
   })

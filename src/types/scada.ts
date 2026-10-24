@@ -38,6 +38,12 @@ export type ViewMode = '2d' | '25d'
 export interface MotionRotor {
   /** 图形片段（含自己的 stroke="currentColor"，颜色跟随元素状态色） */
   svg: string
+  /**
+   * 2.5D 用的面基转子稿（可选，缺省时两种风格共用 `svg`）。
+   * 与 `icon`/`icon25d` 同构的双源：素材件挖出的旋转片段是线条稿，2D 须与素材
+   * 原稿逐字节一致，面基稿另存这里；渲染侧按工程 viewMode 二选一（elementMotion）。
+   */
+  svg25d?: string
   /** 旋转中心（用户坐标） */
   cx: number
   cy: number

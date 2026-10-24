@@ -453,8 +453,8 @@ const coalAssetComponents = buildAssetComponents(
 ).map((def) => {
   const art = illustratedAssets[def.type]
   if (!art) return def
-  // 采煤机的滚筒片段是从素材原稿挖出的线条稿：覆盖机身的同时按序替换转子片段，
-  // 锚点与圆心沿用 coalAssetMotion 不变（指南 §4.5 第 4 条：转子必须与新机身同步重画）
+  // 采煤机的滚筒是挖出的旋转件：面基转子稿进 svg25d（2.5D 用），svg 保持素材原片段
+  // （2D 逐字节原稿）；锚点与圆心沿用 coalAssetMotion 不变（指南 §4.5 第 4 条）
   const rotors = def.motion?.rotors
   if (art.rotors && rotors && rotors.length === art.rotors.length) {
     return {
@@ -462,7 +462,9 @@ const coalAssetComponents = buildAssetComponents(
       icon25d: art.icon25d,
       motion: {
         ...def.motion!,
-        rotors: rotors.map((rotor, i) => ({ ...rotor, svg: art.rotors![i] })),
+        // 双源转子：svg 保持挖取自素材的原片段（2D 逐字节原稿），面基稿进 svg25d
+        // 供 2.5D 使用——渲染侧按 viewMode 二选一（elementMotion.getRotorConfigs）
+        rotors: rotors.map((rotor, i) => ({ ...rotor, svg25d: art.rotors![i] })),
       },
     }
   }

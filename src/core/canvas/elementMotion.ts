@@ -206,7 +206,10 @@ export function getRotorConfigs(
   const configs: Array<Record<string, any>> = []
 
   rotors.forEach((rotor, index) => {
-    const wrapped = wrapFragment(rotor.svg)
+    // 双源转子：2.5D 用面基稿（svg25d），2D 保持挖取自素材的原片段——与 icon/icon25d
+    // 同构。两种片段各自的内容包围盒只决定自己位图的摆放，几何都在真坐标上，不会错位
+    const fragment = mode === '25d' && rotor.svg25d ? rotor.svg25d : rotor.svg
+    const wrapped = wrapFragment(fragment)
     const rotorBox = getIconBounds(wrapped)
     if (!rotorBox) return
 
