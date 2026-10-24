@@ -29,30 +29,40 @@ const coalAssetMotion: Record<string, AssetMotionSpec> = {
 /**
  * 采煤机截割滚筒的面基转子片段（与素材滚筒同圆心同外径）。
  *
- * buildAssetComponents 从素材原稿挖出的滚筒是线条稿，覆盖机身的同时必须换掉转子片段，
- * 否则 2.5D 下面基机身配线条稿滚筒。锚点与圆心沿用 coalAssetMotion 不动——滚筒位置由
- * 圆心决定，片段只换画法：正面盘（cap）+ 轮缘环（lo）+ 六组轮叶（hi）+ 毂心两级 cap，
- * 16 支截齿按 22.5° 均布逐条算坐标（r47→r56，压在素材滚筒 r42.9+描边的外侧）。
+ * buildAssetComponents 从素材原稿挖出的滚筒是线条稿，覆盖机身的同时必须换掉转子片段。
+ * 画法分五层，避免「亮圆盘 + 放射线」读成盾牌：亮盘（cap）→ 暗叶槽环带（hole 用
+ * evenodd 挖出 r22..r38 的圆环）→ 六条受光叶弧（hi，螺旋叶片的亮侧）→ 毂盘两级
+ * （cap + lo 环缝）→ 16 支实色截齿块（r46→r57，根宽 5.2 / 端宽 2.8，按 22.5° 均布
+ * 逐条算坐标）。齿用实色小齿块而不是放射细线，与素材的爪形截齿密度对齐。
  */
 function shearerDrum25d(cx: number, cy: number): string {
-  const radial = (r1: number, r2: number, count: number, total: number) =>
-    Array.from({ length: count }, (_, k) => {
-      const a = (k * 2 * Math.PI) / total
-      const c = Math.cos(a)
-      const s = Math.sin(a)
-      return `<line x1="${(cx + r1 * c).toFixed(1)}" y1="${(cy + r1 * s).toFixed(1)}" x2="${(cx + r2 * c).toFixed(1)}" y2="${(cy + r2 * s).toFixed(1)}"/>`
-    })
+  const f = (v: number) => v.toFixed(2)
+  const teeth = Array.from({ length: 16 }, (_, k) => {
+    const a = (k * Math.PI) / 8
+    const c = Math.cos(a)
+    const s = Math.sin(a)
+    // 齿块四角：根部沿切向 ±2.6，端部收窄到 ±1.4；切向单位向量 (-sin, cos)
+    const pt = (r: number, t: number) => `${f(cx + r * c - t * s)},${f(cy + r * s + t * c)}`
+    return `<polygon points="${pt(46, 2.6)} ${pt(57, 1.4)} ${pt(57, -1.4)} ${pt(46, -2.6)}"/>`
+  })
+  const vanes = Array.from({ length: 6 }, (_, k) => {
+    const a0 = (k * 60 * Math.PI) / 180
+    const p = (a: number) => `${f(cx + 30 * Math.cos(a))},${f(cy + 30 * Math.sin(a))}`
+    return `<path d="M${p(a0)} A30 30 0 0 1 ${p(a0 + (50 * Math.PI) / 180)}"/>`
+  })
   const at = (r: number) => `cx="${cx}" cy="${cy}" r="${r}"`
+  const ring = (r: number, sweep: number) =>
+    `M${f(cx - r)},${f(cy)} A${r} ${r} 0 1 ${sweep} ${f(cx + r)},${f(cy)} A${r} ${r} 0 1 ${sweep} ${f(cx - r)},${f(cy)} Z`
   return `<g fill="none" stroke="currentColor" stroke-linecap="round">
     <circle ${at(46)} data-face="cap"/>
-    <circle ${at(46)} data-edge="hi" stroke-width="3"/>
-    <circle ${at(36)} data-edge="lo" stroke-width="2.5"/>
-    <g data-edge="hi" stroke-width="2.5">${radial(22, 34, 6, 6).join('')}</g>
-    <g data-edge="hi" stroke-width="4">${radial(47, 56, 16, 16).join('')}</g>
-    <circle ${at(17.3)} data-face="cap"/>
-    <circle ${at(17.3)} data-edge="hi" stroke-width="2"/>
-    <circle ${at(11.4)} data-face="cap"/>
-    <circle ${at(11.4)} data-edge="hi" stroke-width="1.6"/>
+    <circle ${at(46)} data-edge="hi" stroke-width="4"/>
+    <path d="${ring(38, 0)} ${ring(22, 1)}" fill-rule="evenodd" data-face="hole"/>
+    <g data-edge="hi" stroke-width="2">${vanes.join('')}</g>
+    <circle ${at(22)} data-face="cap"/>
+    <circle ${at(22)} data-edge="hi" stroke-width="2.5"/>
+    <circle ${at(11.4)} data-edge="lo" stroke-width="2"/>
+    <circle ${at(5.5)} data-face="cap"/>
+    <g fill="currentColor" stroke="none">${teeth.join('')}</g>
   </g>`
 }
 
@@ -66,16 +76,21 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
     icon25d: `<svg viewBox="0 0 161 72" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="87" cy="70.4" rx="62" ry="1.4" data-shadow="1"/>
-      <!-- 左侧进线电缆：三根，pipe 双线，端头压进箱体 -->
+      <!-- 左侧进线电缆：实色缆头 + pipe 线身，端头压进箱体 -->
+      <g fill="currentColor" stroke="none">
+        <rect x="0" y="34" width="13" height="5" rx="2"/>
+        <rect x="0" y="43" width="13" height="5" rx="2"/>
+        <rect x="0" y="52" width="13" height="5" rx="2"/>
+      </g>
       <g data-pipe="base">
-        <path d="M0 36.5 L19 36.5"/>
-        <path d="M0 45.5 L19 45.5"/>
-        <path d="M0 54.5 L19 54.5"/>
+        <path d="M11 36.5 L19 36.5"/>
+        <path d="M11 45.5 L19 45.5"/>
+        <path d="M11 54.5 L19 54.5"/>
       </g>
       <g data-pipe="hi" stroke-width="1.1">
-        <path d="M0 35.1 L19 35.1"/>
-        <path d="M0 44.1 L19 44.1"/>
-        <path d="M0 53.1 L19 53.1"/>
+        <path d="M11 35.1 L19 35.1"/>
+        <path d="M11 44.1 L19 44.1"/>
+        <path d="M11 53.1 L19 53.1"/>
       </g>
       <!-- 底座撬板 -->
       <rect x="13" y="63" width="147" height="7" data-face="deck"/>
@@ -90,8 +105,8 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
       <path d="M19 63 L155 63" data-edge="lo"/>
       <path d="M148 4 L148 63" data-edge="lo" stroke-width="1.4"/>
       <rect x="25" y="5" width="123" height="58" data-edge="lo" stroke-width="1.2"/>
-      <!-- 四列操作把手：门板上的凹槽，lo 压暗 -->
-      <g data-edge="lo" stroke-width="1.1">
+      <!-- 四列操作把手：小面板 + 中缝凹槽 -->
+      <g data-face="front" stroke-width="1">
         <rect x="38" y="13" width="18" height="6"/>
         <rect x="38" y="27" width="18" height="6"/>
         <rect x="64" y="13" width="18" height="6"/>
@@ -101,10 +116,18 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
         <rect x="118" y="13" width="18" height="6"/>
         <rect x="118" y="27" width="18" height="6"/>
       </g>
+      <g data-edge="lo" stroke-width="1">
+        <path d="M42 16 L52 16 M68 16 L78 16 M96 16 L106 16 M122 16 L132 16"/>
+        <path d="M42 30 L52 30 M68 30 L78 30 M96 30 L106 30 M122 30 L132 30"/>
+      </g>
       <circle cx="50" cy="48" r="7" data-face="cap"/>
       <circle cx="50" cy="48" r="7" data-edge="hi" stroke-width="1.6"/>
+      <circle cx="50" cy="48" r="3.2" data-edge="lo" stroke-width="1"/>
+      <path d="M50 48 L54.2 43.8" data-edge="lo" stroke-width="1.2"/>
       <circle cx="124" cy="48" r="7" data-face="cap"/>
       <circle cx="124" cy="48" r="7" data-edge="hi" stroke-width="1.6"/>
+      <circle cx="124" cy="48" r="3.2" data-edge="lo" stroke-width="1"/>
+      <path d="M124 48 L128.2 43.8" data-edge="lo" stroke-width="1.2"/>
     </g>
   </svg>`,
   },
@@ -123,26 +146,27 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
       <path d="M0 86 L79 86" data-edge="lo"/>
       <path d="M74 6 L74 80" data-edge="lo" stroke-width="1.2"/>
       <rect x="0" y="15" width="79" height="56" data-edge="lo" stroke-width="1.2"/>
-      <!-- 三条刮板链（竖圆柱面） -->
+      <!-- 三条刮板链（竖圆柱面 + 链环虚线） -->
       <rect x="12" y="22" width="8" height="42" data-face="body"/>
       <rect x="35" y="22" width="8" height="42" data-face="body"/>
       <rect x="59" y="22" width="8" height="42" data-face="body"/>
-      <!-- 上排刮板 -->
-      <g data-edge="lo" stroke-width="1.1">
+      <path d="M16 25 L16 61 M39 25 L39 61 M63 25 L63 61" data-edge="lo" stroke-width="1" stroke-dasharray="3 2.4"/>
+      <!-- 上排刮板：小面板 + 连接链线 -->
+      <g data-face="front" stroke-width="1">
         <rect x="9" y="14" width="8" height="4" rx="2"/>
         <rect x="26.7" y="14" width="8" height="4" rx="2"/>
         <rect x="44.3" y="14" width="8" height="4" rx="2"/>
         <rect x="62" y="14" width="8" height="4" rx="2"/>
-        <path d="M1 16 L9 16 M18.3 16 L26.3 16 M35.5 16 L43.5 16 M53.5 16 L61.5 16 M69 16 L77 16"/>
       </g>
+      <path d="M1 16 L9 16 M18.3 16 L26.3 16 M35.5 16 L43.5 16 M53.5 16 L61.5 16 M69 16 L77 16" data-edge="lo" stroke-width="1.1"/>
       <!-- 下排刮板 -->
-      <g data-edge="lo" stroke-width="1.1">
+      <g data-face="front" stroke-width="1">
         <rect x="10" y="68" width="8" height="4" rx="2"/>
         <rect x="27" y="68" width="8" height="4" rx="2"/>
         <rect x="44" y="68" width="8" height="4" rx="2"/>
         <rect x="61" y="68" width="8" height="4" rx="2"/>
-        <path d="M1 70 L10 70 M18 70 L27 70 M35 70 L44 70 M52 70 L61 70 M69 70 L77 70"/>
       </g>
+      <path d="M1 70 L10 70 M18 70 L27 70 M35 70 L44 70 M52 70 L61 70 M69 70 L77 70" data-edge="lo" stroke-width="1.1"/>
     </g>
   </svg>`,
   },
@@ -275,7 +299,8 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
       <path d="M12 0 L12 212" data-edge="hi"/>
       <path d="M12 212 L98 212" data-edge="lo"/>
       <path d="M94 4 L94 212" data-edge="lo" stroke-width="1.2"/>
-      <!-- 转子笼双内框 -->
+      <!-- 转子笼：笼内腔先压暗衬托两列击打锤，再描双内框 -->
+      <rect x="12" y="79" width="86" height="54" data-face="hole"/>
       <rect x="12" y="69.5" width="86" height="73" data-edge="lo" stroke-width="1.2"/>
       <rect x="12" y="79" width="86" height="54" data-edge="lo" stroke-width="1.2"/>
       <!-- 两列击打锤：保留素材实色（装饰件，不参与面光照） -->
@@ -325,7 +350,7 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
       <!-- 底座 H 形 -->
       <path d="M22 115 L22 121 L64 121 L64 115 L76 115 L76 136 L64 136 L64 130 L22 130 L22 136 L10 136 L10 115 Z" data-face="front"/>
       <path d="M10 115 L22 115 M64 115 L76 115" data-edge="hi"/>
-      <path d="M10 136 L76 136" data-edge="lo"/>
+      <path d="M10 136 L76 136 M22 121 L64 121 M22 130 L64 130" data-edge="lo"/>
     </g>
   </svg>`,
   },
@@ -353,17 +378,20 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
       <path d="M161 120 L189 120" data-edge="lo"/>
       <rect x="161" y="102" width="28" height="11" data-edge="lo" stroke-width="1.2"/>
       <rect x="161" y="52" width="22" height="20" data-face="front"/>
+      <rect x="165" y="56" width="14" height="12" data-edge="lo" stroke-width="1"/>
       <path d="M161 52 L183 52" data-edge="hi"/>
       <path d="M161 72 L183 72" data-edge="lo" stroke-width="1.2"/>
-      <!-- 底部减速器：箱体 + 散热槽 + 端板 -->
+      <!-- 底部减速器：散热槽三层 + 圆角端板 + 实色接线鼻（照素材内框位置） -->
       <rect x="60" y="172" width="38" height="28" data-face="front"/>
       <rect x="60" y="172" width="38" height="4" data-face="top"/>
       <rect x="94" y="176" width="4" height="24" data-face="side"/>
       <path d="M60 172 L98 172" data-edge="hi"/>
       <path d="M60 200 L98 200" data-edge="lo"/>
-      <rect x="67" y="176" width="11" height="24" data-edge="lo" stroke-width="1.2"/>
-      <rect x="98" y="178" width="5" height="16" data-face="side"/>
-      <rect x="103" y="184" width="5" height="5" fill="currentColor" stroke="none"/>
+      <rect x="67" y="172" width="11" height="28" data-edge="lo" stroke-width="1.2"/>
+      <rect x="67" y="177" width="11" height="18" data-edge="lo" stroke-width="1"/>
+      <rect x="67" y="182" width="11" height="8" data-edge="lo" stroke-width="1"/>
+      <path transform="translate(60,172)" d="M40,6 L43,6 L43,22 L40,22 C38.9,22 38,21.1 38,20 L38,8 C38,6.9 38.9,6 40,6 Z" data-face="side" stroke-width="1.4"/>
+      <rect x="98" y="184" width="10" height="5" fill="currentColor" stroke="none"/>
       <rect x="108" y="172" width="20" height="22" data-face="front"/>
       <path d="M108 172 L128 172" data-edge="hi"/>
     </g>
@@ -377,52 +405,37 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
     <rect x="0" y="0" width="610" height="232" fill="none" stroke="none"></rect>
     <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="307" cy="226" rx="150" ry="3.5" data-shadow="1"/>
-      <ellipse cx="553" cy="200.5" rx="46" ry="2.5" data-shadow="1"/>
-      <!-- 行走部底架：梯形条 + 两端滑靴（先画，被机身压住上沿） -->
-      <polygon points="198,180 429,180 447,192 167,192" data-face="front"/>
-      <rect x="198" y="180" width="231" height="5" data-face="top"/>
-      <path d="M198 180 L429 180" data-edge="hi"/>
-      <path d="M429 180 L447 192" data-edge="hi"/>
-      <path d="M198 180 L167 192" data-edge="hi"/>
-      <path d="M181 192 L419 192" data-edge="lo" stroke-width="2.5"/>
-      <rect x="167" y="192" width="14" height="26" data-face="front"/>
-      <polygon points="167,218 181,218 184,227 164,227" data-face="front"/>
-      <path d="M167 192 L167 218" data-edge="hi"/>
-      <path d="M164 227 L184 227" data-edge="lo" stroke-width="2.5"/>
-      <circle cx="176" cy="223" r="2.2" fill="currentColor" stroke="none"/>
-      <rect x="419" y="192" width="14" height="26" data-face="front"/>
-      <polygon points="419,218 433,218 436,227 416,227" data-face="front"/>
-      <path d="M419 192 L419 218" data-edge="hi"/>
-      <path d="M416 227 L436 227" data-edge="lo" stroke-width="2.5"/>
-      <circle cx="422" cy="223" r="2.2" fill="currentColor" stroke="none"/>
-      <!-- 机身：横卧筒体的正面投影，两端是竖直侧圆端盖 -->
-      <rect x="138" y="139" width="325" height="44" rx="22" data-face="front"/>
-      <ellipse cx="147" cy="161" rx="7" ry="20" data-face="cap"/>
-      <ellipse cx="147" cy="161" rx="7" ry="20" data-edge="hi" stroke-width="2.5"/>
-      <ellipse cx="454" cy="161" rx="7" ry="20" data-face="cap"/>
-      <ellipse cx="454" cy="161" rx="7" ry="20" data-edge="hi" stroke-width="2.5"/>
-      <!-- 顶部盖板 -->
-      <polygon points="177,143 187,138 414,138 425,143 425,148 177,148" data-face="top"/>
-      <path d="M177 143 L187 138 L414 138 L425 143" data-edge="hi" stroke-width="2.5"/>
-      <path d="M177 148 L425 148" data-edge="lo" stroke-width="2.5"/>
-      <g data-edge="lo" stroke-width="2.5">
-        <path d="M232 148 L232 178"/>
-        <path d="M303 148 L303 178"/>
-        <path d="M375 148 L375 178"/>
-        <path d="M199 178 L430 178"/>
-      </g>
+      <ellipse cx="553" cy="201" rx="47" ry="2.6" data-shadow="1"/>
+      <!-- 行走部底架：轮廓照素材原稿整块描（两端凸台、滑靴落地、下腹收进） -->
+      <path d="M198.22,180 L198.22,184.89 L402.96,184.89 L402.96,180 L429.09,180 L429.09,184.89 L447.88,184.89 L442.22,191.77 L433.66,191.77 L433.66,206.79 L426.35,218.54 L426.35,223.54 C426.35,224.5 425.96,225.36 425.34,225.99 C424.71,226.61 423.85,227 422.89,227 C421.94,227 421.08,226.61 420.45,225.99 C419.83,225.36 419.44,224.5 419.44,223.54 L419.44,218.48 L398.62,191.77 L389.02,191.77 L385.28,193.94 L365.62,193.94 L363.79,189.23 L234.91,189.23 L233.08,193.94 L214.59,193.94 L211.47,191.77 L202.39,191.77 L181.29,218.47 L181.29,223.68 C181.29,224.6 180.92,225.43 180.31,226.03 C179.71,226.63 178.88,227 177.97,227 C177.05,227 176.22,226.63 175.62,226.03 C175.02,225.43 174.65,224.6 174.65,223.68 L174.65,218.54 L167.34,206.79 L167.34,191.77 L158.78,191.77 L153.12,184.89 L172.09,184.89 L172.09,180 Z" data-face="front"/>
+      <path d="M172.09 180 L198.22 180 M402.96 180 L429.09 180 M429.09 180 L447.88 184.89 M153.12 184.89 L167.34 191.77" data-edge="hi" stroke-width="2.5"/>
+      <path d="M167.34 191.77 L202.39 191.77 L211.47 193.94 L233.08 189.23 L363.79 189.23 L385.28 193.94 L389.02 191.77 L398.62 191.77 M419.44 218.48 L398.62 191.77 M433.66 206.79 L426.35 218.54" data-edge="lo" stroke-width="2.5"/>
+      <path d="M175.3 225 Q178 227.4 180.6 225 M420.3 225 Q422.9 227.4 425.5 225" data-edge="lo" stroke-width="2"/>
+      <!-- 滑靴：靴底小履块（照素材的梯形凹口 + 销点） -->
+      <path transform="translate(166.12,220.72)" d="M17.94,5.9 L22.57,10.28 L1,10.28 L5.63,5.9 C6.19,6.75 6.9,7.48 7.72,8.04 C8.89,8.84 10.29,9.3 11.78,9.3 C13.28,9.3 14.68,8.84 15.85,8.04 C16.67,7.48 17.38,6.75 17.94,5.9 Z" data-face="front" stroke-width="2"/>
+      <circle cx="177.9" cy="222.5" r="1.8" fill="currentColor" stroke="none"/>
+      <path transform="translate(411.22,220.7)" d="M17.94,5.9 L22.57,10.28 L1,10.28 L5.63,5.9 C6.19,6.75 6.9,7.48 7.72,8.04 C8.89,8.84 10.29,9.3 11.78,9.3 C13.28,9.3 14.68,8.84 15.85,8.04 C16.67,7.48 17.38,6.75 17.94,5.9 Z" data-face="front" stroke-width="2"/>
+      <circle cx="423" cy="222.5" r="1.8" fill="currentColor" stroke="none"/>
+      <!-- 机身：横卧筒体，轮廓含左凸台、三处过线槽口与右端鼻头（照素材原稿） -->
+      <path d="M150.77,139.01 C154.02,138.89 157.31,139.95 159.93,142.18 C160.19,142.4 160.42,142.62 160.65,142.85 C160.89,143.08 161.12,143.33 161.34,143.58 L170.66,152.81 L225.81,152.81 L225.81,149.85 L231.98,149.85 L231.98,152.81 L296.67,152.81 L296.67,149.85 L303.2,149.85 L303.11,152.81 L368.66,152.81 L368.66,149.85 L375.33,149.85 L375.33,152.81 L430.47,152.81 L441.21,142.17 C443.55,140.32 446.51,139.18 449.73,139.18 C453.4,139.18 456.72,140.65 459.12,143.03 C461.52,145.4 463,148.68 463,152.31 C463,155.49 461.85,158.41 459.95,160.68 L449.19,171.41 L449.19,183 L430.56,183 L430.56,178.11 L401.87,178.11 L401.87,183 L390.09,183 L388.21,180.43 L213.22,180.43 L211.49,183 L199.33,183 L199.33,178.11 L170.62,178.11 L170.62,183 L151.77,183 L151.76,171.24 L141.14,160.72 C138.92,158.11 137.87,154.85 138,151.63 C138.13,148.44 139.42,145.28 141.88,142.85 C144.35,140.41 147.54,139.13 150.77,139.01 Z" data-face="front"/>
+      <path d="M161.34 143.58 L170.66 152.81 M430.47 152.81 L441.21 142.17 M151.76 171.24 L141.14 160.72" data-edge="hi" stroke-width="2.5"/>
+      <path d="M151.76 183 L449.19 183 M170.62 178.11 L199.33 178.11 M401.87 178.11 L430.56 178.11 M213.22 180.43 L388.21 180.43" data-edge="lo" stroke-width="2.5"/>
+      <path d="M228.9 152.81 L228.9 178.11 M299.9 152.81 L299.9 178.11 M372 152.81 L372 178.11" data-edge="lo" stroke-width="2.5"/>
+      <path d="M449.19 171.41 L459.95 160.68 C461.85 158.41 463 155.49 463 152.31" data-edge="lo" stroke-width="2.5"/>
+      <!-- 顶部盖板（浮置在机身上，素材原稿同位） -->
+      <path d="M414.78,138 L425,142.99 L425,148 L177,148 L177,142.99 L187.22,138 Z" data-face="top"/>
+      <path d="M177 142.99 L187.22 138 L414.78 138 L425 142.99" data-edge="hi" stroke-width="2.5"/>
       <!-- 输送机槽沿（实色楔条，不参与面光照） -->
-      <polygon points="212,184 214,181 388,181 390,184" fill="currentColor" stroke="none"/>
-      <!-- 左张紧臂：机身左端连到滚筒毂，滚筒位由旋转件补上 -->
-      <path d="M90 90 L150 150" data-pipe="base" stroke-width="9"/>
-      <path d="M92.5 87.5 L152.5 147.5" data-pipe="hi" stroke-width="2.5"/>
-      <circle cx="151.8" cy="151.8" r="13.3" data-face="cap"/>
-      <circle cx="151.8" cy="151.8" r="13.3" data-edge="hi" stroke-width="2.5"/>
-      <circle cx="151.8" cy="151.8" r="5.3" data-face="cap"/>
+      <polygon points="211.99,184 213.91,181 387.73,181 390,184" fill="currentColor" stroke="none"/>
+      <!-- 左张紧臂：机身左端连到滚筒毂，轮廓照素材的圆角长条（滚筒位由旋转件补上） -->
+      <path transform="translate(115.98,115.98) scale(-1,1) rotate(-45) translate(-115.98,-115.98)" d="M65.3,102.69 L169.23,105.02 C172.21,105.09 174.89,106.34 176.83,108.32 C178.76,110.3 179.95,113 179.95,115.98 C179.95,118.96 178.76,121.67 176.83,123.64 C174.89,125.62 172.21,126.87 169.23,126.94 L65.61,129.27 C61.94,129.36 58.58,127.94 56.12,125.59 C53.66,123.24 52.1,119.96 52.02,116.29 C52.02,112.48 53.49,109.09 55.88,106.65 C58.28,104.19 61.62,102.69 65.3,102.69 Z" data-face="front"/>
+      <path transform="translate(163.5,164.22) scale(-1,1) rotate(-45) translate(-163.5,-164.22)" d="M166.02,151.18 C162.74,154.5 160.72,159.06 160.72,164.09 C160.72,169.22 162.89,173.94 166.28,177.27" stroke-opacity="0.6" stroke-width="2.5"/>
+      <circle cx="151.84" cy="151.84" r="13.25" data-face="cap"/>
+      <circle cx="151.84" cy="151.84" r="13.25" data-edge="hi" stroke-width="2.5"/>
+      <circle cx="151.84" cy="151.84" r="5.3" data-face="cap"/>
       <!-- 右张紧臂 -->
-      <rect x="437" y="139" width="128" height="26" rx="13" data-face="front"/>
-      <path d="M444 139 L558 139" data-edge="hi" stroke-width="2.5"/>
-      <path d="M444 165 L558 165" data-edge="lo" stroke-width="2.5"/>
+      <path d="M450.17,139.32 L554.38,141.64 C557.33,141.71 559.99,142.95 561.9,144.91 C563.82,146.87 565,149.55 565,152.5 C565,155.45 563.82,158.13 561.9,160.09 C559.99,162.05 557.33,163.29 554.38,163.36 L450.47,165.68 C446.84,165.76 443.51,164.36 441.07,162.03 C438.64,159.7 437.09,156.44 437,152.8 C437,149.03 438.46,145.67 440.83,143.25 C443.22,140.81 446.52,139.32 450.17,139.32 Z" data-face="front"/>
+      <path transform="translate(438.18,163.9) rotate(-45) translate(-438.18,-163.9)" d="M440.71,150.79 C437.41,154.12 435.38,158.71 435.38,163.76 C435.38,168.92 437.57,173.65 440.97,177" stroke-opacity="0.6" stroke-width="2.5"/>
       <circle cx="449.9" cy="152.1" r="12.9" data-face="cap"/>
       <circle cx="449.9" cy="152.1" r="12.9" data-edge="hi" stroke-width="2.5"/>
       <circle cx="449.9" cy="152.1" r="5.3" data-face="cap"/>
