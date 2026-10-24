@@ -210,80 +210,85 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
   </svg>`,
   },
   coal_hydraulic_support: {
+    // 原稿各节段之间有留白（线条稿下读作分段画法）；面基稿是亮色块，空隙在深色
+    // 画布上会读成「断开」，所以相邻节段延到间隙处闭合（整体占地轮廓不变），
+    // 三排柱帽改亮面凸台压在节段面上，把顶梁 → 梁 → 立柱 → 伸缩段 → 底座串成一体
     icon25d: `<svg viewBox="0 0 98 302" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="48" cy="300.5" rx="46" ry="1.6" data-shadow="1"/>
-      <!-- 顶梁两层 -->
+      <!-- 顶梁两层，下层下延到柱帽位 -->
       <rect x="0" y="0" width="96" height="10" data-face="front"/>
       <rect x="0" y="0" width="96" height="3" data-face="top"/>
       <path d="M0 0 L96 0" data-edge="hi"/>
       <path d="M0 0 L0 10" data-edge="hi"/>
       <path d="M0 10 L96 10" data-edge="lo"/>
-      <rect x="5" y="10" width="86" height="10" data-face="front"/>
-      <path d="M5 10 L5 20" data-edge="hi"/>
-      <path d="M5 20 L91 20" data-edge="lo"/>
-      <!-- 顶梁柱帽（铰接窝，lo 凹槽） -->
-      <g data-edge="lo" stroke-width="1.2">
+      <rect x="5" y="10" width="86" height="14" data-face="front"/>
+      <path d="M5 10 L5 24" data-edge="hi"/>
+      <path d="M5 24 L91 24" data-edge="lo"/>
+      <!-- 上平衡梁：上延到顶梁下沿 -->
+      <rect x="5" y="24" width="86" height="59" data-face="front"/>
+      <rect x="87" y="27" width="4" height="56" data-face="side"/>
+      <path d="M5 24 L5 83" data-edge="hi"/>
+      <path d="M5 83 L91 83" data-edge="lo"/>
+      <path d="M87 27 L87 83" data-edge="lo" stroke-width="1.2"/>
+      <!-- 顶梁柱帽：亮面凸台压在梁顶 -->
+      <g data-face="front" stroke-width="1.2">
         <rect x="5" y="24" width="8" height="8"/>
         <rect x="31" y="24" width="8" height="8"/>
         <rect x="57" y="24" width="8" height="8"/>
         <rect x="83" y="24" width="8" height="8"/>
+      </g>
+      <g data-edge="lo" stroke-width="1.2">
         <rect x="13" y="26" width="18" height="4"/>
         <rect x="39" y="26" width="18" height="4"/>
         <rect x="65" y="26" width="18" height="4"/>
       </g>
-      <!-- 上平衡梁 -->
-      <rect x="5" y="36" width="86" height="47" data-face="front"/>
-      <rect x="5" y="36" width="86" height="3" data-face="top"/>
-      <rect x="87" y="39" width="4" height="44" data-face="side"/>
-      <path d="M5 36 L91 36" data-edge="hi"/>
-      <path d="M5 36 L5 83" data-edge="hi"/>
-      <path d="M5 83 L91 83" data-edge="lo"/>
-      <path d="M87 39 L87 83" data-edge="lo" stroke-width="1.2"/>
-      <!-- 平衡梁柱帽（叠在梁底） -->
+      <!-- 平衡梁柱帽（叠在梁底，桥接梁与立柱） -->
       <rect x="30" y="73" width="36" height="14" data-face="front"/>
       <path d="M30 73 L30 87" data-edge="hi"/>
       <path d="M30 78 L66 78" data-edge="lo" stroke-width="1.2"/>
       <path d="M43 73 L43 87" data-edge="lo" stroke-width="1.2"/>
-      <!-- 立柱主段（下端带活塞杆缺口） -->
+      <!-- 立柱主段（活塞中段伸到 y208，与下伸缩段相接） -->
       <path d="M5 87 L91 87 L91 200 L83 200 L83 208 L13 208 L13 200 L5 200 Z" data-face="front"/>
       <rect x="84" y="87" width="7" height="113" data-face="side"/>
       <path d="M5 87 L91 87" data-edge="hi"/>
       <path d="M5 87 L5 200" data-edge="hi"/>
       <path d="M5 200 L13 200 L13 208 L83 208 L83 200 L91 200" data-edge="lo"/>
       <path d="M84 87 L84 200" data-edge="lo" stroke-width="1.2"/>
-      <!-- 中柱帽 -->
-      <g data-edge="lo" stroke-width="1.2">
-        <rect x="5" y="212" width="8" height="8"/>
-        <rect x="31" y="212" width="8" height="8"/>
-        <rect x="57" y="212" width="8" height="8"/>
-        <rect x="83" y="212" width="8" height="8"/>
-        <rect x="13" y="214" width="18" height="4"/>
-        <rect x="39" y="214" width="18" height="4"/>
-        <rect x="65" y="214" width="18" height="4"/>
-      </g>
-      <!-- 下伸缩段 -->
-      <rect x="5" y="224" width="86" height="42" data-face="front"/>
-      <rect x="5" y="224" width="86" height="3" data-face="top"/>
-      <rect x="87" y="227" width="4" height="39" data-face="side"/>
-      <path d="M5 224 L91 224" data-edge="hi"/>
-      <path d="M5 224 L5 266" data-edge="hi"/>
+      <!-- 下伸缩段：上延到立柱活塞底 -->
+      <rect x="5" y="208" width="86" height="58" data-face="front"/>
+      <rect x="87" y="211" width="4" height="55" data-face="side"/>
+      <path d="M5 208 L5 266" data-edge="hi"/>
       <path d="M5 266 L91 266" data-edge="lo"/>
-      <path d="M87 227 L87 266" data-edge="lo" stroke-width="1.2"/>
-      <!-- 底柱帽 -->
+      <path d="M87 211 L87 266" data-edge="lo" stroke-width="1.2"/>
+      <!-- 中柱帽：亮面凸台压在伸缩段顶 -->
+      <g data-face="front" stroke-width="1.2">
+        <rect x="5" y="208" width="8" height="8"/>
+        <rect x="31" y="208" width="8" height="8"/>
+        <rect x="57" y="208" width="8" height="8"/>
+        <rect x="83" y="208" width="8" height="8"/>
+      </g>
       <g data-edge="lo" stroke-width="1.2">
+        <rect x="13" y="210" width="18" height="4"/>
+        <rect x="39" y="210" width="18" height="4"/>
+        <rect x="65" y="210" width="18" height="4"/>
+      </g>
+      <!-- 底座：上延到伸缩段底 -->
+      <rect x="5" y="266" width="86" height="34" data-face="deck"/>
+      <path d="M5 266 L91 266" data-edge="hi"/>
+      <path d="M5 300 L91 300" data-edge="lo"/>
+      <!-- 底柱帽 -->
+      <g data-face="front" stroke-width="1.2">
         <rect x="5" y="270" width="8" height="8"/>
         <rect x="31" y="270" width="8" height="8"/>
         <rect x="57" y="270" width="8" height="8"/>
         <rect x="83" y="270" width="8" height="8"/>
+      </g>
+      <g data-edge="lo" stroke-width="1.2">
         <rect x="13" y="272" width="18" height="4"/>
         <rect x="39" y="272" width="18" height="4"/>
         <rect x="65" y="272" width="18" height="4"/>
       </g>
-      <!-- 底座 -->
-      <rect x="5" y="282" width="86" height="18" data-face="deck"/>
-      <path d="M5 282 L91 282" data-edge="hi"/>
-      <path d="M5 300 L91 300" data-edge="lo"/>
     </g>
   </svg>`,
   },
@@ -371,14 +376,18 @@ const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, str
       <!-- 内板缝（双圈内 L） -->
       <path d="M0 156 L145 156 M0 102 L91 102 M91 0 L91 102 M145 0 L145 156" data-edge="lo" stroke-width="1.2"/>
       <path d="M0 166 L154.5 166 M154.5 0 L154.5 166 M0 92 L81.5 92 M81.5 0 L81.5 92" data-edge="lo" stroke-width="1.2"/>
-      <!-- 右侧驱动电机：箱体 + 上方接线盒 -->
+      <!-- 右侧驱动电机：与底部减速器同一套部件旋转 90° 后的绝对坐标，从下到上
+           齿轮箱 → 散热槽带 → 圆角端板 → 轴 → 接线盒，缺一节就会悬空 -->
       <rect x="161" y="82" width="28" height="38" data-face="front"/>
       <rect x="185" y="86" width="4" height="30" data-face="side"/>
       <path d="M161 82 L189 82" data-edge="hi"/>
       <path d="M161 120 L189 120" data-edge="lo"/>
-      <rect x="161" y="102" width="28" height="11" data-edge="lo" stroke-width="1.2"/>
+      <rect x="161" y="102" width="28" height="11" data-edge="lo" stroke-width="1"/>
+      <rect x="166" y="102" width="18" height="11" data-edge="lo" stroke-width="1"/>
+      <rect x="171" y="102" width="8" height="11" data-edge="lo" stroke-width="1"/>
+      <rect x="167" y="77" width="16" height="5" data-face="front" stroke-width="1.4"/>
+      <rect x="173" y="72" width="5" height="10" fill="currentColor" stroke="none"/>
       <rect x="161" y="52" width="22" height="20" data-face="front"/>
-      <rect x="165" y="56" width="14" height="12" data-edge="lo" stroke-width="1"/>
       <path d="M161 52 L183 52" data-edge="hi"/>
       <path d="M161 72 L183 72" data-edge="lo" stroke-width="1.2"/>
       <!-- 底部减速器：散热槽三层 + 圆角端板 + 实色接线鼻（照素材内框位置） -->
