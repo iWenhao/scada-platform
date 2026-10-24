@@ -140,70 +140,70 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   water_pump: {
     icon25d: `<svg viewBox="0 0 81 98" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="40" cy="96.3" rx="32" ry="1.4" data-shadow="1"/>
+      <ellipse cx="58" cy="96.5" rx="24" ry="1.3" data-shadow="1"/>
 
-      <!-- 电机：体积交给渐变，只在受光的上缘留一段高光 -->
+      <!-- 电机：同轴竖圆柱，上下端被颈圈包住，不另画端面 -->
       <rect x="52" y="9" width="16" height="79" rx="8" data-face="body"/>
-      <ellipse cx="60" cy="11" rx="8" ry="2.2" data-face="cap"/>
-      <path d="M53.4,10.5 A8,2.2 0 0 1 66.6,10.5" data-edge="hi"/>
-      <path d="M54,87.2 C56.5,88.8 63.5,88.8 66,87.2" data-edge="lo"/>
 
-      <!-- 顶部法兰：两颗螺栓，颈部只留左侧亮棱 -->
-      <rect x="47" y="1.2" width="26" height="2.8" rx="1.4" data-face="front"/>
-      <rect x="47" y="0" width="26" height="1.4" rx="0.7" data-face="top"/>
-      <path d="M47,1.2 L73,1.2" data-edge="hi"/>
-      <circle cx="50.2" cy="2.6" r="0.55" data-edge="lo"/>
-      <circle cx="69.8" cy="2.6" r="0.55" data-edge="lo"/>
-      <path d="M55,4 L65,4 L65,11 C62.1,8.7 57.9,8.7 55,11 Z" data-face="front"/>
-      <path d="M55,4 L55,10.2" data-edge="hi"/>
+      <!-- 上下颈圈：与电机同轴的短颈；竖边不描线（暗底上会成悬空白条），
+           只留贴住端盖的凹弧。下颈圈原稿是绕瓶底的托环，镜像后顶缘向下凹 -->
+      <path d="M55,4 L65,4 L65,11 C62.08,8.66 57.92,8.66 55,11 Z" data-face="body"/>
+      <path d="M55,11 C57.92,8.66 62.08,8.66 65,11" data-edge="lo" stroke-linecap="butt"/>
+      <path d="M55,92 L65,92 L65,86 C62.08,88.34 57.92,88.34 55,86 Z" data-face="body"/>
+      <path d="M55,86 C57.92,88.34 62.08,88.34 65,86" data-edge="lo" stroke-linecap="butt"/>
 
-      <rect x="47" y="92" width="26" height="2.8" rx="1.4" data-face="front"/>
-      <rect x="47" y="94.8" width="26" height="1.2" rx="0.6" data-face="side"/>
-      <path d="M55,86 L65,86 L65,92 C62.1,89.8 57.9,89.8 55,92 Z" data-face="front"/>
-      <path d="M47,95.9 L73,95.9" data-edge="lo"/>
+      <!-- 端盖板：正面到板底，顶面占顶部一条；圆角沿用原稿 r2 -->
+      <rect x="47" y="0" width="26" height="4" rx="2" data-face="front"/>
+      <rect x="47" y="0" width="26" height="1.6" rx="0.8" data-face="top"/>
+      <path d="M49,0 L71,0" data-edge="hi"/>
+      <path d="M49,4 L71,4" data-edge="lo"/>
 
-      <!-- 传动轴压进护罩后方，不再自带一圈边 -->
-      <rect x="47" y="18.5" width="6" height="60" rx="3" data-face="side"/>
+      <rect x="47" y="92" width="26" height="4" rx="2" data-face="front"/>
+      <rect x="47" y="92" width="26" height="1.6" rx="0.8" data-face="top"/>
+      <path d="M49,92 L71,92" data-edge="hi"/>
+      <path d="M49,96 L71,96" data-edge="lo"/>
 
-      <!-- 护罩是一块折弯薄板：整体压暗，只留上折边 -->
+      <!-- 护罩：贴在电机前的薄板，看到的是它朝左的窄边，属受光侧 -->
+      <path d="M50,18 L52,18 L52,79 L50,79 C48.9,79 48,78.1 48,77 L48,20 C48,18.9 48.9,18 50,18 Z" data-face="front"/>
+
+      <!-- 传动轴 -->
+      <rect x="32" y="29" width="4" height="39" rx="2" data-face="body"/>
+
+      <!-- 泵壳：卧式筒体；左端是原稿那块实心圆头端板，画成朝左的竖直面（受光侧），
+           不再用薄椭圆——5 单位宽的椭圆在暗底上会读成一只悬空的白环 -->
+      <path d="M14,33 L15,33 L15,64 L14,64 C11.79,64 10,62.21 10,60 L10,37 C10,34.79 11.79,33 14,33 Z" data-face="front"/>
+      <rect x="15" y="33" width="17" height="31" data-face="barrel"/>
+      <path d="M15,33 L32,33" data-edge="hi"/>
+      <path d="M15,64 L32,64" data-edge="lo"/>
+
+      <!-- 进口接管：左端圆头的实心短管，原稿末端不开口 -->
+      <path d="M2.5,46 L10,46 L10,51 L2.5,51 C1.12,51 0,49.88 0,48.5 C0,47.12 1.12,46 2.5,46 Z" data-face="barrel"/>
+      <path d="M2.5,46 L10,46" data-edge="hi"/>
+      <path d="M2.5,51 L10,51" data-edge="lo"/>
+
+      <!-- 护罩支撑板：前窄后宽的梯形，只给上斜棱受光 -->
       <polygon points="36,31 48,21 48,76 36,66" data-face="side"/>
       <path d="M36,31 L48,21" data-edge="hi"/>
+      <path d="M36,66 L48,76" data-edge="lo"/>
 
-      <!-- 联轴器、中间法兰：横向接缝保留，竖向边框去掉 -->
-      <rect x="36" y="41" width="12" height="17" data-face="front"/>
+      <!-- 联轴器与中间的凸环 -->
+      <rect x="36" y="39" width="12" height="19" data-face="front"/>
       <rect x="36" y="39" width="12" height="2" data-face="top"/>
       <path d="M36,39 L48,39" data-edge="hi"/>
       <path d="M36,58 L48,58" data-edge="lo"/>
-      <rect x="35" y="46" width="14" height="5" data-face="front"/>
-      <rect x="35" y="46" width="14" height="1.6" data-face="top"/>
-      <path d="M35,46 L49,46" data-edge="hi"/>
-      <path d="M35,51 L49,51" data-edge="lo"/>
+      <rect x="36" y="46" width="12" height="5" data-face="front"/>
+      <rect x="36" y="46" width="12" height="1.6" data-face="top"/>
+      <path d="M36,46 L48,46" data-edge="hi"/>
+      <path d="M36,51 L48,51" data-edge="lo"/>
 
-      <rect x="32" y="29" width="4" height="39" rx="2" data-face="body"/>
-      <ellipse cx="34" cy="29.8" rx="2" ry="0.9" data-face="cap"/>
-
-      <!-- 泵壳：卧式圆筒 + 出口法兰，上下各留一条轮廓 -->
-      <rect x="12" y="33" width="21" height="31" data-face="barrel"/>
-      <ellipse cx="12" cy="48.5" rx="2" ry="15.5" data-face="cap"/>
-      <path d="M12,33 L33,33" data-edge="hi"/>
-      <path d="M12,64 L33,64" data-edge="lo"/>
-      <rect x="30.5" y="45.6" width="6" height="5.8" data-face="front"/>
-      <rect x="30.5" y="45.6" width="6" height="1.6" data-face="top"/>
-      <path d="M30.5,45.6 L36.5,45.6" data-edge="hi"/>
-
-      <rect x="1" y="46" width="12" height="5" data-face="barrel"/>
-      <ellipse cx="1.2" cy="48.5" rx="1.2" ry="2.5" data-face="hole"/>
-      <path d="M1,46 L13,46" data-edge="hi"/>
-      <path d="M1,51 L13,51" data-edge="lo"/>
-
-      <rect x="68" y="39" width="7" height="19" data-face="front"/>
-      <rect x="68" y="39" width="7" height="2" data-face="top"/>
-      <path d="M68,39 L75,39" data-edge="hi"/>
-      <path d="M68,58 L75,58" data-edge="lo"/>
+      <!-- 出口接管：横卧短管（筒面），顶部受光 -->
+      <rect x="68" y="39" width="6" height="19" data-face="barrel"/>
+      <path d="M68,39 L74,39" data-edge="hi"/>
+      <path d="M68,58 L74,58" data-edge="lo"/>
 
       <rect x="74" y="30" width="5" height="37" rx="2.5" data-face="body"/>
-      <ellipse cx="76.5" cy="31" rx="2.5" ry="1.2" data-face="cap"/>
-      <path d="M74,31 A2.5,1.2 0 0 1 79,31" data-edge="hi"/>
+      <ellipse cx="76.5" cy="31.2" rx="2.5" ry="1.2" data-face="cap"/>
+      <path d="M74,31.2 A2.5,1.2 0 0 1 79,31.2" data-edge="hi"/>
     </g>
   </svg>`,
   },
