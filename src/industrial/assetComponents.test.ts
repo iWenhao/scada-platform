@@ -108,32 +108,24 @@ describe('采煤机的两只滚筒', () => {
     expect(rotors[1].direction).toBe(-1)
   })
 
-  it('旋转中心取自片段 transform 的不动点（写错一位就转偏心）', () => {
+  it('旋转片段已换成面基稿，且仍以锚点圆心为几何中心（写错一位就转偏心）', () => {
     for (const rotor of shearer.motion!.rotors!) {
-      // 只取滚筒自己那个分组：包装组没有 rotate/scale，不会被匹配到
-      const groupTag = rotor.svg.match(/<g transform="translate\([^>]*?(?:rotate|scale)[^>]*>/)![0]
-      const translates = [...groupTag.matchAll(/translate\((-?[\d.]+), (-?[\d.]+)\)/g)].map(
-        m => [parseFloat(m[1]), parseFloat(m[2])] as [number, number],
-      )
-      // 素材的部件分组一律写成 translate(cx,cy) 旋转/镜像 translate(-cx,-cy) 内部平移
-      expect(translates[0]).toEqual([rotor.cx, rotor.cy])
-      expect(translates[1]).toEqual([-rotor.cx, -rotor.cy])
+      // 面基片段是手写稿（coal/index.ts 的 illustratedAssets 覆盖），没有素材的
+      // transform 链：滚筒几何直接画在锚点不动点上，首个圆（轮缘）的圆心必须是旋转中心
+      const first = rotor.svg.match(/<circle cx="(-?[\d.]+)" cy="(-?[\d.]+)"/)
+      expect(first).not.toBeNull()
+      expect([parseFloat(first![1]), parseFloat(first![2])]).toEqual([rotor.cx, rotor.cy])
+      expect(rotor.svg).toContain('data-face="cap"')
     }
   })
 
-  it('包装组补齐继承，且祖先平移自相抵消', () => {
+  it('面基片段自带头部分组属性，不依赖素材祖先的继承组', () => {
     for (const rotor of shearer.motion!.rotors!) {
       const wrapper = rotor.svg.slice(0, rotor.svg.indexOf('>') + 1)
-      // 素材把 fill/stroke 挂在根分组上，片段必须把这层继承带上
+      // 手写片段不经挖取的继承组包装，fill/stroke 必须自给，否则按 SVG 初值涂黑
       expect(wrapper).toContain('fill="none"')
-      expect(wrapper).toContain('stroke="none"')
-      // 渲染侧按基图的 viewBox 坐标定位旋转中心，所以 motion.rotors 的 cx/cy 必须是
-      // 基图坐标；Sketch 导出的那对互相抵消的 translate 若净位移不为 0，就得从片段里扣掉
-      const net = [...wrapper.matchAll(/translate\((-?[\d.]+), (-?[\d.]+)\)/g)].reduce<[number, number]>(
-        (acc, m) => [acc[0] + parseFloat(m[1]), acc[1] + parseFloat(m[2])],
-        [0, 0],
-      )
-      expect(net).toEqual([0, 0])
+      expect(wrapper).toContain('stroke="currentColor"')
+      expect(gBalance(rotor.svg)).toBe(0)
     }
   })
 

@@ -26,6 +26,436 @@ const coalAssetMotion: Record<string, AssetMotionSpec> = {
   },
 }
 
+/**
+ * 采煤机截割滚筒的面基转子片段（与素材滚筒同圆心同外径）。
+ *
+ * buildAssetComponents 从素材原稿挖出的滚筒是线条稿，覆盖机身的同时必须换掉转子片段，
+ * 否则 2.5D 下面基机身配线条稿滚筒。锚点与圆心沿用 coalAssetMotion 不动——滚筒位置由
+ * 圆心决定，片段只换画法：正面盘（cap）+ 轮缘环（lo）+ 六组轮叶（hi）+ 毂心两级 cap，
+ * 16 支截齿按 22.5° 均布逐条算坐标（r47→r56，压在素材滚筒 r42.9+描边的外侧）。
+ */
+function shearerDrum25d(cx: number, cy: number): string {
+  const radial = (r1: number, r2: number, count: number, total: number) =>
+    Array.from({ length: count }, (_, k) => {
+      const a = (k * 2 * Math.PI) / total
+      const c = Math.cos(a)
+      const s = Math.sin(a)
+      return `<line x1="${(cx + r1 * c).toFixed(1)}" y1="${(cy + r1 * s).toFixed(1)}" x2="${(cx + r2 * c).toFixed(1)}" y2="${(cy + r2 * s).toFixed(1)}"/>`
+    })
+  const at = (r: number) => `cx="${cx}" cy="${cy}" r="${r}"`
+  return `<g fill="none" stroke="currentColor" stroke-linecap="round">
+    <circle ${at(46)} data-face="cap"/>
+    <circle ${at(46)} data-edge="hi" stroke-width="3"/>
+    <circle ${at(36)} data-edge="lo" stroke-width="2.5"/>
+    <g data-edge="hi" stroke-width="2.5">${radial(22, 34, 6, 6).join('')}</g>
+    <g data-edge="hi" stroke-width="4">${radial(47, 56, 16, 16).join('')}</g>
+    <circle ${at(17.3)} data-face="cap"/>
+    <circle ${at(17.3)} data-edge="hi" stroke-width="2"/>
+    <circle ${at(11.4)} data-face="cap"/>
+    <circle ${at(11.4)} data-edge="hi" stroke-width="1.6"/>
+  </g>`
+}
+
+/**
+ * 综采素材件的面基覆盖表（指南 §4.5 同姿态重绘）：`icon` 仍是素材原稿（2D 画布与
+ * 组件面板共用），面基稿写进 `icon25d`——viewBox 逐字沿用、外沿不越原稿轮廓、
+ * 默认尺寸沿用素材自带值。素材原稿是正面平视稿，按「正面 + 顶带 + 右侧带」切片。
+ */
+const illustratedAssets: Record<string, { icon25d: string; rotors?: [string, string] }> = {
+  coal_combination_switch: {
+    icon25d: `<svg viewBox="0 0 161 72" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="87" cy="70.4" rx="62" ry="1.4" data-shadow="1"/>
+      <!-- 左侧进线电缆：三根，pipe 双线，端头压进箱体 -->
+      <g data-pipe="base">
+        <path d="M0 36.5 L19 36.5"/>
+        <path d="M0 45.5 L19 45.5"/>
+        <path d="M0 54.5 L19 54.5"/>
+      </g>
+      <g data-pipe="hi" stroke-width="1.1">
+        <path d="M0 35.1 L19 35.1"/>
+        <path d="M0 44.1 L19 44.1"/>
+        <path d="M0 53.1 L19 53.1"/>
+      </g>
+      <!-- 底座撬板 -->
+      <rect x="13" y="63" width="147" height="7" data-face="deck"/>
+      <path d="M13 63 L160 63" data-edge="hi" stroke-width="1.4"/>
+      <path d="M13 70 L160 70" data-edge="lo"/>
+      <!-- 箱体：正面 + 顶带 + 右侧带 -->
+      <rect x="19" y="0" width="136" height="63" data-face="front"/>
+      <rect x="19" y="0" width="136" height="4" data-face="top"/>
+      <rect x="148" y="4" width="7" height="59" data-face="side"/>
+      <path d="M19 0 L155 0" data-edge="hi"/>
+      <path d="M19 0 L19 63" data-edge="hi"/>
+      <path d="M19 63 L155 63" data-edge="lo"/>
+      <path d="M148 4 L148 63" data-edge="lo" stroke-width="1.4"/>
+      <rect x="25" y="5" width="123" height="58" data-edge="lo" stroke-width="1.2"/>
+      <!-- 四列操作把手：门板上的凹槽，lo 压暗 -->
+      <g data-edge="lo" stroke-width="1.1">
+        <rect x="38" y="13" width="18" height="6"/>
+        <rect x="38" y="27" width="18" height="6"/>
+        <rect x="64" y="13" width="18" height="6"/>
+        <rect x="64" y="27" width="18" height="6"/>
+        <rect x="92" y="13" width="18" height="6"/>
+        <rect x="92" y="27" width="18" height="6"/>
+        <rect x="118" y="13" width="18" height="6"/>
+        <rect x="118" y="27" width="18" height="6"/>
+      </g>
+      <circle cx="50" cy="48" r="7" data-face="cap"/>
+      <circle cx="50" cy="48" r="7" data-edge="hi" stroke-width="1.6"/>
+      <circle cx="124" cy="48" r="7" data-face="cap"/>
+      <circle cx="124" cy="48" r="7" data-edge="hi" stroke-width="1.6"/>
+    </g>
+  </svg>`,
+  },
+  coal_scraper: {
+    icon25d: `<svg viewBox="0 0 81 88" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="39.5" cy="87.3" rx="36" ry="1.4" data-shadow="1"/>
+      <!-- 槽体：正面 + 顶带 + 右侧带 + 底走道 -->
+      <rect x="0" y="0" width="79" height="86" data-face="front"/>
+      <rect x="0" y="0" width="79" height="6" data-face="top"/>
+      <rect x="74" y="6" width="5" height="74" data-face="side"/>
+      <rect x="0" y="80" width="79" height="6" data-face="deck"/>
+      <path d="M0 0 L79 0" data-edge="hi"/>
+      <path d="M0 0 L0 86" data-edge="hi"/>
+      <path d="M0 80 L79 80" data-edge="hi" stroke-width="1.2"/>
+      <path d="M0 86 L79 86" data-edge="lo"/>
+      <path d="M74 6 L74 80" data-edge="lo" stroke-width="1.2"/>
+      <rect x="0" y="15" width="79" height="56" data-edge="lo" stroke-width="1.2"/>
+      <!-- 三条刮板链（竖圆柱面） -->
+      <rect x="12" y="22" width="8" height="42" data-face="body"/>
+      <rect x="35" y="22" width="8" height="42" data-face="body"/>
+      <rect x="59" y="22" width="8" height="42" data-face="body"/>
+      <!-- 上排刮板 -->
+      <g data-edge="lo" stroke-width="1.1">
+        <rect x="9" y="14" width="8" height="4" rx="2"/>
+        <rect x="26.7" y="14" width="8" height="4" rx="2"/>
+        <rect x="44.3" y="14" width="8" height="4" rx="2"/>
+        <rect x="62" y="14" width="8" height="4" rx="2"/>
+        <path d="M1 16 L9 16 M18.3 16 L26.3 16 M35.5 16 L43.5 16 M53.5 16 L61.5 16 M69 16 L77 16"/>
+      </g>
+      <!-- 下排刮板 -->
+      <g data-edge="lo" stroke-width="1.1">
+        <rect x="10" y="68" width="8" height="4" rx="2"/>
+        <rect x="27" y="68" width="8" height="4" rx="2"/>
+        <rect x="44" y="68" width="8" height="4" rx="2"/>
+        <rect x="61" y="68" width="8" height="4" rx="2"/>
+        <path d="M1 70 L10 70 M18 70 L27 70 M35 70 L44 70 M52 70 L61 70 M69 70 L77 70"/>
+      </g>
+    </g>
+  </svg>`,
+  },
+  coal_belt: {
+    icon25d: `<svg viewBox="0 0 81 88" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="39.5" cy="87.3" rx="36" ry="1.4" data-shadow="1"/>
+      <rect x="0" y="0" width="79" height="86" data-face="front"/>
+      <rect x="0" y="0" width="79" height="6" data-face="top"/>
+      <rect x="74" y="6" width="5" height="74" data-face="side"/>
+      <rect x="0" y="80" width="79" height="6" data-face="deck"/>
+      <path d="M0 0 L79 0" data-edge="hi"/>
+      <path d="M0 0 L0 86" data-edge="hi"/>
+      <path d="M0 80 L79 80" data-edge="hi" stroke-width="1.2"/>
+      <path d="M0 86 L79 86" data-edge="lo"/>
+      <path d="M74 6 L74 80" data-edge="lo" stroke-width="1.2"/>
+      <rect x="0" y="15" width="79" height="56" data-edge="lo" stroke-width="1.2"/>
+      <!-- 带面纵向肋条 -->
+      <rect x="12" y="16" width="8" height="54" data-face="body"/>
+      <rect x="35" y="16" width="8" height="54" data-face="body"/>
+      <rect x="59" y="16" width="8" height="54" data-face="body"/>
+    </g>
+  </svg>`,
+  },
+  coal_drive_tail: {
+    icon25d: `<svg viewBox="0 0 118 88" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="58" cy="87.3" rx="52" ry="1.4" data-shadow="1"/>
+      <rect x="0" y="0" width="116" height="86" data-face="front"/>
+      <rect x="0" y="0" width="116" height="5" data-face="top"/>
+      <rect x="111" y="5" width="5" height="81" data-face="side"/>
+      <path d="M0 0 L116 0" data-edge="hi"/>
+      <path d="M0 0 L0 86" data-edge="hi"/>
+      <path d="M0 86 L116 86" data-edge="lo"/>
+      <path d="M111 5 L111 86" data-edge="lo" stroke-width="1.2"/>
+      <rect x="0" y="16" width="116" height="54" data-edge="lo" stroke-width="1.2"/>
+      <!-- 中部开口：链槽进口，hole 压到接近背景 -->
+      <rect x="0" y="21" width="116" height="44" data-face="hole"/>
+      <rect x="0" y="21" width="116" height="44" data-edge="hi" stroke-width="1.2"/>
+    </g>
+  </svg>`,
+  },
+  coal_hydraulic_support: {
+    icon25d: `<svg viewBox="0 0 98 302" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="48" cy="300.5" rx="46" ry="1.6" data-shadow="1"/>
+      <!-- 顶梁两层 -->
+      <rect x="0" y="0" width="96" height="10" data-face="front"/>
+      <rect x="0" y="0" width="96" height="3" data-face="top"/>
+      <path d="M0 0 L96 0" data-edge="hi"/>
+      <path d="M0 0 L0 10" data-edge="hi"/>
+      <path d="M0 10 L96 10" data-edge="lo"/>
+      <rect x="5" y="10" width="86" height="10" data-face="front"/>
+      <path d="M5 10 L5 20" data-edge="hi"/>
+      <path d="M5 20 L91 20" data-edge="lo"/>
+      <!-- 顶梁柱帽（铰接窝，lo 凹槽） -->
+      <g data-edge="lo" stroke-width="1.2">
+        <rect x="5" y="24" width="8" height="8"/>
+        <rect x="31" y="24" width="8" height="8"/>
+        <rect x="57" y="24" width="8" height="8"/>
+        <rect x="83" y="24" width="8" height="8"/>
+        <rect x="13" y="26" width="18" height="4"/>
+        <rect x="39" y="26" width="18" height="4"/>
+        <rect x="65" y="26" width="18" height="4"/>
+      </g>
+      <!-- 上平衡梁 -->
+      <rect x="5" y="36" width="86" height="47" data-face="front"/>
+      <rect x="5" y="36" width="86" height="3" data-face="top"/>
+      <rect x="87" y="39" width="4" height="44" data-face="side"/>
+      <path d="M5 36 L91 36" data-edge="hi"/>
+      <path d="M5 36 L5 83" data-edge="hi"/>
+      <path d="M5 83 L91 83" data-edge="lo"/>
+      <path d="M87 39 L87 83" data-edge="lo" stroke-width="1.2"/>
+      <!-- 平衡梁柱帽（叠在梁底） -->
+      <rect x="30" y="73" width="36" height="14" data-face="front"/>
+      <path d="M30 73 L30 87" data-edge="hi"/>
+      <path d="M30 78 L66 78" data-edge="lo" stroke-width="1.2"/>
+      <path d="M43 73 L43 87" data-edge="lo" stroke-width="1.2"/>
+      <!-- 立柱主段（下端带活塞杆缺口） -->
+      <path d="M5 87 L91 87 L91 200 L83 200 L83 208 L13 208 L13 200 L5 200 Z" data-face="front"/>
+      <rect x="84" y="87" width="7" height="113" data-face="side"/>
+      <path d="M5 87 L91 87" data-edge="hi"/>
+      <path d="M5 87 L5 200" data-edge="hi"/>
+      <path d="M5 200 L13 200 L13 208 L83 208 L83 200 L91 200" data-edge="lo"/>
+      <path d="M84 87 L84 200" data-edge="lo" stroke-width="1.2"/>
+      <!-- 中柱帽 -->
+      <g data-edge="lo" stroke-width="1.2">
+        <rect x="5" y="212" width="8" height="8"/>
+        <rect x="31" y="212" width="8" height="8"/>
+        <rect x="57" y="212" width="8" height="8"/>
+        <rect x="83" y="212" width="8" height="8"/>
+        <rect x="13" y="214" width="18" height="4"/>
+        <rect x="39" y="214" width="18" height="4"/>
+        <rect x="65" y="214" width="18" height="4"/>
+      </g>
+      <!-- 下伸缩段 -->
+      <rect x="5" y="224" width="86" height="42" data-face="front"/>
+      <rect x="5" y="224" width="86" height="3" data-face="top"/>
+      <rect x="87" y="227" width="4" height="39" data-face="side"/>
+      <path d="M5 224 L91 224" data-edge="hi"/>
+      <path d="M5 224 L5 266" data-edge="hi"/>
+      <path d="M5 266 L91 266" data-edge="lo"/>
+      <path d="M87 227 L87 266" data-edge="lo" stroke-width="1.2"/>
+      <!-- 底柱帽 -->
+      <g data-edge="lo" stroke-width="1.2">
+        <rect x="5" y="270" width="8" height="8"/>
+        <rect x="31" y="270" width="8" height="8"/>
+        <rect x="57" y="270" width="8" height="8"/>
+        <rect x="83" y="270" width="8" height="8"/>
+        <rect x="13" y="272" width="18" height="4"/>
+        <rect x="39" y="272" width="18" height="4"/>
+        <rect x="65" y="272" width="18" height="4"/>
+      </g>
+      <!-- 底座 -->
+      <rect x="5" y="282" width="86" height="18" data-face="deck"/>
+      <path d="M5 282 L91 282" data-edge="hi"/>
+      <path d="M5 300 L91 300" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  coal_crusher: {
+    icon25d: `<svg viewBox="0 0 112 214" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="55" cy="212.4" rx="44" ry="1.6" data-shadow="1"/>
+      <!-- 机壳：正面 + 顶带 + 右侧带 -->
+      <rect x="12" y="0" width="86" height="212" data-face="front"/>
+      <rect x="12" y="0" width="86" height="4" data-face="top"/>
+      <rect x="94" y="4" width="4" height="208" data-face="side"/>
+      <path d="M12 0 L98 0" data-edge="hi"/>
+      <path d="M12 0 L12 212" data-edge="hi"/>
+      <path d="M12 212 L98 212" data-edge="lo"/>
+      <path d="M94 4 L94 212" data-edge="lo" stroke-width="1.2"/>
+      <!-- 转子笼双内框 -->
+      <rect x="12" y="69.5" width="86" height="73" data-edge="lo" stroke-width="1.2"/>
+      <rect x="12" y="79" width="86" height="54" data-edge="lo" stroke-width="1.2"/>
+      <!-- 两列击打锤：保留素材实色（装饰件，不参与面光照） -->
+      <path d="M12,19 L12,14 L28,14 L28,19 L12,19 Z M12,37 L12,32 L28,32 L28,37 L12,37 Z M12,55 L12,50 L28,50 L28,55 L12,55 Z M12,73 L12,68 L28,68 L28,73 L12,73 Z M12,91 L12,86 L28,86 L28,91 L12,91 Z M12,109 L12,104 L28,104 L28,109 L12,109 Z M12,127 L12,122 L28,122 L28,127 L12,127 Z M12,145 L12,140 L28,140 L28,145 L12,145 Z M12,163 L12,158 L28,158 L28,163 L12,163 Z M12,181 L12,176 L28,176 L28,181 L12,181 Z M12,199 L12,194 L28,194 L28,199 L12,199 Z" fill="currentColor" stroke="none"/>
+      <path d="M82,19 L82,14 L98,14 L98,19 L82,19 Z M82,37 L82,32 L98,32 L98,37 L82,37 Z M82,55 L82,50 L98,50 L98,55 L82,55 Z M82,73 L82,68 L98,68 L98,73 L82,73 Z M82,91 L82,86 L98,86 L98,91 L82,91 Z M82,109 L82,104 L98,104 L98,109 L82,109 Z M82,127 L82,122 L98,122 L98,127 L82,127 Z M82,145 L82,140 L98,140 L98,145 L82,145 Z M82,163 L82,158 L98,158 L98,163 L82,163 Z M82,181 L82,176 L98,176 L98,181 L82,181 Z M82,199 L82,194 L98,194 L98,199 L82,199 Z" fill="currentColor" stroke="none"/>
+      <!-- 左右铰接支座：窄立板 + 外伸轴头 -->
+      <rect x="6" y="35" width="6" height="35" data-face="front"/>
+      <rect x="0" y="44.5" width="6" height="16" data-face="side"/>
+      <path d="M6 35 L6 70" data-edge="hi"/>
+      <rect x="100" y="35" width="6" height="35" data-face="front"/>
+      <rect x="106" y="44.5" width="6" height="16" data-face="side"/>
+      <path d="M106 44.5 L106 60.5" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  coal_stage_loader: {
+    icon25d: `<svg viewBox="0 0 88 148" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="44" cy="146.5" rx="40" ry="1.4" data-shadow="1"/>
+      <!-- 顶帽 -->
+      <rect x="0" y="0" width="86" height="12" data-face="front"/>
+      <rect x="0" y="0" width="86" height="4" data-face="top"/>
+      <path d="M0 0 L86 0" data-edge="hi"/>
+      <path d="M0 0 L0 12" data-edge="hi"/>
+      <path d="M0 12 L86 12" data-edge="lo"/>
+      <!-- 槽体 -->
+      <rect x="0" y="12" width="86" height="64" data-face="front"/>
+      <rect x="81" y="16" width="5" height="60" data-face="side"/>
+      <path d="M0 12 L0 76" data-edge="hi"/>
+      <path d="M0 76 L86 76" data-edge="lo"/>
+      <path d="M81 16 L81 76" data-edge="lo" stroke-width="1.2"/>
+      <rect x="21" y="12" width="44" height="64" data-edge="lo" stroke-width="1.2"/>
+      <!-- 两根支腿 -->
+      <rect x="10" y="76" width="20" height="29" data-face="front"/>
+      <rect x="27" y="76" width="3" height="29" data-face="side"/>
+      <path d="M10 76 L10 105" data-edge="hi"/>
+      <path d="M10 105 L30 105" data-edge="lo"/>
+      <rect x="52" y="76" width="20" height="29" data-face="front"/>
+      <rect x="69" y="76" width="3" height="29" data-face="side"/>
+      <path d="M52 76 L52 105" data-edge="hi"/>
+      <path d="M52 105 L72 105" data-edge="lo"/>
+      <!-- 腿底连接板（保留素材实色） -->
+      <rect x="10" y="105" width="6" height="10" fill="currentColor" stroke="none"/>
+      <rect x="70" y="105" width="6" height="10" fill="currentColor" stroke="none"/>
+      <rect x="10" y="136" width="6" height="10" fill="currentColor" stroke="none"/>
+      <rect x="70" y="136" width="6" height="10" fill="currentColor" stroke="none"/>
+      <!-- 底座 H 形 -->
+      <path d="M22 115 L22 121 L64 121 L64 115 L76 115 L76 136 L64 136 L64 130 L22 130 L22 136 L10 136 L10 115 Z" data-face="front"/>
+      <path d="M10 115 L22 115 M64 115 L76 115" data-edge="hi"/>
+      <path d="M10 136 L76 136" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  coal_drive_head: {
+    icon25d: `<svg viewBox="0 0 191 202" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="95" cy="200.4" rx="85" ry="1.6" data-shadow="1"/>
+      <!-- L 形主机架：正面 + 顶带 + 右侧带 -->
+      <path d="M0 86 L75 86 L75 0 L161 0 L161 172 L0 172 Z" data-face="front"/>
+      <rect x="75" y="0" width="86" height="4" data-face="top"/>
+      <rect x="156" y="4" width="5" height="168" data-face="side"/>
+      <path d="M75 0 L161 0" data-edge="hi"/>
+      <path d="M75 0 L75 86" data-edge="hi"/>
+      <path d="M0 86 L75 86" data-edge="hi"/>
+      <path d="M0 86 L0 172" data-edge="hi"/>
+      <path d="M0 172 L161 172" data-edge="lo"/>
+      <path d="M156 4 L156 172" data-edge="lo" stroke-width="1.2"/>
+      <!-- 内板缝（双圈内 L） -->
+      <path d="M0 156 L145 156 M0 102 L91 102 M91 0 L91 102 M145 0 L145 156" data-edge="lo" stroke-width="1.2"/>
+      <path d="M0 166 L154.5 166 M154.5 0 L154.5 166 M0 92 L81.5 92 M81.5 0 L81.5 92" data-edge="lo" stroke-width="1.2"/>
+      <!-- 右侧驱动电机：箱体 + 上方接线盒 -->
+      <rect x="161" y="82" width="28" height="38" data-face="front"/>
+      <rect x="185" y="86" width="4" height="30" data-face="side"/>
+      <path d="M161 82 L189 82" data-edge="hi"/>
+      <path d="M161 120 L189 120" data-edge="lo"/>
+      <rect x="161" y="102" width="28" height="11" data-edge="lo" stroke-width="1.2"/>
+      <rect x="161" y="52" width="22" height="20" data-face="front"/>
+      <path d="M161 52 L183 52" data-edge="hi"/>
+      <path d="M161 72 L183 72" data-edge="lo" stroke-width="1.2"/>
+      <!-- 底部减速器：箱体 + 散热槽 + 端板 -->
+      <rect x="60" y="172" width="38" height="28" data-face="front"/>
+      <rect x="60" y="172" width="38" height="4" data-face="top"/>
+      <rect x="94" y="176" width="4" height="24" data-face="side"/>
+      <path d="M60 172 L98 172" data-edge="hi"/>
+      <path d="M60 200 L98 200" data-edge="lo"/>
+      <rect x="67" y="176" width="11" height="24" data-edge="lo" stroke-width="1.2"/>
+      <rect x="98" y="178" width="5" height="16" data-face="side"/>
+      <rect x="103" y="184" width="5" height="5" fill="currentColor" stroke="none"/>
+      <rect x="108" y="172" width="20" height="22" data-face="front"/>
+      <path d="M108 172 L128 172" data-edge="hi"/>
+    </g>
+  </svg>`,
+  },
+  coal_shearer_wide: {
+    // 滚筒不画在基稿里：它是按锚点挖出的旋转件，由 rotors 的面基片段绕原圆心重画。
+    // 首行定位框把内容包围盒钉满整个 viewBox——25D 基图与 2D 基图（挖滚筒后补的定位框）
+    // 必须同口径，滚筒的坐标映射才不会错位
+    icon25d: `<svg viewBox="0 0 610 232" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="610" height="232" fill="none" stroke="none"></rect>
+    <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="307" cy="226" rx="150" ry="3.5" data-shadow="1"/>
+      <ellipse cx="553" cy="200.5" rx="46" ry="2.5" data-shadow="1"/>
+      <!-- 行走部底架：梯形条 + 两端滑靴（先画，被机身压住上沿） -->
+      <polygon points="198,180 429,180 447,192 167,192" data-face="front"/>
+      <rect x="198" y="180" width="231" height="5" data-face="top"/>
+      <path d="M198 180 L429 180" data-edge="hi"/>
+      <path d="M429 180 L447 192" data-edge="hi"/>
+      <path d="M198 180 L167 192" data-edge="hi"/>
+      <path d="M181 192 L419 192" data-edge="lo" stroke-width="2.5"/>
+      <rect x="167" y="192" width="14" height="26" data-face="front"/>
+      <polygon points="167,218 181,218 184,227 164,227" data-face="front"/>
+      <path d="M167 192 L167 218" data-edge="hi"/>
+      <path d="M164 227 L184 227" data-edge="lo" stroke-width="2.5"/>
+      <circle cx="176" cy="223" r="2.2" fill="currentColor" stroke="none"/>
+      <rect x="419" y="192" width="14" height="26" data-face="front"/>
+      <polygon points="419,218 433,218 436,227 416,227" data-face="front"/>
+      <path d="M419 192 L419 218" data-edge="hi"/>
+      <path d="M416 227 L436 227" data-edge="lo" stroke-width="2.5"/>
+      <circle cx="422" cy="223" r="2.2" fill="currentColor" stroke="none"/>
+      <!-- 机身：横卧筒体的正面投影，两端是竖直侧圆端盖 -->
+      <rect x="138" y="139" width="325" height="44" rx="22" data-face="front"/>
+      <ellipse cx="147" cy="161" rx="7" ry="20" data-face="cap"/>
+      <ellipse cx="147" cy="161" rx="7" ry="20" data-edge="hi" stroke-width="2.5"/>
+      <ellipse cx="454" cy="161" rx="7" ry="20" data-face="cap"/>
+      <ellipse cx="454" cy="161" rx="7" ry="20" data-edge="hi" stroke-width="2.5"/>
+      <!-- 顶部盖板 -->
+      <polygon points="177,143 187,138 414,138 425,143 425,148 177,148" data-face="top"/>
+      <path d="M177 143 L187 138 L414 138 L425 143" data-edge="hi" stroke-width="2.5"/>
+      <path d="M177 148 L425 148" data-edge="lo" stroke-width="2.5"/>
+      <g data-edge="lo" stroke-width="2.5">
+        <path d="M232 148 L232 178"/>
+        <path d="M303 148 L303 178"/>
+        <path d="M375 148 L375 178"/>
+        <path d="M199 178 L430 178"/>
+      </g>
+      <!-- 输送机槽沿（实色楔条，不参与面光照） -->
+      <polygon points="212,184 214,181 388,181 390,184" fill="currentColor" stroke="none"/>
+      <!-- 左张紧臂：机身左端连到滚筒毂，滚筒位由旋转件补上 -->
+      <path d="M90 90 L150 150" data-pipe="base" stroke-width="9"/>
+      <path d="M92.5 87.5 L152.5 147.5" data-pipe="hi" stroke-width="2.5"/>
+      <circle cx="151.8" cy="151.8" r="13.3" data-face="cap"/>
+      <circle cx="151.8" cy="151.8" r="13.3" data-edge="hi" stroke-width="2.5"/>
+      <circle cx="151.8" cy="151.8" r="5.3" data-face="cap"/>
+      <!-- 右张紧臂 -->
+      <rect x="437" y="139" width="128" height="26" rx="13" data-face="front"/>
+      <path d="M444 139 L558 139" data-edge="hi" stroke-width="2.5"/>
+      <path d="M444 165 L558 165" data-edge="lo" stroke-width="2.5"/>
+      <circle cx="449.9" cy="152.1" r="12.9" data-face="cap"/>
+      <circle cx="449.9" cy="152.1" r="12.9" data-edge="hi" stroke-width="2.5"/>
+      <circle cx="449.9" cy="152.1" r="5.3" data-face="cap"/>
+    </g>
+  </svg>`,
+    rotors: [shearerDrum25d(78.441366, 78.441366), shearerDrum25d(553.742025, 152.190819)],
+  },
+}
+
+const coalAssetComponents = buildAssetComponents(
+  'coal',
+  coalAssetIcons,
+  coalAssetMeta,
+  coalAssetMotion,
+).map((def) => {
+  const art = illustratedAssets[def.type]
+  if (!art) return def
+  // 采煤机的滚筒片段是从素材原稿挖出的线条稿：覆盖机身的同时按序替换转子片段，
+  // 锚点与圆心沿用 coalAssetMotion 不变（指南 §4.5 第 4 条：转子必须与新机身同步重画）
+  const rotors = def.motion?.rotors
+  if (art.rotors && rotors && rotors.length === art.rotors.length) {
+    return {
+      ...def,
+      icon25d: art.icon25d,
+      motion: {
+        ...def.motion!,
+        rotors: rotors.map((rotor, i) => ({ ...rotor, svg: art.rotors![i] })),
+      },
+    }
+  }
+  return { ...def, icon25d: art.icon25d }
+})
+
 /** 掘进机 */
 export const RoadheaderDefinition: ComponentDefinition = {
   type: 'roadheader',
@@ -595,6 +1025,7 @@ export const coalComponents: ComponentDefinition[] = [
   // 综采系统（外部素材导入，9 台）：组合开关/采煤机/液压支架/破碎机/转载机等。
   // 手写的 ShearerDefinition 已移除——它与素材「采煤机」同名且同为综采设备，
   // 线条稿版本是早期占位，保留素材图元；溯源见 scripts/subunit-manifest.json
-  // 采煤机的两只滚筒按 coalAssetMotion 声明挖成旋转件，其余图元保持静止
-  ...buildAssetComponents('coal', coalAssetIcons, coalAssetMeta, coalAssetMotion),
+  // 采煤机的两只滚筒按 coalAssetMotion 声明挖成旋转件，其余图元保持静止；
+  // 九台的面基稿经 illustratedAssets 以 icon25d 覆盖，2D 仍用素材原稿
+  ...coalAssetComponents,
 ]
