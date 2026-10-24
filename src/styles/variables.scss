@@ -72,8 +72,12 @@
   --login-bg-1: #0b1020;
   --login-bg-2: #12182e;
   --login-bg-3: #0a1628;
-  --login-card-bg: rgba(255, 255, 255, 0.045);
+  // 背景改成插画后卡片后面不再是一块纯色：玻璃底需要更高的不透明度，
+  // 否则插画的青色光晕会透上来把整张卡染绿（0.045 白只够压住原来的纯色渐变）
+  --login-card-bg: rgba(9, 15, 28, 0.55);
   --login-card-border: rgba(255, 255, 255, 0.1);
+  // 卡片内的一层青色辉光：暗底上 12% 就会整片发绿，另走变量按主题调档
+  --login-card-glow: rgba(0, 212, 170, 0.06);
   --login-card-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
   --login-text: #e8f1f0;
   // 品牌标题渐变首色：暗色近白，亮色需转深青否则白字糊在浅底上
@@ -82,9 +86,13 @@
   --login-text-muted: rgba(232, 241, 240, 0.38);
   --login-field-bg: rgba(255, 255, 255, 0.05);
   --login-field-border: rgba(255, 255, 255, 0.12);
-  --login-orb-opacity: 0.35;
-  --login-grid-color: rgba(0, 212, 170, 0.05);
-  --login-scan-color: rgba(0, 212, 170, 0.06);
+  // 夜景插画本身够暗，蒙版只负责把右侧再压深一档给卡片和文字留底
+  --login-art-veil: linear-gradient(
+    100deg,
+    rgba(6, 10, 20, 0.04) 0%,
+    rgba(6, 10, 20, 0.26) 46%,
+    rgba(6, 10, 20, 0.6) 100%
+  );
   --login-glow-color: rgba(0, 212, 170, 0.22);
 }
 
@@ -185,6 +193,7 @@ html[data-theme='light'] {
   --login-bg-3: #e6edf6;
   --login-card-bg: rgba(255, 255, 255, 0.72);
   --login-card-border: rgba(15, 23, 42, 0.1);
+  --login-card-glow: rgba(0, 212, 170, 0.12);
   --login-card-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
   --login-text: #1f2937;
   --login-brand-from: #0f766e;
@@ -192,8 +201,12 @@ html[data-theme='light'] {
   --login-text-muted: rgba(31, 41, 55, 0.45);
   --login-field-bg: rgba(255, 255, 255, 0.85);
   --login-field-border: rgba(15, 23, 42, 0.14);
-  --login-orb-opacity: 0.12;
-  --login-grid-color: rgba(0, 180, 140, 0.08);
-  --login-scan-color: rgba(0, 180, 140, 0.05);
+  // 亮色下右侧渐白：既贴近参考图的白色表单区，也保证文字对比度
+  --login-art-veil: linear-gradient(
+    100deg,
+    rgba(248, 251, 255, 0.04) 0%,
+    rgba(248, 251, 255, 0.45) 46%,
+    rgba(255, 255, 255, 0.92) 100%
+  );
   --login-glow-color: rgba(0, 180, 140, 0.12);
 }
