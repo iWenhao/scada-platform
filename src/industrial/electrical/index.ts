@@ -320,10 +320,10 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <path d="M29.8,17.1 L33.6,15.9" data-edge="lo"/>
       <path d="M29.8,17.1 L29.8,52.1" data-edge="lo"/>
       <path d="M10.9,52.1 L33.6,52.1" data-edge="lo"/>
-      <path d="M45.2,18.7 L33.6,18.7 L11.5,46.3 L0,46.3" data-edge="lo" stroke-width="1.2"/>
-      <path d="M8.51,68.47 L36.24,68.47" data-edge="lo"/>
-      <path d="M15.38,74.93 L29.45,74.93" data-edge="lo"/>
-      <path d="M17.91,81.39 L27.57,81.39" data-edge="lo"/>
+      <path d="M45.15,18.65 L33.62,18.65 L11.53,46.3 L0,46.3" stroke-width="3"/>
+      <path d="M8.51,68.47 L36.24,68.47" stroke-width="3"/>
+      <path d="M15.38,74.93 L29.45,74.93" stroke-width="3"/>
+      <path d="M17.91,81.39 L27.57,81.39" stroke-width="3"/>
     </g>
   </svg>`,
   },
@@ -364,7 +364,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <path d="M27.2,23.8 L30.8,22.7" data-edge="lo"/>
       <path d="M27.2,23.8 L27.2,64.6" data-edge="lo"/>
       <path d="M9.4,64.6 L30.8,64.6" data-edge="lo"/>
-      <path d="M41.3,17.3 L41.3,26.8 L0,59.5 L0,69.7" data-edge="lo" stroke-width="1.2"/>
+      <path d="M41.3276838,17.2661678 L41.3276838,26.7540125 L0,59.5340884 L0,69.6628259" stroke-width="3"/>
     </g>
   </svg>`,
   },
