@@ -63,7 +63,12 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     <rect fill="currentColor" stroke="none" transform="translate(72.6, 27.2) rotate(-270.000000) translate(-72.6, -27.2)" x="72" y="23.2" width="1.2" height="8"/>
     <rect fill="currentColor" stroke="none" transform="translate(60.1, 37.5) rotate(-270.000000) translate(-60.1, -37.5)" x="59.5" y="23.5" width="1.2" height="28" rx="0.5"/>
     <rect fill="currentColor" stroke="none" transform="translate(72.6, 29.8) rotate(-270.000000) translate(-72.6, -29.8)" x="72" y="25.8" width="1.2" height="8"/>
-    <path d="M69,24.6 L79,24.6 C79.5522847,24.6 80,25.0477153 80,25.6 L80,31.4 C80,31.9522847 79.5522847,32.4 79,32.4 L69,32.4" stroke-width="1"/>
+    <path d="M69,24.6 L79,24.6 C79.5522847,24.6 80,25.0477153 80,25.6 L80,31.4 C80,31.9522847 79.5522847,32.4 79,32.4 L69,32.4 Z" data-face="front"/>
+    <polygon points="69,24.6 80,24.6 80,26.4 69,26.4" data-face="top"/>
+    <path d="M69,24.6 L69,32.4" data-edge="hi"/>
+    <path d="M69,26.4 L80,26.4" data-edge="hi" stroke-width="1"/>
+    <path d="M80,26.4 L80,31.4" data-edge="lo" stroke-width="1"/>
+    <path d="M69,32.4 L79,32.4" data-edge="lo" stroke-width="1"/>
     <path d="M43.9824654,24.172708 C44.3528949,24.3531224 44.4,24.4601453 44.4,24.5723235 L44.4,32.5250771 C44.4,32.6355341 44.3552285,32.7355341 44.2828427,32.8079198 C44.2104569,32.8803056 44.1104569,32.9250771 44,32.9250771 C43.8914985,32.9250771 43.7876519,32.8809997 43.7122769,32.8029537 L41.6,30.6158284 L41.6,26.600392 L43.7050303,24.3021516 C43.7796362,24.2206979 43.8801948,24.1771955 43.9824654,24.172708 Z" stroke-width="1"/>
     <circle fill="currentColor" stroke="none" transform="translate(34.159074, 34.290551) rotate(-345.000000) translate(-34.159074, -34.290551)" cx="34.1590742" cy="34.2905506" r="1"/>
   </g>
@@ -366,13 +371,18 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     <ellipse cx="46" cy="62.9" rx="40" ry="0.9" data-shadow="1"/>
     <path d="M26.5649745,0 L33.295055,0 L46.7342154,0 L53.4350255,0 C53.9949881,-1.0286345e-16 54.4489274,0.453939328 54.4489274,1.01390187 L54.4489274,2 L25.5510726,2 L25.5510726,1.01390187 C25.5510726,0.453939328 26.0050119,1.0286345e-16 26.5649745,0 Z" fill="currentColor" stroke="none"/>
     <polygon points="28.23,1.81 28.23,11.39 51.77,11.39 51.77,1.81" data-face="front"/>
+<polygon points="28.23,11.39 0,46.28 17.72,61.99 28.17,49.35" data-face="top"/>
+    <polygon points="28.17,49.35 28.17,64 40,64 40,49.35" data-face="front"/>
+    <polygon points="72.44,37.5 80,46.28 62.28,61.99 51.83,49.35" data-face="top"/>
+    <polygon points="51.83,49.35 51.83,64 40,64 40,49.35" data-face="front"/>
+    <polygon points="51.77,11.39 62.37,24.5 68.4,24.5 57.77,11.39" data-face="top"/>
+    <polyline points="28.2316962 1.81278652 28.2316962 11.3887922 0 46.2780312 17.7210794 61.9862845 28.1719194 49.3495006 28.1719194 64 40 64" stroke-width="1.2"/>
+    <polyline transform="translate(60.000000, 50.750000) scale(-1, 1) translate(-60.000000, -50.750000)" points="47.5570221 37.5 40 46.2780312 57.7210794 61.9862845 68.1719194 49.3495006 68.1719194 64 80 64" stroke-width="1.2"/>
+    <polyline points="51.7683038 1.81278652 51.7683038 11.3887922 62.3726654 24.5" stroke-width="1.2"/>
+
     <polygon points="28.23,11.39 51.77,11.39 51.77,13.4 28.23,13.4" data-face="top"/>
-    <polyline points="28.2316962 1.81278652 28.2316962 11.3887922 0 46.2780312 17.7210794 61.9862845 28.1719194 49.3495006 28.1719194 64 40 64" data-pipe="base" stroke-width="3.4"/>
-    <polyline points="28.2316962 1.81278652 28.2316962 11.3887922 0 46.2780312 17.7210794 61.9862845 28.1719194 49.3495006 28.1719194 64 40 64" data-pipe="hi" stroke-width="1"/>
-    <polyline transform="translate(60.000000, 50.750000) scale(-1, 1) translate(-60.000000, -50.750000)" points="47.5570221 37.5 40 46.2780312 57.7210794 61.9862845 68.1719194 49.3495006 68.1719194 64 80 64" data-pipe="base" stroke-width="3.4"/>
-    <polyline transform="translate(60.000000, 50.750000) scale(-1, 1) translate(-60.000000, -50.750000)" points="47.5570221 37.5 40 46.2780312 57.7210794 61.9862845 68.1719194 49.3495006 68.1719194 64 80 64" data-pipe="hi" stroke-width="1"/>
-    <polyline points="51.7683038 1.81278652 51.7683038 11.3887922 62.3726654 24.5" data-pipe="base" stroke-width="3.4"/>
-    <polyline points="51.7683038 1.81278652 51.7683038 11.3887922 62.3726654 24.5" data-pipe="hi" stroke-width="1"/>
+    <polygon points="28.23,11.39 51.77,11.39 51.83,49.35 28.17,49.35" data-face="front"/>
+    <polygon points="51.77,24.5 62.37,24.5 72.44,37.5 80,46.28 51.83,49.35" data-face="front"/>
     <polygon points="55.6,24.6 79.4,24.6 79.4,26.6 76.2,27.4 55.6,27.4" data-face="top"/>
     <polygon points="76.2,27.4 79.4,26.6 79.4,32.4 76.2,32.4" data-face="side"/>
     <polygon points="55.6,27.4 76.2,27.4 76.2,32.4 55.6,32.4" data-face="front"/>
@@ -383,7 +393,12 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     <rect fill="currentColor" stroke="none" transform="translate(83.6, 27.2) rotate(-270.000000) translate(-83.6, -27.2)" x="83" y="23.2" width="1.2" height="8"/>
     <rect fill="currentColor" stroke="none" transform="translate(71.1, 37.5) rotate(-270.000000) translate(-71.1, -37.5)" x="70.5" y="23.5" width="1.2" height="28" rx="0.6"/>
     <rect fill="currentColor" stroke="none" transform="translate(83.6, 29.8) rotate(-270.000000) translate(-83.6, -29.8)" x="83" y="25.8" width="1.2" height="8"/>
-    <path d="M80,24.5 L90,24.5 C90.55,24.5 91,24.95 91,25.5 L91,31.5 C91,32.05 90.55,32.5 90,32.5 L80,32.5" stroke-width="1"/>
+    <path d="M80,24.5 L90,24.5 C90.55,24.5 91,24.95 91,25.5 L91,31.5 C91,32.05 90.55,32.5 90,32.5 L80,32.5 Z" data-face="front"/>
+    <polygon points="80,24.5 91,24.5 91,26.3 80,26.3" data-face="top"/>
+    <path d="M80,24.5 L80,32.5" data-edge="hi"/>
+    <path d="M80,26.3 L91,26.3" data-edge="hi" stroke-width="1"/>
+    <path d="M91,26.3 L91,31.5" data-edge="lo" stroke-width="1"/>
+    <path d="M80,32.5 L90,32.5" data-edge="lo" stroke-width="1"/>
     <path d="M54.9824654,24.172708 C55.3528949,24.3531224 55.4,24.4601453 55.4,24.5723235 L55.4,32.5250771 C55.4,32.6355341 55.3552285,32.7355341 55.2828427,32.8079198 C55.2104569,32.8803056 55.1104569,32.9250771 55,32.9250771 C54.8914985,32.9250771 54.7876519,32.8809997 54.7122769,32.8029537 L52.6,30.6158284 L52.6,26.600392 L54.7050303,24.3021516 C54.7796362,24.2206979 54.8801948,24.1771955 54.9824654,24.172708 Z" stroke-width="1"/>
     <circle fill="currentColor" stroke="none" transform="translate(45.159074, 34.290551) rotate(-345.000000) translate(-45.159074, -34.290551)" cx="45.1590742" cy="34.2905506" r="1"/>
     <path d="M28.23,11.39 L51.77,11.39" data-edge="hi"/>
