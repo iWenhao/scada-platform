@@ -331,6 +331,8 @@ export const useProjectStore = defineStore('project', () => {
     projectDescription,
     lastSaveTime,
     hasUnsavedChanges,
+    // 认领标志对外只读使用（如编辑器刷新时判断「工程是否已在本会话加载」），赋值仍走 store 内部动作
+    ownedProjectName,
     dataSourceConfig,
     alarmDefs,
     tagTable,

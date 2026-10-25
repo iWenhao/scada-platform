@@ -348,7 +348,8 @@ function importDemo() {
 
 async function loadProject(name: string) {
   if (await projectStore.loadProject(name)) {
-    router.push('/editor')
+    // 工程名随 URL 带进编辑器：刷新/直链打开时编辑器才能重新加载，否则画布空白
+    router.push({ path: '/editor', query: { project: name } })
   } else {
     ElMessage.error('项目加载失败')
   }

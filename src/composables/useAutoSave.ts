@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/stores/projectStore'
 import { useHistory } from '@/core/canvas/useHistory'
@@ -14,6 +15,7 @@ const AUTO_SAVE_INTERVAL = 30_000
  */
 export function useAutoSave() {
   const projectStore = useProjectStore()
+  const route = useRoute()
   const { clearHistory, saveState } = useHistory()
 
   let timer: number | null = null
@@ -71,7 +73,35 @@ export function useAutoSave() {
     }
   }
 
-  onMounted(() => {
+  /**
+   * 按 URL 的 project 参数恢复工程。刷新后 Pinia store 清空，若不重新加载，
+   * 编辑器会停在空白画布（工程数据其实在存储里）——主页跳转时把工程名写进了
+   * query，这里就是刷新/直链打开的恢复入口。
+   *
+   * 必须在 tryRestoreDraft 之前完成：草稿键带工程名（scada_draft_<名>），
+   * 先恢复工程名，30 秒自动草稿的「未保存改动」才能被查到并弹恢复框。
+   * 从主页正常进入时 store 已灌好同一工程，跳过重复读盘。
+   */
+  async function restoreProjectFromRoute() {
+    const name = route.query.project
+    if (typeof name !== 'string' || !name) return
+    // 「已加载」必须看认领标志而不是工程名：新建工程的默认名就是「未命名项目」，
+    // 刷新后 store 复位成的默认名与 query 恰好同名，按名判断会把「未加载」误判成
+    // 「已加载」而跳过恢复——表现为刷新后画布空白。loadProject 成功会认领工程名，
+    // 刷新后它是 null，只有从主页正常进入时才与 query 相等。
+    if (projectStore.ownedProjectName === name) return
+    try {
+      if (await projectStore.loadProject(name)) return
+      ElMessage.warning(`未能恢复工程「${name}」：可能已被删除，当前是空白画布`)
+    } catch (e) {
+      // 存储故障不该白屏，提示后留在空白画布，用户可回主页重试
+      console.error('Failed to restore project from route:', e)
+      ElMessage.error(`恢复工程「${name}」失败，请检查存储服务后刷新重试`)
+    }
+  }
+
+  onMounted(async () => {
+    await restoreProjectFromRoute()
     startAutoSave()
     window.addEventListener('beforeunload', handleBeforeUnload)
     void tryRestoreDraft()

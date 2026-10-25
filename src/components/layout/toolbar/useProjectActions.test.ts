@@ -9,10 +9,14 @@ const mocks = vi.hoisted(() => ({
   publishProject: vi.fn(),
   renameProject: vi.fn(),
   routerPush: vi.fn(),
+  routerReplace: vi.fn(),
 }))
 
 vi.mock('element-plus', () => ({ ElMessage: mocks.toast, ElMessageBox: mocks.box }))
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: mocks.routerPush }) }))
+vi.mock('vue-router', () => ({
+  useRouter: () => ({ push: mocks.routerPush, replace: mocks.routerReplace }),
+  useRoute: () => ({ query: {} as Record<string, string> }),
+}))
 vi.mock('@/stores/projectStore', () => ({
   useProjectStore: () => ({
     projectName: '工程A',

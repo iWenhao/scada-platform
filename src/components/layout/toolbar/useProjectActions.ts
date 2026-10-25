@@ -1,4 +1,4 @@
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useProjectStore } from '@/stores/projectStore'
 import type { SaveResult } from '@/stores/projectPersistence'
@@ -31,8 +31,19 @@ function reportStorageError(action: string, e: unknown): void {
 /** 工程级操作：保存/导入导出/预览/重命名/返回主页 */
 export function useProjectActions() {
   const router = useRouter()
+  const route = useRoute()
   const projectStore = useProjectStore()
   const { saveState, clearHistory } = useHistory()
+
+  /**
+   * 保存/重命名成功后把当前工程名同步进 URL query。
+   * 编辑器刷新恢复靠 ?project=<名> 重新读盘；改名或新建首次保存后不同步，
+   * 刷新时会按旧名字找工程（或没有名字），表现为画布空白。
+   */
+  function syncProjectQuery() {
+    if (route.query.project === projectStore.projectName) return
+    void router.replace({ query: { ...route.query, project: projectStore.projectName } })
+  }
 
   function handleRename() {
     ElMessageBox.prompt('请输入新的项目名称', '重命名项目', {
@@ -45,6 +56,7 @@ export function useProjectActions() {
       .then(async ({ value }) => {
         try {
           if (await projectStore.renameProject(value)) {
+            syncProjectQuery()
             ElMessage.success('已重命名')
           } else {
             ElMessage.error('重命名失败：名称为空或与已有项目重名')
@@ -116,7 +128,10 @@ export function useProjectActions() {
   async function saveWithNameGuard(): Promise<boolean> {
     const result = await saveProjectOnce()
     if (result === 'error') return false
-    if (result === true) return true
+    if (result === true) {
+      syncProjectQuery()
+      return true
+    }
 
     if (result === 'stale') {
       try {
@@ -153,7 +168,10 @@ export function useProjectActions() {
       // 若新名字仍 stale（极端情况：改名过程中别处又写了原工程），按 stale 处理
       const r = newName ? await saveProjectOnce(newName) : 'exists'
       if (r === 'error') return false
-      if (r === true) return true
+      if (r === true) {
+        syncProjectQuery()
+        return true
+      }
       if (r === 'stale') {
         ElMessage.warning('工程版本已过期，请刷新页面后再继续')
         return false
