@@ -284,6 +284,202 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     </g>
   </svg>`,
   },
+
+  thermal_air_compressor: {
+    icon25d: `<svg viewBox="0 0 66 59" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="33" cy="57.4" rx="29" ry="0.9" data-shadow="1"/>
+
+      <!-- 底脚：先画，箱体压住顶边 -->
+      <path d="M4.5,54 H15.5 L14.5,58.6 H5.5 Z" data-face="front"/>
+      <path d="M50.5,54 H61.5 L60.5,58.6 H51.5 Z" data-face="front"/>
+      <path d="M5.5,58.6 H14.5 M51.5,58.6 H60.5" data-edge="lo"/>
+
+      <!-- 箱体：顶面一条 + 正面整块，底边压暗 -->
+      <path d="M1,0 H65 A1,1 0 0 1 66,1 V2.2 H0 V1 A1,1 0 0 1 1,0 Z" data-face="top"/>
+      <path d="M0,2.2 H66 V53 A1,1 0 0 1 65,54 H1 A1,1 0 0 1 0,53 Z" data-face="front"/>
+      <path d="M1,0 H65" data-edge="hi"/>
+      <path d="M0,54 H66" data-edge="lo"/>
+
+      <!-- 两扇舱门：门缝是凹槽，门楣受光 -->
+      <rect x="4.6" y="5.2" width="25.4" height="44.6" rx="1" data-edge="lo" stroke-width="1.1"/>
+      <rect x="34.6" y="5.2" width="27.4" height="44.6" rx="1" data-edge="lo" stroke-width="1.1"/>
+      <path d="M34.6,27.5 H62" data-edge="lo" stroke-width="1.1"/>
+      <path d="M5.6,5.2 H29 M35.6,5.2 H61" data-edge="hi" stroke-width="1.1"/>
+
+      <!-- 显示屏：内凹暗屏 -->
+      <rect x="40.6" y="10.6" width="14.8" height="6.8" rx="1" data-face="hole"/>
+      <path d="M41.6,10.6 H54.4" data-edge="hi" stroke-width="1"/>
+      <path d="M40.6,17.4 H55.4" data-edge="lo" stroke-width="1"/>
+    </g>
+  </svg>`,
+  },
+
+  thermal_heat_extractor: {
+    icon25d: `<svg viewBox="0 0 66 80" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="33" cy="78.8" rx="30" ry="0.9" data-shadow="1"/>
+
+      <!-- 箱体：顶面一条 + 正面整块；百叶门在正面上真挖空，门内才暗得下去 -->
+      <path d="M1,0 H65 A1,1 0 0 1 66,1 V2.4 H0 V1 A1,1 0 0 1 1,0 Z" data-face="top"/>
+      <path d="M0,2.4 H66 V79 A1,1 0 0 1 65,80 H1 A1,1 0 0 1 0,79 Z M5,19 H31 V70 H5 Z M35,19 H61 V70 H35 Z" fill-rule="evenodd" data-face="front"/>
+      <path d="M1,0 H65" data-edge="hi"/>
+      <path d="M0,80 H66" data-edge="lo"/>
+
+      <!-- 顶部控制条：抬起的面板 + 两颗指示灯 -->
+      <rect x="5" y="4" width="56" height="6" rx="1" data-face="front"/>
+      <path d="M5.8,4 H60.2" data-edge="hi" stroke-width="1"/>
+      <path d="M5,10 H61" data-edge="lo" stroke-width="1"/>
+      <circle cx="51.5" cy="7" r="1.5" data-face="cap"/>
+      <circle cx="56.5" cy="7" r="1.5" data-face="cap"/>
+
+      <!-- 环向箍：顶面受光，下沿落影 -->
+      <rect x="0" y="13.4" width="66" height="1.2" data-face="top"/>
+      <path d="M0,14.6 H66" data-edge="lo" stroke-width="1"/>
+
+      <!-- 两扇百叶门：门内压暗，叶片朝上受光 -->
+      <rect x="5" y="19" width="26" height="51" data-face="hole"/>
+      <rect x="35" y="19" width="26" height="51" data-face="hole"/>
+      <path d="M6,23.9 H30.24 V25.1 H6 Z M6,28.9 H30.24 V30.1 H6 Z M6,33.9 H30.24 V35.1 H6 Z M6,38.9 H30.24 V40.1 H6 Z M6,43.9 H30.24 V45.1 H6 Z M6,48.9 H30.24 V50.1 H6 Z M6,53.9 H30.24 V55.1 H6 Z M6,58.9 H30.24 V60.1 H6 Z M6,63.9 H30.24 V65.1 H6 Z" data-face="top"/>
+      <path d="M36,23.9 H60.24 V25.1 H36 Z M36,28.9 H60.24 V30.1 H36 Z M36,33.9 H60.24 V35.1 H36 Z M36,38.9 H60.24 V40.1 H36 Z M36,43.9 H60.24 V45.1 H36 Z M36,48.9 H60.24 V50.1 H36 Z M36,53.9 H60.24 V55.1 H36 Z M36,58.9 H60.24 V60.1 H36 Z M36,63.9 H60.24 V65.1 H36 Z" data-face="top"/>
+      <path d="M5,19 H31 M35,19 H61" data-edge="hi" stroke-width="1"/>
+      <path d="M5,70 H31 M35,70 H61" data-edge="lo" stroke-width="1"/>
+
+      <!-- 四只支脚：原稿的钥匙形，凸出面板 -->
+      <path d="M8,74 V70 H12 V74 C12,74.55 11.55,75 11,75 V77 C11,77.55 10.55,78 10,78 C9.45,78 9,77.55 9,77 V75 C8.45,75 8,74.55 8,74 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+      <path d="M24,74 V70 H28 V74 C28,74.55 27.55,75 27,75 V77 C27,77.55 26.55,78 26,78 C25.45,78 25,77.55 25,77 V75 C24.45,75 24,74.55 24,74 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+      <path d="M38,74 V70 H42 V74 C42,74.55 41.55,75 41,75 V77 C41,77.55 40.55,78 40,78 C39.45,78 39,77.55 39,77 V75 C38.45,75 38,74.55 38,74 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+      <path d="M54,74 V70 H58 V74 C58,74.55 57.55,75 57,75 V77 C57,77.55 56.55,78 56,78 C55.45,78 55,77.55 55,77 V75 C54.45,75 54,74.55 54,74 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+    </g>
+  </svg>`,
+  },
+
+  thermal_ash_handler: {
+    icon25d: `<svg viewBox="0 0 43 90" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="21.5" cy="88" rx="16" ry="0.6" data-shadow="1"/>
+
+      <!-- 双腿：先画，罐体压住上端 -->
+      <rect x="3.16" y="62.8" width="1.27" height="25.2" data-face="front"/>
+      <path d="M3.16,88 H4.43" data-edge="lo"/>
+      <path d="M37.94,62.66 H40.47 V87.34 H41.74 V88.6 H36.68 V87.34 H37.94 Z" data-face="front"/>
+      <path d="M36.68,88.6 H41.74" data-edge="lo"/>
+
+      <!-- 罐体：圆肩直筒，左受光右背光 -->
+      <path d="M15.09,20.71 C6.75,20.71 0,27.47 0,35.8 V55.91 H43 V35.8 C43,27.47 36.25,20.71 27.91,20.71 Z" data-face="body"/>
+      <path d="M15.09,20.71 C6.75,20.71 0,27.47 0,35.8" data-edge="hi"/>
+      <path d="M43,35.8 C43,27.47 36.25,20.71 27.91,20.71" data-edge="lo"/>
+
+      <!-- 肩部加强圈：封头与筒身的交界，环带按竖圆柱铺面，上下各一道棱 -->
+      <path d="M41.145,31.574 H1.855 C1.46,32.811 1.234,34.124 1.203,35.486 L1.2,35.8 H41.8 C41.8,34.326 41.57,32.906 41.145,31.574 Z" data-face="body"/>
+      <path d="M1.855,31.574 H41.145" data-edge="hi" stroke-width="1"/>
+      <path d="M1.2,35.8 H41.8" data-edge="lo" stroke-width="1"/>
+
+      <!-- 筒身底部的内壁折线：原稿在这里画了一道锥内壁 -->
+      <path d="M1.2,52.945 H41.8" data-edge="lo" stroke-width="1"/>
+
+      <!-- 腰部：收颈 + 法兰，两端各一只角撑 -->
+      <path d="M0,55.914 H43 L40.475,58.128 H2.438 Z" data-face="side"/>
+      <rect x="0.664" y="58.13" width="41.674" height="5.29" data-face="front"/>
+      <path d="M0.664,58.13 H42.338" data-edge="hi"/>
+      <path d="M0.664,63.42 H42.338" data-edge="lo"/>
+      <path d="M3.341,58.844 L1.864,60.427 V62.056 H7.003 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+      <path d="M39.572,58.92 L35.815,62.215 H41.138 V60.586 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+
+      <!-- 锥斗：左半受光、右半背光，中缝分界 -->
+      <path d="M8.37,63.42 H21.4 V69.23 H15.18 Z" data-face="front"/>
+      <path d="M21.4,63.42 H34.45 L27.82,69.23 H21.4 Z" data-face="side"/>
+      <path d="M8.37,63.42 H34.45" data-edge="lo"/>
+      <path d="M21.4,63.42 V69.23" data-edge="lo" stroke-width="1.1"/>
+      <path d="M15.18,69.23 H27.82" data-edge="lo"/>
+
+      <!-- 卸料管 -->
+      <rect x="15.18" y="69.23" width="12.64" height="5.6" data-face="body"/>
+      <path d="M15.18,74.83 H27.82" data-edge="lo"/>
+
+      <!-- 顶部接管：短筒分上下两段，法兰中间真开一道缝，缝里透出画布 -->
+      <rect x="13.31" y="5.63" width="16.38" height="7.54" data-face="body"/>
+      <path d="M13.31,5.63 C13.31,2.52 15.83,0 21.5,0 C27.17,0 29.69,2.52 29.69,5.63 Z" data-face="cap"/>
+      <path d="M13.31,5.63 C13.31,2.52 15.83,0 21.5,0 C27.17,0 29.69,2.52 29.69,5.63" data-edge="hi"/>
+      <rect x="13.31" y="18.2" width="16.38" height="3.45" data-face="body"/>
+      <path d="M10.12,13.17 H32.88 V18.2 H10.12 Z M11.32,14.37 H31.68 V17 H11.32 Z" fill-rule="evenodd" data-face="front"/>
+      <path d="M10.12,13.17 H32.88" data-edge="hi"/>
+      <path d="M10.12,18.2 H32.88" data-edge="lo"/>
+      <path d="M13.31,21.65 H29.69" data-edge="lo" stroke-width="1"/>
+    </g>
+  </svg>`,
+  },
+
+  thermal_dryer: {
+    icon25d: `<svg viewBox="0 0 74 64" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="37" cy="61.9" rx="36" ry="0.7" data-shadow="1"/>
+
+      <!-- 两端机柜：顶面一条 + 正面，柜身横放一道压条 -->
+      <rect x="0" y="13.6" width="15" height="46" rx="1.4" data-face="front"/>
+      <rect x="0.7" y="13.6" width="13.6" height="1.4" data-face="top"/>
+      <path d="M1,13.6 H14" data-edge="hi"/>
+      <path d="M0,59.6 H15 M59,59.6 H74" data-edge="lo"/>
+      <rect x="1" y="49" width="13.7" height="1.2" data-face="top"/>
+      <rect x="59" y="13.6" width="15" height="46" rx="1.4" data-face="front"/>
+      <rect x="59.7" y="13.6" width="13.6" height="1.4" data-face="top"/>
+      <path d="M60,13.6 H73" data-edge="hi"/>
+      <rect x="60" y="49" width="13.7" height="1.2" data-face="top"/>
+
+      <!-- 机柜阀组：手轮 → 阀杆座 → 短管 → 卡箍，卡箍伸进罐体边缘由罐身压住 -->
+      <rect x="2" y="21.6" width="4" height="4" rx="1" data-face="front" data-edge="lo" stroke-width="1"/>
+      <rect x="8.5" y="19.6" width="4" height="8" rx="1" data-face="front" data-edge="lo" stroke-width="1"/>
+      <rect x="9.7" y="20.8" width="1.6" height="5.6" data-edge="lo" stroke-width="1"/>
+      <rect x="12.5" y="21" width="3.9" height="5.2" data-face="front" data-edge="lo" stroke-width="1"/>
+      <path d="M16.4,20.49 C16.4,19.7 17.05,19.07 17.86,19.01 L18,19 L22.8,19 L22.8,20.2 L18,20.2 C17.79,20.2 17.64,20.31 17.61,20.44 L17.6,20.49 L17.6,26.71 C17.6,26.84 17.73,26.96 17.92,26.99 L18,27 L22.8,27 L22.8,28.2 L18,28.2 C17.18,28.2 16.48,27.62 16.41,26.85 L16.4,26.71 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+      <rect x="68" y="21.6" width="4" height="4" rx="1" data-face="front" data-edge="lo" stroke-width="1"/>
+      <rect x="61.5" y="19.6" width="4" height="8" rx="1" data-face="front" data-edge="lo" stroke-width="1"/>
+      <rect x="62.7" y="20.8" width="1.6" height="5.6" data-edge="lo" stroke-width="1"/>
+      <rect x="57.6" y="21" width="3.9" height="5.2" data-face="front" data-edge="lo" stroke-width="1"/>
+      <path d="M57.6,20.49 C57.6,19.7 56.95,19.07 56.14,19.01 L56,19 L51.2,19 L51.2,20.2 L56,20.2 C56.21,20.2 56.36,20.31 56.39,20.44 L56.4,20.49 L56.4,26.71 C56.4,26.84 56.27,26.96 56.08,26.99 L56,27 L51.2,27 L51.2,28.2 L56,28.2 C56.82,28.2 57.52,27.62 57.59,26.85 L57.6,26.71 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+
+      <!-- 罐体：顶盖法兰 → 上肩锥 → 筒身 → 下肩锥 → 卸料口 + 底盘 -->
+      <rect x="33.4" y="1.2" width="7.2" height="2.07" data-face="body"/>
+      <rect x="32" y="0" width="10" height="1.2" rx="0.6" data-face="front"/>
+      <rect x="32" y="0" width="10" height="0.5" rx="0.25" data-face="top"/>
+      <path d="M32.6,0 H41.4" data-edge="hi" stroke-width="1"/>
+      <path d="M32,1.2 H42" data-edge="lo" stroke-width="1"/>
+
+      <!-- 上肩锥：左半受光、右半背光，中缝分界 -->
+      <path d="M33.4,3.27 H37 V15 H22.48 Z" data-face="front"/>
+      <path d="M37,3.27 H41.5 L51.5,15 H37 Z" data-face="side"/>
+      <path d="M33.4,3.27 H41.5" data-edge="hi"/>
+      <path d="M22.48,15 H51.5" data-edge="lo"/>
+      <path d="M37,3.27 V15" data-edge="lo" stroke-width="1.1"/>
+
+      <!-- 筒身：竖圆柱，顶沿受光、底沿接锥斗 -->
+      <rect x="22.18" y="15" width="29.64" height="18.35" data-face="body"/>
+      <path d="M22.18,15 H51.82" data-edge="hi" stroke-width="1"/>
+      <path d="M22.18,33.35 H51.82" data-edge="lo" stroke-width="1"/>
+
+      <!-- 下肩锥：同样左右分面，收口到卸料口 -->
+      <path d="M22.18,33.35 H37 V43.82 H32.6 Z" data-face="front"/>
+      <path d="M37,33.35 H51.82 L41.34,43.82 H37 Z" data-face="side"/>
+      <path d="M37,33.35 V43.82" data-edge="lo" stroke-width="1.1"/>
+      <path d="M32.6,43.82 H41.34" data-edge="lo"/>
+
+      <!-- 卸料口与底盘 -->
+      <rect x="34.6" y="43.82" width="4.8" height="1.75" data-face="body"/>
+      <rect x="32" y="45.57" width="10" height="1.2" rx="0.6" data-face="front"/>
+      <path d="M32,46.77 H42" data-edge="lo" stroke-width="1"/>
+
+      <!-- 罐体右上角的小阀件：菱形手轮 + 短接管 -->
+      <path d="M46.207,18.479 L48.328,20.6 C48.719,20.99 48.719,21.624 48.328,22.014 L48.001,22.341 L49.585,23.999 L52.494,24 L52.494,25.2 L49.073,25.2 L47.152,23.19 L46.914,23.428 C46.524,23.819 45.891,23.819 45.5,23.428 L43.379,21.307 C42.988,20.917 42.988,20.283 43.379,19.893 L44.793,18.479 C45.183,18.088 45.817,18.088 46.207,18.479 Z" data-face="front" data-edge="lo" stroke-width="1"/>
+      <path d="M45.501,19.469 L44.369,20.6 L46.208,22.438 L47.339,21.307 Z" data-edge="lo" stroke-width="1"/>
+
+      <!-- 底座：顶面一条 + 正面板身 -->
+      <rect x="0" y="58.6" width="74" height="1.2" data-face="top"/>
+      <path d="M0,59.8 H74" data-edge="hi" stroke-width="1"/>
+      <rect x="0" y="59.8" width="74" height="2.8" data-face="front"/>
+      <path d="M0,62.6 H74" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
 }
 
 const thermalAssetComponents = buildAssetComponents('thermal', thermalIcons, thermalMeta).map(
