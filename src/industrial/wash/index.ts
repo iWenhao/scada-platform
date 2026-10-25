@@ -16,7 +16,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
 // 磁选机：滚筒带（叠层矩形保留为纹理）+ 梯形槽 + 两侧立板
   wash_magnetic_separator: { icon25d: `<svg viewBox="0 0 88 48" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="44" cy="47.3" rx="36" ry="1" data-shadow="1"/>
+    <ellipse cx="44" cy="46.5" rx="36" ry="0.9" data-shadow="1"/>
     <polygon points="4.6,0.8 82.4,0.8 82.4,3.2 78,3.8 4.6,3.8" data-face="top"/>
     <polygon points="78,3.8 82.4,3.2 82.4,23.6 78,23.6" data-face="side"/>
     <polygon points="4.6,3.8 78,3.8 78,23.6 4.6,23.6" data-face="front"/>
@@ -45,7 +45,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 分料器：主槽 + 闸箱 + 右侧给料机构（机构线条沿用原稿）
   wash_distributor: { icon25d: `<svg viewBox="0 0 82 61" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="33" cy="60.2" rx="26" ry="1" data-shadow="1"/>
+    <ellipse cx="33" cy="59" rx="26" ry="0.9" data-shadow="1"/>
     <path d="M47.0454983,1.11407359 L47.045,12.9390736 L53.860939,24.6 L49.5349426,24.6 L49.5349426,37.5 L61.3828392,37.5 L66,45.5170434 L40.7195805,60 L33,46.7320736 L25.2804195,60 L1.17239551e-13,45.5170434 L18.968,12.9160736 L18.9683848,1.11407359 L47.0454983,1.11407359 Z" data-face="front"/>
     <path d="M18.1227428,0 L25.5752883,0 L40.4571243,0 L47.8772572,0 C48.4973309,-1.139057e-16 49,0.502669094 49,1.12274285 L49,2 L17,2 L17,1.12274285 C17,0.502669094 17.5022669,1.139057e-16 18.1227428,0 Z" fill="currentColor" stroke="none"/>
     <polygon points="44.6,24.6 68.4,24.6 68.4,26.6 65.2,27.4 44.6,27.4" data-face="top"/>
@@ -58,21 +58,21 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     <path d="M65.2,27.4 L68.4,26.6" data-edge="lo"/>
     <path d="M25.28,60 L33,46.73" data-edge="lo"/>
     <path d="M41.4,26.6 L41.4,30.4 L39.5,30.4 C38.9753295,30.4 38.5003295,30.1873353 38.1564971,29.8435029 C37.8126647,29.4996705 37.6,29.0246705 37.6,28.5 C37.6,27.9753295 37.8126647,27.5003295 38.1564971,27.1564971 C38.5003295,26.8126647 38.9753295,26.6 39.5,26.6 Z" stroke-width="1"/>
-    <rect transform="translate(36.384420, 32.039821) rotate(-45)" x="34.48442" y="32.1398208" width="3.8" height="1" stroke-width="1"/>
+    <rect transform="translate(36.384420, 32.039821) rotate(-45.000000) translate(-36.384420, -32.039821)" x="34.48442" y="32.1398208" width="3.8" height="1" stroke-width="1"/>
     <rect fill="currentColor" stroke="none" x="76" y="25" width="1.2" height="7"/>
-    <rect fill="currentColor" stroke="none" transform="translate(72.6, 27.2) rotate(-270)" x="72" y="23.2" width="1.2" height="8"/>
-    <rect fill="currentColor" stroke="none" transform="translate(60.1, 37.5) rotate(-270)" x="59.5" y="23.5" width="1.2" height="28" rx="0.5"/>
-    <rect fill="currentColor" stroke="none" transform="translate(72.6, 29.8) rotate(-270)" x="72" y="25.8" width="1.2" height="8"/>
+    <rect fill="currentColor" stroke="none" transform="translate(72.6, 27.2) rotate(-270.000000) translate(-72.6, -27.2)" x="72" y="23.2" width="1.2" height="8"/>
+    <rect fill="currentColor" stroke="none" transform="translate(60.1, 37.5) rotate(-270.000000) translate(-60.1, -37.5)" x="59.5" y="23.5" width="1.2" height="28" rx="0.5"/>
+    <rect fill="currentColor" stroke="none" transform="translate(72.6, 29.8) rotate(-270.000000) translate(-72.6, -29.8)" x="72" y="25.8" width="1.2" height="8"/>
     <path d="M69,24.6 L79,24.6 C79.5522847,24.6 80,25.0477153 80,25.6 L80,31.4 C80,31.9522847 79.5522847,32.4 79,32.4 L69,32.4" stroke-width="1"/>
     <path d="M43.9824654,24.172708 C44.3528949,24.3531224 44.4,24.4601453 44.4,24.5723235 L44.4,32.5250771 C44.4,32.6355341 44.3552285,32.7355341 44.2828427,32.8079198 C44.2104569,32.8803056 44.1104569,32.9250771 44,32.9250771 C43.8914985,32.9250771 43.7876519,32.8809997 43.7122769,32.8029537 L41.6,30.6158284 L41.6,26.600392 L43.7050303,24.3021516 C43.7796362,24.2206979 43.8801948,24.1771955 43.9824654,24.172708 Z" stroke-width="1"/>
-    <circle fill="currentColor" stroke="none" transform="translate(34.159074, 34.290551) rotate(-345)" cx="34.1590742" cy="34.2905506" r="1"/>
+    <circle fill="currentColor" stroke="none" transform="translate(34.159074, 34.290551) rotate(-345.000000) translate(-34.159074, -34.290551)" cx="34.1590742" cy="34.2905506" r="1"/>
   </g>
 </svg>` },
 
   // 弧形筛：斜筛面 top + 辊子 cap，内线沿用原稿
   wash_arc_screen: { icon25d: `<svg viewBox="0 0 72 82" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="38" cy="79.5" rx="30" ry="1.4" data-shadow="1"/>
+    <ellipse cx="38" cy="79" rx="30" ry="1" data-shadow="1"/>
     <polygon points="0 11.194542 34.9077158 0 44.0746765 1.89466858 49.9098816 5.04296875 63.7378398 48.9618846 70 56.4959507 38.6785858 80 31.7379363 71.4033204 21.1934397 78.7863666 0 69.1834305" data-face="top"/>
     <path d="M0,11.19 L34.91,0" data-edge="hi"/>
     <path d="M34.91,0 L44.07,1.89" data-edge="hi"/>
@@ -91,7 +91,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 溜槽：镜像烘进坐标的槽体 front + 上口双 top 带
   wash_chute: { icon25d: `<svg viewBox="0 0 75 81" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="40" cy="80" rx="34" ry="1" data-shadow="1"/>
+    <ellipse cx="40" cy="78.5" rx="34" ry="0.85" data-shadow="1"/>
     <polygon points="0.1,23.8 0.1,0 4.1,0 15.5,23.8 33.9,23.8 34.5,0 38.9,0 73.1,52.2 73.1,79.3 24,79.3" data-face="front"/>
     <polygon points="0.1,0 4.1,0 5.5,2.4 0.1,2.4" data-face="top"/>
     <polygon points="34.5,0 38.9,0 40.1,2.4 34.5,2.4" data-face="top"/>
@@ -131,7 +131,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 煤仓1：梯形仓体 + 横杆 + 料位三角
   wash_coal_bunker_1: { icon25d: `<svg viewBox="0 0 98 100" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="44" cy="98.6" rx="44" ry="1.2" data-shadow="1"/>
+    <ellipse cx="44" cy="97.2" rx="44" ry="0.8" data-shadow="1"/>
     <polygon points="18,8 70,8 84,90 4,90" data-face="front"/>
     <polygon points="18,8 70,8 66.8,11.6 21.2,11.6" data-face="top"/>
     <path d="M14,0 L30.0786656,0 L57.982108,0 L74,0 L74,4 C74,6.209139 72.209139,8 70,8 L18,8 C15.790861,8 14,6.209139 14,4 Z" fill="currentColor" stroke="none"/>
@@ -152,7 +152,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 煤仓2：圆柱仓体 body + cap + 漏斗 front
   wash_coal_bunker_2: { icon25d: `<svg viewBox="0 0 83 101" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="40.6" cy="99.3" rx="38" ry="1.3" data-shadow="1"/>
+    <ellipse cx="40.6" cy="99" rx="38" ry="1" data-shadow="1"/>
     <path d="M0.6,13.4 L80.6,13.4 L80.6,65.37 C55.43,76.77 26.61,76.88 1.36,65.72 L0.6,65.37 Z" data-face="body"/>
     <ellipse cx="40.6" cy="13.4" rx="40" ry="13.4" data-face="cap"/>
     <ellipse cx="40.6" cy="13.4" rx="40" ry="13.4" data-edge="hi"/>
@@ -173,7 +173,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 煤仓3：八角仓 + 出料口 hole + 支腿
   wash_coal_bunker_3: { icon25d: `<svg viewBox="0 0 82 101" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="40.6" cy="99.4" rx="38" ry="1.2" data-shadow="1"/>
+    <ellipse cx="40.6" cy="99" rx="38" ry="1" data-shadow="1"/>
     <polygon points="0,4.52 21.44,0 58.64,0 80,4.52 80,80 59,85.5 21.05,85.5 0,80" data-face="front"/>
     <polygon points="0,4.52 21.44,0 58.64,0 80,4.52 74.6,7.9 5.4,7.9" data-face="top"/>
     <polygon points="35,85.51 35,70.54 56,70.54 56,85.54" data-face="hole"/>
@@ -197,7 +197,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 放料闸板阀：圆盘手轮 cap + 闸箱 + 立柱阀杆
   wash_gate_valve: { icon25d: `<svg viewBox="0 0 40 100" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="20" cy="99" rx="17" ry="1.2" data-shadow="1"/>
+    <ellipse cx="20" cy="98.5" rx="17" ry="0.9" data-shadow="1"/>
     <path d="M20,57.6 C25.36,57.6 30.21,59.77 33.72,63.28 C37.23,66.79 39.4,71.64 39.4,77 C39.4,82.76 36.89,87.93 32.91,91.49 C31.55,94 29.7,95.96 27.45,97.32 C25.28,98.64 22.73,99.4 20,99.4 C17.27,99.4 14.72,98.64 12.55,97.32 C10.3,95.96 8.45,94 7.23,91.66 C3.11,87.93 0.6,82.76 0.6,77 C0.6,71.64 2.77,66.79 6.28,63.28 C9.79,59.77 14.64,57.6 20,57.6 Z" stroke-width="1"/>
     <circle cx="20" cy="77" r="14.4" data-face="cap"/>
     <circle cx="20" cy="77" r="14.4" data-edge="lo" stroke-width="1"/>
@@ -236,7 +236,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 浓缩机：池体双层 front + 顶带 + 中心塔 + 刮泥机构线条
   wash_thickener: { icon25d: `<svg viewBox="0 0 82 74" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="40" cy="72.6" rx="38" ry="1.2" data-shadow="1"/>
+    <ellipse cx="40" cy="71.9" rx="38" ry="0.85" data-shadow="1"/>
     <path d="M0,17 L21.44,17 L58.64,17 L80,17 L80,54.14 C80,55.04 79.39,55.83 78.52,56.07 L48,64.25 L48,70.21 C48,70.61 47.76,70.98 47.39,71.13 C44.81,72.24 42.29,72.79 39.86,72.79 C37.43,72.79 35.01,72.24 32.59,71.14 C32.23,70.98 32,70.62 32,70.23 L32,64.25 L1.48,56.07 C0.61,55.83 0,55.04 0,54.14 Z" data-face="front"/>
     <polygon points="0,17 80,17 80,20.2 0,20.2" data-face="top"/>
     <path d="M3,47 L22.83,47 L57.24,47 L77,47 L77,52.22 C77,52.68 76.69,53.08 76.24,53.19 L40.07,62.31 L3.76,53.19 C3.31,53.08 3,52.68 3,52.22 Z" data-face="front"/>
@@ -271,7 +271,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 浅槽分选机：左斜斗 + 右箱体 + 漏斗组
   wash_dense_medium_separator: { icon25d: `<svg viewBox="0 0 89 34" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="45" cy="33.3" rx="42" ry="0.9" data-shadow="1"/>
+    <ellipse cx="45" cy="31.6" rx="42" ry="0.8" data-shadow="1"/>
     <path d="M1.36928004,0.544106206 L26.6604958,10.5939916 C27.1737441,10.7979394 27.4244817,11.3793416 27.220534,11.8925898 C27.2088777,11.9219236 27.1958391,11.950689 27.181462,11.9787895 L19.7747038,26.4554797 C19.6036997,26.7897113 19.2598949,27 18.8844576,27 L9.32261394,27 C8.92060623,27 8.55768109,26.759268 8.40133721,26.3889077 L0.0787232669,6.67361009 C0.0267679562,6.55053404 -8.70298461e-17,6.41829533 0,6.28470241 L0,1.47342437 C1.5440923e-16,0.921139623 0.44771525,0.473424373 1,0.473424373 C1.12645518,0.473424373 1.25176294,0.497408834 1.36928004,0.544106206 Z" data-face="front"/>
     <line x1="27.2773514" y1="11" x2="62.6694794" y2="11" data-edge="hi"/>
     <line x1="20.9706497" y1="24" x2="62.6694794" y2="24" data-edge="lo"/>
@@ -290,7 +290,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 分料器单：倒梯形斗 front + 底出口 hole
   wash_distributor_single: { icon25d: `<svg viewBox="0 0 62 59" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="30.6" cy="57.8" rx="27" ry="1" data-shadow="1"/>
+    <ellipse cx="30.6" cy="56.2" rx="27" ry="0.8" data-shadow="1"/>
     <path d="M58.5406571,1.22117398 L59.9780694,30.6954829 C59.991845,30.9779523 59.8693886,31.2499082 59.6487585,31.4268293 L35.6545557,50.6675522 C35.4979753,50.7931125 35.3032668,50.8615385 35.102561,50.8615385 L25.1185256,50.8615385 C24.9191536,50.8615385 24.7256583,50.7940175 24.5695702,50.6699784 L0.354136235,31.4265951 C0.131802223,31.249912 0.00809868795,30.9770155 0.0217601706,30.693356 L1.45927258,0.8456416 C1.48203288,0.373059348 1.87348313,0.00253899926 2.34660222,0.00575534001 L57.6653498,0.381821212 C58.1336235,0.385004613 58.5178468,0.753445383 58.5406571,1.22117398 Z" data-face="front"/>
     <path d="M41.4705882,56.1176471 C41.4705882,56.6049571 41.0755454,57 40.5882353,57 L19.4117647,57 C18.9244546,57 18.5294118,56.6049571 18.5294118,56.1176471 L18.5294118,45.869778 L24.8106251,50.8615385 L35.4126445,50.8615385 L41.4704118,46.002778 Z" data-face="hole"/>
     <path d="M2.3,1.2 L57.67,1.2" data-edge="hi"/>
@@ -307,7 +307,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 脱介筛：双层斜筛面 + 电机 + 端部漏斗
   wash_desliming_screen: { icon25d: `<svg viewBox="0 0 90 47" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="44" cy="46.2" rx="42" ry="0.9" data-shadow="1"/>
+    <ellipse cx="44" cy="45.2" rx="42" ry="0.8" data-shadow="1"/>
     <path d="M0.905131803,16.3082657 L20.0988089,14.4791466 L25.3075552,7.90126377 L69.615725,29.3346473 L69.615725,41.0643874 C69.615725,41.6166722 69.1680098,42.0643874 68.615725,42.0643874 C68.5347943,42.0643874 68.4541628,42.0545629 68.3756,42.0351294 L0.759874937,25.3095412 C0.313533704,25.1991332 6.90623873e-16,24.7985932 0,24.3387993 L0,17.3037556 C-6.31348621e-17,16.7882203 0.391921676,16.3571736 0.905131803,16.3082657 Z" data-face="top"/>
     <path d="M25.2037532,7.76372946 L45.6456502,5.93008768 C45.819227,5.91451781 45.9938593,5.94458026 46.1522381,6.01729535 L87.1800141,24.8540221 C87.5351458,25.0170707 87.7627677,25.3720427 87.7627677,25.7628155 L87.7627677,36.5515133 C87.7627677,37.0108689 87.4498193,37.4111456 87.0040335,37.5219724 L68.9331646,42.0145712" data-face="front"/>
     <path d="M25.31,7.9 L69.62,29.33" data-edge="hi"/>
@@ -331,21 +331,17 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 压滤机：上下梁 front + 右封板 + 滤板杆组 + 液压缸
   wash_filter_press: { icon25d: `<svg viewBox="0 0 107 37" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="53" cy="36.3" rx="50" ry="0.9" data-shadow="1"/>
-    <polygon points="26,0.6 100.9,0.6 100.9,2.6 96.4,3.3 26,3.3" data-face="top"/>
-    <polygon points="96.4,3.3 100.9,2.6 100.9,11.25 96.4,11.25" data-face="side"/>
-    <polygon points="26,3.3 96.4,3.3 96.4,11.25 26,11.25" data-face="front"/>
-    <polygon points="26,18.5 101.6,18.6 101.6,20.5 96.6,21.3 26,21.3" data-face="top"/>
-    <polygon points="96.6,21.3 101.6,20.5 101.6,29.4 96.6,29.4" data-face="side"/>
-    <polygon points="26,21.3 96.6,21.3 96.6,29.4 26,29.4" data-face="front"/>
-    <polygon points="101,2.6 101.6,2.6 101.6,29.4 101,29.4" data-face="side"/>
-    <polygon points="96.6,3.3 101.6,3.3 101.6,29.4 96.6,29.4" data-face="front"/>
+    <ellipse cx="50.8" cy="35.7" rx="48" ry="0.8" data-shadow="1"/>
+    <polygon points="26,0.6 100.9,0.6 100.9,3.2 26,3.2" data-face="top" stroke-width="3"/>
+    <polygon points="26,3.2 100.9,3.2 100.9,11.25 26,11.25" data-face="front"/>
+    <polygon points="26,18.5 101.6,18.6 101.6,21 26,21" data-face="top" stroke-width="3"/>
+    <polygon points="26,21 101.6,21 101.6,29.4 26,29.4" data-face="front"/>
     <g fill="currentColor" stroke="none">
-      <rect x="29" y="0.75" width="2" height="28.5"/><rect x="37" y="0.75" width="2" height="28.5"/>
-      <rect x="45" y="0.75" width="2" height="28.5"/><rect x="53" y="0.75" width="2" height="28.5"/>
-      <rect x="61" y="0.75" width="2" height="28.5"/><rect x="69" y="0.75" width="2" height="28.5"/>
-      <rect x="77" y="0.75" width="2" height="28.5"/><rect x="85" y="0.75" width="2" height="28.5"/>
-      <rect x="93" y="0.75" width="2" height="28.5"/>
+      <rect x="29" y="0.75" width="2" height="10.5"/><rect x="29" y="18.75" width="2" height="10.5"/><rect x="37" y="0.75" width="2" height="10.5"/><rect x="37" y="18.75" width="2" height="10.5"/>
+      <rect x="45" y="0.75" width="2" height="10.5"/><rect x="45" y="18.75" width="2" height="10.5"/><rect x="53" y="0.75" width="2" height="10.5"/><rect x="53" y="18.75" width="2" height="10.5"/>
+      <rect x="61" y="0.75" width="2" height="10.5"/><rect x="61" y="18.75" width="2" height="10.5"/><rect x="69" y="0.75" width="2" height="10.5"/><rect x="69" y="18.75" width="2" height="10.5"/>
+      <rect x="77" y="0.75" width="2" height="10.5"/><rect x="77" y="18.75" width="2" height="10.5"/><rect x="85" y="0.75" width="2" height="10.5"/><rect x="85" y="18.75" width="2" height="10.5"/>
+      <rect x="93" y="0.75" width="2" height="10.5"/><rect x="93" y="18.75" width="2" height="10.5"/>
     </g>
     <polygon points="2.6,11.1 9.4,11.1 9.4,12.9 8.2,13.3 2.6,13.3" data-face="top"/>
     <polygon points="8.2,13.3 9.4,12.9 9.4,18.9 8.2,18.9" data-face="side"/>
@@ -371,14 +367,14 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 三通分料器：中间竖槽 + 闸箱 + 三叉线
   wash_three_way_distributor: { icon25d: `<svg viewBox="0 0 93 65" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="46" cy="63.8" rx="40" ry="0.9" data-shadow="1"/>
+    <ellipse cx="46" cy="62.9" rx="40" ry="0.9" data-shadow="1"/>
     <path d="M26.5649745,0 L33.295055,0 L46.7342154,0 L53.4350255,0 C53.9949881,-1.0286345e-16 54.4489274,0.453939328 54.4489274,1.01390187 L54.4489274,2 L25.5510726,2 L25.5510726,1.01390187 C25.5510726,0.453939328 26.0050119,1.0286345e-16 26.5649745,0 Z" fill="currentColor" stroke="none"/>
     <polygon points="28.23,1.81 28.23,11.39 51.77,11.39 51.77,1.81" data-face="front"/>
     <polygon points="28.23,11.39 51.77,11.39 51.77,13.4 28.23,13.4" data-face="top"/>
     <polyline points="28.2316962 1.81278652 28.2316962 11.3887922 0 46.2780312 17.7210794 61.9862845 28.1719194 49.3495006 28.1719194 64 40 64" data-pipe="base" stroke-width="3.4"/>
     <polyline points="28.2316962 1.81278652 28.2316962 11.3887922 0 46.2780312 17.7210794 61.9862845 28.1719194 49.3495006 28.1719194 64 40 64" data-pipe="hi" stroke-width="1"/>
-    <polyline transform="translate(60, 50.75) scale(-1, 1)" points="47.5570221 37.5 40 46.2780312 57.7210794 61.9862845 68.1719194 49.3495006 68.1719194 64 80 64" data-pipe="base" stroke-width="3.4"/>
-    <polyline transform="translate(60, 50.75) scale(-1, 1)" points="47.5570221 37.5 40 46.2780312 57.7210794 61.9862845 68.1719194 49.3495006 68.1719194 64 80 64" data-pipe="hi" stroke-width="1"/>
+    <polyline transform="translate(60.000000, 50.750000) scale(-1, 1) translate(-60.000000, -50.750000)" points="47.5570221 37.5 40 46.2780312 57.7210794 61.9862845 68.1719194 49.3495006 68.1719194 64 80 64" data-pipe="base" stroke-width="3.4"/>
+    <polyline transform="translate(60.000000, 50.750000) scale(-1, 1) translate(-60.000000, -50.750000)" points="47.5570221 37.5 40 46.2780312 57.7210794 61.9862845 68.1719194 49.3495006 68.1719194 64 80 64" data-pipe="hi" stroke-width="1"/>
     <polyline points="51.7683038 1.81278652 51.7683038 11.3887922 62.3726654 24.5" data-pipe="base" stroke-width="3.4"/>
     <polyline points="51.7683038 1.81278652 51.7683038 11.3887922 62.3726654 24.5" data-pipe="hi" stroke-width="1"/>
     <polygon points="55.6,24.6 79.4,24.6 79.4,26.6 76.2,27.4 55.6,27.4" data-face="top"/>
@@ -386,14 +382,14 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     <polygon points="55.6,27.4 76.2,27.4 76.2,32.4 55.6,32.4" data-face="front"/>
     <line x1="74" y1="38" x2="74" y2="32"/><line x1="60" y1="38" x2="60" y2="25"/><line x1="77" y1="38" x2="77" y2="32"/>
     <path d="M52.4,26.6 L52.4,30.4 L50.5,30.4 C49.98,30.4 49.5,30.19 49.16,29.84 C48.81,29.5 48.6,29.02 48.6,28.5 C48.6,27.98 48.81,27.5 49.16,27.16 C49.5,26.81 49.98,26.6 50.5,26.6 Z" stroke-width="1"/>
-    <rect transform="translate(47.384420, 32.039821) rotate(-45)" x="45.48442" y="32.1398208" width="3.8" height="1" stroke-width="1"/>
+    <rect transform="translate(47.384420, 32.039821) rotate(-45.000000) translate(-47.384420, -32.039821)" x="45.48442" y="32.1398208" width="3.8" height="1" stroke-width="1"/>
     <rect fill="currentColor" stroke="none" x="87" y="25" width="1.2" height="7"/>
-    <rect fill="currentColor" stroke="none" transform="translate(83.6, 27.2) rotate(-270)" x="83" y="23.2" width="1.2" height="8"/>
-    <rect fill="currentColor" stroke="none" transform="translate(71.1, 37.5) rotate(-270)" x="70.5" y="23.5" width="1.2" height="28" rx="0.6"/>
-    <rect fill="currentColor" stroke="none" transform="translate(83.6, 29.8) rotate(-270)" x="83" y="25.8" width="1.2" height="8"/>
+    <rect fill="currentColor" stroke="none" transform="translate(83.6, 27.2) rotate(-270.000000) translate(-83.6, -27.2)" x="83" y="23.2" width="1.2" height="8"/>
+    <rect fill="currentColor" stroke="none" transform="translate(71.1, 37.5) rotate(-270.000000) translate(-71.1, -37.5)" x="70.5" y="23.5" width="1.2" height="28" rx="0.6"/>
+    <rect fill="currentColor" stroke="none" transform="translate(83.6, 29.8) rotate(-270.000000) translate(-83.6, -29.8)" x="83" y="25.8" width="1.2" height="8"/>
     <path d="M80,24.5 L90,24.5 C90.55,24.5 91,24.95 91,25.5 L91,31.5 C91,32.05 90.55,32.5 90,32.5 L80,32.5" stroke-width="1"/>
     <path d="M54.9824654,24.172708 C55.3528949,24.3531224 55.4,24.4601453 55.4,24.5723235 L55.4,32.5250771 C55.4,32.6355341 55.3552285,32.7355341 55.2828427,32.8079198 C55.2104569,32.8803056 55.1104569,32.9250771 55,32.9250771 C54.8914985,32.9250771 54.7876519,32.8809997 54.7122769,32.8029537 L52.6,30.6158284 L52.6,26.600392 L54.7050303,24.3021516 C54.7796362,24.2206979 54.8801948,24.1771955 54.9824654,24.172708 Z" stroke-width="1"/>
-    <circle fill="currentColor" stroke="none" transform="translate(45.159074, 34.290551) rotate(-345)" cx="45.1590742" cy="34.2905506" r="1"/>
+    <circle fill="currentColor" stroke="none" transform="translate(45.159074, 34.290551) rotate(-345.000000) translate(-45.159074, -34.290551)" cx="45.1590742" cy="34.2905506" r="1"/>
     <path d="M28.23,11.39 L51.77,11.39" data-edge="hi"/>
     <path d="M28.23,13.4 L51.77,13.4" data-edge="hi"/>
     <path d="M55.6,27.4 L76.2,27.4" data-edge="hi"/>
@@ -405,7 +401,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 打印机：机身 front + 纸槽 hole + 下纸盘立面
   wash_printer: { icon25d: `<svg viewBox="0 0 82 77" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="40" cy="75.8" rx="38" ry="1.2" data-shadow="1"/>
+    <ellipse cx="40" cy="74.9" rx="38" ry="1" data-shadow="1"/>
     <path d="M17,18 L4,18 C1.79,18 0,19.79 0,22 L0,62 C0,64.21 1.79,66 4,66 L76,66 C78.21,66 80,64.21 80,62 L80,22 C80,19.79 78.21,18 76,18 L63,18" data-face="front"/>
     <polygon points="0,18 80,18 80,20.8 0,20.8" data-face="top"/>
     <path d="M48.9055786,5 C54.9055786,5 59.2703857,5 62,5 C62.5522847,5 63,5.44771525 63,6 L63,29 C63,29.5522847 62.5522847,30 62,30 L18,30 C17.4477153,30 17,29.5522847 17,29 L17,6 C17,5.44771525 17.4477153,5 18,5 L31.1800995,5" data-face="hole"/>
@@ -429,23 +425,20 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 工业计算机：显示器箱体 + 屏框饰条 + 底座
   wash_industrial_pc: { icon25d: `<svg viewBox="0 0 80 63" xmlns="http://www.w3.org/2000/svg">
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="40" cy="62.3" rx="36" ry="0.9" data-shadow="1"/>
-    <polygon points="0.6,0.6 79.4,0.6 79.4,2.4 68.4,3.6 0.6,3.6" data-face="top"/>
-    <polygon points="68.4,3.6 79.4,2.4 79.4,51.4 68.4,51.4" data-face="side"/>
-    <polygon points="0.6,3.6 68.4,3.6 68.4,51.4 0.6,51.4" data-face="front"/>
+    <ellipse cx="40" cy="61.5" rx="36" ry="0.85" data-shadow="1"/>
+    <rect x="0.6" y="0.6" width="78.8" height="50.8" rx="4" data-face="front"/>
+    <rect x="0.6" y="0.6" width="78.8" height="3" rx="1.5" data-face="top"/>
+    <rect x="0.6" y="0.6" width="78.8" height="50.8" rx="4" data-edge="hi"/>
     <path d="M48.7682849,58.6 C50.4249085,58.6 51.9690932,59.4380075 52.8719338,60.826993 L53.4926914,61.7820047 L26.842686,62.4 L27.1280662,60.826993 C28.0309068,59.4380075 29.5750915,58.6 31.2317151,58.6 Z" data-face="front"/>
     <rect fill="currentColor" stroke="none" x="4" y="5" width="63" height="2" rx="1"/>
     <rect fill="currentColor" stroke="none" x="0" y="44" width="56" height="2" rx="1"/>
     <rect fill="currentColor" stroke="none" x="70" y="5" width="6" height="2" rx="1"/>
     <rect fill="currentColor" stroke="none" x="74" y="44" width="6" height="2" rx="1"/>
-    <rect fill="currentColor" stroke="none" transform="translate(60, 45) rotate(-270)" x="58" y="44" width="4" height="2" rx="1"/>
-    <rect fill="currentColor" stroke="none" transform="translate(65, 45) rotate(-270)" x="63" y="44" width="4" height="2" rx="1"/>
-    <rect fill="currentColor" stroke="none" transform="translate(70, 45) rotate(-270)" x="68" y="44" width="4" height="2" rx="1"/>
+    <rect fill="currentColor" stroke="none" transform="translate(60, 45) rotate(-270.000000) translate(-60, -45)" x="58" y="44" width="4" height="2" rx="1"/>
+    <rect fill="currentColor" stroke="none" transform="translate(65, 45) rotate(-270.000000) translate(-65, -45)" x="63" y="44" width="4" height="2" rx="1"/>
+    <rect fill="currentColor" stroke="none" transform="translate(70, 45) rotate(-270.000000) translate(-70, -45)" x="68" y="44" width="4" height="2" rx="1"/>
     <line x1="33" y1="52" x2="33" y2="58"/><line x1="47" y1="52" x2="47" y2="58"/>
-    <path d="M0.6,0.6 L0.6,51.4" data-edge="hi"/>
-    <path d="M0.6,3.6 L68.4,3.6" data-edge="hi"/>
-    <path d="M68.4,3.6 L79.4,2.4" data-edge="lo"/>
-    <path d="M68.4,3.6 L68.4,51.4" data-edge="lo"/>
+    <path d="M0.6,3.6 L79.4,3.6" data-edge="hi"/>
     <path d="M0.6,51.4 L79.4,51.4" data-edge="lo"/>
   </g>
 </svg>` },

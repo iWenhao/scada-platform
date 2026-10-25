@@ -307,11 +307,11 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   elec_substation_1: {
     icon25d: `<svg viewBox="0 0 49 86" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="22.3" cy="84.2" rx="13.5" ry="1.2" data-shadow="1"/>
+      <ellipse cx="22.3" cy="80.5" rx="13.5" ry="0.9" data-shadow="1"/>
       <line x1="22.6" y1="0" x2="22.6" y2="13.3" data-pipe="base" stroke-width="3"/>
       <line x1="21.9" y1="0" x2="21.9" y2="13.3" data-pipe="hi" stroke-width="1"/>
-      <line x1="22.6" y1="52.1" x2="22.6" y2="66.5" data-pipe="base" stroke-width="3"/>
-      <line x1="21.9" y1="52.1" x2="21.9" y2="66.5" data-pipe="hi" stroke-width="1"/>
+      <line x1="22.6" y1="52.1" x2="22.6" y2="68.5" data-pipe="base" stroke-width="3"/>
+      <line x1="21.9" y1="52.1" x2="21.9" y2="68.5" data-pipe="hi" stroke-width="1"/>
       <polygon points="10.9,13.3 33.6,13.3 33.6,15.9 29.8,17.1 10.9,17.1" data-face="top"/>
       <polygon points="29.8,17.1 33.6,15.9 33.6,52.1 29.8,52.1" data-face="side"/>
       <polygon points="10.9,17.1 29.8,17.1 29.8,52.1 10.9,52.1" data-face="front"/>
@@ -321,12 +321,9 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <path d="M29.8,17.1 L29.8,52.1" data-edge="lo"/>
       <path d="M10.9,52.1 L33.6,52.1" data-edge="lo"/>
       <path d="M45.2,18.7 L33.6,18.7 L11.5,46.3 L0,46.3" data-edge="lo" stroke-width="1.2"/>
-      <polygon points="8.5,66.5 36.2,66.5 36.2,68.5 8.5,68.5" data-face="deck"/>
-      <polygon points="8.5,68.5 36.2,68.5 36.2,72.6 8.5,72.6" data-face="front"/>
-      <polygon points="15.4,72.9 29.4,72.9 29.4,74.9 15.4,74.9" data-face="deck"/>
-      <polygon points="15.4,74.9 29.4,74.9 29.4,79 15.4,79" data-face="front"/>
-      <polygon points="17.9,79.3 27.6,79.3 27.6,81.4 17.9,81.4" data-face="deck"/>
-      <polygon points="17.9,81.4 27.6,81.4 27.6,83.4 17.9,83.4" data-face="front"/>
+      <path d="M8.51,68.47 L36.24,68.47" data-edge="lo"/>
+      <path d="M15.38,74.93 L29.45,74.93" data-edge="lo"/>
+      <path d="M17.91,81.39 L27.57,81.39" data-edge="lo"/>
     </g>
   </svg>`,
   },
@@ -334,7 +331,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   elec_substation_5: {
     icon25d: `<svg viewBox="0 0 68 89" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="32.6" cy="85.6" rx="19" ry="1.4" data-shadow="1"/>
+      <ellipse cx="32.6" cy="83.8" rx="19" ry="1" data-shadow="1"/>
       <line x1="32.2" y1="0" x2="32.2" y2="25.6" data-pipe="base" stroke-width="3"/>
       <line x1="31.5" y1="0" x2="31.5" y2="25.6" data-pipe="hi" stroke-width="1"/>
       <circle cx="32.6" cy="60.2" r="24.6" data-face="cap"/>
@@ -346,7 +343,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <path d="M0,42.12 L63.28,11.61" stroke-width="2.4"/>
       <path d="M32.38,25.69 L22.17,32.51 M32.38,25.69 L44.55,32.51"/>
       <path d="M35.95,61.79 L43.89,77.68 C44.12,78.13 43.94,78.67 43.49,78.9 C43.36,78.96 43.22,79 43.08,79 L27.19,79 C26.69,79 26.28,78.59 26.28,78.09 C26.28,77.95 26.31,77.81 26.38,77.68 L34.32,61.79 C34.55,61.34 35.09,61.16 35.54,61.38 C35.72,61.47 35.86,61.61 35.95,61.79 Z"/>
-      <polyline transform="translate(58.51,13.78) rotate(-75) translate(-58.51,-13.78)" points="63.34,8.95 63.34,18.61 53.68,18.61"/>
+      <polyline transform="translate(58.51,13.78) rotate(-75) translate(-58.51,-13.78)" points="63.34,8.95 63.34,18.61 53.68,18.61" stroke-width="3"/>
     </g>
   </svg>`,
   },
@@ -380,8 +377,8 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <line x1="11.1" y1="4.6" x2="11.1" y2="24.4" data-pipe="hi" stroke-width="1"/>
       <line x1="11.8" y1="66.8" x2="11.8" y2="85.8" data-pipe="base" stroke-width="3"/>
       <line x1="11.1" y1="66.8" x2="11.1" y2="85.8" data-pipe="hi" stroke-width="1"/>
-      <polyline transform="translate(11.91,10.65) rotate(-135) translate(-11.91,-10.65)" points="19.5,3.17 16.66,15.33 4.33,18.13"/>
-      <polyline transform="translate(11.91,79.69) scale(1,-1) rotate(-135) translate(-11.91,-79.69)" points="19.5,72.21 16.66,84.37 4.33,87.17"/>
+      <polyline transform="translate(11.91,10.65) rotate(-135) translate(-11.91,-10.65)" points="19.5,3.17 16.66,15.33 4.33,18.13" stroke-width="3"/>
+      <polyline transform="translate(11.91,79.69) scale(1,-1) rotate(-135) translate(-11.91,-79.69)" points="19.5,72.21 16.66,84.37 4.33,87.17" stroke-width="3"/>
       <polygon points="0,24.4 23.7,24.4 23.7,27 20,28.1 0,28.1" data-face="top"/>
       <polygon points="20,28.1 23.7,27 23.7,66.8 20,66.8" data-face="side"/>
       <polygon points="0,28.1 20,28.1 20,66.8 0,66.8" data-face="front"/>
@@ -397,7 +394,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   elec_substation_13: {
     icon25d: `<svg viewBox="0 0 86 56" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="40.9" cy="53.4" rx="42" ry="1.3" data-shadow="1"/>
+      <ellipse cx="40.9" cy="51.4" rx="42" ry="0.8" data-shadow="1"/>
       <polygon points="0,0 81.8,0 81.8,2.6 78,3.7 0,3.7" data-face="top"/>
       <polygon points="78,3.7 81.8,2.6 81.8,52.2 78,52.2" data-face="side"/>
       <polygon points="0,3.7 78,3.7 78,52.2 0,52.2" data-face="front"/>
@@ -409,7 +406,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <rect x="9.5" y="6.1" width="62.7" height="40" data-face="hole"/>
       <rect x="9.5" y="6.1" width="62.7" height="40" data-edge="lo" stroke-width="1.1"/>
       <path d="M23.9,23.1 L23.9,32.1 M29.1,17.6 L29.1,36.1 M56.7,15.1 L56.7,19.1 M56.7,30.7 L56.7,35.5 M52.7,20.4 L60.7,20.4" stroke-width="2.4"/>
-      <polyline transform="translate(44.45,25.35) scale(-1,1) translate(-44.45,-25.35)" points="29.71,15.09 48.35,15.09 59.2,25.28 48.35,35.61 29.71,35.61" stroke-width="2.4"/>
+      <polyline transform="translate(44.453370, 25.349763) scale(-1, 1) translate(-44.453370, -25.349763)" points="29.71,15.09 48.35,15.09 59.2,25.28 48.35,35.61 29.71,35.61" stroke-width="2.4"/>
     </g>
   </svg>`,
   },
@@ -417,8 +414,8 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   elec_hv_switchgear: {
     icon25d: `<svg viewBox="0 0 54 70" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="25.2" cy="68.2" rx="15" ry="1.4" data-shadow="1"/>
-      <path d="M50.5,21.7 C48.6,9.4 38,0 25.2,0 C12.5,0 1.9,9.4 0,21.7" data-pipe="base" stroke-width="5.5"/>
+      <ellipse cx="25.2" cy="66.2" rx="15" ry="0.8" data-shadow="1"/>
+      <path d="M50.5,21.7 C48.6,9.4 38,0 25.2,0 C12.5,0 1.9,9.4 0,21.7" data-pipe="base" stroke-width="3"/>
       <path d="M50.5,21.7 C48.6,9.4 38,0 25.2,0 C12.5,0 1.9,9.4 0,21.7" data-pipe="hi" stroke-width="1.2"/>
       <polygon points="12.5,23.8 38,23.8 38,25.7 33.8,26.9 12.5,26.9" data-face="top"/>
       <polygon points="33.8,26.9 38,25.7 38,67 33.8,67" data-face="side"/>
@@ -440,10 +437,10 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <line x1="17.5" y1="18.2" x2="17.5" y2="32.9" data-pipe="hi" stroke-width="1"/>
       <line x1="18.2" y1="67.1" x2="18.2" y2="82.1" data-pipe="base" stroke-width="3"/>
       <line x1="17.5" y1="67.1" x2="17.5" y2="82.1" data-pipe="hi" stroke-width="1"/>
-      <polyline transform="translate(18.19,27.29) rotate(-135) translate(-18.19,-27.29)" points="31.05,14.43 24.63,33.73 5.33,40.16"/>
-      <polyline transform="translate(18.19,72.86) rotate(45) translate(-18.19,-72.86)" points="31.05,60 24.63,79.3 5.33,85.73"/>
-      <polyline transform="translate(18.19,81.97) rotate(45) translate(-18.19,-81.97)" points="31.05,69.1 24.63,88.4 5.33,94.83"/>
-      <polyline transform="translate(18.19,18.19) rotate(-135) translate(-18.19,-18.19)" points="31.05,5.33 24.63,24.63 5.33,31.05"/>
+      <polyline transform="translate(18.19,27.29) rotate(-135) translate(-18.19,-27.29)" points="31.05,14.43 24.63,33.73 5.33,40.16" stroke-width="3"/>
+      <polyline transform="translate(18.19,72.86) rotate(45) translate(-18.19,-72.86)" points="31.05,60 24.63,79.3 5.33,85.73" stroke-width="3"/>
+      <polyline transform="translate(18.19,81.97) rotate(45) translate(-18.19,-81.97)" points="31.05,69.1 24.63,88.4 5.33,94.83" stroke-width="3"/>
+      <polyline transform="translate(18.19,18.19) rotate(-135) translate(-18.19,-18.19)" points="31.05,5.33 24.63,24.63 5.33,31.05" stroke-width="3"/>
       <polygon points="7.2,32.9 29.1,32.9 29.1,35.9 25.3,37 7.2,37" data-face="top"/>
       <polygon points="25.3,37 29.1,35.9 29.1,67.1 25.3,67.1" data-face="side"/>
       <polygon points="7.2,37 25.3,37 25.3,67.1 7.2,67.1" data-face="front"/>
@@ -459,7 +456,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   elec_three_phase_transformer: {
     icon25d: `<svg viewBox="0 0 86 83" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="41" cy="81.2" rx="34" ry="1.5" data-shadow="1"/>
+      <ellipse cx="41" cy="78.2" rx="34" ry="0.9" data-shadow="1"/>
       <ellipse cx="42" cy="25.4" rx="24.4" ry="25.4" data-face="cap"/>
       <ellipse cx="42" cy="25.4" rx="24.4" ry="25.4" data-edge="hi"/>
       <ellipse cx="24.4" cy="52.8" rx="24.4" ry="25.4" data-face="cap"/>
