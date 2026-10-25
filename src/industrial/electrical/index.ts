@@ -306,7 +306,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 变电 1：箱体 + 穿体斜杠 + 上下引线 + 三层阶梯底座
   elec_substation_1: {
     icon25d: `<svg viewBox="0 0 49 86" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="22.3" cy="80.5" rx="13.5" ry="0.9" data-shadow="1"/>
       <line x1="22.6" y1="0" x2="22.6" y2="13.3" data-pipe="base" stroke-width="3"/>
       <line x1="21.9" y1="0" x2="21.9" y2="13.3" data-pipe="hi" stroke-width="1"/>
@@ -330,19 +330,19 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 变电 5：圆表盘仪表（cap 盘面 + hole 表底），指针与外弧沿用原稿线条
   elec_substation_5: {
     icon25d: `<svg viewBox="0 0 68 89" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="32.6" cy="83.8" rx="19" ry="1" data-shadow="1"/>
       <line x1="32.2" y1="0" x2="32.2" y2="25.6" data-pipe="base" stroke-width="3"/>
       <line x1="31.5" y1="0" x2="31.5" y2="25.6" data-pipe="hi" stroke-width="1"/>
-      <circle cx="32.6" cy="60.2" r="24.6" data-face="cap"/>
-      <circle cx="32.6" cy="60.2" r="24.6" data-edge="hi"/>
+      <path d="M57.2,60.2 A24.6,24.6 0 1 1 8,60.2 A24.6,24.6 0 1 1 57.2,60.2 Z M52.1,60.2 A19.5,19.5 0 1 0 13.1,60.2 A19.5,19.5 0 1 0 52.1,60.2 Z" fill-rule="evenodd" data-face="cap"/>
+      <circle cx="32.6" cy="60.2" r="24.6" stroke-width="3"/>
       <circle cx="32.6" cy="60.2" r="19.5" data-face="hole"/>
       <circle cx="32.6" cy="60.2" r="19.5" data-edge="lo" stroke-width="1.1"/>
-      <path d="M12.04,44.42 C4.56,33.08 7.69,17.78 19.04,10.3 C30.38,2.83 45.68,5.95 53.16,17.3 C58.5,25.38 58.59,35.86 53.42,44.03" stroke-width="2"/>
+      <path d="M12.04,44.42 C4.56,33.08 7.69,17.78 19.04,10.3 C30.38,2.83 45.68,5.95 53.16,17.3 C58.5,25.38 58.59,35.86 53.42,44.03" stroke-width="3"/>
       <path d="M53.33,44.16 C46.03,55.63 30.82,59.07 19.3,51.77 C16.34,49.9 13.87,47.42 11.91,44.55"/>
-      <path d="M0,42.12 L63.28,11.61" stroke-width="2.4"/>
+      <path d="M0,42.12 L63.28,11.61" stroke-width="3"/>
       <path d="M32.38,25.69 L22.17,32.51 M32.38,25.69 L44.55,32.51"/>
-      <path d="M35.95,61.79 L43.89,77.68 C44.12,78.13 43.94,78.67 43.49,78.9 C43.36,78.96 43.22,79 43.08,79 L27.19,79 C26.69,79 26.28,78.59 26.28,78.09 C26.28,77.95 26.31,77.81 26.38,77.68 L34.32,61.79 C34.55,61.34 35.09,61.16 35.54,61.38 C35.72,61.47 35.86,61.61 35.95,61.79 Z"/>
+      <path d="M35.9483927,61.7891793 L43.893657,77.6797078 C44.1181444,78.1286827 43.9361614,78.6746318 43.4871865,78.8991193 C43.3609814,78.9622218 43.2217176,78.9950739 43.080716,78.9950739 L27.1901875,78.9950739 C26.6882183,78.9950739 26.2813919,78.5881475 26.2813919,78.0861783 C26.2813919,77.9450767 26.3141444,77.8059129 26.3772465,77.6797078 L34.3225108,61.7891793 C34.546998,61.3402044 35.0929473,61.1582214 35.5419222,61.3827088 C35.7178184,61.4706569 35.8604846,61.6132831 35.9483927,61.7891793 Z" transform="translate(35.135452, 69.579186) rotate(-270.000000) translate(-35.135452, -69.579186)"/>
       <polyline transform="translate(58.51,13.78) rotate(-75) translate(-58.51,-13.78)" points="63.34,8.95 63.34,18.61 53.68,18.61" stroke-width="3"/>
     </g>
   </svg>`,
@@ -350,7 +350,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 变电 9：箱体 + 穿体斜杠 + 上下引线（无底座）
   elec_substation_9: {
     icon25d: `<svg viewBox="0 0 46 86" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="20.1" cy="65.7" rx="13" ry="1.1" data-shadow="1"/>
       <line x1="20.6" y1="0" x2="20.6" y2="20.3" data-pipe="base" stroke-width="3"/>
       <line x1="19.9" y1="0" x2="19.9" y2="20.3" data-pipe="hi" stroke-width="1"/>
@@ -371,7 +371,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 变电 10：实心本体 + 两端带箭头引线
   elec_substation_10: {
     icon25d: `<svg viewBox="0 0 27 96" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="11.8" cy="67.9" rx="13" ry="1.1" data-shadow="1"/>
       <line x1="11.8" y1="4.6" x2="11.8" y2="24.4" data-pipe="base" stroke-width="3"/>
       <line x1="11.1" y1="4.6" x2="11.1" y2="24.4" data-pipe="hi" stroke-width="1"/>
@@ -393,7 +393,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 变电 13：屏柜（外箱体 + hole 暗屏，屏内符号沿用原稿线条）
   elec_substation_13: {
     icon25d: `<svg viewBox="0 0 86 56" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="40.9" cy="51.4" rx="42" ry="0.8" data-shadow="1"/>
       <polygon points="0,0 81.8,0 81.8,2.6 78,3.7 0,3.7" data-face="top"/>
       <polygon points="78,3.7 81.8,2.6 81.8,52.2 78,52.2" data-face="side"/>
@@ -413,7 +413,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 高压配电：柜体 + 顶部母线拱罩（管画法）——本批样稿，需求方已确认
   elec_hv_switchgear: {
     icon25d: `<svg viewBox="0 0 54 70" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="25.2" cy="66.2" rx="15" ry="0.8" data-shadow="1"/>
       <path d="M50.5,21.7 C48.6,9.4 38,0 25.2,0 C12.5,0 1.9,9.4 0,21.7" data-pipe="base" stroke-width="3"/>
       <path d="M50.5,21.7 C48.6,9.4 38,0 25.2,0 C12.5,0 1.9,9.4 0,21.7" data-pipe="hi" stroke-width="1.2"/>
@@ -431,7 +431,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 高压断路器：实心本体 + 上下引线 + 两端双箭头（箭头沿用原稿）
   elec_hv_breaker: {
     icon25d: `<svg viewBox="0 0 41 106" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="18.2" cy="68.2" rx="12.5" ry="1.2" data-shadow="1"/>
       <line x1="18.2" y1="18.2" x2="18.2" y2="32.9" data-pipe="base" stroke-width="3"/>
       <line x1="17.5" y1="18.2" x2="17.5" y2="32.9" data-pipe="hi" stroke-width="1"/>
@@ -455,7 +455,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   // 三相变压器：三圆品字（正对圆盘 cap + hi 轮廓），叠放顺序沿用原稿
   elec_three_phase_transformer: {
     icon25d: `<svg viewBox="0 0 86 83" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="41" cy="78.2" rx="34" ry="0.9" data-shadow="1"/>
       <ellipse cx="42" cy="25.4" rx="24.4" ry="25.4" data-face="cap"/>
       <ellipse cx="42" cy="25.4" rx="24.4" ry="25.4" data-edge="hi"/>
