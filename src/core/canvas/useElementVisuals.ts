@@ -218,8 +218,8 @@ export function useElementVisuals(options: {
     if (!def?.icon) return null
 
     const mode = readViewMode()
-    // 素材导入件的 2D 必须与素材原稿一致：icon 放原稿，面基稿只走 2.5D。
-    // 手绘图元没有 icon25d，两种模式共用 icon。
+    // 2D 必须与原稿一致：icon 放原稿（素材原稿或手绘线条稿），面基稿只走 2.5D。
+    // 没有 icon25d 的图元（未迁移件与 2026-10-25 前的存量手绘面基稿）两种模式共用 icon。
     const icon = mode === '25d' && def.icon25d ? def.icon25d : def.icon
     const strokeColor = getIconStrokeColor(element)
     const img = getIconImage(
