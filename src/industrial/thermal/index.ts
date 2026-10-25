@@ -480,6 +480,281 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     </g>
   </svg>`,
   },
+
+  thermal_bag_filter: {
+    icon25d: `<svg viewBox="0 0 82 69" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="40.6" cy="68.2" rx="38" ry="0.4" data-shadow="1"/>
+
+      <!-- 支腿先画：三根落到地脚上，箱体与灰斗后压 -->
+      <path d="M3,44.9 H4.4 L5.67,65.6 H2.1 Z" data-face="front"/>
+      <path d="M38.5,42.7 H42.3 L42.7,65.6 H38.5 Z" data-face="front"/>
+      <path d="M77.5,44.3 H78.9 L79.7,65.6 H75.1 Z" data-face="front"/>
+
+      <!-- 两只灰斗：左半受光、右半背光，锥口中缝分界 -->
+      <path d="M1.2,38.8 H21 V59 H19 Z" data-face="front"/>
+      <path d="M21,38.8 H40.6 L23,59 H21 Z" data-face="side"/>
+      <path d="M21,38.8 V59" data-edge="lo" stroke-width="1.1"/>
+      <path d="M1.2,38.8 L19,59" data-edge="lo"/>
+      <path d="M41.4,38.8 H59.5 V59 H57 Z" data-face="front"/>
+      <path d="M59.5,38.8 H80 L62,59 H59.5 Z" data-face="side"/>
+      <path d="M59.5,38.8 V59" data-edge="lo" stroke-width="1.1"/>
+      <path d="M80,38.8 L62,59" data-edge="lo"/>
+      <rect x="19" y="59" width="4" height="1.2" data-face="body"/>
+      <rect x="57" y="59" width="5" height="1.2" data-face="body"/>
+
+      <!-- 地脚：三块落在支腿下 -->
+      <rect x="0.6" y="65.6" width="6" height="3" rx="1.5" data-face="front"/>
+      <rect x="37.6" y="65.6" width="6" height="3" rx="1.5" data-face="front"/>
+      <rect x="74.6" y="65.6" width="6" height="3" rx="1.5" data-face="front"/>
+      <path d="M0.6,68.6 H6.6 M37.6,68.6 H43.6 M74.6,68.6 H80.6" data-edge="lo"/>
+
+      <!-- 箱体：顶檐 + 正面，正面 15 道滤袋竖条按 body 铺面 -->
+      <rect x="0" y="0" width="81.2" height="2.6" data-face="top"/>
+      <path d="M0,0 H81.2" data-edge="hi"/>
+      <rect x="0" y="2.6" width="80" height="35.93" data-face="front"/>
+      <path d="M0,2.6 V38.53" data-edge="hi"/>
+      <path d="M80,2.6 V38.53" data-edge="lo"/>
+      <rect x="1.2" y="8.53" width="78.4" height="1.2" data-face="front"/>
+      <path d="M1.2,9.73 H79.6" data-edge="lo"/>
+      <rect x="5" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="10" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="15" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="20" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="25" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="30" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="35" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="40" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="45" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="50" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="55" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="60" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="65" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="70" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="75" y="9.73" width="1.2" height="28.8" data-face="body"/>
+      <rect x="0" y="38.53" width="80" height="1.2" data-face="front"/>
+      <path d="M0,39.73 H80" data-edge="lo"/>
+      <path d="M1.5,39.73 V65.6" data-edge="lo"/>
+      <path d="M78.5,39.73 V65.6" data-edge="hi"/>
+    </g>
+  </svg>`,
+  },
+
+  thermal_feeder: {
+    icon25d: `<svg viewBox="0 0 78 84" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <g transform="translate(0.103,0.4)">
+        <ellipse cx="38.9" cy="72.3" rx="27" ry="0.5" data-shadow="1"/>
+
+        <!-- 料斗：开口朝上的漏斗，内腔压暗，斗壁左右分面 -->
+        <path d="M1.2,1.2 H76.48 L50.1,24 H27.7 Z" data-face="hole"/>
+        <path d="M1.2,1.2 H76.48 L50.1,24 H27.7 Z" data-face="hole" fill-opacity="0.8"/>
+        <path d="M0,0 H38.9 V25.2 H27.27 Z M1.2,1.2 H38.9 V24 H27.7 Z" fill-rule="evenodd" data-face="front"/>
+        <path d="M38.9,0 H77.79 L50.53,25.2 H38.9 Z M38.9,1.2 H76.48 L50.1,24 H38.9 Z" fill-rule="evenodd" data-face="side"/>
+        <rect x="0" y="0" width="77.79" height="1.2" data-face="top"/>
+        <path d="M0,0 H77.79" data-edge="hi"/>
+        <path d="M0,0 L27.27,25.2" data-edge="hi"/>
+        <path d="M77.79,0 L50.53,25.2" data-edge="lo"/>
+        <path d="M1.2,1.2 L27.7,24" data-edge="lo"/>
+        <path d="M76.48,1.2 L50.1,24" data-edge="lo"/>
+        <path d="M27.7,24 H50.1" data-edge="lo"/>
+
+        <!-- 给料室：正面按箱体铺面，四角沿用原稿 1.2 圆角 -->
+        <rect x="22.3" y="35" width="33.2" height="30.2" rx="1.2" data-face="front"/>
+        <path d="M22.3,35 H26.3 M51.5,35 H55.5" data-edge="hi"/>
+        <path d="M22.3,35 V65.2" data-edge="hi"/>
+        <path d="M55.5,35 V65.2" data-edge="lo"/>
+        <path d="M22.3,65.2 H55.5" data-edge="lo"/>
+
+        <!-- 漏斗颈：原稿里下探进给料室 1.2，后画压住室顶中段 -->
+        <rect x="26.3" y="24.6" width="25.2" height="11.6" data-face="body"/>
+        <path d="M26.3,24.6 H51.5" data-edge="hi"/>
+
+        <!-- 侧挂电机 + 阀杆 -->
+        <!-- 侧挂电机：竖置圆筒（body 横向受光）+ 顶沿 top；
+             电机前的两根接管与环箍先画，壳身后压，接口才藏在轮廓里 -->
+        <path d="M66.107,45.038 L70.023,46.5 L69.912,47.7 L65.686,46.162 Z" data-face="front"/>
+        <path d="M66.108,56.662 L69.999,55.2 L69.681,54.038 L65.686,55.538 Z" data-face="front"/>
+        <path d="M70,46.5 H75.9 A1.6,1.6 0 0 1 77.5,48.1 V53.6 A1.6,1.6 0 0 1 75.9,55.2 H70 A1.6,1.6 0 0 1 68.8,53.6 V48.1 A1.6,1.6 0 0 1 70,46.5 Z M70,47.7 H75.9 A0.4,0.4 0 0 1 76.3,48.1 V53.6 A0.4,0.4 0 0 1 75.9,54 H70 A0.4,0.4 0 0 1 69.6,53.6 V48.1 A0.4,0.4 0 0 1 70,47.7 Z" fill-rule="evenodd" data-face="front"/>
+        <rect x="68.797" y="46.6" width="1.2" height="8.3" data-face="body"/>
+        <rect x="68.897" y="49" width="8" height="1.2" data-face="top"/>
+        <rect x="68.897" y="51.5" width="8" height="1.2" data-face="top"/>
+        <rect x="54.9" y="45" width="5" height="1.2" data-face="body"/>
+        <rect x="54.9" y="55" width="5" height="1.2" data-face="body"/>
+        <path d="M54.9,46.2 H59.9 M54.9,56.2 H59.9" data-edge="lo"/>
+        <rect x="59.3" y="42" width="7.2" height="17.2" rx="0.8" data-face="body"/>
+        <rect x="59.9" y="42" width="6" height="1.2" rx="0.6" data-face="top"/>
+        <path d="M59.9,42 H65.9" data-edge="hi"/>
+        <path d="M59.3,42.8 V58.4" data-edge="hi"/>
+        <path d="M66.5,42.8 V58.4" data-edge="lo"/>
+
+        <!-- 底座横梁 + 卸料溜管 -->
+        <rect x="11.5" y="69.2" width="54.8" height="2.8" rx="1.4" data-face="front"/>
+        <path d="M12.9,69.2 H64.9" data-edge="hi"/>
+        <path d="M11.5,72 H66.3" data-edge="lo"/>
+        <rect x="33.3" y="71.6" width="12.2" height="7.6" data-face="front"/>
+        <path d="M33.3,79.2 H45.5" data-edge="lo"/>
+        <rect x="35.3" y="78.6" width="8.2" height="4.6" data-face="body"/>
+        <path d="M35.3,83.2 H43.5" data-edge="lo"/>
+      </g>
+    </g>
+  </svg>`,
+  },
+
+  thermal_economizer: {
+    icon25d: `<svg viewBox="0 0 80 46" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- 外壳：一圈板材 + 压暗的内腔；板材顶面一条交代厚度 -->
+      <path d="M0,0 H80 V46 H0 Z M1.2,1.2 H78.8 V44.8 H1.2 Z" fill-rule="evenodd" data-face="front"/>
+      <rect x="0" y="0" width="80" height="1.2" data-face="top"/>
+      <path d="M0,0 H80" data-edge="hi"/>
+      <ellipse cx="40" cy="45.5" rx="34" ry="0.5" data-shadow="1"/>
+      <rect x="1.2" y="1.2" width="77.6" height="43.6" data-face="hole"/>
+      <rect x="1.2" y="1.2" width="77.6" height="43.6" data-face="hole" fill-opacity="0.75"/>
+      <path d="M78.8,1.2 V44.8" data-edge="lo"/>
+      <path d="M1.2,44.8 H78.8" data-edge="lo"/>
+
+      <!-- 蛇形管：沿用原稿路径与 3 的管径（改粗会让包围盒补偿跳变） -->
+      <path d="M18.5714286,12.4575163 L18.5714286,34.745098 C18.5714286,37.0950155 16.6526489,39 14.2857143,39 C11.9187796,39 10,37.0950155 10,34.745098 L10,12.4575163 M18.5714286,34.5424837 L18.5714286,12.254902 C18.5714286,9.9049845 20.4902082,8 22.8571429,8 C25.2240775,8 27.1428571,9.9049845 27.1428571,12.254902 L27.1428571,34.5424837" stroke="currentColor" stroke-width="3"/>
+      <path d="M35.7142857,12.4575163 L35.7142857,34.745098 C35.7142857,37.0950155 33.7955061,39 31.4285714,39 C29.0616368,39 27.1428571,37.0950155 27.1428571,34.745098 L27.1428571,12.4575163 M35.7142857,34.5424837 L35.7142857,12.254902 C35.7142857,9.9049845 37.6330654,8 40,8 C42.3669346,8 44.2857143,9.9049845 44.2857143,12.254902 L44.2857143,34.5424837" stroke="currentColor" stroke-width="3"/>
+      <path d="M52.8571429,12.4575163 L52.8571429,34.745098 C52.8571429,37.0950155 50.9383632,39 48.5714286,39 C46.2044939,39 44.2857143,37.0950155 44.2857143,34.745098 L44.2857143,12.4575163 M52.8571429,34.5424837 L52.8571429,12.254902 C52.8571429,9.9049845 54.7759225,8 57.1428571,8 C59.5097918,8 61.4285714,9.9049845 61.4285714,12.254902 L61.4285714,34.5424837" stroke="currentColor" stroke-width="3"/>
+      <path d="M70,12.4575163 L70,34.745098 C70,37.0950155 68.0812204,39 65.7142857,39 C63.3473511,39 61.4285714,37.0950155 61.4285714,34.745098 L61.4285714,12.4575163" stroke="currentColor" stroke-width="3"/>
+
+      <!-- 翅片：8 列 × 7 片，压在管束上 -->
+      <rect x="7" y="14" width="6" height="1.2" data-face="top"/>
+      <rect x="7" y="17" width="6" height="1.2" data-face="top"/>
+      <rect x="7" y="20" width="6" height="1.2" data-face="top"/>
+      <rect x="7" y="23" width="6" height="1.2" data-face="top"/>
+      <rect x="7" y="26" width="6" height="1.2" data-face="top"/>
+      <rect x="7" y="29" width="6" height="1.2" data-face="top"/>
+      <rect x="7" y="32" width="6" height="1.2" data-face="top"/>
+      <rect x="15.5" y="14" width="6" height="1.2" data-face="top"/>
+      <rect x="15.5" y="17" width="6" height="1.2" data-face="top"/>
+      <rect x="15.5" y="20" width="6" height="1.2" data-face="top"/>
+      <rect x="15.5" y="23" width="6" height="1.2" data-face="top"/>
+      <rect x="15.5" y="26" width="6" height="1.2" data-face="top"/>
+      <rect x="15.5" y="29" width="6" height="1.2" data-face="top"/>
+      <rect x="15.5" y="32" width="6" height="1.2" data-face="top"/>
+      <rect x="24" y="14" width="6" height="1.2" data-face="top"/>
+      <rect x="24" y="17" width="6" height="1.2" data-face="top"/>
+      <rect x="24" y="20" width="6" height="1.2" data-face="top"/>
+      <rect x="24" y="23" width="6" height="1.2" data-face="top"/>
+      <rect x="24" y="26" width="6" height="1.2" data-face="top"/>
+      <rect x="24" y="29" width="6" height="1.2" data-face="top"/>
+      <rect x="24" y="32" width="6" height="1.2" data-face="top"/>
+      <rect x="32.7" y="14" width="6" height="1.2" data-face="top"/>
+      <rect x="32.7" y="17" width="6" height="1.2" data-face="top"/>
+      <rect x="32.7" y="20" width="6" height="1.2" data-face="top"/>
+      <rect x="32.7" y="23" width="6" height="1.2" data-face="top"/>
+      <rect x="32.7" y="26" width="6" height="1.2" data-face="top"/>
+      <rect x="32.7" y="29" width="6" height="1.2" data-face="top"/>
+      <rect x="32.7" y="32" width="6" height="1.2" data-face="top"/>
+      <rect x="41.3" y="14" width="6" height="1.2" data-face="top"/>
+      <rect x="41.3" y="17" width="6" height="1.2" data-face="top"/>
+      <rect x="41.3" y="20" width="6" height="1.2" data-face="top"/>
+      <rect x="41.3" y="23" width="6" height="1.2" data-face="top"/>
+      <rect x="41.3" y="26" width="6" height="1.2" data-face="top"/>
+      <rect x="41.3" y="29" width="6" height="1.2" data-face="top"/>
+      <rect x="41.3" y="32" width="6" height="1.2" data-face="top"/>
+      <rect x="49.9" y="14" width="6" height="1.2" data-face="top"/>
+      <rect x="49.9" y="17" width="6" height="1.2" data-face="top"/>
+      <rect x="49.9" y="20" width="6" height="1.2" data-face="top"/>
+      <rect x="49.9" y="23" width="6" height="1.2" data-face="top"/>
+      <rect x="49.9" y="26" width="6" height="1.2" data-face="top"/>
+      <rect x="49.9" y="29" width="6" height="1.2" data-face="top"/>
+      <rect x="49.9" y="32" width="6" height="1.2" data-face="top"/>
+      <rect x="58.5" y="14" width="6" height="1.2" data-face="top"/>
+      <rect x="58.5" y="17" width="6" height="1.2" data-face="top"/>
+      <rect x="58.5" y="20" width="6" height="1.2" data-face="top"/>
+      <rect x="58.5" y="23" width="6" height="1.2" data-face="top"/>
+      <rect x="58.5" y="26" width="6" height="1.2" data-face="top"/>
+      <rect x="58.5" y="29" width="6" height="1.2" data-face="top"/>
+      <rect x="58.5" y="32" width="6" height="1.2" data-face="top"/>
+      <rect x="67" y="14" width="6" height="1.2" data-face="top"/>
+      <rect x="67" y="17" width="6" height="1.2" data-face="top"/>
+      <rect x="67" y="20" width="6" height="1.2" data-face="top"/>
+      <rect x="67" y="23" width="6" height="1.2" data-face="top"/>
+      <rect x="67" y="26" width="6" height="1.2" data-face="top"/>
+      <rect x="67" y="29" width="6" height="1.2" data-face="top"/>
+      <rect x="67" y="32" width="6" height="1.2" data-face="top"/>
+    </g>
+  </svg>`,
+  },
+
+  thermal_src_reactor: {
+    icon25d: `<svg viewBox="0 0 56 101" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <g transform="translate(0.4,0.4)">
+        <ellipse cx="36.6" cy="100.2" rx="10" ry="0.4" data-shadow="1"/>
+
+        <!-- 支腿与地脚：先画，罐体锥底压住腿顶 -->
+        <rect x="34" y="93.6" width="1.2" height="6" data-face="front"/>
+        <rect x="38" y="93.6" width="1.2" height="6" data-face="front"/>
+        <path d="M34,99.6 H35.2 M38,99.6 H39.2" data-edge="lo" stroke-width="1.2"/>
+        <rect x="32.6" y="98.6" width="8" height="2" rx="1" data-face="front"/>
+        <rect x="32.6" y="98.6" width="8" height="0.6" rx="0.3" data-face="top"/>
+        <path d="M32.6,100.6 H40.6" data-edge="lo" stroke-width="1.2"/>
+
+        <!-- 侧管：一段横管接罐体上肩，再沿左侧落地 -->
+        <rect x="0" y="14" width="6.2" height="64.2" data-face="body"/>
+        <rect x="0" y="14" width="22.14" height="6.2" data-face="body"/>
+        <path d="M0,14 H22.14" data-edge="hi"/>
+        <path d="M0,14 V78.2" data-edge="hi"/>
+        <path d="M6.2,16.6 V78.2" data-edge="lo" stroke-width="1.2"/>
+        <path d="M0,78.2 H6.2" data-edge="lo" stroke-width="1.2"/>
+        <rect x="0" y="77" width="5" height="1.2" data-face="front"/>
+
+        <!-- 罐体：上肩锥 → 筒身 → 下肩锥，锥体左右分面 -->
+        <path d="M28.32,14 H37.1 V22.47 H18.93 Z" data-face="front"/>
+        <path d="M37.1,14 H45.88 L54.7,22.47 H37.1 Z" data-face="side"/>
+        <path d="M28.32,14 H45.88" data-edge="hi"/>
+        <path d="M18.93,22.47 H54.7" data-edge="lo" stroke-width="1.2"/>
+        <path d="M37.1,14 V22.47" data-edge="lo" stroke-width="1.2"/>
+        <rect x="18.93" y="22.47" width="35.77" height="50.31" data-face="body"/>
+        <path d="M18.93,22.47 V72.78" data-edge="hi"/>
+        <path d="M54.7,22.47 V72.78" data-edge="lo" stroke-width="1.2"/>
+        <path d="M18.93,72.78 H54.7" data-edge="lo" stroke-width="1.2"/>
+        <path d="M18.93,72.78 H37.1 V94.62 H33.28 Z" data-face="front"/>
+        <path d="M37.1,72.78 H54.7 L39.96,94.62 H37.1 Z" data-face="side"/>
+        <path d="M37.1,72.78 V94.62" data-edge="lo" stroke-width="1.2"/>
+        <path d="M33.28,94.62 H39.96" data-edge="lo" stroke-width="1.2"/>
+
+        <!-- 顶部接管：锥颈 + 法兰 -->
+        <path d="M29.57,0 H44.63 L47.09,10.2 H27.1 Z" data-face="body"/>
+        <path d="M29.57,0 H44.63" data-edge="hi"/>
+        <rect x="25.6" y="8.6" width="23" height="3" rx="1.5" data-face="front"/>
+        <rect x="25.6" y="8.6" width="23" height="0.9" rx="0.45" data-face="top"/>
+        <path d="M26.4,8.6 H47.8" data-edge="hi"/>
+        <path d="M25.6,11.6 H48.6" data-edge="lo" stroke-width="1.2"/>
+
+        <!-- 接口卡箍：横管与上肩的交接 -->
+        <path d="M22.14,13.3 H27.4 V16.5 H22.14 Z" data-face="front"/>
+        <path d="M22.14,16.5 H27.4" data-edge="lo" stroke-width="1.2"/>
+
+        <!-- 环向箍带 -->
+        <rect x="18.93" y="22.31" width="35.77" height="1.2" data-face="front"/>
+        <rect x="18.93" y="32.31" width="35.77" height="1.2" data-face="front"/>
+        <rect x="18.93" y="39.31" width="35.77" height="1.2" data-face="front"/>
+        <rect x="18.93" y="42.31" width="35.77" height="1.2" data-face="front"/>
+        <rect x="18.93" y="49.31" width="35.77" height="1.2" data-face="front"/>
+        <rect x="18.93" y="71.31" width="35.77" height="1.2" data-face="front"/>
+        <path d="M18.93,23.51 H54.7 M18.93,33.51 H54.7 M18.93,40.51 H54.7 M18.93,43.51 H54.7 M18.93,50.51 H54.7 M18.93,72.51 H54.7" data-edge="lo" stroke-width="1.2"/>
+
+        <!-- 中部交叉纹与卡子 -->
+        <path d="M22.936,32.482 L30.022,39.482 M29.13,32.445 L22.13,40.374 M33.936,32.482 L41.022,39.482 M38.13,32.445 L31.13,39.374 M43.936,32.482 L51.022,39.482 M50.13,32.445 L43.13,39.374" data-edge="lo" stroke-width="1.2"/>
+        <path d="M24,43.5 V49.9 M30,43.5 V49.9 M36,43.5 V49.9 M42,43.5 V49.9 M48,43.5 V49.9" data-edge="lo" stroke-width="1.2"/>
+
+        <!-- 下部箍带与铭牌 -->
+        <rect x="22.62" y="76.31" width="28.68" height="1.2" data-face="front"/>
+        <path d="M22.62,77.51 H51.3" data-edge="lo" stroke-width="1.2"/>
+        <rect x="25.6" y="81" width="22.32" height="1.2" data-face="front"/>
+        <path d="M25.6,82.2 H47.92" data-edge="lo" stroke-width="1.2"/>
+        <rect x="28.6" y="85.5" width="16.16" height="1.2" data-face="front"/>
+        <path d="M28.6,86.7 H44.76" data-edge="lo" stroke-width="1.2"/>
+      </g>
+    </g>
+  </svg>`,
+  },
 }
 
 const thermalAssetComponents = buildAssetComponents('thermal', thermalIcons, thermalMeta).map(
