@@ -331,20 +331,19 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
     <ellipse cx="50.8" cy="35.9" rx="48" ry="0.6" data-shadow="1"/>
     <g fill="currentColor" stroke="none">
-      <rect x="29" y="0.75" width="2" height="10.5"/><rect x="29" y="18.75" width="2" height="10.5"/><rect x="37" y="0.75" width="2" height="10.5"/><rect x="37" y="18.75" width="2" height="10.5"/>
-      <rect x="45" y="0.75" width="2" height="10.5"/><rect x="45" y="18.75" width="2" height="10.5"/><rect x="53" y="0.75" width="2" height="10.5"/><rect x="53" y="18.75" width="2" height="10.5"/>
-      <rect x="61" y="0.75" width="2" height="10.5"/><rect x="61" y="18.75" width="2" height="10.5"/><rect x="69" y="0.75" width="2" height="10.5"/><rect x="69" y="18.75" width="2" height="10.5"/>
-      <rect x="77" y="0.75" width="2" height="10.5"/><rect x="77" y="18.75" width="2" height="10.5"/><rect x="85" y="0.75" width="2" height="10.5"/><rect x="85" y="18.75" width="2" height="10.5"/>
-      <rect x="93" y="0.75" width="2" height="10.5"/><rect x="93" y="18.75" width="2" height="10.5"/>
+      <rect x="29" y="0.75" width="2" height="11.1"/><rect x="29" y="18.15" width="2" height="11.1"/><rect x="33" y="0.75" width="2" height="11.1"/><rect x="33" y="18.15" width="2" height="11.1"/><rect x="37" y="0.75" width="2" height="11.1"/><rect x="37" y="18.15" width="2" height="11.1"/><rect x="41" y="0.75" width="2" height="11.1"/><rect x="41" y="18.15" width="2" height="11.1"/><rect x="45" y="0.75" width="2" height="11.1"/><rect x="45" y="18.15" width="2" height="11.1"/><rect x="49" y="0.75" width="2" height="11.1"/><rect x="49" y="18.15" width="2" height="11.1"/><rect x="53" y="0.75" width="2" height="11.1"/><rect x="53" y="18.15" width="2" height="11.1"/><rect x="57" y="0.75" width="2" height="11.1"/><rect x="57" y="18.15" width="2" height="11.1"/><rect x="61" y="0.75" width="2" height="11.1"/><rect x="61" y="18.15" width="2" height="11.1"/><rect x="65" y="0.75" width="2" height="11.1"/><rect x="65" y="18.15" width="2" height="11.1"/><rect x="69" y="0.75" width="2" height="11.1"/><rect x="69" y="18.15" width="2" height="11.1"/><rect x="73" y="0.75" width="2" height="11.1"/><rect x="73" y="18.15" width="2" height="11.1"/><rect x="77" y="0.75" width="2" height="11.1"/><rect x="77" y="18.15" width="2" height="11.1"/><rect x="81" y="0.75" width="2" height="11.1"/><rect x="81" y="18.15" width="2" height="11.1"/><rect x="85" y="0.75" width="2" height="11.1"/><rect x="85" y="18.15" width="2" height="11.1"/><rect x="89" y="0.75" width="2" height="11.1"/><rect x="89" y="18.15" width="2" height="11.1"/><rect x="93" y="0.75" width="2" height="11.1"/><rect x="93" y="18.15" width="2" height="11.1"/>
     </g>
     <polygon points="26,0.6 100.9,0.6 100.9,3 26,3" data-face="front"/>
     <polygon points="26,27 101.6,26.9 101.6,29.5 26,29.5" data-face="front"/>
     <path d="M26,0.6 L100.9,0.6" data-edge="hi"/>
-    <path d="M26,0.6 L26,11.25" data-edge="hi"/>
+    <path d="M26,0.6 L26,11.6" data-edge="hi"/>
     <path d="M26,27 L101.6,26.9" data-edge="hi" stroke-width="1"/>
-    <path d="M26,18.5 L26,29.5" data-edge="hi"/>
+    <path d="M26,18.4 L26,29.5" data-edge="hi"/>
     <path d="M26,3 L100.9,3" data-edge="lo" stroke-width="1"/>
     <path d="M26,29.5 L101.6,29.4" data-edge="lo"/>
+    <path d="M101.080707,0.6 L102.374759,11.6 L105,11.6 L105.4,18 L102.378586,18.4 L101.479567,29.0337031 L98,29.4 L97.5996011,18.4 L21.4,18.4 L21.4,29 L17.9190104,29.4 L16.6203594,18.4 L15,18.4 L14.6,12 L16.624562,11.6 L17.5207049,0.966418976 L21,0.6 L21.4,11.6 L97.6,11.6 L97.6,1 L101.080707,0.6 Z" data-face="front"/>
+    <path d="M21.4,11.6 L97.6,11.6" data-edge="hi"/>
+    <path d="M21.4,18.4 L97.6,18.4" data-edge="lo"/>
     <polygon points="2.6,11.1 9.4,11.1 9.4,12.9 8.2,13.3 2.6,13.3" data-face="top"/>
     <polygon points="8.2,13.3 9.4,12.9 9.4,18.9 8.2,18.9" data-face="side"/>
     <polygon points="2.6,13.3 8.2,13.3 8.2,18.9 2.6,18.9" data-face="front"/>
@@ -352,7 +351,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     <polyline points="9 13 11.8883362 13 11.8883362 17 9 17"/>
     <polygon points="12 13.7606913 14 13 14 17 12 16.3618062" fill="currentColor" stroke="none"/>
     <path d="M0,13.5 L1.88833618,13.5 C2.44062093,13.5 2.88833618,13.9477153 2.88833618,14.5 L2.88833618,15.5 C2.88833618,16.0522847 2.44062093,16.5 1.88833618,16.5 L0,16.5" fill="currentColor" stroke="none" transform="translate(1.444168, 15.000000) scale(-1, 1) translate(-1.444168, -15.000000)"/>
-    <line x1="6.5" y1="19.5" x2="6.5" y2="34.5"/><line x1="4.5" y1="19.5" x2="4.5" y2="34.5"/>
+    <line x1="6.5" y1="18.9" x2="6.5" y2="34.5"/><line x1="4.5" y1="18.9" x2="4.5" y2="34.5"/>
     <line x1="61.5" y1="29.5" x2="61.5" y2="34.5"/><line x1="63.5" y1="29.5" x2="63.5" y2="34.5"/>
     <line x1="99.5" y1="29.5" x2="99.5" y2="34.5"/><line x1="101.5" y1="29.5" x2="101.5" y2="34.5"/>
     <rect fill="currentColor" stroke="none" x="2" y="33.5" width="7" height="3" rx="1.5"/>
