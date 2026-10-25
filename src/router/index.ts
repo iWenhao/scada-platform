@@ -26,10 +26,12 @@ const router = createRouter({
       name: 'Preview',
       component: () => import('@/views/preview/index.vue'),
     },
-    // 404 兜底: 未知路径回首页
+    // 404 兜底: 未知路径进专门的 404 页（标记 public，未登录也能看到而不是被弹去登录）
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/',
+      name: 'NotFound',
+      component: () => import('@/views/not-found/index.vue'),
+      meta: { public: true },
     },
   ],
 })
