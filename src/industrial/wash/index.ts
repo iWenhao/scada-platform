@@ -238,7 +238,6 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
     <ellipse cx="40" cy="71.9" rx="38" ry="0.85" data-shadow="1"/>
     <path d="M0,17 L21.44,17 L58.64,17 L80,17 L80,54.14 C80,55.04 79.39,55.83 78.52,56.07 L48,64.25 L48,70.21 C48,70.61 47.76,70.98 47.39,71.13 C44.81,72.24 42.29,72.79 39.86,72.79 C37.43,72.79 35.01,72.24 32.59,71.14 C32.23,70.98 32,70.62 32,70.23 L32,64.25 L1.48,56.07 C0.61,55.83 0,55.04 0,54.14 Z" data-face="front"/>
-    <polygon points="0,17 80,17 80,20.2 0,20.2" data-face="top"/>
     <path d="M3,47 L22.83,47 L57.24,47 L77,47 L77,52.22 C77,52.68 76.69,53.08 76.24,53.19 L40.07,62.31 L3.76,53.19 C3.31,53.08 3,52.68 3,52.22 Z" data-face="front"/>
     <rect fill="currentColor" stroke="none" x="2.5" y="13.5" width="7" height="3"/>
     <path d="M10,0.6 C10.39,0.6 10.74,0.76 10.99,1.01 C11.24,1.26 11.4,1.61 11.4,2 L11.4,12.4 L0.6,12.4 L0.6,2 C0.6,1.61 0.76,1.26 1.01,1.01 C1.26,0.76 1.61,0.6 2,0.6 Z" data-face="front"/>
@@ -253,9 +252,8 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     <path d="M49.5,44.5 L60.5,44.5 C61.05,44.5 61.5,44.95 61.5,45.5 C61.5,46.05 61.05,46.5 60.5,46.5 L49.5,46.5 C48.95,46.5 48.5,46.05 48.5,45.5 C48.5,44.95 48.95,44.5 49.5,44.5 Z" fill="currentColor" stroke="none"/>
     <path d="M32.97,47 L35,38.82 L35,24.83 C35,24.28 35.45,23.83 36,23.83 L44.03,23.83 C44.58,23.83 45.03,24.28 45.03,24.83 L45.03,38.82 L47.37,47" data-face="front"/>
     <path d="M0,17 L80,17" data-edge="hi"/>
-    <path d="M0,20.2 L80,20.2" data-edge="hi"/>
-    <path d="M0,20.2 L0,54.14" data-edge="hi"/>
-    <path d="M80,20.2 L80,54.14" data-edge="lo"/>
+    <path d="M0,17 L0,54.14" data-edge="hi"/>
+    <path d="M80,17 L80,54.14" data-edge="lo"/>
     <path d="M0,54.14 L1.48,56.07 L32,64.25" data-edge="lo"/>
     <path d="M80,54.14 L78.52,56.07 L48,64.25" data-edge="lo"/>
     <path d="M32,70.23 L32,64.25 L1.48,56.07" data-edge="lo"/>
