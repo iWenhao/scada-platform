@@ -877,6 +877,264 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     </g>
   </svg>`,
   },
+  /**
+   * 格栅：箱体 + 一根斜插出箱顶的栅条。栅条是贴在前面的平板，用 `front` 不是 `cap`
+   * ——斜置的细长条一走径向渐变就会读成一根圆管。内框与实心楔块用 `side`（暗面）
+   * 表达镂空，不用 `hole`：hole 叠在受光面上是加亮，看起来像一块亮斑。
+   */
+  water_bar_screen: {
+    icon25d: `<svg viewBox="0 0 82 82" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="40" cy="78.9" rx="37" ry="1.1" data-shadow="1"/>
+
+      <!-- 箱体：正面 + 顶面窄带，四边棱线分亮/暗 -->
+      <path d="M1,28 H79 A1,1 0 0 1 80,29 V79 A1,1 0 0 1 79,80 H1 A1,1 0 0 1 0,79 V29 A1,1 0 0 1 1,28 Z" data-face="front"/>
+      <path d="M1,28 H79 A1,1 0 0 1 80,29 V29.9 H0 V29 A1,1 0 0 1 1,28 Z" data-face="top"/>
+      <path d="M0,28 H80" data-edge="hi"/>
+      <path d="M0,80 H80" data-edge="lo"/>
+      <path d="M0,28 V80" data-edge="hi"/>
+      <path d="M80,28 V80" data-edge="lo"/>
+
+      <!-- 栅条：倾斜的平板朝上迎光，用 top 而非 front——与箱体同色就分不出前后 -->
+      <path d="M17.3744985,71.4768907 L45.6782227,0.629009681 C45.8299807,0.249139838 46.1977976,3.30477984e-15 46.6068594,0 L65.9058056,0 C66.4580903,-1.01453063e-16 66.9058056,0.44771525 66.9058056,1 L66.9058056,7.43205366 C66.9058056,7.98433841 66.4580903,8.43205366 65.9058056,8.43205366 L62.35256,8.43205366 C61.8002753,8.43205366 61.35256,7.98433841 61.35256,7.43205366 L61.35256,6.55828712 C61.35256,6.00600237 60.9048448,5.55828712 60.35256,5.55828712 L51.2954895,5.55828712 C50.8855056,5.55828712 50.5170552,5.80853601 50.365918,6.18964541 L24.1815311,72.2165227 C24.030394,72.5976321 23.6619435,72.847881 23.2519596,72.847881 L18.3031352,72.847881 C17.7508505,72.847881 17.3031352,72.4001658 17.3031352,71.847881 C17.3031352,71.7208066 17.3273551,71.5948966 17.3744985,71.4768907 Z" data-face="top"/>
+      <path d="M17.37,71.48 L45.68,0.63" data-edge="hi"/>
+      <path d="M24.18,72.22 L50.37,6.19" data-edge="lo"/>
+      <rect x="51.3" y="5.56" width="9.05" height="2.87" data-face="side"/>
+
+      <!-- 顶部安装夹板与实心楔块 -->
+      <polygon points="56,11 59.2,11 61.27,15.26 66.53,15.26 69.22,11 72,11 72,20 56,20" data-face="front"/>
+      <path d="M56,11 H72" data-edge="hi"/>
+      <path d="M56,20 H72" data-edge="lo"/>
+      <polygon points="59.64,12 68.48,12 66.63,15 61.05,15" data-face="side"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 管道混合器：横卧筒体（`barrel`）+ 中间立式投加颈 + 两侧端板。原稿中心那块实心
+   * 方块是电机罩，压暗成 `side`；筒体两端只留接缝棱线，不另切端面。
+   */
+  water_pipe_mixer: {
+    icon25d: `<svg viewBox="0 0 89 61" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="43.5" cy="57.6" rx="40" ry="1.1" data-shadow="1"/>
+
+      <!-- 横卧筒体：左半 / 右半分开，中间留给立颈 -->
+      <path d="M10,40.13 H35 V53 H10 Z" data-face="barrel"/>
+      <path d="M52,40.13 H77 V53 H52 Z" data-face="barrel"/>
+      <path d="M10,40.13 H77" data-edge="hi"/>
+      <path d="M10,53 H77" data-edge="lo"/>
+      <path d="M10,40.13 V53" data-edge="lo"/>
+      <path d="M77,40.13 V53" data-edge="lo"/>
+
+      <!-- 立颈：上口方、下段收成梯形，顶面带受光 -->
+      <path d="M38.67,36 V11.54 L28.69,3.94 V2 H58.31 V3.94 L48.33,11.54 V36 Z" data-face="front"/>
+      <path d="M28.69,2 H58.31 V0 H28.69 Z" data-face="top"/>
+      <path d="M28.69,0 H58.31" data-edge="hi"/>
+      <path d="M28.69,2 V3.94 L38.67,11.54" data-edge="hi"/>
+      <path d="M58.31,2 V3.94 L48.33,11.54" data-edge="lo"/>
+
+      <!-- 中部加宽段：与立颈同面，底缘带圆角 -->
+      <path d="M33,37 C33,36.45 33.45,36 34,36 H53 C53.55,36 54,36.45 54,37 V56 C54,56.55 53.55,57 53,57 H34 C33.45,57 33,56.55 33,56 Z" data-face="front"/>
+      <path d="M33,37 V56" data-edge="hi"/>
+      <path d="M54,37 V56" data-edge="lo"/>
+      <path d="M33,57 H54" data-edge="lo"/>
+      <rect x="37.5" y="40.5" width="12" height="12" rx="1" data-face="side"/>
+
+      <!-- 两端端板：竖向圆角块，顶面一条受光窄带 -->
+      <rect x="0" y="34.7058716" width="10" height="24" rx="2" data-face="front"/>
+      <rect x="0" y="34.7058716" width="10" height="1.8" rx="0.9" data-face="top"/>
+      <path d="M0,34.7058716 H10" data-edge="hi"/>
+      <path d="M0,58.7058716 H10" data-edge="lo"/>
+      <rect x="77" y="34.7058716" width="10" height="24" rx="2" data-face="front"/>
+      <rect x="77" y="34.7058716" width="10" height="1.8" rx="0.9" data-face="top"/>
+      <path d="M77,34.7058716 H87" data-edge="hi"/>
+      <path d="M77,58.7058716 H87" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 入口阀：立式阀组。原稿把上下两个箱体、法兰环、驱动头与两根支腿画在同一张正视图里，
+   * 这里逐段翻面；左侧折弯接管按「两条臂」拼（原稿是单线，翻面后需要几单位厚度）。
+   */
+  water_inlet_valve: {
+    icon25d: `<svg viewBox="0 0 48 68" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="21.9" cy="66.1" rx="21.5" ry="0.9" data-shadow="1"/>
+
+      <!-- 左侧折弯接管：横竖两段各成一面。整条 L 用一张 front 时，渐变沿整根管的
+           横向铺开，亮处全堆在弯头上、横臂向右越走越暗，读成一块受光不均的平板；
+           横臂改卧管 barrel（顶受光、底压暗），竖段改立管 body（亮带偏左）。
+           竖段先画、上端探到横臂底下被压住，弯头才不会断开 -->
+      <path d="M0,25.84 C0,25.03 0.65,24.38 1.46,24.38 H4.91 V28.38 C4.37,28.38 3.94,28.82 3.94,29.36 V40.93 C3.94,42.02 3.06,42.9 1.97,42.9 C0.88,42.9 0,42.02 0,40.93 Z" data-face="body"/>
+      <path d="M1.46,24.38 H16.27 V28.38 H0 V25.84 C0,25.03 0.65,24.38 1.46,24.38 Z" data-face="barrel"/>
+      <path d="M0,25.84 C0,25.03 0.65,24.38 1.46,24.38 H16.27" data-edge="hi"/>
+      <path d="M16.27,28.38 H4.91" data-edge="lo"/>
+      <path d="M0,25.84 V40.93" data-edge="hi"/>
+      <path d="M3.94,29.36 V40.93" data-edge="lo"/>
+
+      <!-- 上部箱体与法兰环 -->
+      <path d="M18.38,4.39 H40.77 C41.84,4.39 42.71,5.27 42.71,6.34 V16.48 H16.43 V6.34 C16.43,5.27 17.3,4.39 18.38,4.39 Z" data-face="front"/>
+      <path d="M16.43,6.34 V6 H42.71 V6.34 C42.71,5.27 41.84,4.39 40.77,4.39 H18.38 C17.3,4.39 16.43,5.27 16.43,6.34 Z" data-face="top"/>
+      <path d="M16.43,6.34 C16.43,5.27 17.3,4.39 18.38,4.39 H40.77 C41.84,4.39 42.71,5.27 42.71,6.34" data-edge="hi"/>
+      <path d="M16.43,16.48 H42.71" data-edge="lo"/>
+      <rect x="13.14" y="16.48" width="32.86" height="4.39" rx="0.97" data-face="front"/>
+      <rect x="13.14" y="16.48" width="32.86" height="1.5" rx="0.75" data-face="top"/>
+      <path d="M13.14,16.48 H46" data-edge="hi"/>
+      <path d="M13.14,20.87 H46" data-edge="lo"/>
+
+      <!-- 阀体：下缘圆角沿用原稿 -->
+      <path d="M16.43,20.87 H42.71 V34.3 C42.71,35.37 41.84,36.25 40.77,36.25 H18.38 C17.3,36.25 16.43,35.37 16.43,34.3 Z" data-face="front"/>
+      <path d="M16.43,20.87 H42.71" data-edge="hi"/>
+      <path d="M16.43,36.25 H42.71" data-edge="lo"/>
+      <path d="M16.43,20.87 V36.25" data-edge="hi"/>
+      <path d="M42.71,20.87 V36.25" data-edge="lo"/>
+
+      <!-- 中段立轴与底座方箱 -->
+      <rect x="27.38" y="36.25" width="5.48" height="12.08" data-face="body"/>
+      <path d="M27.38,36.25 V48.33" data-edge="hi"/>
+      <path d="M32.86,36.25 V48.33" data-edge="lo"/>
+      <rect x="21.9" y="48.33" width="16.43" height="13.18" data-face="front"/>
+      <rect x="21.9" y="48.33" width="16.43" height="1.6" data-face="top"/>
+      <path d="M21.9,48.33 H38.33" data-edge="hi"/>
+      <path d="M21.9,61.51 H38.33" data-edge="lo"/>
+
+      <!-- 两根支腿：顶面是自由端，要补一条亮棱，否则像两根往上插进阀体的管子 -->
+      <rect x="15.33" y="42.84" width="6.57" height="24.16" rx="0.97" data-face="front"/>
+      <path d="M16.3,42.84 H20.93" data-edge="hi"/>
+      <path d="M15.33,42.84 V67" data-edge="hi"/>
+      <path d="M21.9,42.84 V67" data-edge="lo"/>
+      <rect x="38.33" y="42.84" width="5.48" height="24.16" rx="0.97" data-face="front"/>
+      <path d="M39.3,42.84 H42.84" data-edge="hi"/>
+      <path d="M38.33,42.84 V67" data-edge="hi"/>
+      <path d="M43.81,42.84 V67" data-edge="lo"/>
+
+      <!-- 顶部驱动头：原稿的实心圆头，按受光轴帽画 -->
+      <path d="M22.94,0 C24.66,0 26.05,1.4 26.05,3.12 V3.9 H19.82 V3.12 C19.82,1.4 21.22,0 22.94,0 Z" data-face="cap"/>
+      <path d="M19.82,1.4 C21.5,0.3 24.37,0.3 26.05,1.4" data-edge="hi"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 浓排调节阀：蝶阀符号。圆盘用 `front` + 左右半弧（与风门同口径），两只蝶板各成一面，
+   * 阀杆 `body`、轴毂 `cap`；原稿左右蝶板是同一路径镜像，这里按镜像后的坐标各写一份，
+   * 避免 transform 把面渐变的方向一起翻过去。
+   */
+  water_discharge_valve: {
+    icon25d: `<svg viewBox="0 0 43 72" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="20.5" cy="68" rx="16" ry="1.1" data-shadow="1"/>
+
+      <!-- 左蝶板 -->
+      <path d="M1.26789868,40.3182628 L21.7058824,54.7126437 L1.26789868,69.1070246 C0.904593702,69.3628987 0.402649898,69.2758087 0.146775818,68.9125037 C0.051264482,68.7768911 0,68.6150737 0,68.4492027 L0,40.9760847 C0,40.5317176 0.36023065,40.171487 0.804597676,40.171487 C0.97046867,40.171487 1.1322861,40.2227514 1.26789868,40.3182628 Z" data-face="front"/>
+      <path d="M1.27,40.32 L21.71,54.71" data-edge="hi"/>
+      <path d="M1.27,69.11 L21.71,54.71" data-edge="lo"/>
+
+      <!-- 右蝶板：左蝶板按 x=20.5 镜像 -->
+      <path d="M39.73210132,40.3182628 L19.2941176,54.7126437 L39.73210132,69.1070246 C40.0954063,69.3628987 40.5973501,69.2758087 40.8532242,68.9125037 C40.9487355,68.7768911 41,68.6150737 41,68.4492027 L41,40.9760847 C41,40.5317176 40.6397694,40.171487 40.1954023,40.171487 C40.0295313,40.171487 39.8677139,40.2227514 39.73210132,40.3182628 Z" data-face="front"/>
+      <path d="M39.73,40.32 L19.29,54.71" data-edge="hi"/>
+      <path d="M39.73,69.11 L19.29,54.71" data-edge="lo"/>
+
+      <!-- 阀杆 -->
+      <rect x="19.7" y="30.94" width="1.61" height="22.97" data-face="body"/>
+      <path d="M19.7,30.94 V53.91" data-edge="lo"/>
+
+      <!-- 轴毂：两蝶板交汇处的圆角块 -->
+      <rect x="17.75" y="51.71" width="5.5" height="6" rx="2.75" data-face="cap"/>
+
+      <!-- 表盘：平板圆盘，不用 cap（径向渐变会读成球） -->
+      <ellipse cx="20.5" cy="15.6896552" rx="15.6764706" ry="15.6896552" data-face="front"/>
+      <path d="M4.8235294,15.6896552 A15.6764706,15.6896552 0 0 0 36.1764706,15.6896552" data-edge="hi"/>
+      <path d="M4.8235294,15.6896552 A15.6764706,15.6896552 0 0 1 36.1764706,15.6896552" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 排气阀：蝶阀符号的横置版本，两只蝶板夹一只卧式轴毂（`barrel`）。
+   */
+  water_exhaust_valve: {
+    icon25d: `<svg viewBox="0 0 43 32" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="20.5" cy="28.2" rx="16" ry="1.1" data-shadow="1"/>
+
+      <!-- 左蝶板 -->
+      <path d="M1.26789868,0.892975398 L16.2079754,11.4152049 L15.9775052,11.8493777 C14.7480328,14.1655266 14.8038832,16.952802 16.1251517,19.2178401 L1.26789868,29.6817372 C0.904593702,29.9376113 0.402649898,29.8505214 0.146775818,29.4872164 C0.051264482,29.3516038 2.46280399e-15,29.1897864 0,29.0239154 L0,1.55079726 C-2.51757867e-16,1.10643023 0.36023065,0.746199581 0.804597676,0.746199581 C0.97046867,0.746199581 1.1322861,0.797464063 1.26789868,0.892975398 Z" data-face="front"/>
+      <path d="M1.27,0.89 L16.21,11.42" data-edge="hi"/>
+      <path d="M1.27,29.68 L16.13,19.22" data-edge="lo"/>
+
+      <!-- 右蝶板：按 x=20.5 镜像 -->
+      <path d="M39.73210132,0.892975398 L24.7920246,11.4152049 L25.0224948,11.8493777 C26.2519672,14.1655266 26.1961168,16.952802 24.8748483,19.2178401 L39.73210132,29.6817372 C40.0954063,29.9376113 40.5973501,29.8505214 40.8532242,29.4872164 C40.9487355,29.3516038 41,29.1897864 41,29.0239154 L41,1.55079726 C41,1.10643023 40.6397694,0.746199581 40.1954023,0.746199581 C40.0295313,0.746199581 39.8677139,0.797464063 39.73210132,0.892975398 Z" data-face="front"/>
+      <path d="M39.73,0.89 L24.79,11.42" data-edge="hi"/>
+      <path d="M39.73,29.68 L24.87,19.22" data-edge="lo"/>
+
+      <!-- 卧式轴毂：横置短筒，顶缘受光 -->
+      <rect x="15" y="9.29" width="10.99" height="12" rx="5.5" data-face="barrel"/>
+      <path d="M15,14.79 A5.5,5.5 0 0 1 20.5,9.29 H20.5" data-edge="hi"/>
+      <path d="M20.5,21.29 A5.5,5.5 0 0 0 25.99,15.79" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 二氧化氯发生器：柜体 + 面板 + 支脚 + 侧接管。面板上的显示屏是真正的凹腔——
+   * 柜面与面板都按 evenodd 挖穿，屏面 `hole` 最后压上（底下没有受光面，才不会发亮）。
+   */
+  water_chlorine_dioxide: {
+    icon25d: `<svg viewBox="0 0 75 81" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="36.5" cy="77.9" rx="34" ry="1.1" data-shadow="1"/>
+
+      <!-- 柜体：正面按显示屏位置挖穿 -->
+      <path d="M13,0 H60 C60.55,0 61,0.45 61,1 V75 C61,75.55 60.55,76 60,76 H13 C12.45,76 12,75.55 12,75 V1 C12,0.45 12.45,0 13,0 Z M24.6,10.6 H48.4 V15.4 H24.6 Z" fill-rule="evenodd" data-face="front"/>
+      <path d="M12,0 H61 V1.8 H12 Z" data-face="top"/>
+      <path d="M12,0 H61" data-edge="hi"/>
+      <path d="M12,0 V76" data-edge="hi"/>
+      <path d="M61,0 V76" data-edge="lo"/>
+      <path d="M12,76 H61" data-edge="lo"/>
+      <path d="M12,34 H61" data-edge="lo"/>
+
+      <!-- 面板：同样挖穿显示屏，内缘留一圈凹缝 -->
+      <path d="M21.6,6.6 H51.4 C52,6.6 52.4,7 52.4,7.6 V26.4 C52.4,27 52,27.4 51.4,27.4 H21.6 C21,27.4 20.6,27 20.6,26.4 V7.6 C20.6,7 21,6.6 21.6,6.6 Z M24.6,10.6 H48.4 V15.4 H24.6 Z" fill-rule="evenodd" data-face="front"/>
+      <path d="M20.6,6.6 H52.4" data-edge="hi"/>
+      <path d="M20.6,27.4 H52.4" data-edge="lo"/>
+      <path d="M20.6,6.6 V27.4" data-edge="lo"/>
+      <path d="M52.4,6.6 V27.4" data-edge="lo"/>
+      <rect x="24.6" y="10.6" width="23.8" height="4.8" data-face="hole"/>
+      <rect x="24.6" y="10.6" width="23.8" height="4.8" data-edge="lo"/>
+
+      <!-- 面板上的三条指示窗：原稿的实心短条，压成暗缝 -->
+      <path d="M26.83,23.33 H30.17" data-edge="lo"/>
+      <path d="M34.83,23.33 H38.17" data-edge="lo"/>
+      <path d="M42.83,23.33 H46.17" data-edge="lo"/>
+
+      <!-- 支脚：底部两块实心垫脚 -->
+      <path d="M19,77 H29 V79 H19 Z" data-face="front"/>
+      <path d="M19,79 H29" data-edge="lo"/>
+      <path d="M44,77 H54 V79 H44 Z" data-face="front"/>
+      <path d="M44,79 H54" data-edge="lo"/>
+
+      <!-- 左侧上下接管：上段折弯 + 下段 U 形夹箍 -->
+      <rect x="3.4" y="48.54" width="3.4" height="15.4" rx="1.7" data-face="front"/>
+      <rect x="3.4" y="48.54" width="9.1" height="3.4" rx="1.7" data-face="front"/>
+      <path d="M3.4,48.54 H12.5" data-edge="hi"/>
+      <path d="M3.4,63.94 H6.8" data-edge="lo"/>
+      <rect x="0" y="63.9" width="12.5" height="3" rx="1.5" data-face="front"/>
+      <rect x="0" y="67" width="12.5" height="3" rx="1.5" data-face="front"/>
+      <rect x="0" y="63.9" width="3" height="6.1" data-face="front"/>
+      <path d="M0,63.9 H12.5" data-edge="hi"/>
+      <path d="M0,70 H12.5" data-edge="lo"/>
+
+      <!-- 右侧接管：左侧按 x=36.5 镜像 -->
+      <rect x="68.2" y="48.54" width="3.4" height="15.4" rx="1.7" data-face="front"/>
+      <rect x="63.5" y="48.54" width="9.1" height="3.4" rx="1.7" data-face="front"/>
+      <path d="M60.5,48.54 H69.6" data-edge="hi"/>
+      <path d="M66.2,63.94 H69.6" data-edge="lo"/>
+      <rect x="60.5" y="63.9" width="12.5" height="3" rx="1.5" data-face="front"/>
+      <rect x="60.5" y="67" width="12.5" height="3" rx="1.5" data-face="front"/>
+      <rect x="70" y="63.9" width="3" height="6.1" data-face="front"/>
+      <path d="M60.5,63.9 H73" data-edge="hi"/>
+      <path d="M60.5,70 H73" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
 }
 
 const waterAssetComponents = buildAssetComponents('water', waterAssetIcons, waterAssetMeta).map(
