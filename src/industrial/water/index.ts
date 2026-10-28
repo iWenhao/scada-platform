@@ -1041,10 +1041,11 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <!-- 轴毂：两蝶板交汇处的圆角块 -->
       <rect x="17.75" y="51.71" width="5.5" height="6" rx="2.75" data-face="cap"/>
 
-      <!-- 表盘：平板圆盘，不用 cap（径向渐变会读成球） -->
-      <ellipse cx="20.5" cy="15.6896552" rx="15.6764706" ry="15.6896552" data-face="front"/>
-      <path d="M4.8235294,15.6896552 A15.6764706,15.6896552 0 0 0 36.1764706,15.6896552" data-edge="hi"/>
-      <path d="M4.8235294,15.6896552 A15.6764706,15.6896552 0 0 1 36.1764706,15.6896552" data-edge="lo"/>
+      <!-- 表盘：整圆只铺一张 front 时，横向渐变叠上圆形轮廓会读成一只球；
+           把原稿那圈 2 宽描边当作盘缘（侧向不迎光、压暗），内圈铺正面，
+           明暗在盘缘处断开，才立得住一块有厚度的平板 -->
+      <ellipse cx="20.5" cy="15.6896552" rx="15.6764706" ry="15.6896552" data-face="side"/>
+      <ellipse cx="20.5" cy="15.6896552" rx="13.6764706" ry="13.6896552" data-face="front"/>
     </g>
   </svg>`,
   },
@@ -1066,10 +1067,10 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <path d="M39.73,0.89 L24.79,11.42" data-edge="hi"/>
       <path d="M39.73,29.68 L24.87,19.22" data-edge="lo"/>
 
-      <!-- 卧式轴毂：横置短筒，顶缘受光 -->
-      <rect x="15" y="9.29" width="10.99" height="12" rx="5.5" data-face="barrel"/>
-      <path d="M15,14.79 A5.5,5.5 0 0 1 20.5,9.29 H20.5" data-edge="hi"/>
-      <path d="M20.5,21.29 A5.5,5.5 0 0 0 25.99,15.79" data-edge="lo"/>
+      <!-- 轴毂：原稿那圈 2 宽描边就是毂外环，径向或纵向渐变都会把它读成球；
+           外环压暗、内圈铺正面，和表盘同一套写法 -->
+      <rect x="15" y="9.29" width="10.99" height="12" rx="5.5" data-face="side"/>
+      <rect x="17" y="11.29" width="6.99" height="8" rx="3.5" data-face="front"/>
     </g>
   </svg>`,
   },
