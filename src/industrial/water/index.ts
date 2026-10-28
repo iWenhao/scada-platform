@@ -307,7 +307,7 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <polygon points="1,19.5 20,6.4 39,6.4 58,19.5 58,81 50,92 9,92 1,81" data-face="front"/>
       <polygon points="1,19.5 20,6.4 22,4.9 3,18" data-face="top"/>
       <polygon points="20,6.4 39,6.4 41,4.9 22,4.9" data-face="top"/>
-      <polygon points="39,6.4 58,19.5 60,18 41,4.9" data-face="side"/>
+      <polygon points="39,6.4 58,19.5 60,18 41,4.9" data-face="side"/>>
       <polygon points="58,19.5 60,18 60,79.5 58,81" data-face="side"/>
       <path d="M1 19.5 L20 6.4 L39 6.4" data-edge="hi"/>
       <path d="M39 6.4 L58 19.5 L60 18" data-edge="lo"/>
@@ -1133,6 +1133,351 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <rect x="70" y="63.9" width="3" height="6.1" data-face="front"/>
       <path d="M60.5,63.9 H73" data-edge="hi"/>
       <path d="M60.5,70 H73" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 保安过滤：立式过滤筒。原稿是「圆头筒体 + 两道环缝 + 两条外撇支腿」，
+   * 筒体按立式圆柱铺，顶封头单独提亮，支腿补成实心板垫在筒体后面。
+   */
+  water_security_filter: {
+    icon25d: `<svg viewBox="0 0 74 193" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="36" cy="191.2" rx="33" ry="0.8" data-shadow="1"/>
+
+      <!-- 支腿：原稿只画了外撇的折线，翻面后在折线两端补一条上沿闭合成板；
+           先画，上端被筒体压住 -->
+      <path d="M7.164,166 L1,192 L10.73,192 L25,172.14 Z" data-face="front"/>
+      <path d="M7.164,166 L1,192" data-edge="hi"/>
+      <path d="M10.73,192 L25,172.14" data-edge="lo"/>
+      <path d="M64.836,166 L71,192 L61.27,192 L47,172.14 Z" data-face="front"/>
+      <path d="M64.836,166 L71,192" data-edge="hi"/>
+      <path d="M61.27,192 L47,172.14" data-edge="lo"/>
+
+      <!-- 筒体：立式圆柱，亮带偏左；上下圆头沿用原稿 r20 -->
+      <rect x="1" y="1" width="70" height="171" rx="20" data-face="body"/>
+
+      <!-- 顶封头：环缝（y23.5）以上一段朝上受光，与筒身拉开一档 -->
+      <path d="M1,21 A20,20 0 0 1 21,1 H51 A20,20 0 0 1 71,21 V23.5 H1 Z" data-face="top"/>
+      <path d="M1,21 A20,20 0 0 1 21,1 H51 A20,20 0 0 1 71,21" data-edge="hi"/>
+      <path d="M1,23.5 H71" data-edge="lo"/>
+      <path d="M1,155.5 H71" data-edge="lo"/>
+
+      <!-- 筒身两侧的棱线与底封头轮廓 -->
+      <path d="M1,23.5 V152" data-edge="hi"/>
+      <path d="M71,23.5 V152" data-edge="lo"/>
+      <path d="M1,152 A20,20 0 0 0 21,172 H51 A20,20 0 0 0 71,152" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 转盘过滤器：箱体正面挂一排竖向滤盘。原稿是「切角箱体 + 11 条上下探出的胶囊」，
+   * 胶囊按立式圆筒铺（每条自带一条受光亮棱，否则暗底上筒子两侧都没边），箱体后画。
+   */
+  water_disc_filter: {
+    icon25d: `<svg viewBox="0 0 102 67" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50" cy="65.9" rx="46" ry="0.5" data-shadow="1"/>
+      <!-- 箱体：四角切斜的正面板，顶面沿切角收一条窄带 -->
+      <polygon points="4.013,9 96.037,9 100,12.554 100,53.449 96.017,57 4.019,57 0,53.47 0,12.583" data-face="front"/>
+      <polygon points="1.213,11.5 4.013,9 96.037,9 98.787,11.5" data-face="top"/>
+      <path d="M0,12.583 L4.013,9 H96.037 L100,12.554" data-edge="hi"/>
+      <path d="M0,53.47 L4.019,57 H96.017 L100,53.449" data-edge="lo" stroke-width="1.2"/>
+
+      <!-- 11 条滤盘：胶囊轮廓即圆筒，亮棱贴左侧 -->
+      <rect x="6.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M6.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="14.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M14.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="22.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M22.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="30.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M30.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="38.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M38.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="46.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M46.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="54.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M54.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="62.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M62.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="70.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M70.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="78.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M78.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="86.6" y="0.6" width="6.8" height="65.8" rx="3.4" data-face="body"/>
+      <path d="M86.6,4 V63" data-edge="hi" stroke-linecap="butt"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 絮团分散机：卧式机组。左侧短轴与右侧横梁按卧管铺，三级同心叠片同为正对面，
+   * 靠每级上缘一条亮棱、下缘一条暗缝分层（同色面互叠时只有靠棱线才分得开）。
+   */
+  water_floc_disperser: {
+    icon25d: `<svg viewBox="0 0 104 93" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="50.75" cy="90.4" rx="48" ry="0.6" data-shadow="1"/>
+      <!-- 底座板 -->
+      <rect x="21.333" y="83" width="58" height="8" rx="4" data-face="front"/>
+      <rect x="21.333" y="83" width="58" height="2.4" rx="1.2" data-face="top"/>
+      <path d="M21.333,83 H79.333" data-edge="hi"/>
+      <path d="M21.333,91 H79.333" data-edge="lo"/>
+
+      <!-- 底箱与立柱：先画，被机壳压住上半截 -->
+      <polygon points="30.333,65 53.5,65 53.5,74 30.333,74" data-face="front"/>
+      <path d="M30.333,74 H53.5" data-edge="lo"/>
+      <rect x="30.333" y="74" width="40" height="9" data-face="front"/>
+      <rect x="30.333" y="74" width="40" height="2.2" data-face="top"/>
+      <path d="M30.333,74 H70.333" data-edge="hi"/>
+      <path d="M30.333,83 H70.333" data-edge="lo"/>
+
+      <!-- 机壳：左端 r8 圆角沿用原稿 -->
+      <path d="M28.791,8.874 L53.5,9 V65 L28.709,64.874 C24.307,64.851 20.75,61.276 20.75,56.874 V16.874 C20.75,12.456 24.332,8.874 28.75,8.874 Z" data-face="front"/>
+      <path d="M20.75,16.874 C20.75,12.456 24.332,8.874 28.75,8.874 L53.5,9" data-edge="hi"/>
+      <path d="M20.75,16.874 V56.874" data-edge="hi"/>
+      <path d="M20.75,56.874 C20.75,61.276 24.307,64.851 28.709,64.874 L53.5,65" data-edge="lo"/>
+      <path d="M53.5,9 V65" data-edge="lo"/>
+
+      <!-- 三级叠片：由大到小向后叠，正面统一，靠棱线分层 -->
+      <path d="M57.833,0 H78.75 V73.667 H57.833 C55.624,73.667 53.833,71.876 53.833,69.667 V4 C53.833,1.791 55.624,0 57.833,0 Z" data-face="front"/>
+      <path d="M57.833,0 H78.75" data-edge="hi"/>
+      <path d="M53.833,4 V69.667" data-edge="lo"/>
+      <path d="M57.474,11.974 L78.75,11.833 V61.833 L57.526,61.973 C55.317,61.988 53.515,60.209 53.5,58 V15.974 C53.5,13.775 55.275,11.988 57.474,11.974 Z" data-face="front"/>
+      <path d="M57.474,11.974 L78.75,11.833" data-edge="hi"/>
+      <path d="M57.526,61.973 L78.75,61.833" data-edge="lo"/>
+      <path d="M57.833,24.833 H78.75 V48.833 H57.833 C55.624,48.833 53.833,47.042 53.833,44.833 V28.833 C53.833,26.624 55.624,24.833 57.833,24.833 Z" data-face="front"/>
+      <path d="M57.833,24.833 H78.75" data-edge="hi"/>
+      <path d="M57.833,48.833 H78.75" data-edge="lo"/>
+
+      <!-- 端板：叠片与立柱之间的竖板 -->
+      <rect x="78.75" y="12.833" width="14.083" height="48" data-face="front"/>
+      <rect x="78.75" y="12.833" width="14.083" height="2.4" data-face="top"/>
+      <path d="M78.75,12.833 H92.833" data-edge="hi"/>
+      <path d="M78.75,60.833 H92.833" data-edge="lo"/>
+
+      <!-- 横梁与左端短轴：卧管，顶缘受光 -->
+      <polygon points="79,32.833 92,32.833 92,40.833 79,40.833" data-face="barrel"/>
+      <path d="M79,32.833 H92" data-edge="hi"/>
+      <path d="M79,40.833 H92" data-edge="lo"/>
+      <path d="M4,32.833 H20.25 V40.833 H4 C1.791,40.833 0,39.042 0,36.833 C0,34.624 1.791,32.833 4,32.833 Z" data-face="barrel"/>
+      <path d="M4,32.833 H20.25" data-edge="hi"/>
+      <path d="M1.2,40.833 H20.25" data-edge="lo"/>
+
+      <!-- 右端立柱：竖置短柱 -->
+      <rect x="92.833" y="2.167" width="8.667" height="69.333" rx="2" data-face="body"/>
+      <path d="M92.833,6 V68" data-edge="hi"/>
+      <path d="M101.5,6 V68" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 进料斜槽：斜槽把物料送进下方渠体。原稿全是 scale(-1,1) 镜像，且每件的镜像中心都在
+   * 自身中线上，镜像等于没翻——所以直接写绝对坐标。渠内两级台阶按「内框只留暗缝」处理。
+   */
+  water_inclined_channel: {
+    icon25d: `<svg viewBox="0 0 150 86" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="73.4" cy="82.4" rx="70" ry="0.6" data-shadow="1"/>
+      <!-- 渠体：r8 圆角槽箱 -->
+      <rect x="11.583" y="40.118" width="58" height="42.882" rx="8" data-face="front"/>
+      <path d="M13.89,42.5 L19.583,40.118 H61.583 L67.277,42.5 Z" data-face="top"/>
+      <path d="M11.583,48.118 A8,8 0 0 1 19.583,40.118 H61.583 A8,8 0 0 1 69.583,48.118" data-edge="hi"/>
+      <path d="M11.583,74.999 A8,8 0 0 0 19.583,83 H61.583 A8,8 0 0 0 69.583,74.999" data-edge="lo"/>
+      <path d="M11.583,48.118 V74.999" data-edge="hi"/>
+      <path d="M69.583,48.118 V74.999" data-edge="lo"/>
+
+      <!-- 渠内隔墙（侧面）与两级台阶：内框只留暗缝 -->
+      <rect x="22.583" y="40.118" width="17" height="42.882" data-face="side"/>
+      <rect x="22.583" y="47.559" width="17" height="28" data-edge="lo" stroke-width="2"/>
+      <rect x="22.583" y="55.559" width="17" height="12" data-edge="lo" stroke-width="2"/>
+
+      <!-- 渠右壁外的圆角短箱 -->
+      <path d="M71.583,49.559 H77.583 V73.559 H71.583 C70.479,73.559 69.583,72.663 69.583,71.559 V51.559 C69.583,50.454 70.479,49.559 71.583,49.559 Z" data-face="front"/>
+      <path d="M69.583,51.559 C69.583,50.454 70.479,49.559 71.583,49.559 H77.583" data-edge="hi"/>
+      <path d="M69.583,71.559 C69.583,72.663 70.479,73.559 71.583,73.559 H77.583" data-edge="lo"/>
+
+      <!-- 斜撑与渠壁端块（原稿实心件） -->
+      <polygon points="84.583,57.559 69.833,57.726 69.833,65.726 84.583,65.559" data-face="front"/>
+      <path d="M84.583,57.559 L69.833,57.726" data-edge="hi"/>
+      <path d="M84.583,65.559 L69.833,65.726" data-edge="lo"/>
+      <rect x="6.498" y="57.559" width="5" height="8" data-face="front"/>
+      <path d="M6.498,57.559 H11.498" data-edge="hi"/>
+      <path d="M6.498,65.559 H11.498" data-edge="lo"/>
+
+      <!-- 渠左侧短立管 -->
+      <rect x="0" y="50" width="6" height="24" rx="2" data-face="body"/>
+      <path d="M0,52 V72" data-edge="hi"/>
+      <path d="M6,52 V72" data-edge="lo"/>
+
+      <!-- 进料斜槽：最后画，压住渠体右壁 -->
+      <polygon points="67.333,0 146.826,0 123.446,83 90.714,83" data-face="front"/>
+      <rect x="67.333" y="0" width="79.493" height="2.6" data-face="top"/>
+      <path d="M67.333,0 H146.826" data-edge="hi"/>
+      <path d="M67.333,0 L90.714,83" data-edge="hi"/>
+      <path d="M146.826,0 L123.446,83" data-edge="lo"/>
+      <path d="M90.714,83 H123.446" data-edge="lo"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 纳滤：膜组机架。四排横卧膜管铺 barrel，四根立撑与两端立轨铺 body；
+   * 立撑画在膜管之后——实机上箍带压在管子上，原稿的实心竖条也读作前置。
+   */
+  water_nanofiltration: {
+    icon25d: `<svg viewBox="0 0 295 164" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="146.5" cy="161.4" rx="140" ry="0.6" data-shadow="1"/>
+      <!-- 机架：r8 圆角外框 -->
+      <rect x="18" y="10" width="257" height="142" rx="8" data-face="front"/>
+      <path d="M18,18 A8,8 0 0 1 26,10 H267 A8,8 0 0 1 275,18" data-edge="hi"/>
+      <path d="M18,18 V144" data-edge="hi"/>
+      <path d="M275,18 V144" data-edge="lo"/>
+      <path d="M18,144 A8,8 0 0 0 26,152 H267 A8,8 0 0 0 275,144" data-edge="lo"/>
+
+      <!-- 四排膜管：横卧圆管，顶缘受光 -->
+      <rect x="26" y="31" width="241" height="13" rx="6.5" data-face="barrel"/>
+      <path d="M32.5,31 H260.5" data-edge="hi"/>
+      <path d="M32.5,44 H260.5" data-edge="lo"/>
+      <rect x="26" y="61" width="241" height="13" rx="6.5" data-face="barrel"/>
+      <path d="M32.5,61 H260.5" data-edge="hi"/>
+      <path d="M32.5,74 H260.5" data-edge="lo"/>
+      <rect x="26" y="90" width="241" height="13" rx="6.5" data-face="barrel"/>
+      <path d="M32.5,90 H260.5" data-edge="hi"/>
+      <path d="M32.5,103 H260.5" data-edge="lo"/>
+      <rect x="26" y="120" width="241" height="13" rx="6.5" data-face="barrel"/>
+      <path d="M32.5,120 H260.5" data-edge="hi"/>
+      <path d="M32.5,133 H260.5" data-edge="lo"/>
+
+      <!-- 排间连接件 -->
+      <rect x="63" y="50" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="113" y="50" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="63" y="80" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="113" y="80" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="63" y="109" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="113" y="109" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="163" y="50" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="163" y="80" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="163" y="109" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="213" y="50" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="213" y="80" width="18" height="4" rx="2" data-face="front"/>
+      <rect x="213" y="109" width="18" height="4" rx="2" data-face="front"/>
+
+      <!-- 四根立撑：竖置短柱，画在膜管之后 -->
+      <rect x="69" y="19" width="6" height="124" rx="3" data-face="body"/>
+      <path d="M69,23 V139" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="119" y="19" width="6" height="124" rx="3" data-face="body"/>
+      <path d="M119,23 V139" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="169" y="19" width="6" height="124" rx="3" data-face="body"/>
+      <path d="M169,23 V139" data-edge="hi" stroke-linecap="butt"/>
+      <rect x="219" y="19" width="6" height="124" rx="3" data-face="body"/>
+      <path d="M219,23 V139" data-edge="hi" stroke-linecap="butt"/>
+
+      <!-- 两端立轨 -->
+      <rect x="0" y="0" width="6" height="162" rx="3" data-face="body"/>
+      <path d="M0,3 V159" data-edge="hi" stroke-linecap="butt"/>
+      <path d="M6,3 V159" data-edge="lo" stroke-linecap="butt"/>
+      <rect x="287" y="0" width="6" height="162" rx="3" data-face="body"/>
+      <path d="M287,3 V159" data-edge="hi" stroke-linecap="butt"/>
+      <path d="M293,3 V159" data-edge="lo" stroke-linecap="butt"/>
+
+      <!-- 立轨与机架之间的短接管 -->
+      <rect x="5" y="37" width="20" height="2" data-face="barrel"/>
+      <rect x="267" y="36.5" width="20" height="2" data-face="barrel"/>
+      <rect x="5" y="66.5" width="20" height="2" data-face="barrel"/>
+      <rect x="267" y="66.5" width="20" height="2" data-face="barrel"/>
+      <rect x="5" y="95.5" width="20" height="2" data-face="barrel"/>
+      <rect x="267" y="95.5" width="20" height="2" data-face="barrel"/>
+      <rect x="5" y="125.5" width="20" height="2" data-face="barrel"/>
+      <rect x="267" y="126" width="20" height="2" data-face="barrel"/>
+    </g>
+  </svg>`,
+  },
+  /**
+   * 空压机：卧式储气罐 + 顶部三台风机。罐体铺 barrel，三台风机各自「正面盘 + 叶片侧倾面 +
+   * 轴帽 + 暗圈」，脚板按原稿空框留内缝。叶片沿用原稿多边形（旋转由 transform 承担），
+   * 只换填色角色，避免重算 24 条旋转坐标。
+   */
+  water_air_compressor: {
+    icon25d: `<svg viewBox="0 0 165 106" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="82.5" cy="104.4" rx="78" ry="0.6" data-shadow="1"/>
+      <circle cx="53.4314181" cy="10.9375" r="10.4721" data-face="side"/>
+      <polygon points="53.9473813 0 53.9473813 6.51595745 52.9971942 6.51595745 52.9971942 0" data-face="front"/>
+      <polygon transform="translate(58.949295, 5.597325) rotate(45.000000) translate(-58.949295, -5.597325) " points="59.3994826 2.32005193 59.3994826 8.87459816 58.4492954 8.87459816 58.4492954 2.32005193" data-face="front"/>
+      <polygon transform="translate(61.073785, 11.193669) rotate(90.000000) translate(-61.073785, -11.193669) " points="61.5239722 7.93569026 61.5239722 14.4516477 60.573785 14.4516477 60.573785 7.93569026" data-face="front"/>
+      <polygon transform="translate(58.914072, 16.310847) rotate(135.000000) translate(-58.914072, -16.310847) " points="59.3642596 13.0335739 59.3642596 19.5881202 58.4140724 19.5881202 58.4140724 13.0335739" data-face="front"/>
+      <polygon transform="translate(53.447381, 18.617021) rotate(180.000000) translate(-53.447381, -18.617021) " points="53.8975685 15.3590426 53.8975685 21.875 52.9473813 21.875 52.9473813 15.3590426" data-face="front"/>
+      <polygon transform="translate(47.978004, 16.277675) rotate(225.000000) translate(-47.978004, -16.277675) " points="48.4281911 13.0004018 48.4281911 19.5549481 47.4780039 19.5549481 47.4780039 13.0004018" data-face="front"/>
+      <polygon transform="translate(45.870790, 11.146757) rotate(270.000000) translate(-45.870790, -11.146757) " points="46.3209776 7.88877783 46.3209776 14.4047353 45.3707905 14.4047353 45.3707905 7.88877783" data-face="front"/>
+      <polygon transform="translate(48.013227, 5.564153) rotate(315.000000) translate(-48.013227, -5.564153) " points="48.4634141 2.28687983 48.4634141 8.84142607 47.5132269 8.84142607 47.5132269 2.28687983" data-face="front"/>
+      <ellipse cx="53.4314181" cy="10.9375" rx="2.3754679" ry="2.32712766" data-face="cap"/>
+      <ellipse cx="53.4314181" cy="10.9375" rx="2.3754679" ry="2.32712766" data-edge="lo" stroke-width="1.6"/>
+      <circle cx="82.9347294" cy="10.9375" r="10.4721" data-face="side"/>
+      <polygon points="83.4506926 0 83.4506926 6.51595745 82.5005054 6.51595745 82.5005054 0" data-face="front"/>
+      <polygon transform="translate(88.452607, 5.597325) rotate(45.000000) translate(-88.452607, -5.597325) " points="88.9027939 2.32005193 88.9027939 8.87459816 87.9526067 8.87459816 87.9526067 2.32005193" data-face="front"/>
+      <polygon transform="translate(90.577096, 11.193669) rotate(90.000000) translate(-90.577096, -11.193669) " points="91.0272834 7.93569026 91.0272834 14.4516477 90.0770963 14.4516477 90.0770963 7.93569026" data-face="front"/>
+      <polygon transform="translate(88.417384, 16.310847) rotate(135.000000) translate(-88.417384, -16.310847) " points="88.8675709 13.0335739 88.8675709 19.5881202 87.9173837 19.5881202 87.9173837 13.0335739" data-face="front"/>
+      <polygon transform="translate(82.950693, 18.617021) rotate(180.000000) translate(-82.950693, -18.617021) " points="83.4008797 15.3590426 83.4008797 21.875 82.4506926 21.875 82.4506926 15.3590426" data-face="front"/>
+      <polygon transform="translate(77.481315, 16.277675) rotate(225.000000) translate(-77.481315, -16.277675) " points="77.9315023 13.0004018 77.9315023 19.5549481 76.9813152 19.5549481 76.9813152 13.0004018" data-face="front"/>
+      <polygon transform="translate(75.374102, 11.146757) rotate(270.000000) translate(-75.374102, -11.146757) " points="75.8242889 7.88877783 75.8242889 14.4047353 74.8741017 14.4047353 74.8741017 7.88877783" data-face="front"/>
+      <polygon transform="translate(77.516538, 5.564153) rotate(315.000000) translate(-77.516538, -5.564153) " points="77.9667253 2.28687983 77.9667253 8.84142607 77.0165382 8.84142607 77.0165382 2.28687983" data-face="front"/>
+      <ellipse cx="82.9347294" cy="10.9375" rx="2.3754679" ry="2.32712766" data-face="cap"/>
+      <ellipse cx="82.9347294" cy="10.9375" rx="2.3754679" ry="2.32712766" data-edge="lo" stroke-width="1.6"/>
+      <circle cx="112.438041" cy="10.9375" r="10.4721" data-face="side"/>
+      <polygon points="112.954004 0 112.954004 6.51595745 112.003817 6.51595745 112.003817 0" data-face="front"/>
+      <polygon transform="translate(117.955918, 5.597325) rotate(45.000000) translate(-117.955918, -5.597325) " points="118.406105 2.32005193 118.406105 8.87459816 117.455918 8.87459816 117.455918 2.32005193" data-face="front"/>
+      <polygon transform="translate(120.080408, 11.193669) rotate(90.000000) translate(-120.080408, -11.193669) " points="120.530595 7.93569026 120.530595 14.4516477 119.580408 14.4516477 119.580408 7.93569026" data-face="front"/>
+      <polygon transform="translate(117.920695, 16.310847) rotate(135.000000) translate(-117.920695, -16.310847) " points="118.370882 13.0335739 118.370882 19.5881202 117.420695 19.5881202 117.420695 13.0335739" data-face="front"/>
+      <polygon transform="translate(112.454004, 18.617021) rotate(180.000000) translate(-112.454004, -18.617021) " points="112.904191 15.3590426 112.904191 21.875 111.954004 21.875 111.954004 15.3590426" data-face="front"/>
+      <polygon transform="translate(106.984626, 16.277675) rotate(225.000000) translate(-106.984626, -16.277675) " points="107.434814 13.0004018 107.434814 19.5549481 106.484626 19.5549481 106.484626 13.0004018" data-face="front"/>
+      <polygon transform="translate(104.877413, 11.146757) rotate(270.000000) translate(-104.877413, -11.146757) " points="105.3276 7.88877783 105.3276 14.4047353 104.377413 14.4047353 104.377413 7.88877783" data-face="front"/>
+      <polygon transform="translate(107.019849, 5.564153) rotate(315.000000) translate(-107.019849, -5.564153) " points="107.470037 2.28687983 107.470037 8.84142607 106.519849 8.84142607 106.519849 2.28687983" data-face="front"/>
+      <ellipse cx="112.438041" cy="10.9375" rx="2.3754679" ry="2.32712766" data-face="cap"/>
+      <ellipse cx="112.438041" cy="10.9375" rx="2.3754679" ry="2.32712766" data-edge="lo" stroke-width="1.6"/>
+
+      <!-- 罐体：横卧胶囊，顶亮底暗；原稿两条竖实条是端头环缝 -->
+      <path d="M137.151899,30.625 C152.53198,30.625 165,42.9891195 165,58.2410338 L165,58.7902162 C165,74.0421305 152.53198,86.40625 137.151899,86.40625 L27.8481013,86.40625 C12.4680196,86.40625 0,74.0421305 0,58.7902162 L0,58.2410338 C0,42.9891195 12.4680196,30.625 27.8481013,30.625 L137.151899,30.625 Z" data-face="barrel"/>
+      <path d="M27.848,30.625 H137.152" data-edge="hi"/>
+      <path d="M27.848,86.406 H137.152" data-edge="lo"/>
+      <rect x="25.132" y="30.625" width="2.186" height="53.594" data-edge="lo" stroke-width="2"/>
+      <rect x="136.589" y="30.625" width="2.186" height="53.594" data-edge="lo" stroke-width="2"/>
+
+      <!-- 罐面附件：两只表口用轴帽 + 同参暗圈，手柄小件铺正面 -->
+      <path d="M84.842,41.069 C86.343,41.069 87.672,41.81 88.483,42.946 C90.158,43.42 91.292,44.106 92.1,45.075 C92.895,46.028 93.374,47.255 93.374,48.594 C93.374,50.111 92.759,51.484 91.766,52.479 C90.773,53.473 89.401,54.088 87.886,54.088 C86.548,54.088 85.323,53.609 84.371,52.813 C83.403,52.004 82.717,50.868 82.485,49.574 C81.108,48.381 80.368,47.05 80.368,45.547 C80.368,44.31 80.869,43.191 81.679,42.38 C82.488,41.57 83.606,41.069 84.842,41.069 Z" data-face="front"/>
+      <ellipse cx="110.364" cy="47.031" rx="3.770861" ry="3.775" data-face="cap"/>
+      <ellipse cx="110.364" cy="47.031" rx="3.770861" ry="3.775" data-edge="lo" stroke-width="1.4"/>
+      <ellipse cx="57.914" cy="52.5" rx="4.863576" ry="4.86875" data-face="cap"/>
+      <ellipse cx="57.914" cy="52.5" rx="4.863576" ry="4.86875" data-edge="lo" stroke-width="1.4"/>
+
+      <!-- 支腿：六根竖柱 + 三块脚板（原稿脚板是空框，内框留暗缝） -->
+      <rect x="42.6159" y="85.3125" width="2.185" height="13.125" data-face="body"/>
+      <path d="M42.6159,86 V98" data-edge="hi" stroke-width="1.2" stroke-linecap="butt"/>
+      <rect x="49.1722" y="85.3125" width="2.185" height="13.125" data-face="body"/>
+      <path d="M49.1722,86 V98" data-edge="hi" stroke-width="1.2" stroke-linecap="butt"/>
+      <rect x="78.6755" y="85.3125" width="2.185" height="13.125" data-face="body"/>
+      <path d="M78.6755,86 V98" data-edge="hi" stroke-width="1.2" stroke-linecap="butt"/>
+      <rect x="84.1391" y="85.3125" width="2.185" height="13.125" data-face="body"/>
+      <path d="M84.1391,86 V98" data-edge="hi" stroke-width="1.2" stroke-linecap="butt"/>
+      <rect x="113.6424" y="85.3125" width="2.185" height="13.125" data-face="body"/>
+      <path d="M113.6424,86 V98" data-edge="hi" stroke-width="1.2" stroke-linecap="butt"/>
+      <rect x="120.1987" y="85.3125" width="2.185" height="13.125" data-face="body"/>
+      <path d="M120.1987,86 V98" data-edge="hi" stroke-width="1.2" stroke-linecap="butt"/>
+      <rect x="38.245" y="96.25" width="18.576" height="8.75" data-face="front"/>
+      <path d="M38.245,96.25 H56.821" data-edge="hi" stroke-width="1.6"/>
+      <rect x="40.4674" y="98.591" width="14.129" height="4.068" data-edge="lo" stroke-width="1.2"/>
+      <rect x="73.212" y="96.25" width="18.576" height="8.75" data-face="front"/>
+      <path d="M73.212,96.25 H91.788" data-edge="hi" stroke-width="1.6"/>
+      <rect x="75.4348" y="98.591" width="14.129" height="4.068" data-edge="lo" stroke-width="1.2"/>
+      <rect x="109.2715" y="96.25" width="18.576" height="8.75" data-face="front"/>
+      <path d="M109.2715,96.25 H127.847" data-edge="hi" stroke-width="1.6"/>
+      <rect x="111.4949" y="98.591" width="14.129" height="4.068" data-edge="lo" stroke-width="1.2"/>
+
+      <!-- 顶部支座：画在罐体之上 -->
+      <rect x="34.967" y="26.25" width="95.066" height="5.469" data-face="front"/>
+      <rect x="34.967" y="26.25" width="95.066" height="2.2" data-face="top"/>
+      <path d="M34.967,26.25 H130.033" data-edge="hi"/>
+      <path d="M34.967,31.719 H130.033" data-edge="lo"/>
     </g>
   </svg>`,
   },
