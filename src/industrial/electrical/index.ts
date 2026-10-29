@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from '@/types/scada'
-import { buildAssetComponents } from '../assetComponents'
+import { buildAssetComponents, withIllustrations } from '../assetComponents'
 import {
   electricalAssetIcons,
   electricalAssetMeta,
@@ -468,21 +468,10 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   },
 }
 
-const electricalAssetComponents = buildAssetComponents(
-  'electrical',
-  electricalAssetIcons,
-  electricalAssetMeta,
-).map((def) => {
-  const art = illustratedAssets[def.type]
-  if (!art) return def
-  const name = art.name ?? def.name
-  return {
-    ...def,
-    name,
-    icon25d: art.icon25d,
-    properties: def.properties.map((p) => (p.key === 'name' ? { ...p, default: name } : p)),
-  }
-})
+const electricalAssetComponents = withIllustrations(
+  buildAssetComponents('electrical', electricalAssetIcons, electricalAssetMeta),
+  illustratedAssets,
+)
 
 export const electricalComponents: ComponentDefinition[] = [
   MotorDefinition,

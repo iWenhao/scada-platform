@@ -1,5 +1,5 @@
 import type { ComponentDefinition } from '@/types/scada'
-import { buildAssetComponents } from '../assetComponents'
+import { buildAssetComponents, withIllustrations } from '../assetComponents'
 import { waterAssetIcons, waterAssetMeta } from './assets.generated'
 
 /** 沉淀池 */
@@ -1481,20 +1481,84 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     </g>
   </svg>`,
   },
+  /**
+   * 进出水渠：横剖的埋地渠，原稿是「剖面加填充线」的画法——混凝土按剖面画成线框，
+   * 用斜线表示被切断的材料。翻成面基时按剖面的读法处理：
+   *
+   * - 混凝土（铺板 + 两侧渠壁 + 底板）是**同一张剖切面**，一整块 evenodd `front` 挖掉
+   *   中间渠腔即可；分成几块各自成面会读成相框（同 thermal_water_tank 的教训）。
+   * - 渠腔是真挖穿的洞，先铺一层 `hole` 压暗，读成竖井而不是一块亮板。
+   * - 原稿 39 条斜线是材料符号，不是棱线：留成 0.9 宽的 `lo` 细缝（1.4 会把 5.5 宽的
+   *   渠壁填黑）。
+   * - 顶板给人孔井圈：原稿那条实心块与方框合成一个矮台，「台面 top + 立面 front」，
+   *   框线位置留两道 `lo` 缝。
+   */
+  water_inlet_channel: {
+    icon25d: `<svg viewBox="0 0 52 116" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(0,1)" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="18.0926104" y="4.0926104" width="16" height="104" data-face="hole"/>
+
+      <path d="M0,4 H52 V10.0926104 H39.4968416 V114.09261 H12.5031584 V10.0926104 H0 Z M18.0926104,4.0926104 H34.0926104 V108.09261 H18.0926104 Z" fill-rule="evenodd" data-face="front"/>
+      <path d="M0,4 H18.0926104 V5.6 H0 Z M34.0926104,4 H52 V5.6 H34.0926104 Z" data-face="top"/>
+
+      <path d="M0,4 H18.0926104 M34.0926104,4 H52" data-edge="hi"/>
+      <path d="M0,10.0926104 H12.5031584 M39.4968416,10.0926104 H52" data-edge="lo" stroke-width="1.2"/>
+      <path d="M12.5031584,10.0926104 V114.09261" data-edge="hi"/>
+      <path d="M39.4968416,10.0926104 V114.09261" data-edge="lo" stroke-width="1.2"/>
+      <path d="M12.5031584,114.09261 H39.4968416" data-edge="lo" stroke-width="1.2"/>
+      <path d="M18.0926104,108.09261 H34.0926104" data-edge="lo" stroke-width="1.2"/>
+      <path d="M18.0926104,4.0926104 V108.09261 M34.0926104,4.0926104 V108.09261" data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+
+      <line x1="6.77162507" y1="10" x2="1" y2="4.09261036" transform="translate(3.885813, 7.046305) scale(-1, 1) translate(-3.885813, -7.046305) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="12.3333333" y1="10" x2="6.77162507" y2="4" transform="translate(9.552479, 7.000000) scale(-1, 1) translate(-9.552479, -7.000000) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="17.89006" y1="10" x2="12.4382917" y2="4.09261036" transform="translate(15.164176, 7.046305) scale(-1, 1) translate(-15.164176, -7.046305) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="18.0857897" x2="12.3333333" y2="12.0926104" transform="translate(15.166667, 15.089200) scale(-1, 1) translate(-15.166667, -15.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="50.0857897" x2="12.3333333" y2="44.0926104" transform="translate(15.166667, 47.089200) scale(-1, 1) translate(-15.166667, -47.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="82.0857897" x2="12.3333333" y2="76.0926104" transform="translate(15.166667, 79.089200) scale(-1, 1) translate(-15.166667, -79.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="34.0857897" x2="12.3333333" y2="28.0926104" transform="translate(15.166667, 31.089200) scale(-1, 1) translate(-15.166667, -31.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="66.0857897" x2="12.3333333" y2="60.0926104" transform="translate(15.166667, 63.089200) scale(-1, 1) translate(-15.166667, -63.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="98.0857897" x2="12.3333333" y2="92.0926104" transform="translate(15.166667, 95.089200) scale(-1, 1) translate(-15.166667, -95.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="26.0857897" x2="12.3333333" y2="20.0926104" transform="translate(15.166667, 23.089200) scale(-1, 1) translate(-15.166667, -23.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="58.0857897" x2="12.3333333" y2="52.0926104" transform="translate(15.166667, 55.089200) scale(-1, 1) translate(-15.166667, -55.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="90.0857897" x2="12.3333333" y2="84.0926104" transform="translate(15.166667, 87.089200) scale(-1, 1) translate(-15.166667, -87.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="42.0857897" x2="12.3333333" y2="36.0926104" transform="translate(15.166667, 39.089200) scale(-1, 1) translate(-15.166667, -39.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="74.0857897" x2="12.3333333" y2="68.0926104" transform="translate(15.166667, 71.089200) scale(-1, 1) translate(-15.166667, -71.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="106.08579" x2="12.3333333" y2="100.09261" transform="translate(15.166667, 103.089200) scale(-1, 1) translate(-15.166667, -103.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="18" y1="114.08579" x2="13" y2="108.09261" transform="translate(15.500000, 111.089200) scale(-1, 1) translate(-15.500000, -111.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="24.0926104" y1="114.08579" x2="19.0926104" y2="108.09261" transform="translate(21.592610, 111.089200) scale(-1, 1) translate(-21.592610, -111.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="31.0926104" y1="114.08579" x2="26.0926104" y2="108.09261" transform="translate(28.592610, 111.089200) scale(-1, 1) translate(-28.592610, -111.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="104.08579" x2="34.1669392" y2="97.6990967" transform="translate(36.885745, 100.892443) scale(-1, 1) translate(-36.885745, -100.892443) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="73.0857897" x2="34.1669392" y2="67.0926104" transform="translate(36.885745, 70.089200) scale(-1, 1) translate(-36.885745, -70.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="42.0857897" x2="34.1669392" y2="36.0926104" transform="translate(36.885745, 39.089200) scale(-1, 1) translate(-36.885745, -39.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="88.0857897" x2="34.1669392" y2="82.0926104" transform="translate(36.885745, 85.089200) scale(-1, 1) translate(-36.885745, -85.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="57.0857897" x2="34.1669392" y2="51.0926104" transform="translate(36.885745, 54.089200) scale(-1, 1) translate(-36.885745, -54.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="27.0857897" x2="34.1669392" y2="21.0926104" transform="translate(36.885745, 24.089200) scale(-1, 1) translate(-36.885745, -24.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="96.0857897" x2="34.1669392" y2="90.0857897" transform="translate(36.885745, 93.085790) scale(-1, 1) translate(-36.885745, -93.085790) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="65.0857897" x2="34.1669392" y2="59.0926104" transform="translate(36.885745, 62.089200) scale(-1, 1) translate(-36.885745, -62.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="34.0857897" x2="34.1669392" y2="28.0926104" transform="translate(36.885745, 31.089200) scale(-1, 1) translate(-36.885745, -31.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="81.0857897" x2="34.1669392" y2="75.0926104" transform="translate(36.885745, 78.089200) scale(-1, 1) translate(-36.885745, -78.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="50.0857897" x2="34.1669392" y2="44.0926104" transform="translate(36.885745, 47.089200) scale(-1, 1) translate(-36.885745, -47.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="19.0857897" x2="34.1669392" y2="13.0926104" transform="translate(36.885745, 16.089200) scale(-1, 1) translate(-36.885745, -16.089200) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="44.6549986" y1="9.92489433" x2="39.4669481" y2="4.09261036" transform="translate(42.060973, 7.008752) scale(-1, 1) translate(-42.060973, -7.008752) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="50.0926104" y1="9.92489433" x2="44.9045599" y2="4.09261036" transform="translate(47.498585, 7.008752) scale(-1, 1) translate(-47.498585, -7.008752) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.2173869" y1="9.92489433" x2="34.1669392" y2="4.09261036" transform="translate(36.692163, 7.008752) scale(-1, 1) translate(-36.692163, -7.008752) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+      <line x1="39.604551" y1="114.09261" x2="32.6187944" y2="105.601532" transform="translate(36.111673, 109.847071) scale(-1, 1) translate(-36.111673, -109.847071) " data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+
+      <rect x="22" y="1.4" width="14" height="2.6" data-face="front"/>
+      <rect x="22" y="0" width="14" height="1.4" data-face="top"/>
+      <path d="M22,0 H36" data-edge="hi"/>
+      <path d="M22,4 H36" data-edge="lo" stroke-width="1.2"/>
+      <path d="M26,1.4 V4 M30,1.4 V4" data-edge="lo" stroke-width="0.8" stroke-linecap="butt"/>
+
+      <ellipse cx="26" cy="113.4" rx="18" ry="0.55" data-shadow="1"/>
+    </g>
+  </svg>`,
+  },
 }
 
-const waterAssetComponents = buildAssetComponents('water', waterAssetIcons, waterAssetMeta).map(
-  (def) => {
-    const art = illustratedAssets[def.type]
-    if (!art) return def
-    const name = art.name ?? def.name
-    return {
-      ...def,
-      name,
-      icon25d: art.icon25d,
-      properties: def.properties.map((p) => (p.key === 'name' ? { ...p, default: name } : p)),
-    }
-  },
+const waterAssetComponents = withIllustrations(
+  buildAssetComponents('water', waterAssetIcons, waterAssetMeta),
+  illustratedAssets,
 )
 
 export const waterComponents: ComponentDefinition[] = [

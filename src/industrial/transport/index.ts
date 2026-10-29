@@ -1,4 +1,4 @@
-import { buildAssetComponents } from '../assetComponents'
+import { buildAssetComponents, withIllustrations } from '../assetComponents'
 import { transportIcons, transportMeta } from './icons.generated'
 
 /**
@@ -201,20 +201,9 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   },
 }
 
-const transportAssetComponents = buildAssetComponents(
-  'transport',
-  transportIcons,
-  transportMeta,
-).map((def) => {
-  const art = illustratedAssets[def.type]
-  if (!art) return def
-  const name = art.name ?? def.name
-  return {
-    ...def,
-    name,
-    icon25d: art.icon25d,
-    properties: def.properties.map((p) => (p.key === 'name' ? { ...p, default: name } : p)),
-  }
-})
+const transportAssetComponents = withIllustrations(
+  buildAssetComponents('transport', transportIcons, transportMeta),
+  illustratedAssets,
+)
 
 export const transportComponents = transportAssetComponents

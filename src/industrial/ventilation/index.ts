@@ -1,4 +1,4 @@
-import { buildAssetComponents } from '../assetComponents'
+import { buildAssetComponents, withIllustrations } from '../assetComponents'
 import { ventilationIcons, ventilationMeta } from './icons.generated'
 
 /**
@@ -487,21 +487,10 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   },
 }
 
-const ventilationAssetComponents = buildAssetComponents(
-  'ventilation',
-  ventilationIcons,
-  ventilationMeta,
-).map((def) => {
-  const art = illustratedAssets[def.type]
-  if (!art) return def
-  const name = art.name ?? def.name
-  return {
-    ...def,
-    name,
-    icon25d: art.icon25d,
-    properties: def.properties.map((p) => (p.key === 'name' ? { ...p, default: name } : p)),
-  }
-})
+const ventilationAssetComponents = withIllustrations(
+  buildAssetComponents('ventilation', ventilationIcons, ventilationMeta),
+  illustratedAssets,
+)
 
 /**
  * 主通风系统（外部素材导入）：主通风风道 / 主扇电机 / 主启动器 / 控制分站 /

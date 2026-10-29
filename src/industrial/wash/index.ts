@@ -7,7 +7,7 @@
  * 面基覆盖表（2.5D）按指南 §4.5 同姿态重绘：viewBox 逐字沿用原稿、外沿不越
  * 原稿轮廓，装饰线沿用原稿路径；17 台确认稿已由需求方逐台确认（2026-10-25）。
  */
-import { buildAssetComponents } from '../assetComponents'
+import { buildAssetComponents, withIllustrations } from '../assetComponents'
 import { washIcons, washMeta } from './icons.generated'
 import type { ComponentDefinition } from '@/types/scada'
 
@@ -455,16 +455,9 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
 </svg>` },
 }
 
-const washAssetComponents = buildAssetComponents('wash', washIcons, washMeta).map((def) => {
-  const art = illustratedAssets[def.type]
-  if (!art) return def
-  const name = art.name ?? def.name
-  return {
-    ...def,
-    name,
-    icon25d: art.icon25d,
-    properties: def.properties.map((p) => (p.key === 'name' ? { ...p, default: name } : p)),
-  }
-})
+const washAssetComponents = withIllustrations(
+  buildAssetComponents('wash', washIcons, washMeta),
+  illustratedAssets,
+)
 
 export const washComponents: ComponentDefinition[] = washAssetComponents

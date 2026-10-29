@@ -13,6 +13,13 @@ export interface AssetIconMeta {
   height: number
 }
 
+/** 素材件的 2.5D 面基稿；`icon` 仍是生成文件里的素材原稿（见 docs/2.5D_ILLUSTRATION_GUIDE.md §4.5） */
+export interface AssetIllustration {
+  icon25d: string
+  /** 可选：覆盖显示名，同时改属性面板里「名称」的默认值 */
+  name?: string
+}
+
 /**
  * 素材图元的旋转件声明。
  *
@@ -273,6 +280,30 @@ export function buildAssetComponents(
           ? [{ key: 'animate', label: '运转动效', type: 'boolean' as const, default: true, group: '基本' }]
           : []),
       ],
+    }
+  })
+}
+
+/**
+ * 把面基稿叠加到素材图元上：`icon` 保持导入原稿（2D 画布与组件面板都读它），
+ * 面基稿只写进 `icon25d`；给了 `name` 时同步属性面板的默认名。
+ *
+ * 单独成一个函数而不是塞进 buildAssetComponents 的参数：动效声明是第 4 个位置参数，
+ * 没有动效的组要覆盖图标就得写 `undefined` 占位，读完不知道跳过的是什么。
+ */
+export function withIllustrations(
+  defs: ComponentDefinition[],
+  illustrated: Record<string, AssetIllustration>,
+): ComponentDefinition[] {
+  return defs.map((def) => {
+    const art = illustrated[def.type]
+    if (!art) return def
+    const name = art.name ?? def.name
+    return {
+      ...def,
+      name,
+      icon25d: art.icon25d,
+      properties: def.properties.map((p) => (p.key === 'name' ? { ...p, default: name } : p)),
     }
   })
 }
