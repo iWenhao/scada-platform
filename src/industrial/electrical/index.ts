@@ -466,6 +466,43 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
     </g>
   </svg>`,
   },
+  // 开关合位：素材原稿是一个 56×62 的实心矩形（只有「闭合」的色块，读不出是开关）。
+  // 2.5D 改按「开关」同族的刀开关画，刀片压在固定触头上＝合闸；画幅沿用原稿 56×62，
+  // 因此图形只占中间一条（元素占位比 2D 方块瘦一圈，这是换符号的代价）。
+  elec_switch_closed: {
+    icon25d: `<svg viewBox="0 0 56 62" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="28" cy="60.4" rx="20" ry="1.2" data-shadow="1"/>
+
+      <!-- 上引线：竖圆柱 -->
+      <rect x="25.7" y="0" width="4.6" height="18" data-face="body"/>
+
+      <!-- 固定触头横担 -->
+      <rect x="6" y="18" width="44" height="4.4" data-face="front"/>
+      <rect x="6" y="18" width="44" height="1.6" data-face="top"/>
+      <path d="M6,18 L50,18" data-edge="hi"/>
+      <path d="M6,22.4 L50,22.4" data-edge="lo" stroke-width="1"/>
+
+      <!-- 刀片：合位时竖着压在触头上。必须比上下引线宽、并向右偏出 1 单位——
+           与引线同宽时整台读成「一根杆 + 两道横担」，看不出哪一段是刀 -->
+      <rect x="26" y="22.4" width="6" height="23.2" data-face="front"/>
+      <rect x="26" y="22.4" width="6" height="1.4" data-face="top"/>
+      <path d="M26,22.4 L32,22.4" data-edge="hi"/>
+      <path d="M26,45.6 L32,45.6" data-edge="lo" stroke-width="1"/>
+      <path d="M32,23.8 L32,45.6" data-edge="lo" stroke-width="1"/>
+
+      <!-- 下触头 + 转轴 -->
+      <rect x="15" y="45.6" width="26" height="4.4" data-face="front"/>
+      <rect x="15" y="45.6" width="26" height="1.6" data-face="top"/>
+      <path d="M15,45.6 L41,45.6" data-edge="hi"/>
+      <circle cx="28.6" cy="47.8" r="2.8" data-face="cap"/>
+      <circle cx="28.6" cy="47.8" r="2.8" data-edge="lo" stroke-width="0.8"/>
+
+      <!-- 下引线 -->
+      <rect x="25.7" y="50" width="4.6" height="12" data-face="body"/>
+    </g>
+  </svg>`,
+  },
 }
 
 const electricalAssetComponents = withIllustrations(
