@@ -63,6 +63,37 @@ describe('pipeBodyConfigs', () => {
     expect(cfgs[2].strokeWidth).toBe(5)
     expect(cfgs[3].points[0]).toBe(g.right)
   })
+
+  it('2.5D 换成渐变管身：渐变档位取自 barrel token，端点与 2D 管壁重合', () => {
+    const cfgs = pipeBodyConfigs(makePipe(), '#00d4aa', 0, '25d')
+    // 管身 + 两条棱线 + 两端法兰 + 两道接缝
+    expect(cfgs).toHaveLength(7)
+    const g = pipeGeometry(makePipe(), 0)
+    const [body, hi, lo] = cfgs
+    expect(body.points).toEqual([g.left, g.midY, g.right, g.midY])
+    expect(body.strokeWidth).toBe(g.bodyH)
+    // 亮带在天顶、向下逐档压暗（与 FACE_STYLE.barrel 同一组数字）
+    expect(body.strokeLinearGradientColorStops).toEqual([
+      0, 'rgba(0,212,170,0.9)',
+      0.16, 'rgba(0,212,170,0.96)',
+      0.55, 'rgba(0,212,170,0.62)',
+      0.82, 'rgba(0,212,170,0.34)',
+      1, 'rgba(0,212,170,0.14)',
+    ])
+    expect(body.strokeLinearGradientStartPoint).toEqual({ x: 0, y: g.midY - g.bodyH / 2 })
+    expect(hi.points).toEqual([g.left, g.midY - g.bodyH / 2, g.right, g.midY - g.bodyH / 2])
+    expect(lo.points).toEqual([g.left, g.midY + g.bodyH / 2, g.right, g.midY + g.bodyH / 2])
+    // 法兰与管身共用同一条渐变轴，接缝处不断层
+    expect(cfgs[3].strokeLinearGradientColorStops).toEqual(body.strokeLinearGradientColorStops)
+    expect(cfgs[3].points[0]).toBe(g.left)
+    expect(cfgs[4].points[0]).toBe(g.right)
+  })
+
+  it('颜色解析不了时退回 2D 线条稿，不画没有明暗的实心条', () => {
+    const cfgs = pipeBodyConfigs(makePipe(), 'var(--pipe-color)', 0, '25d')
+    expect(cfgs).toHaveLength(4)
+    expect(cfgs[0].strokeWidth).toBe(2)
+  })
 })
 
 describe('pipeDashConfig', () => {

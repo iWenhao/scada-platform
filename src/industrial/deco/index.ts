@@ -1,5 +1,5 @@
 import type { AssetIconMeta } from '../assetComponents'
-import { buildAssetComponents } from '../assetComponents'
+import { buildAssetComponents, withIllustrations } from '../assetComponents'
 import { decoIcons, decoMeta } from './icons.generated'
 
 /**
@@ -49,7 +49,93 @@ const fittingIcons: Record<string, string> = {
   ...Object.fromEntries(PIPE_FITTING_TYPES.map((type) => [type, toStatusColor(decoIcons[type] ?? '')])),
 }
 
+/**
+ * 管件的面基稿（2.5D）。原稿是几块 `rx=1` 圆角矩形拼出的「管段 + 法兰」，面基只换着色：
+ * 横段铺 `barrel`（亮带压天顶、向下压暗），竖段铺 `body`（亮带偏左）——两种朝向分用两个
+ * token，和 `pipeFlow.ts` 里原生管身用的是同一组数字（`CYLINDER_STOPS`）。
+ *
+ * 三个容易踩的点：
+ * - **弯头/三通/四通的两段管身在原稿里是重叠的**（同一块 6×6 角落各铺一次）。面是半透明
+ *   的，叠在一起只会变亮，角上会浮出一块亮补丁；所以竖向段改成只画到接缝的路径，
+ *   与横段 butt 对接，既不叠色也不留缝。
+ * - **法兰不能用 `barrel`**：2 宽的法兰铺竖直渐变会向底部淡到几乎看不见，法兰形状就丢了；
+ *   用 `top` 又亮得像两根独立的灯管。`front`（横向渐变、不淡出）才是法兰盘缘的读法。
+ * - **接触阴影必须压在原稿内容界内**：阴影压到界外会把内容包围盒撑大，切换风格时整件
+ *   缩小（§4.5 第 5 条）。原稿圆头描边决定的最大线宽是 1，棱线显式写回 1 才对得上。
+ */
+const fittingIllustrations: Record<string, { icon25d: string }> = {
+  deco_straight: {
+    icon25d: `<svg viewBox="0 0 22 10" xmlns="http://www.w3.org/2000/svg">
+      <g stroke-width="1">
+        <ellipse cx="10.5" cy="8.4" rx="5" ry="0.5" data-shadow="1" />
+        <rect x="3" y="1.5" width="15" height="6" rx="1" data-face="barrel" />
+        <rect x="0" y="0" width="2" height="9" rx="1" data-face="front" />
+        <rect x="19" y="0" width="2" height="9" rx="1" data-face="front" />
+        <path d="M4,1.5 H17" data-edge="hi" stroke-width="1" />
+        <path d="M4,7.5 H17" data-edge="lo" stroke-width="1" />
+      </g>
+    </svg>`,
+  },
+  deco_elbow: {
+    icon25d: `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+      <g stroke-width="1">
+        <ellipse cx="9" cy="18.9" rx="5.5" ry="0.5" data-shadow="1" />
+        <path d="M2.5,3 H6.5 A1,1 0 0 1 7.5,4 V12 H1.5 V4 A1,1 0 0 1 2.5,3 Z" data-face="body" />
+        <rect x="1.5" y="12" width="15" height="6" rx="1" data-face="barrel" />
+        <rect x="17.5" y="10.5" width="2" height="9" rx="1" data-face="front" />
+        <rect x="0" y="0" width="9" height="2" rx="1" data-face="front" />
+        <path d="M1.5,4 V12" data-edge="hi" stroke-width="1" />
+        <path d="M7.5,4 V12" data-edge="lo" stroke-width="1" />
+        <path d="M7.5,12 H15.5" data-edge="hi" stroke-width="1" />
+        <path d="M2.5,18 H15.5" data-edge="lo" stroke-width="1" />
+      </g>
+    </svg>`,
+  },
+  deco_tee: {
+    icon25d: `<svg viewBox="0 0 31 20" xmlns="http://www.w3.org/2000/svg">
+      <g stroke-width="1">
+        <ellipse cx="15" cy="18.9" rx="8" ry="0.5" data-shadow="1" />
+        <path d="M13,3 H17 A1,1 0 0 1 18,4 V12 H12 V4 A1,1 0 0 1 13,3 Z" data-face="body" />
+        <rect x="3" y="12" width="24" height="6" rx="1" data-face="barrel" />
+        <rect x="0" y="10.5" width="2" height="9" rx="1" data-face="front" />
+        <rect x="28" y="10.5" width="2" height="9" rx="1" data-face="front" />
+        <rect x="10.5" y="0" width="9" height="2" rx="1" data-face="front" />
+        <path d="M4,12 H12" data-edge="hi" stroke-width="1" />
+        <path d="M18,12 H26" data-edge="hi" stroke-width="1" />
+        <path d="M12,4 V12" data-edge="hi" stroke-width="1" />
+        <path d="M18,4 V12" data-edge="lo" stroke-width="1" />
+        <path d="M4,18 H26" data-edge="lo" stroke-width="1" />
+      </g>
+    </svg>`,
+  },
+  deco_cross: {
+    icon25d: `<svg viewBox="0 0 31 30" xmlns="http://www.w3.org/2000/svg">
+      <g stroke-width="1">
+        <ellipse cx="15" cy="29.2" rx="3.5" ry="0.5" data-shadow="1" />
+        <path d="M13,3 H17 A1,1 0 0 1 18,4 V12 H12 V4 A1,1 0 0 1 13,3 Z" data-face="body" />
+        <path d="M12,18 H18 V26 A1,1 0 0 1 17,27 H13 A1,1 0 0 1 12,26 Z" data-face="body" />
+        <rect x="3" y="12" width="24" height="6" rx="1" data-face="barrel" />
+        <rect x="0" y="10.5" width="2" height="9" rx="1" data-face="front" />
+        <rect x="28" y="10.5" width="2" height="9" rx="1" data-face="front" />
+        <rect x="10.5" y="0" width="9" height="2" rx="1" data-face="front" />
+        <rect x="10.5" y="28" width="9" height="2" rx="1" data-face="front" />
+        <path d="M4,12 H12" data-edge="hi" stroke-width="1" />
+        <path d="M18,12 H26" data-edge="hi" stroke-width="1" />
+        <path d="M12,4 V12" data-edge="hi" stroke-width="1" />
+        <path d="M18,4 V12" data-edge="lo" stroke-width="1" />
+        <path d="M12,18 V26" data-edge="hi" stroke-width="1" />
+        <path d="M18,18 V26" data-edge="lo" stroke-width="1" />
+        <path d="M4,18 H12" data-edge="lo" stroke-width="1" />
+        <path d="M18,18 H26" data-edge="lo" stroke-width="1" />
+      </g>
+    </svg>`,
+  },
+}
+
 /** 注册进「管道组件」的管件，由 pipeline/index.ts 汇入 */
-export const pipeFittingComponents = buildAssetComponents('pipeline', fittingIcons, metaWhere(isFitting))
+export const pipeFittingComponents = withIllustrations(
+  buildAssetComponents('pipeline', fittingIcons, metaWhere(isFitting)),
+  fittingIllustrations,
+)
 
 export const decoComponents = buildAssetComponents('deco', decoIcons, metaWhere((type) => !isFitting(type)))

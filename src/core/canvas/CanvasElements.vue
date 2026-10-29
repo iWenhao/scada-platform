@@ -248,7 +248,7 @@ const renderItems = computed(() => props.elements.map((element) => {
   if (element.type === 'pipe') {
     item.color = getElementColor(element)
     item.labelHeight = getLabelHeight(element)
-    item.pipeBodies = pipeBodyConfigs(element, item.color, item.labelHeight)
+    item.pipeBodies = pipeBodyConfigs(element, item.color, item.labelHeight, props.viewMode)
     item.flowing = isPipeFlowing(element)
   }
 

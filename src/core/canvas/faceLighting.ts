@@ -65,6 +65,19 @@ const FACE_STYLE = {
 
 type FaceKey = keyof typeof FACE_STYLE
 
+/**
+ * 横卧圆柱的明暗序列（位置 → 不透明度）。导出去给**原生绘制**的件复用：管道管身由
+ * `pipeFlow.ts` 用 Konva 画（图标画不出任意长度的管段），光照数字必须和这里同一份，
+ * 否则切到 2.5D 后管道与旁边设备的亮带位置对不上。
+ */
+export const CYLINDER_STOPS = FACE_STYLE.barrel.stops
+
+/** 棱线与接缝的数值口径；SVG token 与原生绘制件共用这一份 */
+export const EDGE_SPEC = {
+  hi: { width: 1.2, opacity: 1 },
+  lo: { width: 1.4, opacity: 0.3 },
+} as const
+
 /** 平面风格的面：不分朝向统一平涂，靠描边区分边界（2D 本来就是线稿观感） */
 const FLAT_FACE = 'fill="currentColor" fill-opacity="0.18" stroke-opacity="0.85"'
 
@@ -72,8 +85,8 @@ const FLAT_FACE = 'fill="currentColor" fill-opacity="0.18" stroke-opacity="0.85"
  * 边缘标注：立体风格的体积感靠「面不加描边 + 只画关键棱线与接缝」。
  * hi = 受光的棱线（亮线），lo = 接缝/凹槽（半透明黑压暗）。
  */
-const EDGE_HI = 'fill="none" stroke="currentColor" stroke-opacity="1" stroke-width="1.2"'
-const EDGE_LO = 'fill="none" stroke="#000000" stroke-opacity="0.3" stroke-width="1.4"'
+const EDGE_HI = `fill="none" stroke="currentColor" stroke-opacity="${EDGE_SPEC.hi.opacity}" stroke-width="${EDGE_SPEC.hi.width}"`
+const EDGE_LO = `fill="none" stroke="#000000" stroke-opacity="${EDGE_SPEC.lo.opacity}" stroke-width="${EDGE_SPEC.lo.width}"`
 /** 平面风格：两种棱线都还原成同一粗细的线条稿 */
 const FLAT_EDGE = 'fill="none" stroke-opacity="0.8"'
 

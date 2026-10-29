@@ -1,6 +1,7 @@
 import { ref } from 'vue'
-import type { ComponentInstance } from '@/types/scada'
+import type { ComponentInstance, ViewMode } from '@/types/scada'
 import { onFrame } from './animationClock'
+import { CYLINDER_STOPS, EDGE_SPEC } from './faceLighting'
 
 /**
  * 管道画布渲染与流动动画。
@@ -61,9 +62,23 @@ export function pipeGeometry(element: ComponentInstance, labelH: number) {
   }
 }
 
-/** 管身静态图形：上下管壁 + 两端法兰（法兰用圆头粗竖线），颜色跟随状态色 */
-export function pipeBodyConfigs(element: ComponentInstance, color: string, labelH: number) {
-  const { midY, bodyH, left, right } = pipeGeometry(element, labelH)
+/**
+ * 管身静态图形，颜色跟随状态色。
+ * 2D：上下管壁 + 两端法兰（法兰用圆头粗竖线）；2.5D：渐变圆柱，见 `cylinderConfigs`。
+ */
+export function pipeBodyConfigs(
+  element: ComponentInstance,
+  color: string,
+  labelH: number,
+  viewMode: ViewMode = '2d',
+) {
+  const geometry = pipeGeometry(element, labelH)
+  const { midY, bodyH, left, right } = geometry
+  if (viewMode === '25d') {
+    const cylinder = cylinderConfigs(color, geometry)
+    // 颜色不是 hex / rgb()（例如开发者传了 var(...)）时退回线条稿：宁可不立体，也不要一块没明暗的实心条
+    if (cylinder) return cylinder
+  }
   const wall = bodyH / 2
   const flange = wall + 4
   return [
@@ -93,6 +108,111 @@ export function pipeBodyConfigs(element: ComponentInstance, color: string, label
       lineCap: 'round' as const,
       listening: false,
     },
+  ]
+}
+
+/**
+ * 状态色 → 描边渐变各档。Konva 的渐变只认颜色、没有 stop-opacity，所以把同一个状态色
+ * 按 `CYLINDER_STOPS`（= FACE_STYLE.barrel）的不透明度写成 rgba 各档——管道与图标
+ * 设备用的是同一组明暗数字。解析不了颜色时返回 null。
+ */
+function barrelStops(color: string): Array<number | string> | null {
+  const rgb = parseRgb(color)
+  if (!rgb) return null
+  const stops: Array<number | string> = []
+  for (const [offset, alpha] of CYLINDER_STOPS) {
+    stops.push(offset, `rgba(${rgb},${alpha})`)
+  }
+  return stops
+}
+
+/** 解析 #rgb / #rrggbb / rgb() / rgba() 为 "r,g,b"；颜色通道一律按 0~255 取整 */
+function parseRgb(color: string): string | null {
+  const value = color.trim()
+  const hex = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i)
+  if (hex) {
+    const raw = hex[1].length === 3 ? hex[1].split('').map(c => c + c).join('') : hex[1]
+    return [0, 2, 4].map(i => parseInt(raw.slice(i, i + 2), 16)).join(',')
+  }
+  const fn = value.match(/^rgba?\(([^)]+)\)$/i)
+  if (fn) {
+    const parts = fn[1].split(',').map(s => s.trim())
+    const channels = parts.slice(0, 3).map(p => Number.parseInt(p, 10))
+    if (channels.length === 3 && channels.every(n => Number.isFinite(n))) return channels.join(',')
+  }
+  return null
+}
+
+/**
+ * 2.5D 管身：横卧圆柱。整根管身是**一条带渐变描边的中心线**——渐变轴竖直穿过管壁，
+ * 亮带压在天顶、向下逐档压暗，和图标里 `barrel` 面的光感一致；上下两条棱线收边，
+ * 两端法兰用同一条渐变轴的竖带（越过管壁的部分被 clamp 成盘缘），内侧各压一道接缝。
+ *
+ * 几何全部取自 `pipeGeometry`，端点与 2D 的管壁 / 法兰完全重合：切换风格时管段长度、
+ * 法兰位置都不动。
+ */
+function cylinderConfigs(color: string, geometry: ReturnType<typeof pipeGeometry>): any[] | null {
+  const stops = barrelStops(color)
+  if (!stops) return null
+  const { midY, bodyH, left, right } = geometry
+  const wall = bodyH / 2
+  const flange = wall + 4
+  // 法兰与管身共用同一条竖直渐变轴，接缝处才不会出现明暗断层
+  const axis = {
+    strokeLinearGradientStartPoint: { x: 0, y: midY - wall },
+    strokeLinearGradientEndPoint: { x: 0, y: midY + wall },
+    strokeLinearGradientColorStops: stops,
+  }
+  const seam = (x: number) => ({
+    points: [x, midY - flange, x, midY + flange],
+    stroke: '#000000',
+    opacity: EDGE_SPEC.lo.opacity,
+    strokeWidth: EDGE_SPEC.lo.width,
+    lineCap: 'butt' as const,
+    listening: false,
+  })
+  return [
+    {
+      points: [left, midY, right, midY],
+      stroke: color,
+      strokeWidth: bodyH,
+      lineCap: 'butt' as const,
+      ...axis,
+      listening: false,
+    },
+    {
+      points: [left, midY - wall, right, midY - wall],
+      stroke: color,
+      strokeWidth: EDGE_SPEC.hi.width,
+      lineCap: 'butt' as const,
+      listening: false,
+    },
+    {
+      points: [left, midY + wall, right, midY + wall],
+      stroke: '#000000',
+      opacity: EDGE_SPEC.lo.opacity,
+      strokeWidth: EDGE_SPEC.lo.width,
+      lineCap: 'butt' as const,
+      listening: false,
+    },
+    {
+      points: [left, midY - flange, left, midY + flange],
+      stroke: color,
+      strokeWidth: 5,
+      lineCap: 'round' as const,
+      ...axis,
+      listening: false,
+    },
+    {
+      points: [right, midY - flange, right, midY + flange],
+      stroke: color,
+      strokeWidth: 5,
+      lineCap: 'round' as const,
+      ...axis,
+      listening: false,
+    },
+    seam(left + 2.5),
+    seam(right - 2.5),
   ]
 }
 

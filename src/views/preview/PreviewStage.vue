@@ -43,7 +43,7 @@
             <!-- 管道：原生管身图形 + 流动虚线（与编辑器渲染保持一致） -->
             <template v-if="element.type === 'pipe'">
               <v-line
-                v-for="(cfg, i) in pipeBodyConfigs(element, getElementColor(element), getLabelHeight(element))"
+                v-for="(cfg, i) in pipeBodyConfigs(element, getElementColor(element), getLabelHeight(element), projectStore.viewMode)"
                 :key="`pipe-body-${i}`"
                 :config="cfg"
               />
