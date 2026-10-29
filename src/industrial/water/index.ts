@@ -140,28 +140,32 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   water_pump: {
     icon25d: `<svg viewBox="0 0 81 98" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="58" cy="96.5" rx="24" ry="1.3" data-shadow="1"/>
+      <!-- 接触阴影收进原稿底边（y≤96）：压在底边外的阴影会把 2.5D 包围盒撑大 2%，
+           切模式时整台泵跟着缩一圈 -->
+      <ellipse cx="58" cy="94.8" rx="21" ry="1.2" data-shadow="1"/>
 
-      <!-- 电机：同轴竖圆柱，上下端被颈圈包住，不另画端面 -->
+      <!-- 电机：同轴竖圆柱，上下端被颈圈包住。圆头上不要再补 45° 弧——
+           弧会横穿颈圈，读成一条钩在机身上的飞线 -->
       <rect x="52" y="9" width="16" height="79" rx="8" data-face="body"/>
 
-      <!-- 上下颈圈：与电机同轴的短颈；竖边不描线（暗底上会成悬空白条），
-           只留贴住端盖的凹弧。下颈圈原稿是绕瓶底的托环，镜像后顶缘向下凹 -->
-      <path d="M55,4 L65,4 L65,11 C62.08,8.66 57.92,8.66 55,11 Z" data-face="body"/>
-      <path d="M55,11 C57.92,8.66 62.08,8.66 65,11" data-edge="lo" stroke-linecap="butt"/>
-      <path d="M55,92 L65,92 L65,86 C62.08,88.34 57.92,88.34 55,86 Z" data-face="body"/>
-      <path d="M55,86 C57.92,88.34 62.08,88.34 65,86" data-edge="lo" stroke-linecap="butt"/>
+      <!-- 上下颈圈：与电机同轴的短颈；竖边不描线（暗底上会成悬空白条）。
+           颈圈底面直接落到机身圆顶上（以机身为圆心、r=8 的圆弧），
+           原稿那条压在大致位置的贝塞尔与圆顶差 1 单位，会在肩上留一道悬空的弧 -->
+      <path d="M55,4 L65,4 L65,10.76 A8,8 0 0 0 55,10.76 Z" data-face="body"/>
+      <path d="M55,10.76 A8,8 0 0 1 65,10.76" data-edge="lo" stroke-linecap="butt"/>
+      <path d="M55,92 L65,92 L65,86.24 A8,8 0 0 1 55,86.24 Z" data-face="body"/>
+      <path d="M55,86.24 A8,8 0 0 0 65,86.24" data-edge="lo" stroke-linecap="butt"/>
 
-      <!-- 端盖板：正面到板底，顶面占顶部一条；圆角沿用原稿 r2 -->
+      <!-- 端盖板：正面到板底，顶面只占一条 1.2 的窄带（顶带给厚了整块板会读成一张桌面） -->
       <rect x="47" y="0" width="26" height="4" rx="2" data-face="front"/>
-      <rect x="47" y="0" width="26" height="1.6" rx="0.8" data-face="top"/>
+      <rect x="47" y="0" width="26" height="1.2" rx="0.6" data-face="top"/>
       <path d="M49,0 L71,0" data-edge="hi"/>
-      <path d="M49,4 L71,4" data-edge="lo"/>
+      <path d="M49,4 L71,4" data-edge="lo" stroke-width="1"/>
 
       <rect x="47" y="92" width="26" height="4" rx="2" data-face="front"/>
-      <rect x="47" y="92" width="26" height="1.6" rx="0.8" data-face="top"/>
+      <rect x="47" y="92" width="26" height="1.2" rx="0.6" data-face="top"/>
       <path d="M49,92 L71,92" data-edge="hi"/>
-      <path d="M49,96 L71,96" data-edge="lo"/>
+      <path d="M49,96 L71,96" data-edge="lo" stroke-width="1"/>
 
       <!-- 护罩：贴在电机前的薄板，看到的是它朝左的窄边，属受光侧 -->
       <path d="M50,18 L52,18 L52,79 L50,79 C48.9,79 48,78.1 48,77 L48,20 C48,18.9 48.9,18 50,18 Z" data-face="front"/>
@@ -169,41 +173,43 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <!-- 传动轴 -->
       <rect x="32" y="29" width="4" height="39" rx="2" data-face="body"/>
 
-      <!-- 泵壳：卧式筒体；左端是原稿那块实心圆头端板，画成朝左的竖直面（受光侧），
-           不再用薄椭圆——5 单位宽的椭圆在暗底上会读成一只悬空的白环 -->
-      <path d="M14,33 L15,33 L15,64 L14,64 C11.79,64 10,62.21 10,60 L10,37 C10,34.79 11.79,33 14,33 Z" data-face="front"/>
-      <rect x="15" y="33" width="17" height="31" data-face="barrel"/>
+      <!-- 泵壳：一整条卧式筒体（左端圆头一并铺 barrel）；原稿 x=15 那条竖线只压一道 lo。
+           之前把圆头单独铺 front，竖线两侧一亮一暗，圆头读成勒在筒上的箍 -->
+      <path d="M15,33 L32,33 L32,64 L15,64 C12.24,64 10,61.76 10,59 L10,38 C10,35.24 12.24,33 15,33 Z" data-face="barrel"/>
+      <path d="M15,33 C12.24,33 10,35.24 10,38" data-edge="hi"/>
       <path d="M15,33 L32,33" data-edge="hi"/>
       <path d="M15,64 L32,64" data-edge="lo"/>
+      <path d="M15,33 L15,64" data-edge="lo" stroke-width="1" stroke-linecap="butt"/>
 
       <!-- 进口接管：左端圆头的实心短管，原稿末端不开口 -->
       <path d="M2.5,46 L10,46 L10,51 L2.5,51 C1.12,51 0,49.88 0,48.5 C0,47.12 1.12,46 2.5,46 Z" data-face="barrel"/>
       <path d="M2.5,46 L10,46" data-edge="hi"/>
       <path d="M2.5,51 L10,51" data-edge="lo"/>
 
-      <!-- 护罩支撑板：前窄后宽的梯形，只给上斜棱受光 -->
+      <!-- 护罩支撑板：前窄后宽的梯形，是背光侧的托板。铺 front 会亮成一片「帆」盖住联轴器，
+           仍走 side，靠上斜棱的 hi 勾出受光边 -->
       <polygon points="36,31 48,21 48,76 36,66" data-face="side"/>
       <path d="M36,31 L48,21" data-edge="hi"/>
       <path d="M36,66 L48,76" data-edge="lo"/>
 
-      <!-- 联轴器与中间的凸环 -->
+      <!-- 联轴器与凸环：凸环不再自带 top 窄带——叠在块面上每条带都要配一条 hi，
+           三层摞起来就是百叶窗；只压上下两道 lo，让凸环读成凸起而不是一条贴纸 -->
       <rect x="36" y="39" width="12" height="19" data-face="front"/>
-      <rect x="36" y="39" width="12" height="2" data-face="top"/>
+      <rect x="36" y="39" width="12" height="1.8" data-face="top"/>
       <path d="M36,39 L48,39" data-edge="hi"/>
       <path d="M36,58 L48,58" data-edge="lo"/>
       <rect x="36" y="46" width="12" height="5" data-face="front"/>
-      <rect x="36" y="46" width="12" height="1.6" data-face="top"/>
-      <path d="M36,46 L48,46" data-edge="hi"/>
-      <path d="M36,51 L48,51" data-edge="lo"/>
+      <path d="M36,46 L48,46" data-edge="lo" stroke-width="1"/>
+      <path d="M36,51 L48,51" data-edge="lo" stroke-width="1"/>
 
       <!-- 出口接管：横卧短管（筒面），顶部受光 -->
       <rect x="68" y="39" width="6" height="19" data-face="barrel"/>
       <path d="M68,39 L74,39" data-edge="hi"/>
       <path d="M68,58 L74,58" data-edge="lo"/>
 
+      <!-- 出口法兰：原稿是一根竖圆棒，顶上是圆头。别在圆头上补 cap 椭圆——
+           2.5 单位宽的椭圆在暗底上就是一颗悬在棒顶的珠子 -->
       <rect x="74" y="30" width="5" height="37" rx="2.5" data-face="body"/>
-      <ellipse cx="76.5" cy="31.2" rx="2.5" ry="1.2" data-face="cap"/>
-      <path d="M74,31.2 A2.5,1.2 0 0 1 79,31.2" data-edge="hi"/>
     </g>
   </svg>`,
   },
@@ -730,31 +736,30 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
   water_booster_pump: {
     icon25d: `<svg viewBox="0 0 73 98" xmlns="http://www.w3.org/2000/svg">
     <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <ellipse cx="34" cy="96.6" rx="27" ry="1.3" data-shadow="1"/>
+      <ellipse cx="34" cy="94.8" rx="26" ry="1.2" data-shadow="1"/>
 
-      <!-- 胶囊机身：两端整圆只用左上的亮弧与右下的暗弧交代体积 -->
+      <!-- 胶囊机身：体积全靠 body 渐变。两端别再补 45° 弧——短弧收口会留在胶囊外，
+           读成钩在机身上的一条飞线 -->
       <rect x="12" y="9" width="21" height="79" rx="10.5" data-face="body"/>
-      <path d="M12,19.5 A10.5,10.5 0 0 1 22.5,9" data-edge="hi"/>
-      <path d="M33,77.5 A10.5,10.5 0 0 1 22.5,88" data-edge="lo"/>
 
       <!-- 上下卡箍是同轴的短颈，用与罐身一致的柱面；竖边不描线（暗底上会变成一根悬空白条），
            只保留底缘那条平头暗弧交代颈肩交界 -->
-      <path d="M15,4 L29,4 L29,11 C24.66,8.52 19.34,8.52 15,11 Z" data-face="body"/>
-      <path d="M15,11 C19.34,8.52 24.66,8.52 29,11" data-edge="lo" stroke-linecap="butt"/>
+      <path d="M15,4 L29,4 L29,12.15 A10.5,10.5 0 0 0 15,12.15 Z" data-face="body"/>
+      <path d="M15,12.15 A10.5,10.5 0 0 1 29,12.15" data-edge="lo" stroke-linecap="butt"/>
 
       <!-- 盖板：顶面单独占一条窄面，正面到板底；顶面若只画成嵌在板里的细亮条会读成开槽 -->
       <rect x="9" y="0" width="26" height="4" rx="2" data-face="front"/>
-      <rect x="9" y="0" width="26" height="1.6" rx="0.8" data-face="top"/>
+      <rect x="9" y="0" width="26" height="1.2" rx="0.6" data-face="top"/>
       <path d="M11,0 L33,0" data-edge="hi"/>
-      <path d="M11,4 L33,4" data-edge="lo"/>
+      <path d="M11,4 L33,4" data-edge="lo" stroke-width="1"/>
 
-      <path d="M15,92 L29,92 L29,86 C24.66,88.48 19.34,88.48 15,86 Z" data-face="body"/>
-      <path d="M15,86 C19.34,88.48 24.66,88.48 29,86" data-edge="lo" stroke-linecap="butt"/>
+      <path d="M15,92 L29,92 L29,84.85 A10.5,10.5 0 0 1 15,84.85 Z" data-face="body"/>
+      <path d="M15,84.85 A10.5,10.5 0 0 0 29,84.85" data-edge="lo" stroke-linecap="butt"/>
 
       <rect x="9" y="92" width="26" height="4" rx="2" data-face="front"/>
-      <rect x="9" y="92" width="26" height="1.6" rx="0.8" data-face="top"/>
+      <rect x="9" y="92" width="26" height="1.2" rx="0.6" data-face="top"/>
       <path d="M11,92 L33,92" data-edge="hi"/>
-      <path d="M11,96 L33,96" data-edge="lo"/>
+      <path d="M11,96 L33,96" data-edge="lo" stroke-width="1"/>
 
       <!-- 右侧立管与泵体：原稿的圆角在右端，左缘贴着胶囊。
            右上圆角落在背光侧，只留右下暗弧；给右上补亮线会变成一条悬空的白钩 -->
@@ -768,12 +773,10 @@ const illustratedAssets: Record<string, { icon25d: string; name?: string }> = {
       <!-- 台阶盘：两段盘由后向前逐段提亮（背光面→正面），与高压泵同一配方；
            右缘那道竖线是原稿区分盘面与泵壳的轮廓，不画就被泵壳吞掉。
            棱线用平头端点：圆头会各自伸出盘面 0.7，小尺寸下读成一排短棒 -->
-      <rect x="39" y="38" width="8" height="21" data-face="side"/>
+      <rect x="39" y="38" width="8" height="21" data-face="front"/>
       <path d="M39,38 L47,38" data-edge="hi" stroke-linecap="butt"/>
       <path d="M39,59 L47,59" data-edge="lo" stroke-linecap="butt"/>
       <rect x="39" y="45" width="8" height="7" data-face="front"/>
-      <path d="M39,45 L47,45" data-edge="hi" stroke-linecap="butt"/>
-      <path d="M39,52 L47,52" data-edge="lo" stroke-linecap="butt"/>
       <path d="M47,33 L47,64" data-edge="lo" stroke-width="1.2" stroke-linecap="butt"/>
 
       <path d="M58,37 L58,60 C59.66,60 61,58.66 61,57 L61,40 C61,38.34 59.66,37 58,37 Z" data-face="body"/>
